@@ -1,0 +1,118 @@
+Region: us-east-1
+Image:
+  Os: alinux2023
+  # Custom AMI with AOCC can be specified here
+  # CustomAmi: ami-xxxxxxxxx
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    SubnetId: subnet-xxxxxxxxx  # Replace with your subnet
+  Ssh:
+    KeyName: your-key-pair  # Replace with your key pair
+  LocalStorage:
+    RootVolume:
+      Size: 100
+      VolumeType: gp3
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://your-bucket/post-install/amd-toolchain-setup.sh
+      Args:
+        - amd
+        - hpc7a
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 10
+  SlurmQueues:
+    - Name: compute-hpc7a
+      ComputeResources:
+        - Name: hpc7a-48xlarge
+          InstanceType: hpc7a.48xlarge
+          MinCount: 0
+          MaxCount: 20
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx  # Replace with your subnet
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/amd-toolchain-setup.sh
+          Args:
+            - amd
+            - hpc7a
+
+    - Name: compute-hpc7a-96
+      ComputeResources:
+        - Name: hpc7a-96xlarge
+          InstanceType: hpc7a.96xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/amd-toolchain-setup.sh
+          Args:
+            - amd
+            - hpc7a
+
+    - Name: compute-c7a-48
+      ComputeResources:
+        - Name: c7a-48xlarge
+          InstanceType: c7a.48xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/amd-toolchain-setup.sh
+          Args:
+            - amd
+            - c7a
+
+SharedStorage:
+  - MountDir: /fsx
+    Name: gchp-fsx
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      PerUnitStorageThroughput: 200
+
+DevSettings:
+  Cookbook:
+    ChefCookbook: https://github.com/aws/aws-parallelcluster-cookbook/archive/refs/tags/aws-parallelcluster-cookbook-3.11.0.tar.gz
+
+Tags:
+  - Key: Application
+    Value: GCHP
+  - Key: Architecture
+    Value: AMD-x86_64
+  - Key: InstanceFamily
+    Value: hpc7a
+  - Key: Project
+    Value: GCHP-Benchmarking

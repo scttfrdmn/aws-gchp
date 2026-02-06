@@ -1,0 +1,103 @@
+# GCHP Multi-Node Multi-Queue Test Cluster
+# Purpose: Validate EFA and multi-node MPI with multiple instance types
+# Queue 1: hpc7a.24xlarge (on-demand, EFA, optimal for HPC)
+# Queue 2: c7a.48xlarge (on-demand, better availability)
+# Cost: ~$3/hr per node
+#
+# NETWORKING NOTE (Multi-NIC/EFA Instances):
+# hpc7a.24xlarge has multiple network interfaces for EFA. AWS does not allow
+# subnet auto-assign public IPs for multi-NIC instances.
+#
+# SOLUTION: Use ElasticIp: true in HeadNode configuration.
+# ParallelCluster automatically allocates and assigns an ElasticIP.
+# Subnet should have MapPublicIpOnLaunch: false (already configured).
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge  # 8 vCPU, 16 GB
+  Networking:
+    SubnetId: subnet-cbdcddb1  # us-east-2b
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2
+    QueueUpdateStrategy: TERMINATE
+
+  SlurmQueues:
+    # Original hpc7a queue
+    - Name: multinode-test
+      ComputeResources:
+        - Name: hpc7a-efa
+          InstanceType: hpc7a.24xlarge  # 48 cores, 300 Gbps EFA
+          MinCount: 0
+          MaxCount: 4
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+    # New c7a queue for better availability
+    - Name: c7a-compute
+      ComputeResources:
+        - Name: c7a-48xl
+          InstanceType: c7a.48xlarge  # 48 cores (96 vCPUs), 384GB RAM
+          MinCount: 0
+          MaxCount: 8  # Allow more nodes due to better availability
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND  # hpc7a doesn't support spot, keeping consistent
+
+SharedStorage:
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmarking
+  - Key: Application
+    Value: Atmospheric-Chemistry
+  - Key: Purpose
+    Value: Multi-Queue-Multi-Instance-Testing
+  - Key: Environment
+    Value: Test
+  - Key: ManagedBy
+    Value: ParallelCluster-Automation
+  - Key: Compiler
+    Value: GCC-14
+  - Key: Owner
+    Value: "scofri@amazon.com"
+  - Key: CostCenter
+    Value: Research
+  - Key: GitRepo
+    Value: aws-gchp
+  - Key: TestType
+    Value: EFA-Multi-Node-MPI
+  - Key: TemporaryResource
+    Value: "true"
+  - Key: AutoDelete
+    Value: After-Testing

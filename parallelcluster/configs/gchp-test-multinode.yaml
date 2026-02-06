@@ -1,0 +1,88 @@
+# GCHP Multi-Node MPI Test Cluster
+# Purpose: Validate EFA and multi-node MPI functionality with 4 nodes
+# Cost: ON-DEMAND ~$3.20/hr, 45 min = ~$2.40 (switch to SPOT after validation)
+# Time: ~45 minutes validation (4 nodes, 192 total cores)
+#
+# NETWORKING NOTE (Multi-NIC/EFA Instances):
+# hpc7a.24xlarge has multiple network interfaces for EFA. AWS does not allow
+# subnet auto-assign public IPs for multi-NIC instances.
+#
+# SOLUTION: Use ElasticIp: true in HeadNode configuration.
+# ParallelCluster automatically allocates and assigns an ElasticIP.
+# Subnet should have MapPublicIpOnLaunch: false (already configured).
+#
+# No manual steps required - ElasticIP is handled automatically!
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge  # 8 vCPU, 16 GB, enhanced networking for cluster management
+  Networking:
+    SubnetId: subnet-cbdcddb1  # us-east-2b (hpc7a.24xlarge only available in us-east-2b)
+    ElasticIp: true  # Auto-allocates ElasticIP for public access (required with MapPublicIpOnLaunch: false)
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2  # Scale down quickly for testing
+    QueueUpdateStrategy: TERMINATE
+
+  SlurmQueues:
+    - Name: multinode-test
+      ComputeResources:
+        - Name: hpc7a-efa
+          InstanceType: hpc7a.24xlarge  # 48 cores, 300 Gbps EFA
+          MinCount: 0
+          MaxCount: 4  # Test with up to 4 nodes = 192 total cores
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1  # us-east-2b (same AZ as head node, required for EFA)
+        PlacementGroup:
+          Enabled: true  # Required for EFA
+      CapacityType: ONDEMAND  # Use ON-DEMAND for initial testing, switch to SPOT after validation
+
+SharedStorage:
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmarking
+  - Key: Application
+    Value: Atmospheric-Chemistry
+  - Key: Purpose
+    Value: Multi-Node-MPI-Testing
+  - Key: Environment
+    Value: Test
+  - Key: ManagedBy
+    Value: ParallelCluster-Automation
+  - Key: Compiler
+    Value: GCC-14
+  - Key: Owner
+    Value: "scofri@amazon.com"
+  - Key: CostCenter
+    Value: Research
+  - Key: GitRepo
+    Value: aws-gchp
+  - Key: TestType
+    Value: EFA-Multi-Node-MPI
+  - Key: TemporaryResource
+    Value: "true"
+  - Key: AutoDelete
+    Value: After-Testing

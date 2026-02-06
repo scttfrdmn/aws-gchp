@@ -1,0 +1,120 @@
+Region: us-east-1
+Image:
+  Os: alinux2023
+  # Custom AMI with Intel oneAPI can be specified here
+  # CustomAmi: ami-xxxxxxxxx
+
+HeadNode:
+  InstanceType: c7i.2xlarge
+  Networking:
+    SubnetId: subnet-xxxxxxxxx  # Replace with your subnet
+  Ssh:
+    KeyName: your-key-pair  # Replace with your key pair
+  LocalStorage:
+    RootVolume:
+      Size: 100
+      VolumeType: gp3
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://your-bucket/post-install/intel-toolchain-setup.sh
+      Args:
+        - intel
+        - c7i
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 10
+  SlurmQueues:
+    - Name: compute-c7i-48
+      ComputeResources:
+        - Name: c7i-48xlarge
+          InstanceType: c7i.48xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx  # Replace with your subnet
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/intel-toolchain-setup.sh
+          Args:
+            - intel
+            - c7i
+
+    - Name: compute-c7i-24
+      ComputeResources:
+        - Name: c7i-24xlarge
+          InstanceType: c7i.24xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/intel-toolchain-setup.sh
+          Args:
+            - intel
+            - c7i
+
+    - Name: compute-c7i-12
+      ComputeResources:
+        - Name: c7i-12xlarge
+          InstanceType: c7i.12xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/intel-toolchain-setup.sh
+          Args:
+            - intel
+            - c7i
+
+SharedStorage:
+  - MountDir: /fsx
+    Name: gchp-fsx
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      PerUnitStorageThroughput: 200
+      # Optionally import data from S3
+      # ImportPath: s3://your-bucket/gchp-input-data
+      # ExportPath: s3://your-bucket/gchp-output-data
+
+DevSettings:
+  Cookbook:
+    ChefCookbook: https://github.com/aws/aws-parallelcluster-cookbook/archive/refs/tags/aws-parallelcluster-cookbook-3.11.0.tar.gz
+
+Tags:
+  - Key: Application
+    Value: GCHP
+  - Key: Architecture
+    Value: Intel-x86_64
+  - Key: InstanceFamily
+    Value: c7i
+  - Key: Project
+    Value: GCHP-Benchmarking

@@ -1,0 +1,76 @@
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge  # Upgraded from t3.medium for faster builds
+  Networking:
+    SubnetId: subnet-cbdcddb1  # us-east-2b (hpc7a only available here)
+    ElasticIp: true  # Auto-allocates ElasticIP (required for multi-NIC instances in private subnet)
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2  # Minutes before idle nodes are terminated
+  SlurmQueues:
+    - Name: multinode-test
+      ComputeResources:
+        - Name: hpc7a-efa
+          InstanceType: hpc7a.24xlarge  # 48 cores, 300 Gbps EFA
+          MinCount: 0
+          MaxCount: 4  # Test with up to 4 nodes = 192 total cores
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1  # us-east-2b (same AZ as head node, required for EFA)
+        PlacementGroup:
+          Enabled: true  # Required for EFA
+      CapacityType: ONDEMAND  # Use ON-DEMAND for initial testing, switch to SPOT after validation
+
+SharedStorage:
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+      # S3 Integration - enables persistent storage across cluster lifecycles
+      ImportPath: s3://gchp-shared-storage-us-east-2/
+      ExportPath: s3://gchp-shared-storage-us-east-2/
+      AutoImportPolicy: NEW_CHANGED  # Auto-import when S3 objects change
+      # DeletionPolicy: Delete  # Default - FSx deleted but data stays in S3
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmarking
+  - Key: Application
+    Value: Atmospheric-Chemistry
+  - Key: Purpose
+    Value: Multi-Node-MPI-Testing
+  - Key: Environment
+    Value: Test
+  - Key: ManagedBy
+    Value: ParallelCluster-Automation
+  - Key: Compiler
+    Value: GCC-14
+  - Key: Owner
+    Value: "scofri@amazon.com"
+  - Key: CostCenter
+    Value: Research
+  - Key: GitRepo
+    Value: aws-gchp
+  - Key: TestType
+    Value: EFA-Multi-Node-MPI
+  - Key: TemporaryResource
+    Value: "true"
+  - Key: AutoDelete
+    Value: After-Testing

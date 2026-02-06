@@ -1,0 +1,70 @@
+# GCHP Minimal Test Cluster
+# Purpose: Validate automation toolkit with minimal resources
+# Cost: ON-DEMAND ~$0.40/hr, 30 min = ~$0.20 (switch to SPOT after validation)
+# Time: ~30 minutes end-to-end
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.medium
+  Networking:
+    SubnetId: subnet-a7ef24cc  # Subnet auto-assigns public IPs
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2  # Scale down quickly for testing
+    QueueUpdateStrategy: TERMINATE
+
+  SlurmQueues:
+    - Name: test
+      ComputeResources:
+        - Name: c7a-test
+          InstanceType: c7a.xlarge  # 4 cores, simpler for initial validation
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-a7ef24cc
+      CapacityType: ONDEMAND  # Use ON-DEMAND for initial testing, switch to SPOT after validation
+
+SharedStorage:
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200  # Minimum size
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmarking
+  - Key: Application
+    Value: Atmospheric-Chemistry
+  - Key: Purpose
+    Value: Automation-Testing
+  - Key: Environment
+    Value: Test
+  - Key: ManagedBy
+    Value: ParallelCluster-Automation
+  - Key: Compiler
+    Value: GCC-14
+  - Key: Owner
+    Value: "scofri@amazon.com"
+  - Key: CostCenter
+    Value: Research
+  - Key: GitRepo
+    Value: aws-gchp
+  - Key: TemporaryResource
+    Value: "true"
+  - Key: AutoDelete
+    Value: After-Testing

@@ -1,0 +1,112 @@
+Region: us-west-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c8i.2xlarge
+  Networking:
+    SubnetId: subnet-0a73ca94ed00cdaf9
+  Ssh:
+    KeyName: aws-benchmark
+  LocalStorage:
+    RootVolume:
+      Size: 100
+      VolumeType: gp3
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    # c5 - 1st Gen Intel Xeon (Skylake/Cascade Lake)
+    - Name: c5-24xl
+      ComputeResources:
+        - Name: c5-24xlarge
+          InstanceType: c5.24xlarge
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9
+        PlacementGroup:
+          Enabled: true
+
+    # c6i - 3rd Gen Intel Xeon (Ice Lake)
+    - Name: c6i-24xl
+      ComputeResources:
+        - Name: c6i-24xlarge
+          InstanceType: c6i.24xlarge
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9
+        PlacementGroup:
+          Enabled: true
+
+    # c7i - 4th Gen Intel Xeon (Sapphire Rapids)
+    - Name: c7i-24xl
+      ComputeResources:
+        - Name: c7i-24xlarge
+          InstanceType: c7i.24xlarge
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9
+        PlacementGroup:
+          Enabled: true
+
+    - Name: c7i-48xl
+      ComputeResources:
+        - Name: c7i-48xlarge
+          InstanceType: c7i.48xlarge
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9
+        PlacementGroup:
+          Enabled: true
+
+    # c8i - 5th Gen Intel Xeon (Emerald Rapids)
+    - Name: c8i-24xl
+      ComputeResources:
+        - Name: c8i-24xlarge
+          InstanceType: c8i.24xlarge
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9
+        PlacementGroup:
+          Enabled: true
+
+    - Name: c8i-48xl
+      ComputeResources:
+        - Name: c8i-48xlarge
+          InstanceType: c8i.48xlarge
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-0a73ca94ed00cdaf9
+        PlacementGroup:
+          Enabled: true
+
+SharedStorage:
+  - MountDir: /fsx
+    Name: fsx-gchp
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 2400
+      DeploymentType: SCRATCH_2

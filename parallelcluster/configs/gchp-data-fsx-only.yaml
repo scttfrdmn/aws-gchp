@@ -1,0 +1,41 @@
+# Data FSx Infrastructure - Deploy Once, Share Across All Clusters
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.micro
+  Networking:
+    SubnetId: subnet-cbdcddb1
+  Ssh:
+    KeyName: aws-benchmark
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: dummy
+      ComputeResources:
+        - Name: dummy
+          InstanceType: t3.micro
+          MinCount: 0
+          MaxCount: 1  # Need at least 1
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+
+SharedStorage:
+  - Name: input-data
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      StorageCapacity: 2400
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+      ImportPath: s3://gchp-input-data-us-east-2/
+      AutoImportPolicy: NEW_CHANGED
+      DeletionPolicy: Retain
+
+Tags:
+  - Key: Purpose
+    Value: GCHP-Shared-Input-Data

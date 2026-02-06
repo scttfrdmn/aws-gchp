@@ -1,0 +1,117 @@
+Region: us-east-1
+Image:
+  Os: alinux2023
+  # Custom AMI with ARM toolchain can be specified here
+  # CustomAmi: ami-xxxxxxxxx
+
+HeadNode:
+  InstanceType: c7g.2xlarge
+  Networking:
+    SubnetId: subnet-xxxxxxxxx  # Replace with your subnet
+  Ssh:
+    KeyName: your-key-pair  # Replace with your key pair
+  LocalStorage:
+    RootVolume:
+      Size: 100
+      VolumeType: gp3
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
+      Args:
+        - arm
+        - hpc7g
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 10
+  SlurmQueues:
+    - Name: compute-hpc7g
+      ComputeResources:
+        - Name: hpc7g-16xlarge
+          InstanceType: hpc7g.16xlarge
+          MinCount: 0
+          MaxCount: 20
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx  # Replace with your subnet
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
+          Args:
+            - arm
+            - hpc7g
+
+    - Name: compute-c7gn-16
+      ComputeResources:
+        - Name: c7gn-16xlarge
+          InstanceType: c7gn.16xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
+          Args:
+            - arm
+            - c7gn
+
+    - Name: compute-c7g-16
+      ComputeResources:
+        - Name: c7g-16xlarge
+          InstanceType: c7g.16xlarge
+          MinCount: 0
+          MaxCount: 10
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: false  # c7g without 'n' has less network performance
+      Networking:
+        SubnetIds:
+          - subnet-xxxxxxxxx
+        PlacementGroup:
+          Enabled: true
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
+          Args:
+            - arm
+            - c7g
+
+SharedStorage:
+  - MountDir: /fsx
+    Name: gchp-fsx
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      PerUnitStorageThroughput: 200
+
+DevSettings:
+  Cookbook:
+    ChefCookbook: https://github.com/aws/aws-parallelcluster-cookbook/archive/refs/tags/aws-parallelcluster-cookbook-3.11.0.tar.gz
+
+Tags:
+  - Key: Application
+    Value: GCHP
+  - Key: Architecture
+    Value: ARM64-Graviton
+  - Key: InstanceFamily
+    Value: hpc7g
+  - Key: Project
+    Value: GCHP-Benchmarking

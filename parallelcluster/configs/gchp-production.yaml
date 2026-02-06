@@ -1,0 +1,68 @@
+# GCHP Production Cluster Configuration
+# Two-FSx Architecture: Software workspace + Shared input data
+# Region: us-east-2 (hpc7a availability)
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge  # 8 cores, good for builds
+  Networking:
+    SubnetId: subnet-cbdcddb1  # us-east-2b (required for hpc7a)
+    ElasticIp: true  # Required for multi-NIC instances
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2  # Terminate idle nodes after 2 minutes
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: hpc7a-efa
+          InstanceType: hpc7a.24xlarge  # 48 cores, 300 Gbps EFA
+          MinCount: 0
+          MaxCount: 4  # Scale to 192 cores
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1  # us-east-2b (same AZ)
+        PlacementGroup:
+          Enabled: true  # Required for EFA
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # FSx #1: Software + Scratch (per-cluster, S3-backed)
+  - Name: workspace
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200  # 1.2 TB
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+      ImportPath: s3://gchp-shared-storage-us-east-2/
+      ExportPath: s3://gchp-shared-storage-us-east-2/
+      AutoImportPolicy: NEW_CHANGED
+
+  # FSx #2: Input Data (shared, read-only, references existing FSx)
+  - Name: input-data
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-000fb12451d9cd16a
+
+Tags:
+  - Key: Project
+    Value: GCHP-on-AWS
+  - Key: Architecture
+    Value: Two-FSx-S3-Backed
+  - Key: Owner
+    Value: "scofri@amazon.com"

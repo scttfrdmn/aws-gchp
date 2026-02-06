@@ -1,0 +1,82 @@
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    SubnetId: subnet-cbdcddb1
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2
+    QueueUpdateStrategy: TERMINATE
+
+  SlurmQueues:
+    # Existing hpc7a queue (named "compute" in current cluster)
+    - Name: compute
+      ComputeResources:
+        - Name: hpc7a-efa
+          InstanceType: hpc7a.24xlarge
+          MinCount: 0
+          MaxCount: 4
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+    # New c7a queue for better availability
+    - Name: c7a-compute
+      ComputeResources:
+        - Name: c7a-48xl
+          InstanceType: c7a.48xlarge
+          MinCount: 0
+          MaxCount: 8
+          DisableSimultaneousMultithreading: true
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # Existing workspace FSx with S3 backing
+  - Name: workspace
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+      ImportPath: s3://gchp-shared-storage-us-east-2/
+      ExportPath: s3://gchp-shared-storage-us-east-2/
+      AutoImportPolicy: NEW_CHANGED
+
+  # Existing input-data FSx (existing filesystem ID)
+  - Name: input-data
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-000fb12451d9cd16a
+
+Tags:
+  - Key: Project
+    Value: GCHP-on-AWS
+  - Key: Architecture
+    Value: Two-FSx-S3-Backed
+  - Key: Owner
+    Value: "scofri@amazon.com"

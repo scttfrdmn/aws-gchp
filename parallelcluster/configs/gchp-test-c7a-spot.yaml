@@ -1,0 +1,85 @@
+# GCHP Multi-Node Test Cluster - c7a.48xlarge with SPOT
+# Purpose: 4-node testing with better availability than hpc7a
+# Instance: c7a.48xlarge (48 physical cores, 96 vCPUs, AMD EPYC Genoa 7R13)
+# Cost: SPOT ~$1.22/hr per instance vs ON-DEMAND $3.06/hr (60% savings)
+# Total: 4 nodes × ~$1.22 = ~$4.88/hr (vs $12.24 on-demand)
+#
+# Key Advantages over hpc7a.24xlarge:
+# - Better availability (more capacity)
+# - SPOT support (60-70% cost savings)
+# - Similar AMD EPYC Genoa architecture
+# - Enhanced networking (EFA capable)
+#
+# Trade-offs:
+# - No built-in EFA like hpc7a (uses ENA instead, still high performance)
+# - Slightly lower memory bandwidth
+# - $3.06/hr on-demand vs $2.89/hr for hpc7a (6% premium)
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    SubnetId: subnet-cbdcddb1  # us-east-2b
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-benchmark
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2
+    QueueUpdateStrategy: TERMINATE
+
+  SlurmQueues:
+    - Name: c7a-spot
+      ComputeResources:
+        - Name: c7a-48xl
+          InstanceType: c7a.48xlarge  # 48 cores (96 vCPUs), 384GB RAM
+          MinCount: 0
+          MaxCount: 8  # Allow up to 8 nodes for future scaling tests
+          DisableSimultaneousMultithreading: true  # Use 48 physical cores only
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1  # us-east-2b
+        PlacementGroup:
+          Enabled: true  # Still beneficial for low-latency networking
+      CapacityType: SPOT  # 60-70% cost savings, better availability
+
+SharedStorage:
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmarking
+  - Key: Application
+    Value: Atmospheric-Chemistry
+  - Key: Purpose
+    Value: 4-Node-Capacity-Test
+  - Key: Environment
+    Value: Test
+  - Key: ManagedBy
+    Value: ParallelCluster-Automation
+  - Key: InstanceType
+    Value: c7a-48xlarge-spot
+  - Key: Owner
+    Value: "scofri@amazon.com"
+  - Key: CostCenter
+    Value: Research
+  - Key: GitRepo
+    Value: aws-gchp
+  - Key: TestType
+    Value: Multi-Node-Spot
+  - Key: TemporaryResource
+    Value: "true"
