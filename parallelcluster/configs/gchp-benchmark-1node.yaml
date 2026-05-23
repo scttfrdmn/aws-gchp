@@ -1,0 +1,69 @@
+# GCHP Single-Node Benchmark Cluster
+# Purpose: Validate GCC 12.3 + GCHP 14.7.1 stack with single-node test
+
+Region: us-east-1
+
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.xlarge
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c7a-nodes
+          InstanceType: c7a.48xlarge  # 96 vCPUs, Zen 4
+          MinCount: 0
+          MaxCount: 1
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # 1. Software Stack (READ-ONLY)
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
+      # NO ExportPath - read-only
+
+  # 2. Input Data (READ-ONLY)
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gcgrid/
+      # NO ExportPath - read-only
+
+  # 3. Scratch (EPHEMERAL)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      # NO ImportPath/ExportPath - ephemeral
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Stack
+    Value: gcc12.3-ompi4.1.7-gchp14.7.1
+  - Key: Test
+    Value: single-node-validation
