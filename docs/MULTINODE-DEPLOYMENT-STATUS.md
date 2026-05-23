@@ -110,7 +110,7 @@ aws ec2 modify-subnet-attribute \
 ### Test 1: SLURM and FSx
 ```bash
 # SSH to head node
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<public-ip>
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@<public-ip>
 
 # Check SLURM
 sinfo

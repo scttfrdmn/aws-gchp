@@ -9,7 +9,7 @@ HeadNode:
   Networking:
     SubnetId: subnet-cbdcddb1
   Ssh:
-    KeyName: aws-benchmark
+    KeyName: aws-gchp
 
 Scheduling:
   Scheduler: slurm

@@ -344,7 +344,7 @@ PUBLIC_IP=$(AWS_PROFILE=aws aws ec2 describe-addresses \
 echo ""
 echo "✅ Success! Head node is now accessible at:"
 echo ""
-echo "  ssh -i ~/.ssh/aws-benchmark.pem ec2-user@$PUBLIC_IP"
+echo "  ssh -i ~/.ssh/aws-gchp.pem ec2-user@$PUBLIC_IP"
 echo ""
 echo "ElasticIP will persist across cluster stop/start cycles."
 echo "Remember to release it when cluster is deleted:"
@@ -365,7 +365,7 @@ chmod +x scripts/associate-head-node-eip.sh
 sleep 30
 
 # SSH to cluster
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<public-ip>
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@<public-ip>
 ```
 
 ---

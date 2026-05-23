@@ -46,7 +46,7 @@ AWS_PROFILE=aws uv run pcluster update-cluster \
 
 ### Step 1: SSH to Cluster
 ```bash
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<head-node-ip>
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
 ```
 
 ### Step 2: Check Queue Status

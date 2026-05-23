@@ -25,7 +25,7 @@ Default: `gchp-test-multinode` in `us-east-2`
 
 1. AWS credentials: `AWS_PROFILE=aws`
 2. Tools: uv, pcluster 3.14.0+
-3. SSH key: `~/.ssh/aws-benchmark.pem`
+3. SSH key: `~/.ssh/aws-gchp.pem`
 4. VPC endpoints (see `/docs/VPC-ENDPOINTS-SOLUTION.md`)
 
 ## Manual Deployment Steps

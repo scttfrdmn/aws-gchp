@@ -23,7 +23,7 @@ HeadNode:
     SubnetId: subnet-cbdcddb1  # us-east-2b (hpc7a.24xlarge only available in us-east-2b)
     ElasticIp: true  # Auto-allocates ElasticIP for public access (required with MapPublicIpOnLaunch: false)
   Ssh:
-    KeyName: aws-benchmark
+    KeyName: aws-gchp
   Iam:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess

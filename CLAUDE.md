@@ -5,14 +5,25 @@ Comprehensive benchmarking of GCHP (GEOS-Chem High Performance) on AWS ParallelC
 
 **Date Context:** January 2026 - Using latest software versions
 
+## Documentation Policy
+**DO NOT create session logs, build summaries, or update documents** (e.g., BUILD-SESSION-*.md, SESSION-SUMMARY-*.md). Only update existing documentation when significant architectural changes occur. Focus on getting work done, not documenting every session.
+
 ## Goals
 1. **Definitive benchmarking for GCHP on AWS** - Start from 8th generation instances and work backwards
 2. **Performance progression analysis** - Track application performance across hardware generations
 
 ## Environment Setup
 
+### Region Selection
+**Deploy in us-east-1** - GEOS-Chem RODA data (`s3://gcgrid`) is in us-east-1 for free in-region transfers. Other regions incur cross-region data transfer costs ($0.02/GB).
+
+**Important:** Use **us-east-1a** subnet - FSx SCRATCH_2 is not available in us-east-1e. Use `scripts/find-fsx-subnet.sh` to find compatible subnets.
+
 ### AWS Profile
 **ALWAYS use:** `AWS_PROFILE=aws` for all AWS CLI and ParallelCluster commands
+
+### SSH Key
+**Standard key:** `aws-gchp` - All configs use this key pair. Private key: `~/.ssh/aws-gchp.pem`
 
 ### Python Environment
 **Use uv exclusively** - Project has `.venv` in root directory
@@ -27,22 +38,26 @@ AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
 
 ## Software Stack
 
-### Validated Stack (GCC 14 + EFA + PMI) ✅
-**Status:** Production-ready, tested up to 192 cores (4 nodes)
+### Current Production Stack (GCC 12.3 + GCHP 14.7.1) ✅
+**Status:** Production-ready, built May 2026
 
-- **AWS ParallelCluster:** 3.14.0
-- **Compiler:** GCC 14.2.1 (Zen 4 optimizations: -march=znver4 -mtune=znver4)
+- **AWS ParallelCluster:** 3.15.0
+- **Compiler:** GCC 12.3.0 (built from source, Zen 3 optimizations: -O3 -march=znver3 -mtune=znver3)
 - **MPI:** OpenMPI 4.1.7
   - **mtl:ofi** (EFA fabric transport) ✅
   - **ess:pmi** (SLURM process management) ✅
-  - Libfabric 1.22.0 with EFA provider
-- **HDF5:** 1.14.3
-- **NetCDF-C:** 4.9.2
-- **NetCDF-Fortran:** 4.6.1
-- **ESMF:** 8.6.1
-- **GCHP:** 14.5.0 (TransportTracers validated)
+  - Libfabric with EFA provider
+- **HDF5:** 1.14.6
+- **NetCDF-C:** 4.10.0
+- **NetCDF-Fortran:** 4.6.2
+- **udunits2:** 2.2.28
+- **ESMF:** 8.9.1
+- **GCHP:** 14.7.1
 
-**Location:** `/fsx/sw-gcc14/` (on validated cluster)
+**Location:** `/fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+**S3:** `s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+
+**Compatibility:** Zen 3+ AMD instances (c6a, c7a, c8a, hpc6a, hpc7a)
 
 ### Future Toolchains (Planned)
 - **Intel Toolchain:** oneAPI 2025.3
@@ -59,23 +74,48 @@ AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
 
 ### Three-FSx Architecture
 
-1. **Software Stack** (`/sw`)
-   - Built by infrastructure team on builder cluster
-   - Exported to S3 (s3://org-gchp-software/gcc14-stack/)
-   - Imported read-only by all users
-   - Contains: GCC 14 + OpenMPI + HDF5 + NetCDF + ESMF + GCHP
+**Core principle:** Shared, read-only resources (software + data) hydrate from S3. User workspace (scratch) is private and local.
+
+1. **Software Stack** (`/sw` or `/fsx`)
+   - Built once by infrastructure team
+   - **S3-backed (REQUIRED):** ImportPath from shared S3 bucket
+   - Example: `s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+   - **Read-only:** Imported at cluster creation, never modified
+   - **Cross-account capable:** Can share via S3 bucket policy
+   - Contains: GCC + OpenMPI + HDF5 + NetCDF + ESMF + GCHP
+   - **Persistent:** Stack lives in S3, independent of any cluster
 
 2. **Input Data** (`/input`)
    - Met fields, emissions, chemistry data
-   - Exported to S3 (s3://org-gchp-data/input/)
-   - Imported read-only by all users
-   - Permanent shared resource
+   - **S3-backed (REQUIRED):** ImportPath from GEOS-Chem RODA or shared bucket
+   - Example: `s3://gcgrid/` (GEOS-Chem RODA - publicly accessible)
+   - **Read-only:** Imported at cluster creation, never modified
+   - **Cross-account capable:** GEOS-Chem RODA already shared globally
+   - **Permanent shared resource:** Multiple users/accounts access same data
 
 3. **User Scratch** (`/scratch`)
-   - User's personal workspace
-   - Run directories, output files
-   - Exported to user's S3 bucket
-   - Temporary, deleted after job
+   - **Private per-user/job:** Each user/cluster has own scratch space
+   - **Local to cluster:** Not shared across accounts or clusters
+   - Run directories, simulation outputs, temporary files
+   - **S3-backing (OPTIONAL):** User's choice based on needs
+   
+   **Key principle:** Scratch is where the actual work happens - it's writable and user-specific
+   
+   **S3-Backed Scratch (Production runs):**
+   - User's personal S3 bucket: `s3://my-bucket/scratch/`
+   - ✅ Outputs preserved for long-term analysis
+   - ✅ Can resume interrupted simulations
+   - ❌ S3 costs for all outputs
+   - **Use for:** Long simulations, important results
+   
+   **Non-S3-Backed Scratch (Development/Testing):**
+   - No S3 backing - pure ephemeral storage
+   - ✅ Fast, cheap, simple
+   - ❌ All data lost on cluster deletion
+   - User manually copies important results to their own S3
+   - **Use for:** Quick tests, development iterations
+   
+   **Default:** Non-backed (user owns backup decision), optionally S3-backed for production
 
 ### Build Strategy
 - Build on latest generation instances (fastest build times)
@@ -112,9 +152,10 @@ aws-gchp/
 ## Infrastructure Details
 
 ### Validated Cluster (gchp-test)
-**Region:** us-east-2
+**Region:** us-east-1 (GEOS-Chem RODA native region)
 **Head Node:** t3.xlarge
-**SSH Key:** aws-benchmark
+**SSH Key:** aws-gchp
+**S3 Bucket:** s3://gchp-shared-storage-us-east-1/
 **Compute Queues:**
 - **compute:** hpc7a.24xlarge (max 4, EFA enabled)
 - **c7a-compute:** c7a.48xlarge (max 8, ENA)
@@ -141,7 +182,7 @@ aws-gchp/
 ### ParallelCluster Management
 ```bash
 # List clusters
-AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
+AWS_PROFILE=aws ~/.local/bin/pcluster list-clusters --region us-east-1
 
 # Create cluster
 AWS_PROFILE=aws uv run pcluster create-cluster \
@@ -155,20 +196,18 @@ AWS_PROFILE=aws uv run pcluster delete-cluster \
   --region us-west-2
 
 # SSH to head node
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<head-node-ip>
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
 ```
 
 ### FSx Lustre S3 Integration
 ```bash
-# Export /sw to S3 (from builder cluster)
-aws s3 sync /sw/ s3://org-gchp-software/gcc14-stack/ \
-  --exclude "*.o" --exclude "*.mod"
+# FSx automatically exports to S3 via ExportPath configuration
+# No manual sync needed for most cases
 
-# Check S3 sync status
-aws s3 ls s3://org-gchp-software/gcc14-stack/ --recursive --human-readable
+# Check what's in S3
+aws s3 ls s3://gchp-shared-storage-us-east-1/stacks/ --recursive --human-readable
 
 # User clusters automatically import via FSx ImportPath
-# No manual sync needed - FSx handles it
 ```
 
 ## Current Phase
@@ -203,8 +242,8 @@ aws s3 ls s3://org-gchp-software/gcc14-stack/ --recursive --human-readable
 ## Key Design Decisions
 
 1. **FSx-based software stack (no custom AMI)** - Simpler, more maintainable, allows multiple toolchain versions to coexist
-2. **Three-FSx architecture** - Shared resources (/sw, /input) + user workspace (/scratch)
-3. **S3-backed FSx volumes** - Persistent storage, automatic sync, cost-effective
+2. **Three-FSx architecture** - Shared resources (/sw, /input) always S3-backed + user workspace (/scratch) optionally S3-backed
+3. **Hybrid scratch strategy** - S3-backed for production, non-backed for development (see `docs/FSX-STORAGE-STRATEGY.md`)
 4. **Multi-queue strategy** - hpc7a (EFA, optimal) + c7a (ENA, better availability) for flexibility
 5. **Compatibility flags first** - Pragmatic approach (znver3, icelake-server) before microarchitecture-specific optimization
 6. **Standard Amazon Linux 2023** - No custom AMI required, all software on /sw

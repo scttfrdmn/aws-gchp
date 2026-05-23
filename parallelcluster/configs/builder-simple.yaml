@@ -1,0 +1,37 @@
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    SubnetId: subnet-cbdcddb1
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: c7a.2xlarge
+          MinCount: 0
+          MaxCount: 1
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: fsx
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-2/
+      ExportPath: s3://gchp-shared-storage-us-east-2/

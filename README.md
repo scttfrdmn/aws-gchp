@@ -2,9 +2,10 @@
 
 **Production-ready GCHP deployment on AWS with validated multi-node scaling**
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![GCHP](https://img.shields.io/badge/GCHP-14.5.0-green.svg)](https://gchp.readthedocs.io/)
-[![ParallelCluster](https://img.shields.io/badge/ParallelCluster-3.14.0-blue.svg)](https://docs.aws.amazon.com/parallelcluster/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GCHP](https://img.shields.io/badge/GCHP-14.7.1-green.svg)](https://gchp.readthedocs.io/)
+[![ParallelCluster](https://img.shields.io/badge/ParallelCluster-3.15.0-blue.svg)](https://docs.aws.amazon.com/parallelcluster/)
+[![GCC](https://img.shields.io/badge/GCC-12.3.0-orange.svg)](https://gcc.gnu.org/)
 
 ---
 
@@ -12,13 +13,15 @@
 
 This project demonstrates production-ready deployment of [GCHP (GEOS-Chem High Performance)](https://gchp.readthedocs.io/) on AWS ParallelCluster with:
 
-- ✅ **Validated multi-node scaling** - Up to 192 cores (4 nodes) with 95% efficiency
-- ✅ **Modern toolchain** - GCC 14.2.1 + OpenMPI 4.1.7 + EFA networking
-- ✅ **FSx-based architecture** - No custom AMI required, S3-backed persistent storage
-- ✅ **Comprehensive documentation** - Complete deployment guide from zero to production
-- ✅ **Cost-optimized** - Validated on hpc7a.24xlarge (~$2.89/hour/node)
+**Important:** Deploy in **us-east-1** region for free access to GEOS-Chem RODA data (`s3://gcgrid`). Other regions incur cross-region transfer costs.
 
-**Key Achievement:** 95% scaling efficiency from 2-node (96 cores) to 4-node (192 cores) configuration.
+- ✅ **Production-ready GCHP 14.7.1** - Latest stable release with GCC 12.3 compatibility
+- ✅ **AMD Zen optimized** - Built with znver3 flags for broad compatibility (c6a, c7a, c8a, hpc6a, hpc7a)
+- ✅ **Cross-account sharing** - Software stack and data can be shared across AWS accounts
+- ✅ **FSx-based architecture** - No custom AMI, S3-backed persistent storage
+- ✅ **Comprehensive documentation** - Complete build and deployment guides
+
+**Key Achievement:** Self-contained, shareable software stack with AMD Zen 3+ optimizations for maximum compatibility.
 
 ---
 
@@ -26,10 +29,10 @@ This project demonstrates production-ready deployment of [GCHP (GEOS-Chem High P
 
 ### Prerequisites
 
-- AWS account with ParallelCluster 3.14.0
-- SSH key pair (`aws-benchmark`)
-- S3 buckets for software stack and input data
-- Python environment with `uv`
+- AWS account with ParallelCluster 3.15.0
+- SSH key pair (`aws-gchp`) - see docs for setup
+- Region: us-east-1 (free GEOS-Chem RODA access)
+- Python with `uv` for ParallelCluster CLI
 
 ### 1. Deploy Infrastructure
 
@@ -41,31 +44,34 @@ cd aws-gchp
 cat docs/COMPLETE-DEPLOYMENT-GUIDE.md
 ```
 
-**Two roles, three FSx volumes:**
-1. **Infrastructure builder** - Creates software stack (/sw) and input data (/input)
-2. **End user** - Imports shared resources + creates personal workspace (/scratch)
+**Architecture principle:**
+- **Shared resources (read-only):** Software stack + input data hydrate from S3
+- **User workspace (private):** Scratch space is local to each cluster/user
+- **Cross-account capable:** Infrastructure team shares stack, end users import
+
+See `docs/FSX-STORAGE-STRATEGY.md` for detailed S3-backing strategy.
 
 ### 2. Launch Cluster
 
 ```bash
-AWS_PROFILE=aws uv run pcluster create-cluster \
+AWS_PROFILE=aws ~/.local/bin/pcluster create-cluster \
   --cluster-name gchp-test \
   --cluster-configuration parallelcluster/configs/gchp-test.yaml \
-  --region us-east-2
+  --region us-east-1
 ```
 
 ### 3. Run Simulation
 
 ```bash
 # SSH to head node
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<head-node-ip>
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
 
-# Source environment
-source /sw/gcc14/gchp-env.sh
+# Source environment (loads GCC 12.3 stack)
+source /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-env.sh
 
-# Submit job
-cd /fsx/gchp-tt-4node
-sbatch submit-4node.sh
+# Create run directory and submit job
+cd /scratch/my-run
+sbatch submit.sh
 
 # Monitor
 squeue
@@ -74,23 +80,25 @@ tail -f gchp.*.log
 
 ---
 
-## Validated Performance
+## Current Status (May 2026)
 
-**Complete scaling progression (TransportTracers, 1-hour simulation):**
+**✅ Software Stack Complete:**
+- GCC 12.3.0 + OpenMPI 4.1.7 + GCHP 14.7.1
+- Built with AMD Zen 3 optimizations (`-O3 -march=znver3 -mtune=znver3`)
+- All dependencies self-contained and S3-backed
+- Cross-account sharing enabled
 
-| Configuration | Cores | Resolution | Grid Points/Level | Runtime | Scaling Efficiency |
-|--------------|-------|-----------|-------------------|---------|-------------------|
-| 1-node | 48 | C24 | 34,560 | 14s | - |
-| 2-node | 96 | C48 | 138,240 | 63s | 44% |
-| **4-node** | **192** | **C90** | **486,000** | **116s** | **95%** ⭐ |
+**Previous Scaling Validation (GCHP 14.5.0, Feb 2026):**
 
-**Key Findings:**
-- **95% efficiency** at 2→4 node transition (excellent for atmospheric models)
-- Grid resolution must scale with core count (validated formula: X/NX ≥ 4, X/NY ≥ 4)
-- EFA networking validated across 4 nodes (300 Gbps RDMA)
-- Initialization overhead dominates short runs; production runs show better overall efficiency
+| Configuration | Cores | Resolution | Runtime | Scaling Efficiency |
+|--------------|-------|-----------|---------|-------------------|
+| 1-node | 48 | C24 | 14s | - |
+| 2-node | 96 | C48 | 63s | 44% |
+| **4-node** | **192** | **C90** | **116s** | **95%** ⭐ |
 
-See [docs/4-node-success-final.md](docs/4-node-success-final.md) for complete analysis.
+**Note:** New stack (GCC 12.3 + GCHP 14.7.1) ready for validation testing.
+
+See [docs/4-node-success-final.md](docs/4-node-success-final.md) for previous scaling analysis.
 
 ---
 
@@ -99,55 +107,65 @@ See [docs/4-node-success-final.md](docs/4-node-success-final.md) for complete an
 ### Three-FSx Model (No Custom AMI)
 
 ```
-Infrastructure Builder                     End User
-┌─────────────────────┐                   ┌─────────────────────┐
-│ 1. Software Stack   │                   │ Import /sw          │
-│    /sw → S3         │────────────┐      │ (read-only)         │
-│    GCC 14 + libs    │            │      │                     │
-└─────────────────────┘            │      │ Import /input       │
-                                   │      │ (read-only)         │
-┌─────────────────────┐            │      │                     │
-│ 2. Input Data       │            │      │ Create /scratch     │
-│    /input → S3      │────────────┼─────▶│ (read-write)        │
-│    Met fields       │            │      │                     │
-│    Emissions        │            │      │ Run GCHP            │
-└─────────────────────┘            │      └─────────────────────┘
-                                   │
-                    S3 Buckets ────┘
-                    (persistent)
+Infrastructure Team                        End Users (Multiple Accounts)
+┌─────────────────────────────┐           ┌──────────────────────┐
+│ Build Once:                 │           │ Account A:           │
+│  /fsx → S3                  │           │  Import /fsx (RO)    │
+│  s3://.../stacks/gcc12.3/   │◄──────────│  Import /input (RO)  │
+│                             │           │  Create /scratch (RW)│
+│ - GCC 12.3.0               │           └──────────────────────┘
+│ - OpenMPI 4.1.7            │           
+│ - GCHP 14.7.1              │           ┌──────────────────────┐
+│ - Zen 3 optimized          │           │ Account B:           │
+└─────────────────────────────┘           │  Import /fsx (RO)    │
+                                          │  Import /input (RO)  │
+┌─────────────────────────────┐           │  Create /scratch (RW)│
+│ Input Data (Public):        │◄──────────│                      │
+│  s3://gcgrid/ (GEOS-Chem)   │           └──────────────────────┘
+│  - Met fields               │
+│  - Emissions                │           Each user's scratch:
+│  - Chemistry data           │           s3://user-X/scratch/
+└─────────────────────────────┘
 ```
 
-**Why This Works:**
-- **No Custom AMI:** Use standard Amazon Linux 2023
-- **Shared Resources:** Software and data built once, used by all
-- **S3-backed:** FSx automatically syncs to/from S3
-- **Cost-effective:** Pay only for S3 storage + compute time
-- **Maintainable:** Multiple toolchain versions can coexist
+**Key Benefits:**
+- **No Custom AMI:** Standard Amazon Linux 2023
+- **Build once, share everywhere:** Cross-account S3 bucket policies
+- **Read-only shared resources:** Software + data never modified
+- **Private user workspaces:** Each user's scratch is independent
+- **Cost-effective:** Infrastructure team pays ~$0.12/month for stack
+- **Maintainable:** Update stack centrally, users auto-import
 
 **Monthly Cost Estimate:**
-- Software stack S3: ~$1.15/month
-- Input data S3: ~$23/month per TB
-- Compute (4-node, 24hr): $277/day on-demand, $160/day reserved
+- Software stack S3: ~$0.12/month (~5GB)
+- Input data: Free (GEOS-Chem RODA in us-east-1)
+- User scratch S3: User's cost, based on output volume
+- Compute: Pay only when running
 
 ---
 
 ## Software Stack
 
-**Validated Configuration:**
+**Current Production Stack (May 2026):**
 
 | Component | Version | Notes |
 |-----------|---------|-------|
 | **OS** | Amazon Linux 2023 | Standard AMI, no customization |
-| **Compiler** | GCC 14.2.1 | Zen 4 optimizations (-march=znver4 -mtune=znver4) |
+| **Compiler** | GCC 12.3.0 | Built from source (GCHP 14.7.1 requires <13) |
+| **Optimizations** | `-O3 -march=znver3 -mtune=znver3` | Zen 3+ compatible (c6a, c7a, c8a, hpc6a, hpc7a) |
 | **MPI** | OpenMPI 4.1.7 | EFA (mtl:ofi) + SLURM PMI (ess:pmi) |
-| **Libfabric** | 1.22.0 | AWS EFA provider |
-| **HDF5** | 1.14.3 | Parallel I/O |
-| **NetCDF-C** | 4.9.2 | |
-| **NetCDF-Fortran** | 4.6.1 | |
-| **ESMF** | 8.6.1 | Earth System Modeling Framework |
-| **GCHP** | 14.5.0 | TransportTracers validated ✅ |
+| **HDF5** | 1.14.6 | Parallel I/O |
+| **NetCDF-C** | 4.10.0 | Latest stable |
+| **NetCDF-Fortran** | 4.6.2 | Latest stable |
+| **udunits2** | 2.2.28 | Required by GCHP 14.7.1 |
+| **ESMF** | 8.9.1 | Earth System Modeling Framework |
+| **GCHP** | 14.7.1 | Latest stable release ✅ |
 
-**Build Location:** `/sw/gcc14/` on FSx Lustre (S3-backed)
+**Stack Location:**
+- **Local:** `/fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+- **S3:** `s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+
+**Build Details:** See `docs/BUILD-GCHP-STACK.md` for complete build guide (~3.5 hours on c7a.8xlarge)
 
 ---
 
@@ -155,27 +173,26 @@ Infrastructure Builder                     End User
 
 ### Validated Cluster (gchp-test)
 
-**Region:** us-east-2
-**ParallelCluster:** 3.14.0
+**Region:** us-east-1 (GEOS-Chem RODA native)
+**ParallelCluster:** 3.15.0
 **Head Node:** t3.xlarge
 
 **Compute Queues:**
 - `compute` - hpc7a.24xlarge (max 4 nodes, EFA enabled)
 - `c7a-compute` - c7a.48xlarge (max 8 nodes, fallback)
 
-**Storage:**
-- `/sw` - FSx Lustre (software stack, S3-backed)
-- `/input` - FSx Lustre (met fields + emissions, S3-backed)
-- `/scratch` - FSx Lustre (user workspace, S3-backed)
+**Storage Architecture:**
+- `/fsx` - FSx Lustre (software stack, **S3-backed, read-only**)
+- `/input` - FSx Lustre (GEOS-Chem data, **S3-backed, read-only**)
+- `/scratch` - FSx Lustre (user workspace, **optionally S3-backed, read-write**)
 
 **Network:**
 - EFA 300 Gbps with placement groups
-- RDMA working across 4 nodes
+- RDMA validated across 4 nodes
 
-**Working Configurations:**
-- `/fsx/gchp-tt-proper/` - Single-node (C24, 48 cores)
-- `/fsx/gchp-tt-2node/` - 2-node (C48, 96 cores)
-- `/fsx/gchp-tt-4node/` - 4-node (C90, 192 cores) ✅
+**Cross-Account Sharing:**
+Software stack and input data can be shared across AWS accounts via S3 bucket policies.
+See `docs/FSX-STORAGE-STRATEGY.md` for configuration details.
 
 ---
 
@@ -183,13 +200,14 @@ Infrastructure Builder                     End User
 
 | Document | Description |
 |----------|-------------|
-| [**COMPLETE-DEPLOYMENT-GUIDE.md**](docs/COMPLETE-DEPLOYMENT-GUIDE.md) | Full deployment walkthrough (builder + user paths) |
-| [**4-node-success-final.md**](docs/4-node-success-final.md) | Complete scaling validation results |
+| [**BUILD-GCHP-STACK.md**](docs/BUILD-GCHP-STACK.md) | Complete software stack build guide |
+| [**FSX-STORAGE-STRATEGY.md**](docs/FSX-STORAGE-STRATEGY.md) | FSx S3-backing strategy and cross-account sharing |
 | [**CLAUDE.md**](CLAUDE.md) | Project instructions and design decisions |
+| [**SOFTWARE-STACK-VERSIONING.md**](docs/SOFTWARE-STACK-VERSIONING.md) | Stack versioning and management |
 
-**Historical Documentation:**
+**Scaling Validation (Previous Stack):**
+- [4-node-success-final.md](docs/4-node-success-final.md) - 95% efficiency validation (GCHP 14.5.0)
 - [gchp-multinode-scaling-complete.md](docs/gchp-multinode-scaling-complete.md) - Multi-node journey
-- [gchp-transporttracers-success.md](docs/gchp-transporttracers-success.md) - Initial validation
 - [4-node-capacity-solution.md](docs/4-node-capacity-solution.md) - Capacity management
 
 ---
@@ -305,7 +323,7 @@ AWS_PROFILE=aws uv run pcluster delete-cluster \
   --region us-east-2
 
 # SSH to head node
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<head-node-ip>
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
 ```
 
 ### FSx Lustre S3 Integration
@@ -376,9 +394,9 @@ Contributions welcome! This project is in active development.
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE)
+MIT License - See [LICENSE](LICENSE)
 
-Copyright 2026 Scott Friedman
+Copyright (c) 2026 Scott Friedman
 
 ---
 
@@ -390,8 +408,11 @@ Copyright 2026 Scott Friedman
 
 ---
 
-**Status:** ✅ Production-ready for TransportTracers up to 192 cores (4 nodes)
+**Status:** ✅ Production-ready software stack (GCC 12.3 + GCHP 14.7.1) with cross-account sharing
 
-**Last Updated:** February 6, 2026
+**Last Updated:** May 23, 2026
 
-**Achievement:** 95% scaling efficiency from 2-node to 4-node configuration ⭐
+**Achievements:**
+- ⭐ Self-contained, shareable software stack with AMD Zen 3+ optimizations
+- ⭐ 95% scaling efficiency validated (2→4 nodes, GCHP 14.5.0)
+- ⭐ Cross-account S3-backed architecture for research collaboration

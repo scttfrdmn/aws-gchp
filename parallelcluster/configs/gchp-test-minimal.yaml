@@ -12,7 +12,7 @@ HeadNode:
   Networking:
     SubnetId: subnet-a7ef24cc  # Subnet auto-assigns public IPs
   Ssh:
-    KeyName: aws-benchmark
+    KeyName: aws-gchp
   Iam:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess

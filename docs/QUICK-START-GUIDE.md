@@ -149,10 +149,10 @@ aws ec2 create-key-pair \
   --key-name aws-benchmark \
   --region us-west-2 \
   --query 'KeyMaterial' \
-  --output text > ~/.ssh/aws-benchmark.pem
+  --output text > ~/.ssh/aws-gchp.pem
 
 # Set correct permissions
-chmod 400 ~/.ssh/aws-benchmark.pem
+chmod 400 ~/.ssh/aws-gchp.pem
 
 # Verify
 aws ec2 describe-key-pairs --key-names aws-benchmark --region us-west-2
@@ -180,7 +180,7 @@ aws ec2 describe-key-pairs --key-names aws-benchmark --region us-west-2
 # (update configs to reference your key location)
 ```
 
-**Note:** The toolkit defaults to `~/.ssh/aws-benchmark.pem`. If you use a different key name/location, specify with `--ssh-key` flag when using `./gchp-aws`.
+**Note:** The toolkit defaults to `~/.ssh/aws-gchp.pem`. If you use a different key name/location, specify with `--ssh-key` flag when using `./gchp-aws`.
 
 ### 5. Clone This Repository
 

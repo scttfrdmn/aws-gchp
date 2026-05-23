@@ -255,7 +255,7 @@ All instances can reach internet via IGW, regardless of public IP assignment met
 
 2. **SSH to head node:**
    ```bash
-   ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<elastic-ip>
+   ssh -i ~/.ssh/aws-gchp.pem ec2-user@<elastic-ip>
    ```
 
 3. **Validate environment:**

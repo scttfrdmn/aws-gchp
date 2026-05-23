@@ -102,7 +102,7 @@ This is why the initial spot instance approach failed. Only general compute inst
 
 1. **SSH to cluster:**
    ```bash
-   ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<head-node-ip>
+   ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
    ```
 
 2. **Verify c7a queue:**

@@ -158,7 +158,7 @@ HEAD_NODE=$(AWS_PROFILE=aws AWS_REGION=us-east-1 uv run pcluster describe-cluste
   --query headNode.publicIpAddress --output text)
 
 # SSH to cluster
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@$HEAD_NODE
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@$HEAD_NODE
 
 # On head node:
 sinfo                          # Check SLURM state
@@ -214,7 +214,7 @@ done
 # Look for imbalance between components
 
 # Download logs for detailed analysis
-scp -i ~/.ssh/aws-benchmark.pem \
+scp -i ~/.ssh/aws-gchp.pem \
   ec2-user@$HEAD_NODE:/fsx/scratch/rundirs/c24-test/run-*.log \
   ./multinode-test-results/
 ```

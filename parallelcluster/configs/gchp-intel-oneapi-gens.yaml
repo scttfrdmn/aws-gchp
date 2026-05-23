@@ -7,7 +7,7 @@ HeadNode:
   Networking:
     SubnetId: subnet-0a73ca94ed00cdaf9
   Ssh:
-    KeyName: aws-benchmark
+    KeyName: aws-gchp
   LocalStorage:
     RootVolume:
       Size: 100

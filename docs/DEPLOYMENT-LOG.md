@@ -101,7 +101,7 @@ aws ec2 modify-subnet-attribute \
 ### Head Node Connectivity
 ✅ **SSH Access:** Working
 - IP: 3.147.27.184
-- Key: ~/.ssh/aws-benchmark.pem
+- Key: ~/.ssh/aws-gchp.pem
 - User: ec2-user
 
 ### SLURM Scheduler
@@ -236,7 +236,7 @@ Filesystem                 Size  Used Avail Use% Mounted on
 
 ### SSH Command
 ```bash
-ssh -i ~/.ssh/aws-benchmark.pem ec2-user@3.147.27.184
+ssh -i ~/.ssh/aws-gchp.pem ec2-user@3.147.27.184
 ```
 
 ### ParallelCluster Commands

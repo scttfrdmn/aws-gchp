@@ -8,7 +8,7 @@ HeadNode:
     SubnetId: subnet-cbdcddb1
     ElasticIp: true
   Ssh:
-    KeyName: aws-benchmark
+    KeyName: aws-gchp
   Iam:
     AdditionalIamPolicies:
       - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
