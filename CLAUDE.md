@@ -174,7 +174,7 @@ aws-gchp/
 **Region:** us-west-2
 **Subnet:** subnet-0a73ca94ed00cdaf9
 **Security Group:** sg-025793e5909030cc3
-**SSH Key:** aws-benchmark
+**SSH Key:** aws-gchp (created May 2026)
 **S3 Bucket:** s3://aws-instance-benchmarks-data/gchp/
 
 ## Common Commands
@@ -223,9 +223,9 @@ aws s3 ls s3://gchp-shared-storage-us-east-1/stacks/ --recursive --human-readabl
 - ✅ FSx-based deployment architecture proven
 - ✅ Multi-queue strategy (hpc7a + c7a) implemented
 
-**Current Cluster:**
-- **Name:** gchp-test
-- **Region:** us-east-2
+**Builder Cluster (Completed):**
+- **Name:** gchp-builder (deleted after build)
+- **Region:** us-east-1
 - **Head Node:** t3.xlarge
 - **Compute Queues:**
   - compute: hpc7a.24xlarge (max 4 nodes, EFA)

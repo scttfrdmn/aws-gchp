@@ -329,12 +329,10 @@ ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
 ### FSx Lustre S3 Integration
 
 ```bash
-# Export /sw to S3 (from builder cluster)
-aws s3 sync /sw/ s3://org-gchp-software/gcc14-stack/ \
-  --exclude "*.o" --exclude "*.mod"
-
-# Check S3 sync status
-aws s3 ls s3://org-gchp-software/gcc14-stack/ --recursive --human-readable
+# FSx automatically exports to S3 via ExportPath configuration
+# Check S3 export status
+aws s3 ls s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/ \
+  --recursive --human-readable --summarize
 
 # User clusters automatically import via FSx ImportPath
 # No manual sync needed - FSx handles it
@@ -358,7 +356,7 @@ tail -f gchp.*.log
 tail -f slurm-*.out
 
 # Check environment
-source /sw/gcc14/gchp-env.sh
+source /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-env.sh
 ompi_info | grep -E "MCA mtl.*ofi|MCA ess.*pmi"
 ```
 
