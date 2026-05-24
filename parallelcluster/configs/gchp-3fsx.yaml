@@ -14,6 +14,8 @@ HeadNode:
   InstanceType: t3.xlarge
   Networking:
     SubnetId: subnet-2eec4a71  # us-east-1a
+    AdditionalSecurityGroups:
+      - sg-b8fbc380  # Default VPC SG (for FSx access)
   Ssh:
     KeyName: aws-gchp
   Iam:
@@ -34,6 +36,8 @@ Scheduling:
       Networking:
         SubnetIds:
           - subnet-2eec4a71
+        AdditionalSecurityGroups:
+          - sg-b8fbc380  # Default VPC SG (for FSx access)
         PlacementGroup:
           Enabled: true
       CapacityType: ONDEMAND
@@ -60,7 +64,6 @@ SharedStorage:
     FsxLustreSettings:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
-      DataCompressionType: LZ4
 
 Tags:
   - Key: Project
