@@ -8,7 +8,7 @@
 Region: us-east-1
 
 Image:
-  Os: alinux2  # AL2 required for FSx Lustre 2.10 compatibility
+  Os: alinux2023  # AL2023 with Lustre 2.15 FSx
 
 HeadNode:
   InstanceType: t3.xlarge
@@ -43,19 +43,19 @@ Scheduling:
       CapacityType: ONDEMAND
 
 SharedStorage:
-  # Permanent Software Stack (EXISTING FSx)
+  # Permanent Software Stack (EXISTING FSx - Lustre 2.15)
   - Name: software
     StorageType: FsxLustre
     MountDir: /fsx
     FsxLustreSettings:
-      FileSystemId: fs-0d3ce3d7a149c6026
+      FileSystemId: fs-0cd42f74bd682d07f
 
-  # Permanent Input Data (EXISTING FSx)
+  # Permanent Input Data (EXISTING FSx - Lustre 2.15)
   - Name: input
     StorageType: FsxLustre
     MountDir: /input
     FsxLustreSettings:
-      FileSystemId: fs-089602874f226827c
+      FileSystemId: fs-0ab32d8b6872eab86
 
   # Ephemeral Scratch Space (NEW FSx, created/deleted with cluster)
   - Name: scratch
