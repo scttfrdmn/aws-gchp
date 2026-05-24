@@ -1,0 +1,67 @@
+# GCHP Benchmark Cluster - Two FSx Architecture
+# 
+# Architecture:
+# 1. Software stack FSx - NEW, imports from S3 (s3://bucket/stacks/)
+# 2. Input data FSx - EXISTING, references permanent FSx by ID (s3://gcgrid/)
+# 3. Scratch - local storage on /fsx/scratch/
+
+Region: us-east-1
+
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.xlarge
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a (FSx SCRATCH_2 compatible)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c7a-nodes
+          InstanceType: c7a.48xlarge
+          MinCount: 0
+          MaxCount: 8  # Up to 8 nodes for scaling tests (96 cores per node)
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # Software Stack (NEW FSx, imports from S3)
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
+      # NO ExportPath - read-only software
+
+  # Input Data (EXISTING FSx, permanent shared resource)
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-079ecada1405aa360  # Permanent GEOS-Chem input data
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Stack
+    Value: gcc12.3-ompi4.1.7-gchp14.7.1
+
+# Usage:
+# 1. Load environment: source /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-env.sh
+# 2. GCHP executable: /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-14.7.1/build/bin/gchp
+# 3. Input data: /input/ (lazy-loaded from s3://gcgrid/)
+# 4. Scratch: /fsx/scratch/ (local, ephemeral)

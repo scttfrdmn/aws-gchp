@@ -1,0 +1,84 @@
+# GCHP Cluster - 3-FSx Architecture (Permanent Infrastructure)
+#
+# Architecture:
+# 1. Software FSx - EXISTING (permanent infrastructure)
+# 2. Input Data FSx - EXISTING (permanent infrastructure)
+# 3. Scratch FSx - NEW (per-cluster, ephemeral)
+
+Region: us-east-1
+
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.xlarge
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c7a-nodes
+          InstanceType: c7a.48xlarge
+          MinCount: 0
+          MaxCount: 8
+          Efa:
+            Enabled: false  # Disabled due to bootstrap issues
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # Permanent Software Stack (EXISTING FSx)
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      FileSystemId: fs-0d3ce3d7a149c6026
+
+  # Permanent Input Data (EXISTING FSx)
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-089602874f226827c
+
+  # Ephemeral Scratch Space (NEW FSx, created/deleted with cluster)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DataCompressionType: LZ4
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Architecture
+    Value: 3-FSx-Permanent-Infrastructure
+
+# Infrastructure Summary:
+# - /fsx: Software stack (GCC 12.3 + GCHP 14.7.1) - PERMANENT
+# - /input: GEOS-Chem data (s3://gcgrid) - PERMANENT
+# - /scratch: User workspace - EPHEMERAL (per-cluster)
+#
+# Monthly Cost (permanent infrastructure):
+# - Software FSx: ~$140/month
+# - Input FSx: ~$140/month
+# - Total: ~$280/month (shared across all users/clusters)
+#
+# Per-cluster cost:
+# - Scratch FSx: ~$140/month while cluster exists
+# - Head node: ~$2.50/day
+# - Compute: $1.22/hour per c7a.48xlarge when running

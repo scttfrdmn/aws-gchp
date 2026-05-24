@@ -1,0 +1,75 @@
+# Example: FSx Lustre with Multiple Data Repository Associations (DRAs)
+# ParallelCluster 3.8.0+ required
+#
+# Use Case: Map different FSx paths to different S3 buckets
+# Example:
+#   /fsx/stacks/ → s3://gchp-shared-storage-us-east-1/stacks/
+#   /fsx/gcgrid/ → s3://gcgrid/
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.xlarge
+  Networking:
+    SubnetId: subnet-xxxxx
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-gchp
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: c7a.2xlarge
+          MinCount: 0
+          MaxCount: 4
+      Networking:
+        SubnetIds:
+          - subnet-xxxxx
+
+SharedStorage:
+  # FSx Lustre with multiple DRAs
+  - Name: multi-path-fsx
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: PERSISTENT_2  # DRAs require PERSISTENT_2
+      DataCompressionType: LZ4
+      PerUnitStorageThroughput: 125
+
+      # IMPORTANT: Cannot use ImportPath/ExportPath with DataRepositoryAssociations
+      # Choose ONE approach:
+      #   Option A: ImportPath + ExportPath (single S3 path, FSx root mapping)
+      #   Option B: DataRepositoryAssociations (multiple S3 paths, custom FSx paths)
+
+      DataRepositoryAssociations:
+        # DRA #1: Software stack
+        - Name: software-stack
+          FileSystemPath: /fsx/stacks
+          DataRepositoryPath: s3://gchp-shared-storage-us-east-1/stacks/
+          BatchImportMetaDataOnCreate: true
+          AutoImportPolicy:
+            - NEW
+            - CHANGED
+          AutoExportPolicy:
+            - NEW
+            - CHANGED
+
+        # DRA #2: GEOS-Chem input data
+        - Name: gcgrid
+          FileSystemPath: /fsx/gcgrid
+          DataRepositoryPath: s3://gcgrid/
+          BatchImportMetaDataOnCreate: true
+          AutoImportPolicy:
+            - NEW
+            - CHANGED
+          # Note: gcgrid is read-only, no AutoExportPolicy
+
+Tags:
+  - Key: Project
+    Value: GCHP-DRA-Example

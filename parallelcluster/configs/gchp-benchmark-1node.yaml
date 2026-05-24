@@ -1,5 +1,8 @@
 # GCHP Single-Node Benchmark Cluster
-# Purpose: Validate GCC 12.3 + GCHP 14.7.1 stack with single-node test
+# Purpose: Validate GCC 12.3 + GCHP 14.7.1 stack
+# 
+# NOTE: ParallelCluster 3.15 limits 1 NEW FSx per cluster
+# Workaround: Single FSx imports from / and mounts subdirs
 
 Region: us-east-1
 
@@ -22,7 +25,7 @@ Scheduling:
     - Name: compute
       ComputeResources:
         - Name: c7a-nodes
-          InstanceType: c7a.48xlarge  # 96 vCPUs, Zen 4
+          InstanceType: c7a.48xlarge
           MinCount: 0
           MaxCount: 1
       Networking:
@@ -31,34 +34,15 @@ Scheduling:
       CapacityType: ONDEMAND
 
 SharedStorage:
-  # 1. Software Stack (READ-ONLY)
-  - Name: software
+  # Single FSx with software stack + scratch
+  - Name: fsx
     StorageType: FsxLustre
     MountDir: /fsx
     FsxLustreSettings:
-      StorageCapacity: 1200
+      StorageCapacity: 2400  # Larger to hold both software and scratch
       DeploymentType: SCRATCH_2
-      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
-      # NO ExportPath - read-only
-
-  # 2. Input Data (READ-ONLY)
-  - Name: input
-    StorageType: FsxLustre
-    MountDir: /input
-    FsxLustreSettings:
-      StorageCapacity: 1200
-      DeploymentType: SCRATCH_2
-      ImportPath: s3://gcgrid/
-      # NO ExportPath - read-only
-
-  # 3. Scratch (EPHEMERAL)
-  - Name: scratch
-    StorageType: FsxLustre
-    MountDir: /scratch
-    FsxLustreSettings:
-      StorageCapacity: 1200
-      DeploymentType: SCRATCH_2
-      # NO ImportPath/ExportPath - ephemeral
+      ImportPath: s3://gchp-shared-storage-us-east-1/
+      # NO ExportPath - user cluster, software is read-only
 
 Tags:
   - Key: Project
@@ -67,3 +51,9 @@ Tags:
     Value: gcc12.3-ompi4.1.7-gchp14.7.1
   - Key: Test
     Value: single-node-validation
+
+# Usage:
+# 1. Software stack: /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
+# 2. Input data: Link s3://gcgrid directly or copy small subset to /fsx/input-data/
+# 3. Scratch: /fsx/scratch/
+# 4. Load environment: source /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-env.sh

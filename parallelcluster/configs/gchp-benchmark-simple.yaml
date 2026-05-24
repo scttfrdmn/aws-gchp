@@ -1,0 +1,60 @@
+# GCHP Benchmark Cluster - Single FSx (Simple)
+#
+# Software stack FSx imports from S3, input data accessed from S3 directly
+
+Region: us-east-1
+
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: t3.xlarge
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c7a-nodes
+          InstanceType: c7a.48xlarge
+          MinCount: 0
+          MaxCount: 8
+          Efa:
+            Enabled: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # Software Stack (imports from S3)
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
+      DataCompressionType: LZ4
+      ImportedFileChunkSize: 1024
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Stack
+    Value: gcc12.3-ompi4.1.7-gchp14.7.1
+
+# Usage:
+# 1. Load environment: source /fsx/gchp-env.sh
+# 2. GCHP executable: /fsx/gchp-14.7.1/build/bin/gchp
+# 3. Input data: Access s3://gcgrid/ directly (GEOS-Chem RODA)
+# 4. Scratch: /fsx/scratch/ (local, ephemeral)
