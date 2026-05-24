@@ -8,7 +8,7 @@
 Region: us-east-1
 
 Image:
-  Os: alinux2023
+  Os: alinux2  # AL2 required for FSx Lustre 2.10 compatibility
 
 HeadNode:
   InstanceType: t3.xlarge
