@@ -469,7 +469,8 @@ if [ ! -f "${STACK_ROOT}/esmf-${ESMF_VERSION}/bin/ESMF_Info" ]; then
     export ESMF_F90COMPILEOPTS="$OPTFLAGS -I${STACK_ROOT}/netcdf-fortran-${NETCDF_FORTRAN_VERSION}/include"
 
     make -j${NCPUS}
-    make install
+    # Install library only (apps have linking issues and are not needed)
+    make install_libs install_headers install_docs
 
     log "ESMF ${ESMF_VERSION} installed"
 else
