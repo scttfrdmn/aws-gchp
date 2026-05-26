@@ -1,8 +1,9 @@
 # GCHP Single-Node Benchmark Cluster
-# Purpose: Validate GCC 12.3 + GCHP 14.7.1 stack
-# 
+# Purpose: Validate GCHP 14.7.1 validated stack (x86_64)
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 + GCHP 14.7.1
+#
 # NOTE: ParallelCluster 3.15 limits 1 NEW FSx per cluster
-# Workaround: Single FSx imports from / and mounts subdirs
+# Workaround: Single FSx imports entire bucket, access via subdirs
 
 Region: us-east-1
 
@@ -48,12 +49,15 @@ Tags:
   - Key: Project
     Value: GCHP-Benchmark
   - Key: Stack
-    Value: gcc12.3-ompi4.1.7-gchp14.7.1
+    Value: gchp14.7.1-validated
+  - Key: Architecture
+    Value: x86_64
   - Key: Test
     Value: single-node-validation
 
 # Usage:
-# 1. Software stack: /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
-# 2. Input data: Link s3://gcgrid directly or copy small subset to /fsx/input-data/
-# 3. Scratch: /fsx/scratch/
-# 4. Load environment: source /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-env.sh
+# 1. Software stack: /fsx/stacks/x86_64/gchp14.7.1-validated/
+# 2. GCHP binary: /fsx/stacks/x86_64/gchp14.7.1-validated/gchp-14.7.1/bin/gchp
+# 3. Input data: Link s3://gcgrid directly or copy small subset to /fsx/input-data/
+# 4. Scratch: /fsx/scratch/
+# 5. Load environment: source /fsx/stacks/x86_64/gchp14.7.1-validated/gchp-env.sh

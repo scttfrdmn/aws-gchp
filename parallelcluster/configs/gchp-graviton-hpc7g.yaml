@@ -1,28 +1,21 @@
+# GCHP Graviton/ARM64 Benchmark Cluster
+# Purpose: Benchmarking on ARM64 (hpc7g, c7g, c7gn, c8g)
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 + GCHP 14.7.1 (ARM64)
+# Architecture: aarch64
+
 Region: us-east-1
 Image:
   Os: alinux2023
-  # Custom AMI with ARM toolchain can be specified here
-  # CustomAmi: ami-xxxxxxxxx
 
 HeadNode:
   InstanceType: c7g.2xlarge
   Networking:
-    SubnetId: subnet-xxxxxxxxx  # Replace with your subnet
+    SubnetId: subnet-2eec4a71  # us-east-1a
   Ssh:
-    KeyName: your-key-pair  # Replace with your key pair
-  LocalStorage:
-    RootVolume:
-      Size: 100
-      VolumeType: gp3
+    KeyName: aws-gchp
   Iam:
     AdditionalIamPolicies:
-      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-  CustomActions:
-    OnNodeConfigured:
-      Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
-      Args:
-        - arm
-        - hpc7g
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
 
 Scheduling:
   Scheduler: slurm
@@ -41,15 +34,10 @@ Scheduling:
             GdrSupport: false
       Networking:
         SubnetIds:
-          - subnet-xxxxxxxxx  # Replace with your subnet
+          - subnet-2eec4a71
         PlacementGroup:
           Enabled: true
-      CustomActions:
-        OnNodeConfigured:
-          Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
-          Args:
-            - arm
-            - hpc7g
+      CapacityType: ONDEMAND
 
     - Name: compute-c7gn-16
       ComputeResources:
@@ -62,15 +50,10 @@ Scheduling:
             Enabled: true
       Networking:
         SubnetIds:
-          - subnet-xxxxxxxxx
+          - subnet-2eec4a71
         PlacementGroup:
           Enabled: true
-      CustomActions:
-        OnNodeConfigured:
-          Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
-          Args:
-            - arm
-            - c7gn
+      CapacityType: ONDEMAND
 
     - Name: compute-c7g-16
       ComputeResources:
@@ -83,35 +66,37 @@ Scheduling:
             Enabled: false  # c7g without 'n' has less network performance
       Networking:
         SubnetIds:
-          - subnet-xxxxxxxxx
+          - subnet-2eec4a71
         PlacementGroup:
           Enabled: true
-      CustomActions:
-        OnNodeConfigured:
-          Script: s3://your-bucket/post-install/arm-toolchain-setup.sh
-          Args:
-            - arm
-            - c7g
+      CapacityType: ONDEMAND
 
 SharedStorage:
-  - MountDir: /fsx
-    Name: gchp-fsx
+  # Software Stack (ARM64/aarch64)
+  - Name: software
     StorageType: FsxLustre
+    MountDir: /fsx
     FsxLustreSettings:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
-      PerUnitStorageThroughput: 200
-
-DevSettings:
-  Cookbook:
-    ChefCookbook: https://github.com/aws/aws-parallelcluster-cookbook/archive/refs/tags/aws-parallelcluster-cookbook-3.11.0.tar.gz
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/
+      DataCompressionType: LZ4
 
 Tags:
-  - Key: Application
-    Value: GCHP
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Stack
+    Value: gchp14.7.1-validated
   - Key: Architecture
-    Value: ARM64-Graviton
+    Value: aarch64
   - Key: InstanceFamily
     Value: hpc7g
-  - Key: Project
-    Value: GCHP-Benchmarking
+
+# Usage:
+# 1. Load environment: source /fsx/gchp-env.sh
+# 2. GCHP executable: /fsx/gchp-14.7.1/bin/gchp
+# 3. Input data: Access s3://gcgrid/ directly
+# 4. Scratch: Use /fsx/scratch/
+#
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 (validated) + GCHP 14.7.1
+# Optimization: -O2 -g -mcpu=neoverse-v1 (Graviton 3/4)

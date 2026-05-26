@@ -45,7 +45,7 @@ SharedStorage:
     FsxLustreSettings:
       StorageCapacity: 1200
       DeploymentType: SCRATCH_2
-      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/x86_64/gchp14.7.1-validated/
       # NO ExportPath - immutable, read-only software stack
 
   # 2. Input Data (READ-ONLY)
@@ -72,11 +72,15 @@ Tags:
   - Key: Project
     Value: GCHP-Benchmark
   - Key: Stack
-    Value: gcc12.3-ompi4.1.7-gchp14.7.1
+    Value: gchp14.7.1-validated
+  - Key: Architecture
+    Value: x86_64
 
 # Usage:
-# 1. Load environment: source /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-env.sh
-# 2. GCHP executable: /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/gchp-14.7.1/build/bin/gchp
+# 1. Load environment: source /fsx/gchp-env.sh
+# 2. GCHP executable: /fsx/gchp-14.7.1/bin/gchp
 # 3. Input data: /input/
 # 4. Run directory: /scratch/my-run/
 # 5. Before cluster delete: aws s3 sync /scratch/important-results/ s3://my-bucket/results/
+#
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 (validated) + GCHP 14.7.1

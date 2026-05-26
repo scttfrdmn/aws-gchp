@@ -1,14 +1,16 @@
-# GCHP Software Stack Builder Cluster
-# Purpose: Build gcc12.3-ompi4.1.7-gchp14.7.1 stack
-# Duration: ~3-4 hours for complete build
+# GCHP Software Stack Builder Cluster (x86_64)
+# Purpose: Build gchp14.7.1-validated stack
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 + GCHP 14.7.1
+# Duration: ~6-8 hours for complete build
 # Region: us-east-2
 #
 # Usage:
-#   1. Create cluster: AWS_PROFILE=aws uv run pcluster create-cluster --cluster-name gchp-builder --cluster-configuration builder-cluster.yaml --region us-east-2
-#   2. SSH in: ssh -i ~/.ssh/aws-benchmark.pem ec2-user@<ip>
-#   3. Run build: bash /fsx/build-gchp-stack.sh
-#   4. Sync to S3: aws s3 sync /fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/ s3://gchp-shared-storage-us-east-2/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/
-#   5. Delete cluster
+#   1. Create cluster: AWS_PROFILE=aws uv run pcluster create-cluster --cluster-name gchp-builder-x86 --cluster-configuration builder-cluster.yaml --region us-east-2
+#   2. SSH in: ssh -i ~/.ssh/aws-gchp.pem ec2-user@<ip>
+#   3. Upload build script: scp parallelcluster/post-install/build-gchp-stack-validated.sh ec2-user@<ip>:/fsx/
+#   4. Run build: bash /fsx/build-gchp-stack-validated.sh
+#   5. FSx auto-exports to S3 (s3://gchp-shared-storage-us-east-2/stacks/x86_64/gchp14.7.1-validated/)
+#   6. Delete cluster
 
 Region: us-east-2
 Image:
@@ -59,7 +61,9 @@ Tags:
   - Key: Purpose
     Value: Software-Stack-Builder
   - Key: Stack
-    Value: gcc12.3-ompi4.1.7-gchp14.7.1
+    Value: gchp14.7.1-validated
+  - Key: Architecture
+    Value: x86_64
   - Key: Owner
     Value: "scofri@amazon.com"
   - Key: TemporaryResource

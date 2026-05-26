@@ -1,3 +1,16 @@
+# GCHP Software Stack Builder Cluster (ARM64/Graviton)
+# Purpose: Build gchp14.7.1-validated-arm64 stack
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 + GCHP 14.7.1 (ARM64)
+# Duration: ~6-8 hours for complete build
+#
+# Usage:
+#   1. Create: AWS_PROFILE=aws uv run pcluster create-cluster --cluster-name gchp-builder-arm64 --cluster-configuration builder-graviton-us-east-1.yaml --region us-east-1
+#   2. SSH: ssh -i ~/.ssh/aws-gchp.pem ec2-user@<ip>
+#   3. Upload: scp parallelcluster/post-install/build-gchp-stack-validated-arm64.sh ec2-user@<ip>:/fsx/
+#   4. Build: bash /fsx/build-gchp-stack-validated-arm64.sh
+#   5. FSx auto-exports to s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/
+#   6. Delete cluster
+
 Region: us-east-1
 Image:
   Os: alinux2023
@@ -35,3 +48,15 @@ SharedStorage:
       DeploymentType: SCRATCH_2
       ImportPath: s3://gchp-shared-storage-us-east-1/
       ExportPath: s3://gchp-shared-storage-us-east-1/
+
+Tags:
+  - Key: Project
+    Value: GCHP-on-AWS
+  - Key: Purpose
+    Value: Software-Stack-Builder
+  - Key: Stack
+    Value: gchp14.7.1-validated
+  - Key: Architecture
+    Value: aarch64
+  - Key: TemporaryResource
+    Value: "true"
