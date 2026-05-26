@@ -8,9 +8,52 @@ Comprehensive benchmarking of GCHP (GEOS-Chem High Performance) on AWS ParallelC
 ## Documentation Policy
 **DO NOT create session logs, build summaries, or update documents** (e.g., BUILD-SESSION-*.md, SESSION-SUMMARY-*.md). Only update existing documentation when significant architectural changes occur. Focus on getting work done, not documenting every session.
 
+## CRITICAL RULES: NO GUESSING
+
+**NEVER GUESS OR ASSUME** - When working with complex scientific software like GCHP:
+
+1. **ALWAYS follow official documentation** - GCHP has comprehensive docs at https://gchp.readthedocs.org
+2. **NEVER create custom run directories** - Use GCHP's official `createRunDir.sh` script
+3. **NEVER modify configurations without understanding** - Read the docs first, understand what each parameter does
+4. **NEVER waste time debugging custom setups** - If something doesn't work, use the official setup procedure
+5. **ASK before proceeding** if you don't know the correct procedure - Don't waste time AND money on trial-and-error
+
+**Remember:** You are spending REAL MONEY on AWS compute. Every failed job costs money. Every wrong guess wastes time. When in doubt about GCHP configuration, STOP and consult documentation or ask the user.
+
 ## Goals
 1. **Definitive benchmarking for GCHP on AWS** - Start from 8th generation instances and work backwards
 2. **Performance progression analysis** - Track application performance across hardware generations
+
+## GCHP Run Directory Setup
+
+**ALWAYS use the official GCHP procedure** - Do not create custom run directories or copy templates manually.
+
+### Official Documentation
+- **Main docs:** https://gchp.readthedocs.org
+- **Run directory setup:** https://gchp.readthedocs.io/en/latest/user-guide/rundir-init.html
+- **Configuration:** https://gchp.readthedocs.io/en/latest/user-guide/rundir-config.html
+
+### Creating Run Directories
+
+**Method 1: Using GCHP's createRunDir.sh (PREFERRED)**
+```bash
+cd /path/to/GCHP/run
+./createRunDir.sh
+# Follow interactive prompts
+```
+
+**Method 2: Copy existing official example (if available)**
+```bash
+# Find official examples in GCHP installation
+find /fsx/gchp-14.7.1 -name "*TransportTracers*" -type d
+# Copy and follow GCHP docs to configure
+```
+
+**NEVER:**
+- Manually copy individual .rc files
+- Create custom CAP.rc, GCHP.rc, or HISTORY.rc from scratch
+- Modify configurations without understanding what they do
+- Assume default values are correct for your use case
 
 ## Environment Setup
 
@@ -38,26 +81,52 @@ AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
 
 ## Software Stack
 
-### Current Production Stack (GCC 12.3 + GCHP 14.7.1) ✅
+### Current Production Stack (GCHP 14.7.1 Validated) ✅
 **Status:** Production-ready, built May 2026
 
 - **AWS ParallelCluster:** 3.15.0
-- **Compiler:** GCC 12.3.0 (built from source, Zen 3 optimizations: -O3 -march=znver3 -mtune=znver3)
-- **MPI:** OpenMPI 4.1.7
-  - **mtl:ofi** (EFA fabric transport) ✅
-  - **ess:pmi** (SLURM process management) ✅
-  - Libfabric with EFA provider
-- **HDF5:** 1.14.6
-- **NetCDF-C:** 4.10.0
-- **NetCDF-Fortran:** 4.6.2
+- **Compiler:** GCC 12.2.0 (built from source)
+- **MPI:** OpenMPI 4.1.7 with EFA support
+  - Libfabric 1.22.0 with EFA provider
+  - hwloc 2.11.1, PMIx 5.0.3, libevent 2.1.12
+- **HDF5:** 1.14.0
+- **NetCDF-C:** 4.9.2
+- **NetCDF-Fortran:** 4.6.0
 - **udunits2:** 2.2.28
-- **ESMF:** 8.9.1
+- **ESMF:** 8.6.1 (validated version from GCHP Spack scope)
 - **GCHP:** 14.7.1
 
-**Location:** `/fsx/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
-**S3:** `s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+**Key Feature:** Self-contained stack - all dependencies built from source, no OS package dependencies
 
-**Compatibility:** Zen 3+ AMD instances (c6a, c7a, c8a, hpc6a, hpc7a)
+#### x86_64 Stack
+- **S3:** `s3://gchp-shared-storage-us-east-1/stacks/x86_64/gchp14.7.1-validated/`
+- **Optimization:** `-O2 -g`
+- **GCHP Binary:** 266 MB
+- **Compatibility:** AMD (c5a, c6a, c7a, c8a, hpc6a, hpc7a), Intel (c5, c6i, c7i, c8i, hpc6id)
+
+#### ARM64/aarch64 Stack
+- **S3:** `s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/`
+- **Optimization:** `-O2 -g -mcpu=neoverse-v1`
+- **GCHP Binary:** 257 MB
+- **Compatibility:** Graviton 2/3/4 (c7g, c7gn, c8g, hpc7g)
+
+### Usage on Deployed Cluster
+
+After cluster creation, the stack is automatically available:
+
+```bash
+# Load environment
+source /fsx/gchp-env.sh
+
+# Verify GCHP
+/fsx/gchp-14.7.1/bin/gchp --help
+
+# Check MPI
+mpirun --version
+
+# Verify GCC
+gcc --version  # Should show 12.2.0
+```
 
 ### Future Toolchains (Planned)
 - **Intel Toolchain:** oneAPI 2025.3
@@ -76,13 +145,15 @@ AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
 
 **Core principle:** Shared, read-only resources (software + data) hydrate from S3. User workspace (scratch) is private and local.
 
-1. **Software Stack** (`/sw` or `/fsx`)
+1. **Software Stack** (`/fsx`)
    - Built once by infrastructure team
    - **S3-backed (REQUIRED):** ImportPath from shared S3 bucket
-   - Example: `s3://gchp-shared-storage-us-east-1/stacks/gcc12.3-ompi4.1.7-gchp14.7.1/`
+   - **x86_64:** `s3://gchp-shared-storage-us-east-1/stacks/x86_64/gchp14.7.1-validated/`
+   - **ARM64:** `s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/`
    - **Read-only:** Imported at cluster creation, never modified
    - **Cross-account capable:** Can share via S3 bucket policy
-   - Contains: GCC + OpenMPI + HDF5 + NetCDF + ESMF + GCHP
+   - Contains: GCC 12.2.0 + OpenMPI 4.1.7 + HDF5 + NetCDF + ESMF 8.6.1 + GCHP 14.7.1
+   - **Self-contained:** All dependencies built from source
    - **Persistent:** Stack lives in S3, independent of any cluster
 
 2. **Input Data** (`/input`)
@@ -119,10 +190,13 @@ AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
 
 ### Build Strategy
 - Build on latest generation instances (fastest build times)
-- Compatibility flags for backward compatibility:
-  - **AMD:** znver3 (works on Zen 3/4/5: c6a, c7a, c8a, hpc6a, hpc7a)
-  - **Intel:** icelake-server (works on: c6i, c7i, c8i, hpc6id)
-  - **ARM:** neoverse-v1 (works on: c7g, c7gn, c8g, hpc7g)
+- Generic optimization for maximum compatibility:
+  - **x86_64:** `-O2 -g` (works on all AMD and Intel instances)
+  - **ARM64:** `-O2 -g -mcpu=neoverse-v1` (works on Graviton 2/3/4)
+- Build scripts:
+  - **x86_64:** `parallelcluster/post-install/build-gchp-stack-validated.sh`
+  - **ARM64:** `parallelcluster/post-install/build-gchp-stack-validated-arm64.sh`
+- ESMF 8.6.1 fix: Automated installation (no manual intervention)
 
 ## Project Structure
 
