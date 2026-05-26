@@ -496,12 +496,33 @@ if [ ! -d "${STACK_ROOT}/gchp-${GCHP_VERSION}" ]; then
     git submodule update --init --recursive
 
     mkdir -p build && cd build
+
+    # Build RPATH for portable binaries
+    GCHP_RPATH="${STACK_ROOT}/esmf-${ESMF_VERSION}/lib/libO/Linux.gfortran.64.openmpi.default"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/openmpi-${OPENMPI_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/netcdf-c-${NETCDF_C_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/netcdf-fortran-${NETCDF_FORTRAN_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/hdf5-${HDF5_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/udunits-${UDUNITS_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/gcc-${GCC_VERSION}/lib64"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/libfabric-${LIBFABRIC_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/hwloc-${HWLOC_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/pmix-${PMIX_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/libevent-${LIBEVENT_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/zlib-${ZLIB_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/gmp-${GMP_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/mpfr-${MPFR_VERSION}/lib"
+    GCHP_RPATH="${GCHP_RPATH}:${STACK_ROOT}/mpc-${MPC_VERSION}/lib"
+
     cmake .. \
         -DCMAKE_INSTALL_PREFIX="${STACK_ROOT}/gchp-${GCHP_VERSION}" \
         -DCMAKE_C_COMPILER=mpicc \
         -DCMAKE_CXX_COMPILER=mpicxx \
         -DCMAKE_Fortran_COMPILER=mpifort \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_RPATH="${GCHP_RPATH}" \
+        -DCMAKE_BUILD_RPATH="${GCHP_RPATH}" \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
         -DMPI_LOAD_BALANCE=ON \
         -DNETCDF_C_LIBRARY="${STACK_ROOT}/netcdf-c-${NETCDF_C_VERSION}/lib/libnetcdf.so" \
         -DNETCDF_C_INCLUDE_DIR="${STACK_ROOT}/netcdf-c-${NETCDF_C_VERSION}/include" \
