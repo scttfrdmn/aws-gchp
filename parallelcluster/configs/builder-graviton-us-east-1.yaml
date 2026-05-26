@@ -1,0 +1,37 @@
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.8xlarge  # 32 ARM cores, 64GB RAM - fast GCC build
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a (FSx SCRATCH_2 compatible)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: c7g.8xlarge
+          MinCount: 0
+          MaxCount: 1
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: fsx
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/
+      ExportPath: s3://gchp-shared-storage-us-east-1/

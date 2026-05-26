@@ -1,27 +1,26 @@
 #!/bin/bash
 #
-# GCHP Software Stack Builder - Validated Self-Contained Build (ARM64/Graviton)
-# Builds: gcc12.2-ompi4.1.7-esmf8.6.1-gchp14.7.1-arm64
+# GCHP Software Stack Builder - Validated Self-Contained Build
+# Builds: gcc12.2-ompi4.1.7-esmf8.6.1-gchp14.7.1
 #
-# Run on: ARM64 Linux system (Graviton 2/3/4)
+# Run on: Any Linux system (OS-agnostic, kernel only)
 # Duration: ~6-8 hours for full build
-# Output: /fsx/stacks/gchp14.7.1-validated-arm64/
+# Output: /fsx/stacks/gchp14.7.1-validated/
 # S3 Export: Automatic via FSx Lustre ExportPath
 #
 # This script builds a completely self-contained GCHP stack with:
 # - ALL dependencies from source (no OS package dependencies)
 # - Validated versions from GCHP 14.7.1 Spack scope
 # - EFA support built from source (libfabric)
-# - ARM64/AArch64 optimizations for AWS Graviton
 #
 
 set -e  # Exit on error
 set -u  # Error on undefined variables
 
 # Configuration
-STACK_NAME="gchp14.7.1-validated-arm64"
+STACK_NAME="gchp14.7.1-validated"
 STACK_ROOT="/fsx/stacks/${STACK_NAME}"
-BUILD_DIR="/tmp/gchp-build-validated-arm64"
+BUILD_DIR="/tmp/gchp-build-validated"
 LOG_FILE="/fsx/build-${STACK_NAME}.log"
 NCPUS=$(nproc)
 
@@ -51,8 +50,8 @@ UDUNITS_VERSION="2.2.28"
 ZLIB_VERSION="1.3.1"
 LIBAEC_VERSION="1.1.3"
 
-# ARM64/Graviton optimization flags (Neoverse V1 for Graviton 3/4, works on Graviton 2)
-OPTFLAGS="-O2 -g -mcpu=neoverse-v1"
+# Generic optimization flags (no architecture-specific)
+OPTFLAGS="-O2 -g"
 
 # Logging
 log() {
@@ -563,11 +562,10 @@ export LD_LIBRARY_PATH="\$ESMF_ROOT/lib:\$LD_LIBRARY_PATH"
 # GCHP ${GCHP_VERSION}
 export GCHP_ROOT="\$STACK_ROOT/gchp-${GCHP_VERSION}"
 
-echo "✅ GCHP Validated Stack (ARM64): ${STACK_NAME}"
+echo "✅ GCHP Validated Stack: ${STACK_NAME}"
 gcc --version | head -1
 mpirun --version | head -1
 echo "ESMF: ${ESMF_VERSION} (validated)"
-echo "Architecture: ARM64/AArch64 (Graviton)"
 EOF
 
 chmod +x "${STACK_ROOT}/gchp-env.sh"
@@ -582,7 +580,7 @@ stack_name: ${STACK_NAME}
 created_date: $(date +%Y-%m-%d)
 build_host: $(hostname)
 os_agnostic: true
-architecture: aarch64
+architecture: x86_64
 optimizations: ${OPTFLAGS}
 
 compiler:
@@ -633,12 +631,10 @@ deployment:
   os_dependencies: none (kernel only)
 
 notes: |
-  Completely self-contained GCHP stack for ARM64/Graviton.
+  Completely self-contained GCHP stack.
   All dependencies built from source.
   ESMF 8.6.1 is the validated version from GCHP Spack scope.
   No OS package dependencies beyond kernel.
-  Optimized for AWS Graviton 3/4 (Neoverse V1).
-  Compatible with Graviton 2 (neoverse-v1 is backwards compatible).
   Ready for S3 export via FSx Lustre.
 EOF
 
