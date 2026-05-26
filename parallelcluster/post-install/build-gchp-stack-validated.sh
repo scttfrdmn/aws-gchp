@@ -469,8 +469,13 @@ if [ ! -f "${STACK_ROOT}/esmf-${ESMF_VERSION}/bin/ESMF_Info" ]; then
     export ESMF_F90COMPILEOPTS="$OPTFLAGS -I${STACK_ROOT}/netcdf-fortran-${NETCDF_FORTRAN_VERSION}/include"
 
     make -j${NCPUS}
-    # Install library, headers, and metadata (skip apps - they have linking issues and aren't needed)
-    make install_libs install_headers install_docs install_info_mk
+    # Manual install for ESMF 8.6.1 (install_libs target doesn't exist in this version)
+    # Copy built libraries, modules, headers, and create esmf.mk
+    cp -r lib "${ESMF_INSTALL_PREFIX}/"
+    cp -r mod "${ESMF_INSTALL_PREFIX}/"
+    cp -r src/include "${ESMF_INSTALL_PREFIX}/"
+    # Generate esmf.mk metadata file
+    make info_mk
 
     log "ESMF ${ESMF_VERSION} installed"
 else
