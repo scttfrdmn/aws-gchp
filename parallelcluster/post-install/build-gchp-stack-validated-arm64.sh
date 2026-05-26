@@ -77,7 +77,7 @@ log "  GCHP: ${GCHP_VERSION}"
 # Minimal system prerequisites (bootstrap compiler only)
 log "Installing minimal bootstrap tools..."
 if command -v dnf &> /dev/null; then
-    sudo dnf install -y gcc gcc-c++ gcc-gfortran make wget git bzip2 patch perl m4
+    sudo dnf install -y gcc gcc-c++ gcc-gfortran make wget git bzip2 patch perl m4 openssl-devel rdma-core-devel expat-devel libxml2-devel libcurl-devel
 elif command -v apt-get &> /dev/null; then
     sudo apt-get update && sudo apt-get install -y gcc g++ gfortran make wget git bzip2 patch perl m4
 elif command -v yum &> /dev/null; then
@@ -321,9 +321,9 @@ export LD_LIBRARY_PATH="${STACK_ROOT}/openmpi-${OPENMPI_VERSION}/lib:${STACK_ROO
 log "Building libaec ${LIBAEC_VERSION}..."
 if [ ! -f "${STACK_ROOT}/libaec-${LIBAEC_VERSION}/lib/libaec.so" ]; then
     cd "$BUILD_DIR"
-    wget -q https://gitlab.dkrz.de/k202009/libaec/-/archive/v${LIBAEC_VERSION}/libaec-v${LIBAEC_VERSION}.tar.gz
-    tar -xf libaec-v${LIBAEC_VERSION}.tar.gz
-    cd libaec-v${LIBAEC_VERSION}
+    wget -q https://github.com/Deutsches-Klimarechenzentrum/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz
+    tar -xf libaec-${LIBAEC_VERSION}.tar.gz
+    cd libaec-${LIBAEC_VERSION}
     mkdir -p build && cd build
     cmake .. \
         -DCMAKE_INSTALL_PREFIX="${STACK_ROOT}/libaec-${LIBAEC_VERSION}" \
@@ -341,7 +341,7 @@ fi
 log "Building HDF5 ${HDF5_VERSION}..."
 if [ ! -f "${STACK_ROOT}/hdf5-${HDF5_VERSION}/bin/h5dump" ]; then
     cd "$BUILD_DIR"
-    wget -q https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.0/hdf5-${HDF5_VERSION}.tar.gz
+    wget -q https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-${HDF5_VERSION}/src/hdf5-${HDF5_VERSION}.tar.gz
     tar -xf hdf5-${HDF5_VERSION}.tar.gz
     cd hdf5-${HDF5_VERSION}
 
