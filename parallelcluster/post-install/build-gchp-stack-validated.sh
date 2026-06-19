@@ -76,11 +76,11 @@ log "  GCHP: ${GCHP_VERSION}"
 # Minimal system prerequisites (bootstrap compiler only)
 log "Installing minimal bootstrap tools..."
 if command -v dnf &> /dev/null; then
-    sudo dnf install -y gcc gcc-c++ gcc-gfortran make wget git bzip2 patch perl m4 openssl-devel rdma-core-devel expat-devel libxml2-devel libcurl-devel
+    sudo dnf install -y gcc gcc-c++ gcc-gfortran make wget git bzip2 patch perl m4 openssl-devel rdma-core-devel expat-devel libxml2-devel libcurl-devel patchelf
 elif command -v apt-get &> /dev/null; then
-    sudo apt-get update && sudo apt-get install -y gcc g++ gfortran make wget git bzip2 patch perl m4
+    sudo apt-get update && sudo apt-get install -y gcc g++ gfortran make wget git bzip2 patch perl m4 patchelf
 elif command -v yum &> /dev/null; then
-    sudo yum install -y gcc gcc-c++ gcc-gfortran make wget git bzip2 patch perl m4
+    sudo yum install -y gcc gcc-c++ gcc-gfortran make wget git bzip2 patch perl m4 patchelf
 else
     log "ERROR: Unknown package manager"
     exit 1
@@ -476,6 +476,19 @@ if [ ! -f "${STACK_ROOT}/esmf-${ESMF_VERSION}/bin/ESMF_Info" ]; then
     cp -r src/include "${ESMF_INSTALL_PREFIX}/"
     # Generate esmf.mk metadata file
     make info_mk
+
+    # CRITICAL: ESMF 8.6.1 builds libesmf.so WITHOUT a SONAME. When GCHP links
+    # against a SONAME-less library, the linker records the full build-time path
+    # as the NEEDED entry (e.g. /tmp/.../libesmf.so), which breaks at runtime when
+    # the stack is deployed at a different path via FSx. Set the SONAME so GCHP
+    # records just "libesmf.so", resolvable via RUNPATH/LD_LIBRARY_PATH.
+    ESMF_SO=$(find "${ESMF_INSTALL_PREFIX}/lib" -name "libesmf.so" -type f | head -1)
+    if [ -n "$ESMF_SO" ]; then
+        patchelf --set-soname libesmf.so "$ESMF_SO"
+        log "Set SONAME on ${ESMF_SO}"
+    else
+        log "WARNING: libesmf.so not found for SONAME fix"
+    fi
 
     log "ESMF ${ESMF_VERSION} installed"
 else
