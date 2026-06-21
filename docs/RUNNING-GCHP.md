@@ -11,6 +11,25 @@ ARM64/Graviton (c7g) with a C24 TransportTracers 1-day simulation.
 
 ---
 
+## Quick start (one command)
+
+On the cluster head node, the helper script does sections 3-5 (clone source, create
+the run directory, configure resolution/duration/cores, link the binary, generate a
+SLURM script):
+
+```bash
+scripts/gchp-setup-rundir.sh                 # C24, 1 day, 48 cores, arch auto-detected
+scripts/gchp-setup-rundir.sh --cs-res 48 --days 7 --cores 96   # other options
+
+cd /fsx/scratch/gchp_merra2_TransportTracers
+sbatch gchp.slurm
+```
+
+The sections below document each step the helper performs, for reference and
+customization.
+
+---
+
 ## 1. Prerequisites
 
 - A deployed run cluster (see `parallelcluster/configs/gchp-run-x86.yaml` or

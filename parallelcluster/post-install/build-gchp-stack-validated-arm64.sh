@@ -625,6 +625,15 @@ EOF
 
 chmod +x "${STACK_ROOT}/gchp-env.sh"
 
+# Ship the run-dir helper in the stack if it's available next to this build script
+# (so deployed clusters have one-command run setup). Harmless if absent.
+HELPER_SRC="$(dirname "$0")/../../scripts/gchp-setup-rundir.sh"
+if [ -f "$HELPER_SRC" ]; then
+    cp "$HELPER_SRC" "${STACK_ROOT}/gchp-setup-rundir.sh"
+    chmod +x "${STACK_ROOT}/gchp-setup-rundir.sh"
+    log "Bundled gchp-setup-rundir.sh into stack"
+fi
+
 # ============================================================================
 # 14. Create manifest
 # ============================================================================
