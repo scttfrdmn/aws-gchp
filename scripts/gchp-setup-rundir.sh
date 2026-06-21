@@ -161,9 +161,28 @@ source setCommonRunSettings.sh
 source setRestartLink.sh
 source checkRunSettings.sh
 set +e
+
+# Record the start date BEFORE the run so we can detect real completion afterward.
+start_date_before=\$(awk '{print \$1}' cap_restart)
 start_str=\$(sed 's/ /_/g' cap_restart)
 log=gchp.\${start_str:0:13}z.log
+
 time mpirun -n ${CORES} ./gchp 2>&1 | tee \${log}
+mpi_rc=\${PIPESTATUS[0]}
+
+# GCHP 14.7.1 aborts with a benign double-free SIGABRT during C++ static-destructor
+# teardown (vector<ompi_datatype_t*>) AFTER the simulation completes and the restart
+# is written. So a non-zero mpirun exit does NOT mean the run failed. Judge success by
+# the actual outputs: cap_restart must have advanced AND a checkpoint must exist.
+start_date_after=\$(awk '{print \$1}' cap_restart)
+if [[ -s Restarts/gcchem_internal_checkpoint && "\$start_date_after" != "\$start_date_before" ]]; then
+    echo "GCHP run SUCCEEDED (cap_restart \$start_date_before -> \$start_date_after; checkpoint written)."
+    [[ \$mpi_rc -ne 0 ]] && echo "(ignoring benign teardown exit code \$mpi_rc — known GCHP 14.7.1 finalization abort)"
+    exit 0
+else
+    echo "GCHP run FAILED (cap_restart did not advance / no checkpoint). mpirun rc=\$mpi_rc" >&2
+    exit \${mpi_rc:-1}
+fi
 EOF
 
 echo ""
