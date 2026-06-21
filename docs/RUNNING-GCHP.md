@@ -161,14 +161,10 @@ for Graviton):
 set -e
 cd "$SLURM_SUBMIT_DIR"
 
-# Load the validated stack
+# Load the validated stack. gchp-env.sh is relocatable (derives its own path) and
+# sets OPAL_PREFIX/PMIX_PREFIX so OpenMPI/PMIx find their plugins regardless of
+# where the stack is mounted — no manual prefix exports needed.
 source /fsx/stacks/x86_64/gchp14.7.1-validated/gchp-env.sh
-
-# REQUIRED: OpenMPI/PMIx were built at a different path than they're deployed.
-# These env vars relocate them so mpirun can find its plugins + help files.
-# Without these, mpirun fails with "unknown option" on every flag.
-export OPAL_PREFIX=/fsx/stacks/x86_64/gchp14.7.1-validated/openmpi-4.1.7
-export PMIX_PREFIX=/fsx/stacks/x86_64/gchp14.7.1-validated/pmix-5.0.3
 
 ulimit -s unlimited 2>/dev/null
 

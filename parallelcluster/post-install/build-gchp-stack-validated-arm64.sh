@@ -561,11 +561,17 @@ fi
 log "Creating environment setup script..."
 cat > "${STACK_ROOT}/gchp-env.sh" <<EOF
 #!/bin/bash
-# GCHP Validated Environment Setup
+# GCHP Validated Environment Setup (ARM64/Graviton)
 # Stack: ${STACK_NAME}
-# Self-contained, OS-agnostic
+# Self-contained, OS-agnostic, RELOCATABLE
 
-STACK_ROOT="${STACK_ROOT}"
+# Derive STACK_ROOT from this script's own location so the stack works at ANY
+# mount path (e.g. /fsx/stacks/aarch64/...). Must be sourced, not executed.
+if [ -n "\${BASH_SOURCE[0]}" ]; then
+    STACK_ROOT="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+else
+    STACK_ROOT="${STACK_ROOT}"  # fallback to build-time path
+fi
 
 # GCC ${GCC_VERSION}
 export PATH="\$STACK_ROOT/gcc-${GCC_VERSION}/bin:\$PATH"
@@ -596,12 +602,19 @@ export LD_LIBRARY_PATH="\$STACK_ROOT/netcdf-fortran-${NETCDF_FORTRAN_VERSION}/li
 export PATH="\$STACK_ROOT/udunits-${UDUNITS_VERSION}/bin:\$PATH"
 export LD_LIBRARY_PATH="\$STACK_ROOT/udunits-${UDUNITS_VERSION}/lib:\$LD_LIBRARY_PATH"
 
-# ESMF ${ESMF_VERSION}
+# ESMF ${ESMF_VERSION} (lib lives in an arch-specific libO/Linux.gfortran.*.openmpi.default subdir)
 export ESMF_ROOT="\$STACK_ROOT/esmf-${ESMF_VERSION}"
-export LD_LIBRARY_PATH="\$ESMF_ROOT/lib:\$LD_LIBRARY_PATH"
+ESMF_LIBDIR="\$(dirname "\$(find "\$ESMF_ROOT/lib" -name libesmf.so -type f 2>/dev/null | head -1)")"
+export LD_LIBRARY_PATH="\${ESMF_LIBDIR:-\$ESMF_ROOT/lib}:\$LD_LIBRARY_PATH"
 
 # GCHP ${GCHP_VERSION}
 export GCHP_ROOT="\$STACK_ROOT/gchp-${GCHP_VERSION}"
+
+# OpenMPI/PMIx relocation: these tools bake their configure --prefix into their
+# binaries. Override it so mpirun/PMIx find their plugins + help files regardless
+# of where the stack is mounted. Without these, mpirun fails with "unknown option".
+export OPAL_PREFIX="\$STACK_ROOT/openmpi-${OPENMPI_VERSION}"
+export PMIX_PREFIX="\$STACK_ROOT/pmix-${PMIX_VERSION}"
 
 echo "✅ GCHP Validated Stack (ARM64): ${STACK_NAME}"
 gcc --version | head -1
