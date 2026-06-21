@@ -246,8 +246,23 @@ This happens **after** the science completes, the restart is written, and the ti
 report prints — so **results are valid**. It is a GCHP/MAPL 14.7.1 teardown issue
 (reproduces identically on x86 and ARM64, independent of the stack). The only side
 effect is a non-zero exit code, which makes SLURM mark the job `FAILED` despite a
-successful run. Verify success via `cap_restart` and the restart file, not the job
-exit code. Tracked for upstream investigation.
+successful run.
+
+The crash is in glibc `_dl_fini` (shared-library destructors at process exit). It is
+the same family as upstream [geoschem/GCHP#266](https://github.com/geoschem/GCHP/issues/266),
+where an end-of-run crash was traced to MAPL's parallel-I/O (pfio) finalization calling
+MPI on an already-finalized communicator. That issue was closed without a fix; there is
+no known code-level workaround on the stack side.
+
+**How to treat it:** judge a run by its outputs, not its exit code:
+
+```bash
+cat cap_restart                            # must advance past the start date
+ls -lh Restarts/gcchem_internal_checkpoint # restart written => run succeeded
+```
+
+If you script success/failure detection, key off `cap_restart` advancing rather than
+`$?`. (A wrapper that exits 0 when the restart is present is a reasonable convention.)
 
 ---
 
