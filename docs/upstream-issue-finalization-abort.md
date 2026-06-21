@@ -1,4 +1,6 @@
-# DRAFT upstream issue for geoschem/GCHP
+# Upstream issue for geoschem/GCHP — FILED as #556
+#
+# https://github.com/geoschem/GCHP/issues/556 (filed 2026-06-21)
 
 Review before filing. Post with:
 ```

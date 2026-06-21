@@ -288,8 +288,8 @@ SLURM report the job as `FAILED`. If you hand-write your own job script, copy th
 convention.
 
 This finalization bug is reported upstream at
-[geoschem/GCHP#... (filed from this work)](https://github.com/geoschem/GCHP/issues) with
-the full demangled backtrace.
+[geoschem/GCHP#556](https://github.com/geoschem/GCHP/issues/556) with the full demangled
+backtrace.
 
 ---
 
