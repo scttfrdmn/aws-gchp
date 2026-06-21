@@ -248,11 +248,20 @@ report prints — so **results are valid**. It is a GCHP/MAPL 14.7.1 teardown is
 effect is a non-zero exit code, which makes SLURM mark the job `FAILED` despite a
 successful run.
 
-The crash is in glibc `_dl_fini` (shared-library destructors at process exit). It is
-the same family as upstream [geoschem/GCHP#266](https://github.com/geoschem/GCHP/issues/266),
-where an end-of-run crash was traced to MAPL's parallel-I/O (pfio) finalization calling
-MPI on an already-finalized communicator. That issue was closed without a fix; there is
-no known code-level workaround on the stack side.
+The crash is in glibc `_dl_fini` (shared-library destructors at process exit), after a
+**valid** checkpoint is written with the default single writer (`NUM_WRITERS: 1`). GCHP
+14.7.1 is the latest release, so there is no newer version to move to. It is *not* clearly
+the same as the known checkpoint-writer bug
+[geoschem/GCHP#519](https://github.com/geoschem/GCHP/issues/519) — that one corrupts the
+checkpoint and aborts mid-write with *multiple* writers, whereas single-writer (our case)
+writes a valid file. No upstream issue is a confirmed match, so treat the abort as benign
+based on the evidence below rather than a known fix.
+
+**Possible mitigation (untested here):** `GCHP.rc` has
+`WRITE_RESTART_BY_OSERVER: NO`, with the comment that it is "only necessary with certain
+MPI stacks" and should be set to `YES` "if writing checkpoints causes the run to hang."
+Given the from-source OpenMPI stack, setting it to `YES` is worth trying if the teardown
+abort becomes a problem.
 
 **How to treat it:** judge a run by its outputs, not its exit code:
 
