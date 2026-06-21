@@ -555,6 +555,55 @@ else
 fi
 
 # ============================================================================
+# 12b. Pre-render a reference run directory (config files only)
+# ============================================================================
+# Lets deployed clusters skip the GCHP source clone: gchp-setup-rundir.sh copies
+# this and re-establishes per-cluster symlinks. Ships ONLY path-independent config
+# (.rc, setCommonRunSettings.sh, geoschem_config.yml). Build-time symlinks (CodeDir,
+# restart links) are stripped — they would point at builder paths. MERRA-2 +
+# TransportTracers, matching the verified run profile.
+log "Pre-rendering reference run directory..."
+if [ ! -f "${STACK_ROOT}/reference-rundir/setCommonRunSettings.sh" ]; then
+    CRD_DIR="${BUILD_DIR}/gchp-${GCHP_VERSION}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/run/GCHP"
+    if [ -f "${CRD_DIR}/createRunDir.sh" ] && command -v expect &>/dev/null; then
+        mkdir -p "${HOME}/.geoschem"
+        printf 'export GC_DATA_ROOT=/input\nexport GC_USER_REGISTERED=true\n' > "${HOME}/.geoschem/config"
+        REF_PARENT="${BUILD_DIR}/refrun"
+        rm -rf "$REF_PARENT"; mkdir -p "$REF_PARENT"
+        cat > "${BUILD_DIR}/refrun.expect" <<EXPECT
+#!/usr/bin/expect -f
+set timeout 300
+cd ${CRD_DIR}
+spawn ./createRunDir.sh
+expect "Choose simulation type:"        { send "2\r" }
+expect "Choose meteorology source:"      { send "1\r" }
+expect "Enter path where the run directory will be created:" { send "${REF_PARENT}\r" }
+expect "Enter run directory name"        { send "\r" }
+expect "track run directory changes with git" { send "n\r" }
+expect eof
+EXPECT
+        if expect "${BUILD_DIR}/refrun.expect"; then
+            GENRD=$(find "$REF_PARENT" -maxdepth 1 -mindepth 1 -type d | head -1)
+            if [ -n "$GENRD" ] && [ -f "${GENRD}/setCommonRunSettings.sh" ]; then
+                # Strip build-time symlinks; ship config files only.
+                find "$GENRD" -maxdepth 1 -type l -delete 2>/dev/null || true
+                rm -rf "${STACK_ROOT}/reference-rundir"
+                cp -r "$GENRD" "${STACK_ROOT}/reference-rundir"
+                log "Reference run directory rendered into stack"
+            else
+                log "WARNING: reference run dir not generated (createRunDir produced no rundir); fast path will be unavailable, clone fallback still works"
+            fi
+        else
+            log "WARNING: createRunDir.sh failed during reference render; skipping (clone fallback still works)"
+        fi
+    else
+        log "WARNING: createRunDir.sh or expect unavailable; skipping reference run dir (clone fallback still works)"
+    fi
+else
+    log "Reference run directory already exists, skipping"
+fi
+
+# ============================================================================
 # 13. Create environment setup script
 # ============================================================================
 log "Creating environment setup script..."

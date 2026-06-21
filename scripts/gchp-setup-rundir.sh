@@ -64,29 +64,36 @@ export GC_DATA_ROOT=/input
 export GC_USER_REGISTERED=true
 EOF
 
-# ----- ensure tools -----
-command -v expect >/dev/null 2>&1 || sudo dnf install -y expect
-command -v git    >/dev/null 2>&1 || sudo dnf install -y git
-
-# ----- clone GCHP source + geos-chem submodule (holds createRunDir.sh + templates) -----
-mkdir -p "$SCRATCH"
-if [[ ! -f "${CRD_DIR}/createRunDir.sh" ]]; then
-    echo "--- cloning GCHP ${GCHP_VERSION} source ---"
-    cd "$SCRATCH"
-    [[ -d "$SRC" ]] || git clone --depth 1 --branch "$GCHP_VERSION" https://github.com/geoschem/GCHP.git
-    cd "$SRC"
-    git submodule update --init --depth 1 src/GCHP_GridComp/GEOSChem_GridComp/geos-chem
-fi
-[[ -f "${CRD_DIR}/createRunDir.sh" ]] || { echo "ERROR: createRunDir.sh missing after clone" >&2; exit 1; }
-
-# ----- create run dir via createRunDir.sh (MERRA-2 TransportTracers) -----
-# Gotcha 1: must run from the script's own dir (it derives paths via pwd).
-# Gotcha 2: GC_USER_REGISTERED above skips the hanging registration prompt.
 RUNDIR="${SCRATCH}/gchp_merra2_TransportTracers"
-if [[ -d "$RUNDIR" ]]; then
+REF_RUNDIR="${STACK}/reference-rundir"   # pre-rendered config, shipped in the stack (optional)
+
+if [[ -f "${RUNDIR}/setCommonRunSettings.sh" ]]; then
     echo "--- run dir already exists: $RUNDIR (reusing) ---"
+elif [[ -d "$REF_RUNDIR" && -f "${REF_RUNDIR}/setCommonRunSettings.sh" ]]; then
+    # FAST PATH: copy the pre-rendered reference run dir from the stack. No clone,
+    # no createRunDir.sh, no internet. The reference dir ships rendered config files
+    # only; per-cluster symlinks (gchp binary, restarts) are (re)established below.
+    echo "--- using pre-rendered reference run dir from stack (no source clone) ---"
+    mkdir -p "$SCRATCH"
+    cp -r "$REF_RUNDIR" "$RUNDIR"
+    # Drop any stale symlinks baked at build time; they are rebuilt per-cluster.
+    find "$RUNDIR" -maxdepth 1 -xtype l -delete 2>/dev/null || true
 else
-    echo "--- creating run directory ---"
+    # FALLBACK: clone GCHP source and run the official createRunDir.sh.
+    echo "--- no reference run dir in stack; cloning GCHP ${GCHP_VERSION} source ---"
+    command -v expect >/dev/null 2>&1 || sudo dnf install -y expect
+    command -v git    >/dev/null 2>&1 || sudo dnf install -y git
+    mkdir -p "$SCRATCH"
+    if [[ ! -f "${CRD_DIR}/createRunDir.sh" ]]; then
+        cd "$SCRATCH"
+        [[ -d "$SRC" ]] || git clone --depth 1 --branch "$GCHP_VERSION" https://github.com/geoschem/GCHP.git
+        cd "$SRC"
+        git submodule update --init --depth 1 src/GCHP_GridComp/GEOSChem_GridComp/geos-chem
+    fi
+    [[ -f "${CRD_DIR}/createRunDir.sh" ]] || { echo "ERROR: createRunDir.sh missing after clone" >&2; exit 1; }
+
+    # createRunDir.sh gotchas: must run from its own dir (derives paths via pwd);
+    # GC_USER_REGISTERED (set above) skips the hanging registration prompt.
     EXP=$(mktemp)
     cat > "$EXP" <<EOF
 #!/usr/bin/expect -f
@@ -104,6 +111,17 @@ EOF
     rm -f "$EXP"
 fi
 [[ -f "${RUNDIR}/setCommonRunSettings.sh" ]] || { echo "ERROR: run dir incomplete (no setCommonRunSettings.sh)" >&2; exit 1; }
+
+# ----- (re)establish restart symlinks for the start date -----
+# The reference dir ships without working restart links (they point into /input,
+# which exists on the cluster). createRunDir.sh sets these via setRestartLink.sh at
+# run time; for the fast path, ensure the Restarts dir has the right symlinks.
+if [[ -d "${RUNDIR}/Restarts" ]]; then
+    RST_SRC=$(ls /input/GEOSCHEM_RESTARTS/GC_*/GEOSChem.Restart.TransportTracers.20190101_0000z.c${CS_RES}.nc4 2>/dev/null | head -1)
+    if [[ -n "$RST_SRC" ]]; then
+        ln -sf "$RST_SRC" "${RUNDIR}/Restarts/GEOSChem.Restart.20190101_0000z.c${CS_RES}.nc4"
+    fi
+fi
 
 # ----- configure resolution / duration / cores -----
 cd "$RUNDIR"
