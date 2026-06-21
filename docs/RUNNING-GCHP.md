@@ -250,18 +250,28 @@ successful run.
 
 The crash is in glibc `_dl_fini` (shared-library destructors at process exit), after a
 **valid** checkpoint is written with the default single writer (`NUM_WRITERS: 1`). GCHP
-14.7.1 is the latest release, so there is no newer version to move to. It is *not* clearly
-the same as the known checkpoint-writer bug
-[geoschem/GCHP#519](https://github.com/geoschem/GCHP/issues/519) — that one corrupts the
-checkpoint and aborts mid-write with *multiple* writers, whereas single-writer (our case)
-writes a valid file. No upstream issue is a confirmed match, so treat the abort as benign
-based on the evidence below rather than a known fix.
+14.7.1 is the latest release, so there is no newer version to move to.
 
-**Possible mitigation (untested here):** `GCHP.rc` has
-`WRITE_RESTART_BY_OSERVER: NO`, with the comment that it is "only necessary with certain
-MPI stacks" and should be set to `YES` "if writing checkpoints causes the run to hang."
-Given the from-source OpenMPI stack, setting it to `YES` is worth trying if the teardown
-abort becomes a problem.
+**Root cause (from the demangled backtrace):** the double-free is in the destructor of a
+C++ `std::vector<ompi_datatype_t*>` — a vector of OpenMPI datatype handles — running
+during static-object teardown at process exit:
+
+```
+std::_Vector_base<ompi_datatype_t*>::_M_deallocate
+std::_Vector_base<ompi_datatype_t*>::~_Vector_base
+std::vector<ompi_datatype_t*>::~vector
+```
+
+This is a "MPI objects held in C++ statics" lifetime bug: `MPI_Finalize` releases the
+datatypes, then a static vector destructs at exit and frees them a second time. It is an
+interaction between MAPL's C++ I/O layer and the from-source OpenMPI, not a generic
+OpenMPI bug, and not the checkpoint-writer issue
+[geoschem/GCHP#519](https://github.com/geoschem/GCHP/issues/519) (that one is *multiple*
+writers + corrupt output; we write a valid file with a single writer).
+
+**Tested and ruled out:** setting `GCHP.rc` `WRITE_RESTART_BY_OSERVER: YES` (documented as
+sometimes needed "with certain MPI stacks") does **not** eliminate the abort — confirming
+it is not a checkpoint-write path problem. No config change is known to fix it.
 
 **How to treat it:** judge a run by its outputs, not its exit code:
 
