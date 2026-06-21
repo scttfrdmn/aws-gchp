@@ -1,0 +1,78 @@
+# GCHP Full Run Cluster - ARM64/Graviton
+#
+# Purpose: C24 TransportTracers full simulation on validated ARM64 stack
+# Stack: GCC 12.2.0 + OpenMPI 4.1.7 + ESMF 8.6.1 + GCHP 14.7.1 (aarch64)
+#
+# Storage:
+#   /fsx    - validated software stack (S3 import, read-only)
+#   /input  - GEOS-Chem met/emissions (permanent FSx fs-0ab32d8b6872eab86, s3://gcgrid)
+#   scratch - run directories on /fsx/scratch (ephemeral)
+#
+# Note: Same subnet as x86 cluster + input FSx (us-east-1a). FSx Lustre
+# supports concurrent mounts from multiple clusters.
+
+Region: us-east-1
+
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.2xlarge  # Graviton3 head node
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a (matches input FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c7g-nodes
+          InstanceType: c7g.16xlarge  # 64 cores, Graviton3 (no SMT)
+          MinCount: 0
+          MaxCount: 2
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # Software Stack (validated aarch64, imports from S3)
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/
+      DataCompressionType: LZ4
+      # NO ExportPath - read-only software
+
+  # Input Data (EXISTING permanent FSx, backed by s3://gcgrid)
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0ab32d8b6872eab86  # gchp-input-data-v2 (GEOS-Chem RODA)
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Stack
+    Value: gchp14.7.1-validated
+  - Key: Architecture
+    Value: aarch64
+  - Key: Run
+    Value: C24-TransportTracers
+
+# Usage:
+# 1. source /fsx/gchp-env.sh
+# 2. GCHP binary: /fsx/gchp-14.7.1/bin/gchp
+# 3. Input data: /input/ (lazy-loaded from s3://gcgrid/)
+# 4. Run dir: /fsx/scratch/
