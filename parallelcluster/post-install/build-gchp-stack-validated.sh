@@ -458,6 +458,22 @@ if [ ! -f "${STACK_ROOT}/esmf-${ESMF_VERSION}/bin/ESMF_Info" ]; then
     tar -xf v${ESMF_VERSION}.tar.gz
     cd esmf-${ESMF_VERSION}
 
+    # Patch: free customType MPI datatypes in VMK::finalize() before MPI teardown.
+    # ESMF 8.6.1 (and 8.9.1) never free this program-lifetime static vector, so it
+    # is double-freed at process exit (_dl_fini), aborting with "double free or
+    # corruption" AFTER a successful run. See geoschem/GCHP#556. Patch is optional:
+    # if absent or already applied, the build continues (the abort is benign).
+    ESMF_PATCH="$(dirname "$0")/patches/esmf-${ESMF_VERSION}-vmkernel-customType-free.patch"
+    if [ -f "$ESMF_PATCH" ]; then
+        if patch -p1 --forward --dry-run < "$ESMF_PATCH" &>/dev/null; then
+            patch -p1 < "$ESMF_PATCH" && log "Applied ESMF customType-free patch"
+        else
+            log "ESMF customType-free patch did not apply cleanly (already applied?); continuing"
+        fi
+    else
+        log "ESMF customType-free patch not found at $ESMF_PATCH; building unpatched (benign teardown abort will remain)"
+    fi
+
     export ESMF_DIR=$(pwd)
     export ESMF_INSTALL_PREFIX="${STACK_ROOT}/esmf-${ESMF_VERSION}"
     export ESMF_COMM=openmpi

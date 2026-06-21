@@ -1,0 +1,23 @@
+diff --git a/src/Infrastructure/VM/src/ESMCI_VMKernel.C b/src/Infrastructure/VM/src/ESMCI_VMKernel.C
+index 7a7921c..bad8550 100644
+--- a/src/Infrastructure/VM/src/ESMCI_VMKernel.C
++++ b/src/Infrastructure/VM/src/ESMCI_VMKernel.C
+@@ -792,6 +792,18 @@ void VMK::finalize(int finalizeMpi){
+   int finalized;
+   MPI_Finalized(&finalized);
+   if (!finalized){
++    // Free the committed customType MPI datatypes before MPI is torn down.
++    // customType is a program-lifetime static std::vector<MPI_Datatype>; if its
++    // committed handles are not freed here they outlive MPI_Finalize and are
++    // double-freed when the static vector is destructed at process exit
++    // (_dl_fini), aborting with "double free or corruption". Guard + null so a
++    // later finalize() of the shared static vector cannot double-free.
++    for (auto i=0; i<(signed)customType.size(); i++){
++      if (customType[i] != MPI_DATATYPE_NULL){
++        MPI_Type_free(&(customType[i]));
++        customType[i] = MPI_DATATYPE_NULL;
++      }
++    }
+     MPI_Comm_free(&mpi_c);
+ #if (MPI_VERSION >= 3)
+     MPI_Comm_free(&mpi_c_ssi);
