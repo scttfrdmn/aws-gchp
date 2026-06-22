@@ -46,9 +46,12 @@ build_status_json() {
   local now; now="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
 
   # --- SLURM queue (best-effort; absent in offline tests) ---
+  # Ensure SLURM bins are findable even from a detached/nohup shell with a thin PATH.
+  local SQUEUE; SQUEUE="$(command -v squeue 2>/dev/null || true)"
+  [[ -z "$SQUEUE" && -x /opt/slurm/bin/squeue ]] && SQUEUE=/opt/slurm/bin/squeue
   local jobid="" jobstate="" elapsed="" node="" inqueue=0
-  if command -v squeue >/dev/null 2>&1; then
-    local line; line="$(squeue -h -o '%i|%T|%M|%N' 2>/dev/null | head -1)"
+  if [[ -n "$SQUEUE" ]]; then
+    local line; line="$("$SQUEUE" -h -o '%i|%T|%M|%N' 2>/dev/null | head -1)"
     if [[ -n "$line" ]]; then
       inqueue=1
       jobid="${line%%|*}";   line="${line#*|}"
@@ -81,26 +84,34 @@ build_status_json() {
     mem="$(sed -nE 's/.*[[:space:]]([0-9.]+)% :[[:space:]]+([0-9.]+)% Mem.*/\2/p' <<<"$dline")"
   fi
 
-  # Real sim-progress %: (live GCHP date - BEG_DATE) / (END_DATE - BEG_DATE), using the
-  # segment bounds from CAP.rc. Works throughout the run (cap_restart only advances at the
-  # end, so it can't drive an in-progress bar). Best-effort; blank if unparseable.
-  local beg_date="" end_date=""
-  if [[ -f "$rundir/CAP.rc" ]]; then
-    beg_date="$(sed -nE 's/^BEG_DATE:[[:space:]]*([0-9]+).*/\1/p' "$rundir/CAP.rc" 2>/dev/null | head -1)"
-    end_date="$(sed -nE 's/^END_DATE:[[:space:]]*([0-9]+).*/\1/p' "$rundir/CAP.rc" 2>/dev/null | head -1)"
+  # Real sim-progress %: (live GCHP date - start) / Run_Duration.
+  # The window is the run's START (cap_restart / .cap_start, e.g. 20190101) plus the
+  # configured Run_Duration from setCommonRunSettings.sh (e.g. "00000003 000000" = 3 days).
+  # NOTE: CAP.rc BEG_DATE/END_DATE are wide template bounds (e.g. 1960..2200) and JOB_SGMT
+  # is only filled at runtime — do NOT use them here.
+  local dur=""
+  if [[ -f "$rundir/setCommonRunSettings.sh" ]]; then
+    dur="$(sed -nE 's/^Run_Duration="?([0-9]+ [0-9]+)"?.*/\1/p' "$rundir/setCommonRunSettings.sh" 2>/dev/null | head -1)"
   fi
-  pct="$(GCHP_BEG="$beg_date" GCHP_END="$end_date" GCHP_NOW="${gchp_date//\//}" GCHP_NOW_T="$gchp_time" python3 - <<'PY' 2>/dev/null
+  pct="$(GCHP_START="$cap_start" GCHP_DUR="$dur" GCHP_NOW="${gchp_date//\//}" GCHP_NOW_T="$gchp_time" python3 - <<'PY' 2>/dev/null
 import os,sys
-from datetime import datetime
+from datetime import datetime,timedelta
 def ep(d,t="0:0:0"):
     if not d or len(d)<8: return None
     hh,mm,ss=(t.split(":")+["0","0","0"])[:3]
-    try: return datetime(int(d[:4]),int(d[4:6]),int(d[6:8]),int(hh),int(mm),int(ss)).timestamp()
+    try: return datetime(int(d[:4]),int(d[4:6]),int(d[6:8]),int(hh),int(mm),int(ss))
     except Exception: return None
-beg=ep(os.environ.get("GCHP_BEG","")); end=ep(os.environ.get("GCHP_END",""))
+start=ep(os.environ.get("GCHP_START",""))
 now=ep(os.environ.get("GCHP_NOW",""),os.environ.get("GCHP_NOW_T","0:0:0"))
-if beg is None or end is None or end<=beg or now is None: print(""); sys.exit()
-print(max(0,min(100,round((now-beg)/(end-beg)*100))))
+dur=os.environ.get("GCHP_DUR","")  # "YYYYMMDD HHMMSS"
+if start is None or now is None or not dur or " " not in dur: print(""); sys.exit()
+d,t=dur.split()
+if len(d)<8: print(""); sys.exit()
+days=int(d[:4])*365+int(d[4:6])*30+int(d[6:8])              # approx months=30d (fine for a bar)
+secs=int(t[:2])*3600+int(t[2:4])*60+int(t[4:6]) if len(t)>=6 else 0
+total=timedelta(days=days,seconds=secs).total_seconds()
+if total<=0: print(""); sys.exit()
+print(max(0,min(100,round((now-start).total_seconds()/total*100))))
 PY
 )"
 
