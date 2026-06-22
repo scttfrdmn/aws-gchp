@@ -97,6 +97,12 @@ fi
 # Link GCHP executable
 ln -sf $GCHP_ROOT/build/bin/gchp .
 
+# Link chemistry data directory
+echo "=== Linking data directories ==="
+DATA_ROOT="/input"
+ln -sf $DATA_ROOT/CHEM_INPUTS ChemDir
+echo "Created link: ChemDir -> $DATA_ROOT/CHEM_INPUTS"
+
 echo "=== Setting configuration variables ==="
 
 # Default values for Transport Tracers benchmark
@@ -128,6 +134,7 @@ sed -i "s/\${RUNDIR_SIM_DUR_YYYYMMDD}/$SIM_DUR_YYYYMMDD/" CAP.rc
 sed -i "s/\${RUNDIR_SIM_DUR_HHmmSS}/$SIM_DUR_HHmmSS/" CAP.rc
 sed -i "s/BEG_DATE:     .*/BEG_DATE:     20190101 000000/" CAP.rc
 sed -i "s/END_DATE:     .*/END_DATE:     20190108 000000/" CAP.rc
+sed -i "s/^JOB_SGMT:       $/JOB_SGMT:     $SIM_DUR_YYYYMMDD $SIM_DUR_HHmmSS/" CAP.rc
 
 # geoschem_config.yml
 sed -i "s/\${RUNDIR_SIM_NAME}/$SIM_NAME/" geoschem_config.yml
@@ -157,8 +164,19 @@ sed -i "s|\${RUNDIR_OCEAN_MASK}|$DATA_ROOT/HEMCO/OCEAN_MASK.geos.1x1.nc|" HEMCO_
 sed -i "s/\${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}//" ExtData.rc
 sed -i "s/\${RUNDIR_MET_EXTDATA_DERIVED_EXPORTS}//" ExtData.rc
 
-# setCommonRunSettings.sh - set CS_RES
+# setCommonRunSettings.sh - set CS_RES and compute resources
 sed -i "s/CS_RES=\${RUNDIR_CS_RES}/CS_RES=$CS_RES/" setCommonRunSettings.sh
+
+# Calculate default compute resources for single-node benchmark
+# For C24: Use 48 cores (1 node, 48 cores/node)
+# NX and NY will be auto-calculated by setCommonRunSettings.sh
+NUM_CORES=48
+NUM_NODES=1
+CORES_PER_NODE=48
+
+sed -i "s/TOTAL_CORES=\${RUNDIR_NUM_CORES}/TOTAL_CORES=$NUM_CORES/" setCommonRunSettings.sh
+sed -i "s/NUM_NODES=\${RUNDIR_NUM_NODES}/NUM_NODES=$NUM_NODES/" setCommonRunSettings.sh
+sed -i "s/NUM_CORES_PER_NODE=\${RUNDIR_CORES_PER_NODE}/NUM_CORES_PER_NODE=$CORES_PER_NODE/" setCommonRunSettings.sh
 
 echo "=== Setting up initial conditions ==="
 
