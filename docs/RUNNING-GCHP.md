@@ -252,9 +252,9 @@ The crash is in glibc `_dl_fini` (shared-library destructors at process exit), a
 **valid** checkpoint is written with the default single writer (`NUM_WRITERS: 1`). GCHP
 14.7.1 is the latest release, so there is no newer version to move to.
 
-**Root cause (from the demangled backtrace):** the double-free is in the destructor of a
-C++ `std::vector<ompi_datatype_t*>` — a vector of OpenMPI datatype handles — running
-during static-object teardown at process exit:
+**Partial root cause (from the demangled backtrace):** the double-free is in the
+destructor of a C++ `std::vector<ompi_datatype_t*>` — a vector of OpenMPI datatype
+handles — running during static-object teardown at process exit:
 
 ```
 std::_Vector_base<ompi_datatype_t*>::_M_deallocate
@@ -263,11 +263,22 @@ std::vector<ompi_datatype_t*>::~vector
 ```
 
 This is a "MPI objects held in C++ statics" lifetime bug: `MPI_Finalize` releases the
-datatypes, then a static vector destructs at exit and frees them a second time. It is an
-interaction between MAPL's C++ I/O layer and the from-source OpenMPI, not a generic
+datatypes, then a static `std::vector<MPI_Datatype>` destructs at exit and frees them a
+second time. It is in ESMF's VM layer (the from-source OpenMPI ABI), not a generic
 OpenMPI bug, and not the checkpoint-writer issue
 [geoschem/GCHP#519](https://github.com/geoschem/GCHP/issues/519) (that one is *multiple*
 writers + corrupt output; we write a valid file with a single writer).
+
+**Fix attempt (tested, did NOT resolve it):** ESMF's `ESMCI::VMK::customType`
+(`ESMCI_VMKernel.C`) is exactly such a static `std::vector<MPI_Datatype>` — committed in
+`VMK::init()`, never freed in `VMK::finalize()`. We patched `finalize()` to `MPI_Type_free`
+those handles, built a patched `libesmf.so`, and A/B-tested it against the stock library
+on one node with the same GCHP binary. **Both still aborted identically** (exit 134,
+valid output, teardown abort) — so `customType` is a real datatype leak but is *not* the
+vector causing this double-free. A different static `std::vector<MPI_Datatype>` in ESMF
+is responsible; pinning the exact instance needs a debug-symbol ESMF build. The
+`customType` patch is retained as an optional leak fix
+(`parallelcluster/post-install/patches/`) but is **not** a fix for this abort.
 
 **Tested and ruled out:** setting `GCHP.rc` `WRITE_RESTART_BY_OSERVER: YES` (documented as
 sometimes needed "with certain MPI stacks") does **not** eliminate the abort — confirming

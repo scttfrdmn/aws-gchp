@@ -1,8 +1,14 @@
-# Upstream ESMF fix — free VMK::customType MPI datatypes before MPI_Finalize
+# ESMF VMK::customType datatype leak fix (NOT the finalization-abort fix)
 
-Status: patch written + verified-to-apply against ESMF v8.6.1 AND develop. NOT yet
-runtime-validated (needs an ESMF+GCHP rebuild). Local back-port to our pinned 8.6.1 is
-wired into the build scripts (`parallelcluster/post-install/patches/`).
+Status: A/B-TESTED 2026-06-21 — this patch does **NOT** resolve the end-of-run
+double-free SIGABRT (geoschem/GCHP#556). A patched `libesmf.so` (customType freed in
+`VMK::finalize()`) aborted identically to stock in a controlled same-node A/B run with
+the same GCHP binary. So `customType` is a genuine datatype *leak* but is not the vector
+being double-freed at exit — a DIFFERENT static `std::vector<MPI_Datatype>` in ESMF is
+responsible, not yet pinned (needs a debug-symbol ESMF build).
+
+This remains a valid, small leak fix and applies cleanly to v8.6.1 AND develop, so it is
+still worth offering upstream as a leak fix — but do NOT present it as resolving #556.
 
 ## Title
 Free `VMK::customType` MPI datatypes in `VMK::finalize()` (double-free at process exit)

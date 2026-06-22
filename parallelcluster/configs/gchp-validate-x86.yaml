@@ -1,0 +1,61 @@
+# GCHP ESMF-patch validation cluster (x86_64)
+#
+# Purpose: validate the ESMF customType double-free fix by rebuilding ONLY a
+# patched libesmf.so and A/B testing the existing GCHP binary against it.
+# Beefy head node (c7a.8xlarge, 32 cores) for a fast ESMF build (~1-1.5h).
+#
+# Storage: /fsx (validated stack, S3 import) + /input (permanent GEOS-Chem FSx).
+
+Region: us-east-1
+
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.8xlarge   # 32 cores — build patched ESMF quickly on the head node
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a (matches input FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: c7a-nodes
+          InstanceType: c7a.48xlarge
+          MinCount: 0
+          MaxCount: 1
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/x86_64/gchp14.7.1-validated/
+      DataCompressionType: LZ4
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0ab32d8b6872eab86  # gchp-input-data-v2 (GEOS-Chem RODA)
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Purpose
+    Value: ESMF-patch-validation
+  - Key: Architecture
+    Value: x86_64

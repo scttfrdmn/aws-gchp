@@ -459,11 +459,12 @@ if [ ! -f "${STACK_ROOT}/esmf-${ESMF_VERSION}/bin/ESMF_Info" ]; then
     tar -xf v${ESMF_VERSION}.tar.gz
     cd esmf-${ESMF_VERSION}
 
-    # Patch: free customType MPI datatypes in VMK::finalize() before MPI teardown.
-    # ESMF 8.6.1 (and 8.9.1) never free this program-lifetime static vector, so it
-    # is double-freed at process exit (_dl_fini), aborting with "double free or
-    # corruption" AFTER a successful run. See geoschem/GCHP#556. Patch is optional:
-    # if absent or already applied, the build continues (the abort is benign).
+    # Patch: free customType MPI datatypes in VMK::finalize() (leak fix).
+    # ESMF 8.6.1 (and 8.9.1) commit ESMCI::VMK::customType but never free it.
+    # NOTE: A/B tested 2026-06-21 — this patch does NOT resolve the benign end-of-run
+    # double-free SIGABRT (a DIFFERENT static std::vector<MPI_Datatype> in ESMF causes
+    # that; see geoschem/GCHP#556 and docs/RUNNING-GCHP.md). Kept as a legit datatype
+    # leak fix only. Optional: if absent or already applied, the build continues.
     ESMF_PATCH="$(dirname "$0")/patches/esmf-${ESMF_VERSION}-vmkernel-customType-free.patch"
     if [ -f "$ESMF_PATCH" ]; then
         if patch -p1 --forward --dry-run < "$ESMF_PATCH" &>/dev/null; then
