@@ -689,14 +689,21 @@ EOF
 
 chmod +x "${STACK_ROOT}/gchp-env.sh"
 
-# Ship the run-dir helper in the stack if it's available next to this build script
-# (so deployed clusters have one-command run setup). Harmless if absent.
-HELPER_SRC="$(dirname "$0")/../../scripts/gchp-setup-rundir.sh"
-if [ -f "$HELPER_SRC" ]; then
-    cp "$HELPER_SRC" "${STACK_ROOT}/gchp-setup-rundir.sh"
-    chmod +x "${STACK_ROOT}/gchp-setup-rundir.sh"
-    log "Bundled gchp-setup-rundir.sh into stack"
-fi
+# Ship helper scripts in the stack if available next to this build script, so deployed
+# clusters have one-command run setup + head-node monitoring without a repo checkout.
+# Harmless if absent.
+REPO_SCRIPTS="$(dirname "$0")/../../scripts"
+for HELPER in \
+    "${REPO_SCRIPTS}/gchp-setup-rundir.sh" \
+    "${REPO_SCRIPTS}/monitoring/gchp-monitor-exporter.sh" \
+    "${REPO_SCRIPTS}/monitoring/deploy-exporter.sh" \
+    "${REPO_SCRIPTS}/monitoring/teardown-monitoring.sh"; do
+    if [ -f "$HELPER" ]; then
+        cp "$HELPER" "${STACK_ROOT}/$(basename "$HELPER")"
+        chmod +x "${STACK_ROOT}/$(basename "$HELPER")"
+        log "Bundled $(basename "$HELPER") into stack"
+    fi
+done
 
 # ============================================================================
 # 14. Create manifest
