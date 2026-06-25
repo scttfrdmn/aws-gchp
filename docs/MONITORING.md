@@ -25,18 +25,28 @@ publicly and without interfering with other researchers running at the same time
 
 ## Quick start
 
-**1. On the cluster head node**, after submitting a run, start the exporter pointed at
-your own bucket:
+**1. On the cluster head node**, install the exporter as a systemd service pointed at
+your own bucket (recommended — survives head-node reboots, restarts on failure):
 
 ```bash
-# bundled in the stack at /fsx/stacks/<arch>/gchp14.7.1-validated/ if present,
-# or copy scripts/monitoring/gchp-monitor-exporter.sh up.
-nohup gchp-monitor-exporter.sh \
+# exporter is bundled in the stack at /fsx/stacks/<arch>/gchp14.7.1-validated/ if the
+# stack was rebuilt since this was added; otherwise copy scripts/monitoring/ up.
+sudo ./deploy-exporter.sh \
   --bucket s3://my-bucket/gchp-monitor/run1 \
   --rundir /fsx/scratch/gchp_merra2_TransportTracers \
-  --cluster gchp-run-x86 \
-  --interval 10 > /tmp/gchp-exporter.log 2>&1 &
+  --cluster gchp-run-x86 --interval 10
+
+systemctl status gchp-monitor      # health
+journalctl -u gchp-monitor -f      # logs
 ```
+
+Or, for a quick one-off without installing a service:
+```bash
+nohup gchp-monitor-exporter.sh --bucket s3://my-bucket/gchp-monitor/run1 \
+  --rundir /fsx/scratch/gchp_merra2_TransportTracers --cluster gchp-run-x86 \
+  > /tmp/gchp-exporter.log 2>&1 &
+```
+(Note: a bare `nohup` does NOT survive a head-node reboot; the service does.)
 
 **2. On your own computer**, launch the dashboard:
 
@@ -46,6 +56,21 @@ scripts/monitoring/gchp-dash.sh s3://my-bucket/gchp-monitor/run1 --profile aws
 ```
 
 The page auto-refreshes every 10s.
+
+**3. (Optional) Restrict reads to this computer's IP** — belt-and-suspenders on top of
+the credential gating:
+
+```bash
+scripts/monitoring/lock-monitor-ip.sh --bucket my-bucket --profile aws
+# uses this machine's detected public IP; re-run with --ip if it changes,
+# or --remove to undo. Merges into (never clobbers) any existing bucket policy.
+```
+
+**4. Tear down** when the run is done (on the head node):
+
+```bash
+sudo ./teardown-monitoring.sh        # stops + removes the service, posts a final STOPPED status
+```
 
 ## status.json fields
 
@@ -91,13 +116,19 @@ small objects is well under a cent per run.
 ## Files
 
 - `scripts/monitoring/gchp-monitor-exporter.sh` — head-node exporter (parse → S3).
+- `scripts/monitoring/deploy-exporter.sh` — install the exporter as a systemd service
+  (auto-start, reboot-survival, restart-on-failure). Run with `sudo` on the head node.
+- `scripts/monitoring/teardown-monitoring.sh` — stop/remove the service (head node).
 - `scripts/monitoring/gchp-dash.sh` — local launcher (poll S3 → serve localhost).
 - `scripts/monitoring/gchp-monitor-ui.html` — the dashboard page.
+- `scripts/monitoring/lock-monitor-ip.sh` — optional: restrict the `gchp-monitor/*`
+  prefix of your bucket to one source IP (local; merges into any existing policy).
 
-## Not yet built (deferred)
+## Validation status
 
-- `deploy-exporter.sh` (systemd timer install so the exporter survives head-node reboots
-  and starts automatically).
-- `teardown-monitoring.sh`.
-- End-to-end S3 round-trip + live-run validation (the parser and local serving are
-  offline-tested; the S3 hop will be exercised on the next real run).
+- **End-to-end validated** on a live 3-day C24 run (2026-06): CONFIGURING → RUNNING
+  (progress 0→100% tracking the sim date, live throughput/ETA/mem) → SUCCESS through
+  the benign teardown SIGABRT. Per-user private bucket + local dashboard confirmed.
+- The systemd `deploy-exporter.sh` / `teardown-monitoring.sh` and `lock-monitor-ip.sh`
+  are syntax- and logic-tested offline (policy merge verified across add/re-run/remove);
+  the systemd install path itself runs on the next head node where they're used.
