@@ -1,0 +1,57 @@
+# GCHP Benchmark — Graviton4-96c (c8g.24xlarge)
+# C90, single node, full physical cores.
+
+
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c8g.2xlarge
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (input FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: c8g.24xlarge
+          MinCount: 0
+          MaxCount: 1
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/
+      DataCompressionType: LZ4
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0ab32d8b6872eab86   # gchp-input-data-v2 (GEOS-Chem RODA)
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: c7g-C90
+  - Key: Architecture
+    Value: aarch64
