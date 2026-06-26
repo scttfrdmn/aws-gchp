@@ -29,7 +29,7 @@ Scheduling:
     - Name: compute
       ComputeResources:
         - Name: c7a-nodes
-          InstanceType: c7a.48xlarge  # 48 physical cores (96 vCPU), AMD EPYC Genoa
+          InstanceType: c7a.48xlarge  # 192 physical cores (= 192 vCPU, no SMT), AMD EPYC Genoa
           MinCount: 0
           MaxCount: 2
       Networking:
