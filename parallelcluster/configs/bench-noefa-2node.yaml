@@ -1,0 +1,54 @@
+# NON-EFA 2-node bootstrap test — hpc7g (Graviton3E), us-east-1.
+# Isolation test: does plain 2-node bootstrap + MPI-over-TCP work? (EFA OFF, no PG)
+# If this works but EFA didn't -> EFA is the problem. If this fails too -> multi-node config.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.2xlarge
+  Networking:
+    SubnetId: subnet-2eec4a71  # us-east-1a (input FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: hpc7g.16xlarge
+          MinCount: 0
+          MaxCount: 2
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: FsxLustre
+    MountDir: /fsx
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      ImportPath: s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/
+      DataCompressionType: LZ4
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0ab32d8b6872eab86  # gchp-input-data-v2
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: noefa-2node-test

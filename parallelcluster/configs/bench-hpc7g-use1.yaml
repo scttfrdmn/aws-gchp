@@ -1,0 +1,71 @@
+# hpc7g Graviton3E companion (us-east-1a) — C180 strong scaling 1/2/4 nodes.
+# ARM/aarch64 stack. Needs the VPC endpoints created 2026-06-27 in vpc-cd49bfb0 (ssm/ssmmessages/
+# ec2messages/ec2 interface + pre-existing s3 gateway) so EFA multi-NIC compute nodes can bootstrap.
+# Three tiers: /sw (ARM stack, EBS+S3-sync), /input (FSx by-ID, gcgrid 2.15), /scratch (FSx Lustre r/w).
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.2xlarge          # Graviton, single-NIC -> free auto-assigned public IP
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (MapPublicIpOnLaunch=True; same AZ as FSx + hpc7g)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 3
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: hpc7g.16xlarge   # Graviton3E, 64c, 128GB, 200Gb EFA
+          MinCount: 0
+          MaxCount: 4
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 100
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0fffaa33915b45840     # gchp-input-use1 (us-east-1a, gcgrid, Lustre 2.15)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: hpc7g-c180-scaling

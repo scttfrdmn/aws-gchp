@@ -1,0 +1,86 @@
+# EFA DE-RISK (us-east-2b) — 2-node hpc7a.96xlarge.
+# Purpose: prove the validated 14.7.1 stack bootstraps + uses EFA across nodes in
+# us-east-2b (where VPC endpoints for SSM/EC2/etc. already exist — see
+# docs/VPC-ENDPOINTS-SOLUTION.md). The earlier us-east-1 EFA attempt failed because that
+# VPC lacks those endpoints (multi-NIC EFA nodes get no public IP -> can't reach AWS APIs).
+# Gate before the full multi-node HPC matrix. C90, 2 nodes x 60 ranks = 120.
+#
+# Storage note: PC 3.15 allows only ONE new FSx per cluster. So:
+#   /input -> the 1 new FSx (lazy ImportPath from s3://gcgrid; PC auto-wires its SG).
+#   /fsx   -> shared EBS; head node syncs the 3.3GB stack from S3 once (OnNodeConfigured),
+#             PC NFS-exports it to compute. Intra-cluster NFS => no VPC-endpoint dependency,
+#             so it can't confound the networking de-risk.
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    # Head node in us-east-2b — SAME AZ as the input FSx (cross-AZ FSx mount fails; also avoids
+    # inter-AZ data-transfer cost on met paging). This is the proven gchp-production.yaml pattern.
+    # ElasticIp:true needs a free EIP slot — released an idle one (us-east-2 was at 5/5 quota).
+    SubnetId: subnet-cbdcddb1   # us-east-2b (same AZ as FSx + EFA compute + VPC endpoints)
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      # Populate the shared /fsx EBS with the validated x86_64 stack (NFS-exported to compute)
+      Script: s3://gchp-shared-storage-us-east-2/bootstrap/sync-stack.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 2
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: hpc7a-efa
+          InstanceType: hpc7a.96xlarge   # 192 phys cores, 768GB, 300Gb EFA (matrix instance)
+          MinCount: 0
+          MaxCount: 2
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true   # required for EFA low-latency
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  # Stack (validated x86_64) — shared EBS, head node hydrates from S3, NFS to compute.
+  - Name: stack
+    StorageType: Ebs
+    MountDir: /fsx
+    EbsSettings:
+      VolumeType: gp3
+      Size: 100               # 3.3GB stack + run-dir scratch (checkpoints + HISTORY)
+      DeletionPolicy: Delete
+  # Input data — reference the STANDALONE pre-created FSx by ID. Creating it inline failed:
+  # the cross-region full-bucket gcgrid metadata import takes ~33 min, but PC gates head-node
+  # launch on FSx availability, so the head-node WaitCondition (37 min) timed out before the
+  # node could bootstrap. Pre-creating decouples the slow import AND makes it reusable across
+  # the whole matrix (import gcgrid once, not per-cluster). By-ID doesn't count vs the 1-new-FSx limit.
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0530cb89869306328   # gchp-input-shared (us-east-2b, gcgrid, Lustre 2.15)
+      # MUST be Lustre 2.15: AL2023's 2.15 client CANNOT mount FSx 2.10 (errno 22, see
+      # docs/VALIDATION-REPORT.md matrix). `aws fsx create-file-system` defaults to 2.10 —
+      # always pass --file-system-type-version 2.15.
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: efa-derisk-2node-use2

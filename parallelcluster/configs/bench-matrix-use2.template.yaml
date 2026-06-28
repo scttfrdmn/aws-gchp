@@ -1,0 +1,76 @@
+# MATRIX TEMPLATE (us-east-2b) — C180 strong-scaling, INSTANCE_TYPE compute, up to 4 nodes.
+# Proven pattern from the EFA de-risk (bench-efa-derisk-use2.yaml). Substitute @INSTANCE_TYPE@
+# and @MAXCOUNT@ via scripts/launch-matrix-cluster.sh. Storage: stack on EBS (head node syncs
+# from S3), input by FileSystemId (shared 2.15 FSx, gcgrid pre-imported).
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    SubnetId: subnet-cbdcddb1   # us-east-2b — same AZ as FSx + EFA compute + VPC endpoints
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-2/bootstrap/sync-stack.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 3
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: @INSTANCE_TYPE@
+          MinCount: 0
+          MaxCount: @MAXCOUNT@
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw             # software stack (read-only). EBS, NOT FSx — named /sw to avoid
+    EbsSettings:              # the misleading /fsx; head node S3-syncs it, NFS-exports to compute.
+      VolumeType: gp3
+      Size: 100               # 3.3GB read-only stack (binary + gchp-env.sh)
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0511ec66cae9b16c9   # gchp-input-shared (us-east-2b, gcgrid, Lustre 2.15)
+  # Writable Lustre scratch (the 1 NEW FSx) — GCHP run dir + HISTORY + checkpoints live here.
+  # pnc4 parallel-collective MPI-IO checkpoint writes intermittently FAIL on ext4 EBS
+  # (NetCDF4_FileFormatter line 189, status -35); Lustre is built for collective I/O. SCRATCH_2,
+  # no ImportPath (empty/writable), DeletionPolicy Delete (scratch is per-cluster, ephemeral).
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: matrix-c180-scaling
