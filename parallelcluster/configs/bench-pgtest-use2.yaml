@@ -1,0 +1,111 @@
+# PLACEMENT-GROUP / EFA ABLATION TEST (us-east-2b).
+# Question: how much does a cluster placement group actually help GCHP on TOP of EFA?
+# And does EFA itself matter vs TCP? One cluster, three queues, identical hpc7a.96xl compute,
+# C180 2-node — the ONLY variable per queue is the network transport config:
+#   pg   : EFA enabled  + PlacementGroup enabled   (the "correct" HPC config)
+#   nopg : EFA enabled  + PlacementGroup DISABLED   (the intuition test)
+#   tcp  : EFA DISABLED + PlacementGroup DISABLED   (the floor — proves EFA matters)
+# FSx input by-ID (fs-066fbfb2329eb5827). Run the same C180 2-node sweep in each queue.
+
+Region: us-east-2
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7a.2xlarge
+  Networking:
+    SubnetId: subnet-cbdcddb1
+    ElasticIp: true
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-2/bootstrap/sync-stack.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 3
+  SlurmQueues:
+    # --- EFA + placement group (the canonical HPC config) ---
+    - Name: pg
+      ComputeResources:
+        - Name: nodes
+          InstanceType: hpc7a.96xlarge
+          MinCount: 0
+          MaxCount: 2
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: true
+      CapacityType: ONDEMAND
+    # --- EFA, NO placement group (the intuition test) ---
+    - Name: nopg
+      ComputeResources:
+        - Name: nodes
+          InstanceType: hpc7a.96xlarge
+          MinCount: 0
+          MaxCount: 2
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+    # --- TCP (no EFA, no PG): the transport floor ---
+    - Name: tcp
+      ComputeResources:
+        - Name: nodes
+          InstanceType: hpc7a.96xlarge
+          MinCount: 0
+          MaxCount: 2
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: false
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-cbdcddb1
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 100
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-066fbfb2329eb5827
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: pg-efa-ablation

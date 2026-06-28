@@ -433,6 +433,37 @@ You can cheaply confirm the *body* of the distribution exists; the *tail* — th
 matters for HPC — you can only measure by paying to enter it. The number that would let you
 compute your own batch blocking probability is precisely the number AWS does not publish.
 
+### 6f. Ablation: does the placement group actually help on top of EFA? (measured)
+
+We ran the experiment the §10.3 advice rests on: one cluster, three queues, identical hpc7a.96xl
+compute, C180 2-node × 60 ranks — the **only** variable per queue the network transport.
+(`parallelcluster/configs/bench-pgtest-use2.yaml`, `scripts/gchp-pgtest-run.sh`; metric = GCHP
+internal Avg throughput.)
+
+| config | transport | internal Avg (d/d) | outcome |
+|--------|-----------|--------------------|---------|
+| **pg** | EFA + cluster placement group | **153.4** | ✓ |
+| **nopg** | EFA, **no** placement group | **161.6** | ✓ |
+| **tcp** | no EFA (forced TCP/sockets) | — | **FAILED — `MPI_Win_create` / no threaded one-sided over TCP** |
+
+**Finding 1 — the placement group buys ≈ nothing on top of EFA (at this scale).** 161.6 (no PG)
+vs 153.4 (PG) is a statistical tie, with the *no-PG* run marginally faster. EFA already delivers
+SRD/RDMA on the AWS network; the PG's extra rack-level co-location added no measurable GCHP
+throughput at 2 nodes. So the placement group — which *causes* the §3 atomic-batch blocking cliff
+— is **discardable for free here**. (Caveat: re-measure at large `k`, where many concurrent flows
+might make segment locality matter again.)
+
+**Finding 2 (the bigger one) — EFA is a *functional* requirement, not a performance tuning knob.**
+The TCP queue didn't run *slow*; it **could not run at all**. GCHP/MAPL uses MPI one-sided RMA
+(`MPI_Win_create`) with `THREAD_MULTIPLE`; OpenMPI serves that via `osc/rdma` over EFA, but the
+non-RDMA fallback `osc/pt2pt` **does not support threaded one-sided over the TCP BTL** → hard
+abort (*"Workarounds are to run on a single node, or to use a system with an RDMA capable
+network"*). **There is no TCP floor for multi-node GCHP — there is a TCP wall.** This *sharpens*
+§8: EFA isn't a knob HPC chooses for speed, it's mandatory for the application to function
+multi-node — so the entire forced-non-fungibility chain (single-AZ, largest-SKU, single-type) is
+*mandatory*, not a preference. The one fungibility lever that IS free to pull is the placement
+group (Finding 1) — and it's the only one.
+
 ---
 
 ## 7. The cost axis: sunk amortization vs. real-time billing (and "snipe-and-hold")
@@ -544,9 +575,10 @@ capacity-optimized, even the SPS scoring rules — is built to **reward customer
 
 **HPC is the pathological opposite — it is maximally *non*-fungible. And the crucial point is
 that its non-fungibility is not a *preference* — it's a *forced requirement chain*, most of it
-rooted in one AWS feature: EFA.** Tightly-coupled MPI (GCHP's halo exchange) needs the low-latency
-RDMA transport, or it falls back to TCP and multi-node scaling collapses. The moment you require
-EFA, AWS's own constraints strip away every fungibility knob, one after another:
+rooted in one AWS feature: EFA.** And EFA is not optional: we measured (§6f) that multi-node GCHP
+forced onto TCP doesn't run *slow*, it **fails outright** — MAPL's threaded one-sided RMA has no
+working non-RDMA path. So EFA is a *functional* requirement, and the moment you require it, AWS's
+own constraints strip away every fungibility knob, one after another:
 
 ```
 tightly-coupled MPI (GCHP)
@@ -569,8 +601,12 @@ So the table below isn't a list of *choices* HPC happens to make — it's what t
 | any of N instance types | **one** type | MPI load balance (homogeneous ranks) |
 | any instance *size* | the **largest** size(s) | **EFA only offered on the top SKU(s)** (m9g→.48xl only, hpc7g→.16xl only) |
 | any AZ | **one** AZ | **hard rule: "EFA traffic can't cross Availability Zones"** (+ AZ-bound FSx) |
-| capacity assembled over time from many pools | *k* nodes **co-located, atomically, now** | placement group for latency |
+| capacity assembled over time from many pools | *k* nodes **co-located, atomically, now** | placement group for latency — **but §6f shows this one is discardable for free: EFA-no-PG ≈ EFA+PG** |
 | interruptible / fungible units | identical, gang-scheduled, all-or-nothing | the MPI job is one barrier-synchronized unit |
+
+The placement-group row is the **one** lever §6f proved you can actually relax at no throughput
+cost — dropping it removes the atomic-batch co-location constraint (the §3 cliff) while EFA still
+carries the traffic. Every *other* row is welded shut by the EFA functional requirement.
 
 Every axis the cloud lets you relax to lower `B`, EFA-based HPC has *already had relaxed away by
 requirement*. That's why we hit the wall: a single-type, single-largest-size, single-AZ,
@@ -704,17 +740,16 @@ contention-free `c` that SLURM can actually schedule over:
    single-type, single-AZ: the *least* fungible, worst case. A `c8a OR c8i OR c7a` resource
    across `2a/2b/2c` would have had a far lower 4-node blocking probability — at the cost of a
    heterogeneous cluster, which a *benchmark* can't accept but production often can.)
-3. **Drop the atomic-batch requirement** (*pay the tax in co-location fungibility*) — disable the
-   placement group when latency tolerates it. Trades inter-node MPI latency for a dramatically
-   lower `P(block)`. AWS's own guidance is notably *soft* here — the validator says enabling a PG
-   *"may improve network performance"* (not "must"), and **EFA does not require a placement group**
-   (EFA's hard constraint is single-AZ, not single-segment). So the real question is *how much* the
-   PG buys **on top of** EFA — possibly little, since EFA already provides SRD/RDMA on the AWS
-   network. **This is empirically testable (and being measured): a 2-node C180 ablation —
-   EFA+PG vs EFA-no-PG vs TCP-no-PG — in `parallelcluster/configs/bench-pgtest-use2.yaml`. If
-   EFA-no-PG ≈ EFA+PG, dropping the PG is a near-free `B` reduction.** *(Caveat: it changes the
-   network conditions you measure under, so for a clean scaling *benchmark* it's a confound — fine
-   for production throughput.)*
+3. **Drop the placement group** (*pay the tax in co-location fungibility — and it's nearly free*) —
+   AWS's own guidance is *soft* (validator: a PG *"may improve network performance"*; **EFA does not
+   require a PG** — its hard constraint is single-AZ, not single-segment). **We measured it** (§6f):
+   a 2-node C180 ablation on hpc7a.96xl found **EFA-no-PG (161.6 d/d) ≈ EFA+PG (153.4 d/d)** — a
+   statistical tie, with the *no-PG* run marginally faster. So at this scale the PG buys **no
+   throughput on top of EFA**, while dropping it removes the atomic-batch co-location constraint
+   that drives the §3 blocking cliff. **Dropping the PG is therefore a near-free `B` reduction** for
+   small node counts. (It may matter more at large `k` where many flows contend; re-measure before
+   assuming it scales. And for a *clean scaling benchmark* the PG keeps network conditions
+   controlled — a methodological choice, not a performance one.)
 4. **Make the retrial intelligent, not blind** — a meta-scheduler that holds the job *above*
    SLURM and retries on a smart schedule. For *non-batch* acquisition, drive it off a standing
    `--dry-run` probe (the by-hand technique used to unstick the matrix). For the *batch/PG* case,
