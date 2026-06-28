@@ -56,7 +56,7 @@ Scheduling:
     - Name: c7a-compute
       ComputeResources:
         - Name: c7a-48xl
-          InstanceType: c7a.48xlarge  # 48 cores (96 vCPUs), 384GB RAM
+          InstanceType: c7a.48xlarge  # 192 cores (= 192 vCPUs, no SMT), 384GB RAM
           MinCount: 0
           MaxCount: 8  # Allow more nodes due to better availability
           DisableSimultaneousMultithreading: true

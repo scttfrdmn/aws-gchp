@@ -1,6 +1,6 @@
 # GCHP Multi-Node Test Cluster - c7a.48xlarge with SPOT
 # Purpose: 4-node testing with better availability than hpc7a
-# Instance: c7a.48xlarge (48 physical cores, 96 vCPUs, AMD EPYC Genoa 7R13)
+# Instance: c7a.48xlarge (192 physical cores = 192 vCPUs, no SMT, AMD EPYC Genoa 7R13)
 # Cost: SPOT ~$1.22/hr per instance vs ON-DEMAND $3.06/hr (60% savings)
 # Total: 4 nodes × ~$1.22 = ~$4.88/hr (vs $12.24 on-demand)
 #
@@ -40,10 +40,11 @@ Scheduling:
     - Name: c7a-spot
       ComputeResources:
         - Name: c7a-48xl
-          InstanceType: c7a.48xlarge  # 48 cores (96 vCPUs), 384GB RAM
+          InstanceType: c7a.48xlarge  # 192 cores (= 192 vCPUs, no SMT), 384GB RAM
           MinCount: 0
           MaxCount: 8  # Allow up to 8 nodes for future scaling tests
-          DisableSimultaneousMultithreading: true  # Use 48 physical cores only
+          # Note: c7a has no SMT (1 thread/core), so DisableSimultaneousMultithreading
+          # is unnecessary here; vCPUs already equal physical cores.
       Networking:
         SubnetIds:
           - subnet-cbdcddb1  # us-east-2b
