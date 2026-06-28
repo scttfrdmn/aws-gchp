@@ -365,7 +365,7 @@ math will tell you a blocked batch request is fine; it is not.**
 
 We ran the probes live to see what's *observable for free*. Three instruments, three answers:
 
-*(This is the operational tool referenced by the §9.4 "intelligent retrial" layer.)*
+*(This is the operational tool referenced by the §10.4 "intelligent retrial" layer.)*
 
 **(i) Spot Placement Score (SPS)** — and a hard lesson in *not over-reading it*. SPS is AWS's
 only published capacity-ish signal, and it is **much weaker than it looks.** Straight from AWS's
@@ -491,7 +491,7 @@ For sustained production it's usually a false economy.
 
 ### 7c. Why reservations are *not* obviously better than on-prem
 
-The "just reserve it" fix (§9.1) buys `B = 0` — but at a cost structure that, on inspection, is
+The "just reserve it" fix (§10.1) buys `B = 0` — but at a cost structure that, on inspection, is
 **on-prem's sunk cost wearing a cloud badge:**
 
 - A reservation (or Capacity Block, or 1–3yr commitment) bills **whether or not you use it** —
@@ -607,14 +607,87 @@ smallest possible `c`, and no access to the mechanism every other workload uses 
 
 The unifying statement: **the cloud converts capacity risk into a fungibility tax — and EFA-based
 HPC is constitutionally unable to pay it in the cheap currency (flexibility).** It can only pay in
-the expensive currency: **dollars** (reserve capacity → §9.1, a private contention-free `c`) or
+the expensive currency: **dollars** (reserve capacity → §10.1, a private contention-free `c`) or
 **blocking** (eat the loss-system wait, as we did). Reserving isn't a tactic among others; for
 genuinely tightly-coupled work it's the *only* lever left, precisely because physics has revoked
 all the others.
 
 ---
 
-## 9. The honest engineering responses
+## 9. Data gravity: the fourth tension (and why "just AZ-shop" is glib)
+
+§8's escape hatch for *some* of the blocking — "don't pin the AZ, take whichever has room" —
+quietly assumed your **data** is free to follow the compute. It isn't. Data gravity is a fourth
+force, and it fights the relaxation model directly: **every AZ you want to be able to shop into
+needs your working set reachable there**, and bytes have a floor price.
+
+### 9a. Where your source of truth lives decides the whole cost
+
+| source of truth | cost to AZ-shop | transfer $ |
+|---|---|---|
+| **regional S3** (e.g. gcgrid) | re-hydrate a per-AZ cache (time only) | in-region S3→EC2 is **free** |
+| **AZ-bound FSx/EBS only** | stuck — must replicate to the new AZ | cross-AZ **$0.02/GB each way** |
+| **another region** | hydrate cross-region (slow) | cross-region egress **$0.02/GB** ← the "yikes" |
+
+The resolution to *"am I supposed to replicate data all over?"* is **no — keep the authoritative
+copy in regional S3 and treat FSx/EBS/NVMe as a disposable per-AZ cache hydrated from it.** S3 is
+**regional, not AZ-bound**, equally reachable from every AZ, and S3→EC2 in-region is free. So
+AZ-shopping costs *re-hydration latency*, not a transfer bill — **unless you cross regions**,
+where it becomes both (this is exactly why the matrix's gcgrid-in-us-east-1 / compute-in-us-east-2
+split made every FSx take ~33 min, and why CLAUDE.md says "deploy where the data lives").
+
+So data gravity **reduces AZ fungibility** — the very lever §8 told you to pull. The two models
+now bargain: *how many AZs do I pre-stage (cost/latency) vs. how much blocking do I eat?* For
+bounded working sets (our C180 run: ~1 GB restart + a few GB of one day's met) the answer is easy
+— stage from S3 on demand. For multi-TB GPU/ML weights+datasets the hydration tax dominates and
+pre-staging across AZs gets genuinely expensive. **Data gravity is why "just be fungible" is cheap
+advice for stateless web apps and expensive advice for data-heavy HPC/ML.**
+
+### 9b. The staging-vs-acquisition ordering race
+
+Worse, staging and acquisition are two async operations that **must both finish**, and you pay for
+whichever wins first:
+
+| order | failure mode | cost |
+|---|---|---|
+| **compute-first, then stage** | idle compute during `T_stage` | `$/hr × T_stage` (192-core @ $8/hr × 33 min ≈ **$4.40/run**) |
+| **stage-first, then acquire** | capacity appears in a *different* AZ than you staged | wasted stage + re-stage (time) + cross-AZ egress $ |
+
+Stage-first is the worse trap because it collides with 9a: you committed data to AZ-X, capacity
+showed up in AZ-Y. **You don't fix this by picking an order — you fix it by making staging not be
+on the critical path at all:** authoritative copy in regional S3 + either lazy-loading FSx (paging
+overlaps compute — what the matrix did) or a quick `aws s3 cp` of the bounded working set to
+**instance-local NVMe at boot**. Then "staging" becomes fast, overlappable, AZ-agnostic, and
+idle-free instead of a slow blocking step you must sequence against scarce compute.
+
+### 9c. The kicker: storage is *also* a loss system, and the draws are AZ-correlated
+
+The cleanest framing, and the one that generalizes the whole document: **the Erlang-B loss model
+is a property of provisioning *any* AZ-pinned physical resource on demand — not just compute.** FSx
+Lustre returns `InsufficientCapacity` too (we hit transient FSx provisioning limits this session);
+so do high-IOPS EBS and even Capacity Reservations. So "staging is the recoverable, just-takes-time
+side" was too clean: **the FSx *create itself* can be blocked in the AZ where your compute landed.**
+
+Data-heavy HPC therefore must win a **conjunction** of correlated AZ-pinned draws —
+`{k co-located nodes} AND {FSx in the same AZ}` — and a hot AZ is hot for *everything*, so the two
+blocks are **positively correlated** (anti-correlated with your need). The conjunction's blocking
+probability is worse than either alone: the atomic-batch cliff, applied across two resource classes
+at once.
+
+This is the decisive argument for the **S3-regional + instance-local-NVMe** pattern: NVMe scratch
+*comes with the instance* (win the compute draw, you already have the scratch — zero extra AZ draw),
+and S3 is regional (no AZ draw at all). It is the **only** storage pattern that doesn't stack a
+second correlated loss-system bet on top of the compute one. Per-run FSx and persistent-per-AZ FSx
+both add that second bet — persistent-per-AZ in the worst way, since it *also* surrenders the AZ
+fungibility of 9a (you can only shop among the AZs you pre-paid to stage). **Minimize the number of
+distinct AZ-pinned resources a run requires; ideally one (the compute), with data riding S3 +
+NVMe.** *(The session's own tooling reflects this: spore.host's `spawn` pulls bounded working sets
+from regional S3 at launch, and `lagotto` watches for the single compute draw and fires when it
+appears — data pre-staged AZ-agnostically, only compute acquired opportunistically.)*
+
+---
+
+## 10. The honest engineering responses
 
 Every workable fix is, at root, **a way to become more fungible (pay the tax in flexibility) or
 to opt out of the loss system entirely (pay it in dollars)** — i.e. to restore a knowable,
@@ -632,10 +705,16 @@ contention-free `c` that SLURM can actually schedule over:
    across `2a/2b/2c` would have had a far lower 4-node blocking probability — at the cost of a
    heterogeneous cluster, which a *benchmark* can't accept but production often can.)
 3. **Drop the atomic-batch requirement** (*pay the tax in co-location fungibility*) — disable the
-   placement group when latency tolerates it. Trades a few µs of inter-node MPI latency for a
-   dramatically lower `P(block)`. *(Caveat: it changes the network conditions you measure under,
-   so for a *benchmark* it's a methodological confound — fine for production throughput, not for
-   clean scaling numbers.)*
+   placement group when latency tolerates it. Trades inter-node MPI latency for a dramatically
+   lower `P(block)`. AWS's own guidance is notably *soft* here — the validator says enabling a PG
+   *"may improve network performance"* (not "must"), and **EFA does not require a placement group**
+   (EFA's hard constraint is single-AZ, not single-segment). So the real question is *how much* the
+   PG buys **on top of** EFA — possibly little, since EFA already provides SRD/RDMA on the AWS
+   network. **This is empirically testable (and being measured): a 2-node C180 ablation —
+   EFA+PG vs EFA-no-PG vs TCP-no-PG — in `parallelcluster/configs/bench-pgtest-use2.yaml`. If
+   EFA-no-PG ≈ EFA+PG, dropping the PG is a near-free `B` reduction.** *(Caveat: it changes the
+   network conditions you measure under, so for a clean scaling *benchmark* it's a confound — fine
+   for production throughput.)*
 4. **Make the retrial intelligent, not blind** — a meta-scheduler that holds the job *above*
    SLURM and retries on a smart schedule. For *non-batch* acquisition, drive it off a standing
    `--dry-run` probe (the by-hand technique used to unstick the matrix). For the *batch/PG* case,
@@ -648,11 +727,20 @@ contention-free `c` that SLURM can actually schedule over:
    from the high-probability *body* of the distribution and hold them, rather than demanding all
    *k* at once from the tail. Costs real-time billing for held-idle instances and usually
    sacrifices the placement-group topology — an availability win paid for in **dollars + latency**.
-   Pragmatic for short runs, a false economy for sustained tightly-coupled production.
+   Pragmatic for short runs, a false economy for sustained tightly-coupled production. **Note: AWS
+   explicitly warns *against* this for cluster PGs** — *"use a single launch request"*; *"if you
+   try to add more instances to the placement group later... you increase your chances of getting
+   an insufficient capacity error."* So snipe-and-hold and a placement group are mutually exclusive
+   in practice.
+6. **Keep data AZ-agnostic** (*don't stack a second loss-draw* — §9) — authoritative copy in
+   **regional S3**; per-AZ cache via lazy-loading FSx or a boot-time `aws s3 cp` to instance-local
+   **NVMe**. This makes "staging" overlappable, idle-free, and AZ-agnostic, so AZ-shopping (item 2)
+   actually works and you don't have to win a correlated `{compute AND FSx in same AZ}` conjunction.
+   The spore.host pattern (`lagotto` watch → `spawn` pull-from-S3) is exactly this.
 
 ---
 
-## 10. Bottom line
+## 11. Bottom line
 
 A real M/M/c cluster gives you **bounded, knowable** contention: you know `c`, you can compute
 Erlang-C waits, you can capacity-plan. The cloud trades that for **higher mean availability but
@@ -687,6 +775,15 @@ couldn't get. The model is reliable right up to the tail — and the tail (in-de
 atomic batches, shocks, launches) is both where it strains *and* where, for a resource you can
 own, on-prem quietly wins.
 
+And don't forget the second resource you must win: **data has to be there too.** The loss model
+governs *any* AZ-pinned on-demand resource — FSx Lustre and provisioned storage block in hot AZs
+just like compute (§9c) — so data-heavy HPC must win a *correlated conjunction* of draws, not one.
+The discipline that keeps that from compounding: **authoritative copy in regional S3, disposable
+per-AZ cache (lazy FSx or instance-local NVMe) hydrated from it** — so "where's my data" becomes
+an AZ-agnostic, idle-free, single-draw problem instead of a second loss-system bet stacked on the
+first (§9).
+
 ParallelCluster's "elastic SLURM cluster" abstraction is genuinely useful — right up until you
 hit that tail. Then it cannot paper over the fact that **it never controlled the capacity in the
-first place.**
+first place** — nor the data's gravity, nor that the storage layer is the same loss system wearing
+a different hat.
