@@ -464,6 +464,37 @@ multi-node — so the entire forced-non-fungibility chain (single-AZ, largest-SK
 *mandatory*, not a preference. The one fungibility lever that IS free to pull is the placement
 group (Finding 1) — and it's the only one.
 
+### 6g. Cashing in the free lever — and proving the dry-run lies (Sun-night 4-node retry)
+
+Armed with Finding 1 (drop the PG for free) and the doc's non-stationarity claim ("try at low
+demand"), we retried the four 4-node points that were capacity-blocked during the matrix
+(c8a, c8i, c8g, m9g) — **late Sunday night, no placement group, MaxCount 4.** Lowest-demand
+window × the one free fungibility lever. It should have been the best possible shot.
+
+**It still failed — all four.** The authoritative signal (SLURM's actual `slurm_resume.log`):
+c8a and c8i logged **9× `InsufficientInstanceCapacity`** each; c8g/m9g resumes failed too (nodes
+cycled `down# ↔ idle%` for ~15 min, never launching a 4-node set). Two hard lessons, both
+confirming the model:
+
+1. **The dry-run lies — demonstrated live and unambiguously.** At the same moment SLURM's real
+   `RunInstances` was failing repeatedly, an on-demand `--dry-run` for 4× of **every** instance in
+   **every** AZ (2a/2b/2c) returned `DryRunOperation` ("OK"). The free probe said "capacity
+   everywhere"; the consumptive truth was "capacity nowhere." This is §6e's "no faithful free
+   batch probe" finding, caught in the act — *and it means AZ-shopping by dry-run is worthless for
+   batch acquisition; only the real attempt tells you anything.*
+2. **No-PG was necessary but not sufficient.** Dropping the placement group removes the
+   *co-location* multiplier on `B`, but the residual block is **pool depth for the instance×AZ
+   itself** — there simply weren't 4 free `.48xlarge` of these specific parts in the AZ, PG or
+   not. The §3 cliff has two factors (co-location AND pool depth); we relaxed one, the other held.
+
+So the *complete* set of free/cheap levers — low-demand timing + no-PG + (dry-run) AZ-shopping —
+was **insufficient** for a 4× draw of in-demand compute parts. What's left is the expensive
+currency: **reserve** (ODCR/Capacity Block → `B=0`), **wait much longer** on real retries (not
+dry-runs), or **shrink k** (these instances' 2-node points succeeded fine; §7's knee argument says
+2 nodes was the better target anyway). The 4-node points for these four parts remain unmeasured —
+an honest gap, and a vivid demonstration that for tightly-coupled HPC on in-demand SKUs, "just
+retry at a good time without a placement group" is **not** a reliable acquisition strategy.
+
 ---
 
 ## 7. The cost axis: sunk amortization vs. real-time billing (and "snipe-and-hold")
