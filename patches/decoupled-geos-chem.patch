@@ -1382,10 +1382,10 @@ index 2fd7962..c73c68a 100644
  END MODULE FullChem_Mod
 diff --git a/GeosCore/kpp_worker.F90 b/GeosCore/kpp_worker.F90
 new file mode 100644
-index 0000000..c41cff7
+index 0000000..d7349e4
 --- /dev/null
 +++ b/GeosCore/kpp_worker.F90
-@@ -0,0 +1,288 @@
+@@ -0,0 +1,297 @@
 +PROGRAM KPP_Worker
 +  !
 +  ! Decoupled-Chemistry KPP worker.
@@ -1491,8 +1491,17 @@ index 0000000..c41cff7
 +    REAL(dp) :: RCNTRL(20), RSTATE(20)
 +    REAL(dp) :: C_before(NSPEC)
 +    INTEGER  :: j, ie
++    LOGICAL  :: Failed2x
++
++    ! Mirror fullchem's sticky Failed2x: once any cell fails twice, the
++    ! in-process loop abandons the REST of the batch (fullchem_mod.F90:1853
++    ! "IF (Failed2x) CYCLE" at the top of every subsequent iteration), leaving
++    ! those cells' C_1D/RSTATE_1D/ISTATUS_1D at their gathered-input values.
++    Failed2x = .FALSE.
 +
 +    DO j = 1, n
++       IF ( Failed2x ) CYCLE            ! fullchem_mod.F90:1853
++
 +       ISTATUS = 0
 +       RSTATE  = 0.0_dp
 +       ie      = 0
@@ -1505,7 +1514,8 @@ index 0000000..c41cff7
 +
 +       CALL Integrate( 0.0_dp, dt_local, ICNTRL, RCNTRL, ISTATUS, RSTATE, ie )
 +
-+       ! store diagnostics from the first call (fullchem_mod.F90:1874-1875)
++       ! store diagnostics from the first call (fullchem_mod.F90:1874-1875).
++       ! These are written UNCONDITIONALLY (even on the failure path below).
 +       RSTATE_1D(:,j)  = RSTATE(:)
 +       ISTATUS_1D(:,j) = ISTATUS(:)
 +
@@ -1520,26 +1530,25 @@ index 0000000..c41cff7
 +          ISTATUS_1D(:,j) = ISTATUS_1D(:,j) + ISTATUS(:)
 +          RSTATE_1D(:,j)  = RSTATE(:)
 +          IF ( ie < 0 ) THEN
-+             ! double failure: fullchem (GCHP, KppStop off) reverts C to
-+             ! pre-integrate. NOTE: fullchem also sets Failed2x + CYCLEs, which
-+             ! would skip STORING subsequent cells; on the 1a C24 gate zero
-+             ! cells failed twice, so this reversion-and-store is bit-identical
-+             ! there. (A real 2x failure is a separate, pre-existing divergence
-+             ! in the batched path, out of scope for the transport proof.)
-+             C = C_before
-+             nfail2x = nfail2x + 1
++             ! DOUBLE failure: fullchem's GCHP path (non-GEOS) sets Failed2x
++             ! and CYCLEs (fullchem_mod.F90:1993,2017) -- it does NOT apply the
++             ! envelope and does NOT store C_1D, so the cell keeps its gathered
++             ! input. Replicate exactly: mark Failed2x + skip envelope/store.
++             Failed2x = .TRUE.
++             nfail2x  = nfail2x + 1
++             CYCLE
 +          ENDIF
 +       ENDIF
 +
-+       ! ---- post-Integrate envelope: fullchem_ConvertEquivToAlk on
-+       !      SALAAL/SALCAL when .not.Do_SulfateMod_SeaSalt (ss==1).
-+       !      Mirrors fullchem_SulfurChemFuncs.F90:94-105. ----
++       ! ---- post-Integrate envelope (successful cells only):
++       !      fullchem_ConvertEquivToAlk on SALAAL/SALCAL when
++       !      .not.Do_SulfateMod_SeaSalt (ss==1). fullchem_SulfurChemFuncs.F90:94. ----
 +       IF ( ss == 1 ) THEN
 +          C(ind_SALAAL) = C(ind_SALAAL) / ( MW(ind_SALAAL) * 7.0e-5_dp )
 +          C(ind_SALCAL) = C(ind_SALCAL) / ( MW(ind_SALCAL) * 7.0e-5_dp )
 +       ENDIF
 +
-+       C_1D(:,j) = C(:)
++       C_1D(:,j) = C(:)                ! store only on success (matches CYCLE skip)
 +    ENDDO
 +  END SUBROUTINE Solve_Batch
 +
