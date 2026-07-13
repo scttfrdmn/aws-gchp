@@ -50,10 +50,10 @@ index 852c73b..dbd89ac 100644
  )
 diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
 new file mode 100644
-index 0000000..231552d
+index 0000000..d6eca05
 --- /dev/null
 +++ b/GeosCore/chem_remote_mod.F90
-@@ -0,0 +1,655 @@
+@@ -0,0 +1,675 @@
 +!------------------------------------------------------------------------------
 +!                  GEOS-Chem High Performance (GCHP)                          !
 +!------------------------------------------------------------------------------
@@ -446,6 +446,10 @@ index 0000000..231552d
 +    ok = .TRUE.
 +    WRITE(6,'(a,i0,a,f0.1,a)') 'Chem_Remote_Init: rank ', rank,               &
 +         ' shm ready (deadline ', deadline_s, 's)'
++    ! unbuffered stderr diagnostic: the exact object stem this rank CREATED,
++    ! so a rank<->worker keying mismatch is visible even if the run aborts.
++    WRITE(0,'(a,i0,a)') '[CHEMREMOTE rank ', rank, '] created stem='//TRIM(stem)
++    FLUSH(0)
 +  END SUBROUTINE Chem_Remote_Init
 +!EOC
 +!BOP
@@ -511,6 +515,15 @@ index 0000000..231552d
 +    END IF
 +
 +    solved_remotely = .TRUE.
++
++    ! Per-superstep handoff log (unit 0, flushed) so the cost is captured even
++    ! if the run later hangs at the pnc4 checkpoint before Chem_Remote_Final.
++    IF ( handoff_rate > 0_8 ) THEN
++       WRITE(0,'(a,i0,a,f0.3,a)') '[CHEMREMOTE handoff] step ', handoff_count,  &
++            ' post->done = ', 1000.0_C_DOUBLE*REAL(t1-t0,C_DOUBLE)/            &
++            REAL(handoff_rate,C_DOUBLE), ' ms'
++       FLUSH(0)
++    END IF
 +  END SUBROUTINE Chem_Remote_Solve
 +!EOC
 +!BOP
@@ -612,6 +625,10 @@ index 0000000..231552d
 +    IF ( rank < 0 ) THEN
 +       WRITE(6,*) 'worker_attach: no GCHP_CHEM_RANK'; RETURN
 +    END IF
++    ! unbuffered stderr diagnostic: the exact object stem this worker is
++    ! trying to ATTACH — compare against the rank's "created stem=" line.
++    WRITE(0,'(a,i0,a)') '[CHEMREMOTE worker ', rank, '] attach stem='//TRIM(stem)
++    FLUSH(0)
 +
 +    ! poll for the control segment (size known independent of ncell)
 +    sz_ctl_local = C_SIZEOF(ctl_template)
@@ -622,9 +639,12 @@ index 0000000..231552d
 +       CALL msleep_100ms()
 +    END DO
 +    IF ( .NOT. C_ASSOCIATED(p_ctl) ) THEN
++       WRITE(0,'(a,i0,a)') '[CHEMREMOTE worker ', rank,                        &
++            '] control seg NEVER appeared for stem='//TRIM(stem); FLUSH(0)
 +       WRITE(6,*) 'worker_attach: control segment never appeared (rank ',rank,')'
 +       RETURN
 +    END IF
++    WRITE(0,'(a,i0,a)') '[CHEMREMOTE worker ', rank, '] ATTACHED ok'; FLUSH(0)
 +
 +    CALL C_F_POINTER(p_ctl, gcr_ctl)
 +    IF ( gcr_ctl%magic /= GCR_MAGIC .OR. gcr_ctl%abi /= GCR_ABI ) THEN
@@ -1382,10 +1402,10 @@ index 2fd7962..c73c68a 100644
  END MODULE FullChem_Mod
 diff --git a/GeosCore/kpp_worker.F90 b/GeosCore/kpp_worker.F90
 new file mode 100644
-index 0000000..d7349e4
+index 0000000..2e043ab
 --- /dev/null
 +++ b/GeosCore/kpp_worker.F90
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,306 @@
 +PROGRAM KPP_Worker
 +  !
 +  ! Decoupled-Chemistry KPP worker.
@@ -1644,16 +1664,25 @@ index 0000000..d7349e4
 +    CALL C_F_POINTER( cp_ISTAT,  ISTATUS_1D, [20,     ncell_tot] )
 +    CALL C_F_POINTER( cp_RSTATE, RSTATE_1D,  [20,     ncell_tot] )
 +
-+    ! ATOL/RTOL/MW live in the const segment [ATOL(NVAR) RTOL(NVAR) MW(NSPEC)].
-+    ATOL(1:NVAR) = gcr_const(1:NVAR)
-+    RTOL(1:NVAR) = gcr_const(NVAR+1:2*NVAR)
-+    MW(1:NSPEC)  = gcr_const(2*NVAR+1:2*NVAR+NSPEC)
++    ! NOTE: ATOL/RTOL/MW are NOT read here. The const segment exists at attach
++    ! time (created in the rank's Init_FullChem) but is NOT yet POPULATED -- the
++    ! rank writes ATOL/RTOL/MW via Chem_Remote_SetConst inside Do_FullChem, which
++    ! runs AFTER Init. Reading const here would get zeros -> zero tolerances +
++    ! zero MW -> wrong convergence for every species. Instead read the const
++    ! values INSIDE the loop, after sem_wait(ready): by then the rank has called
++    ! SetConst (it precedes the first post(ready)). They are constant across the
++    ! run, so re-reading each superstep is cheap and correct.
 +
 +    nfail2x = 0
 +    nsteps  = 0
 +    DO
 +       cmd = Chem_Remote_Worker_Wait()          ! blocks on sem ready
 +       IF ( cmd == GCR_CMD_EXIT ) EXIT           ! sentinel from rank's Final
++
++       ! const is populated by now (rank SetConst precedes its first post(ready))
++       ATOL(1:NVAR) = gcr_const(1:NVAR)
++       RTOL(1:NVAR) = gcr_const(NVAR+1:2*NVAR)
++       MW(1:NSPEC)  = gcr_const(2*NVAR+1:2*NVAR+NSPEC)
 +
 +       n  = INT(gcr_ctl%ncell_local)
 +       dt_local = REAL(gcr_ctl%dt, dp)
