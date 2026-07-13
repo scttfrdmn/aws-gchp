@@ -115,6 +115,16 @@ srun --ntasks-per-node=1 --ntasks=1 sudo mount -o remount,size=48G /dev/shm 2>&1
 export GCHP_JOBID=\$SLURM_JOB_ID
 export GCHP_CHEM_DEADLINE_S=120
 
+# Golden-dump gate (sidesteps the known pnc4 checkpoint-write hang, status=-35 at
+# NetCDF4_FileFormatter:189): GCHP_DUMP_CHEM makes fullchem dump the SOLVED C_1D
+# right after the solve loop, BEFORE any checkpoint. In remote mode the in-process
+# loop runs 0 iterations, so the dumped C_1D is exactly what the WORKER wrote to shm.
+# Comparing the golden-dump set (baseline vs remote) proves handoff byte-identity
+# independent of the checkpoint writer.
+DUMPDIR=/scratch/p1b_dump_${TAG}
+rm -rf "\$DUMPDIR"; mkdir -p "\$DUMPDIR"
+export GCHP_DUMP_CHEM=\$DUMPDIR
+
 SRUN_WPID=""
 if [ "$REMOTE" = "1" ]; then
   export GCHP_USE_REMOTE_CHEM=1
@@ -163,10 +173,24 @@ if [ -n "\$SRUN_WPID" ]; then
   pkill -9 -f "kpp_worker --service" 2>/dev/null
 fi
 
-echo "=== RESULT: checkpoint MD5 (compare vs Phase-0 baseline) ==="
-# GCHP writes the internal checkpoint to Restarts/gcchem_internal_checkpoint (pnc4,
-# no .nc4 extension). cap_restart advancing to the end time confirms it was written
-# before the benign _dl_fini finalization double-free (signal 6) at process teardown.
+echo "=== RESULT: GOLDEN-DUMP set MD5 (solved C_1D per rank, pre-checkpoint) ==="
+# The identity gate: combined MD5 of all per-rank golden dumps (fullchem-solved
+# C_1D). This is the number to compare baseline-vs-remote. Robust to the pnc4
+# checkpoint hang because it is captured strictly before the checkpoint write.
+if ls "\$DUMPDIR"/chemdump_golden_*.bin >/dev/null 2>&1; then
+  # Per-dump content MD5s, SORTED (order-independent: PIDs differ across runs, but
+  # the SET of per-rank solved-C_1D contents must be identical baseline-vs-remote).
+  NG=\$(ls "\$DUMPDIR"/chemdump_golden_*.bin 2>/dev/null | wc -l)
+  echo "RESULT_P1B_GOLDEN tag=$TAG ndumps=\$NG"
+  md5sum "\$DUMPDIR"/chemdump_golden_*.bin 2>/dev/null | awk '{print \$1}' | sort > "\$DUMPDIR/golden_md5set.txt"
+  GSET=\$(md5sum "\$DUMPDIR/golden_md5set.txt" | awk '{print \$1}')
+  echo "RESULT_P1B_GOLDENSET tag=$TAG goldenset_md5=\$GSET"
+  echo "  (individual golden dump md5s, sorted:)"; cat "\$DUMPDIR/golden_md5set.txt" | head
+else
+  echo "RESULT_P1B_GOLDEN tag=$TAG NO_GOLDEN_DUMPS"
+fi
+
+echo "=== RESULT: checkpoint MD5 (secondary; may be blocked by pnc4 write hang) ==="
 CKPT=Restarts/gcchem_internal_checkpoint
 if [ -f "\$CKPT" ] && [ ! -L "\$CKPT" ]; then
   echo "RESULT_P1B_CAP tag=$TAG cap_restart=\$(cat cap_restart 2>/dev/null)"
