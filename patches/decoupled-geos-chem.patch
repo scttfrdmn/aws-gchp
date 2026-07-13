@@ -1,0 +1,1676 @@
+diff --git a/GeosCore/CMakeLists.txt b/GeosCore/CMakeLists.txt
+index 852c73b..dbd89ac 100644
+--- a/GeosCore/CMakeLists.txt
++++ b/GeosCore/CMakeLists.txt
+@@ -1,5 +1,29 @@
+ # GeosCore/CMakeLists.txt
+ 
++#-----------------------------------------------------------------------------
++# Decoupled-Chemistry Phase 1b transport library (default-OFF at runtime).
++#
++# chem_remote_mod.F90 (Fortran, ISO_C_BINDING only -- no GEOS-Chem deps) +
++# chem_remote_shm.c (POSIX shm/sem wrappers). Compiled ONCE here into a leaf
++# static lib linked by BOTH libGeosCore (rank side, via fullchem_mod) and the
++# kpp_worker executable (worker side). All public interfaces use explicit KIND
++# (C_INT/C_DOUBLE/C_SIZE_T), so the .mod is ABI-identical whether or not the
++# consumer was compiled with -fdefault-real-8 (kpp_worker is). Links -lrt
++# -lpthread PUBLIC so both consumers inherit the POSIX shm/sem libs.
++#
++# Only built for DECOUPLED_CHEM configs; otherwise the target is not defined
++# (GeosCore links it conditionally below).
++#-----------------------------------------------------------------------------
++if(DECOUPLED_CHEM)
++  add_library(ChemRemote
++    STATIC EXCLUDE_FROM_ALL
++    chem_remote_mod.F90
++    chem_remote_shm.c
++  )
++  target_link_libraries(ChemRemote PUBLIC rt pthread)
++  set_target_properties(ChemRemote PROPERTIES LINKER_LANGUAGE Fortran)
++endif()
++
+ # Add a compilation flag to force REAL to REAL*8 if necessary
+ # only for file tpcore_window_mod.F90
+ if(${USE_REAL8})
+@@ -99,7 +123,7 @@ endif()
+ 
+ # Define dependencies for libGeosCore.a
+ target_link_libraries(GeosCore PUBLIC
+-  ObsPack 
++  ObsPack
+   History
+   KPP
+   HETP_core
+@@ -107,5 +131,5 @@ target_link_libraries(GeosCore PUBLIC
+   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
+   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
+   $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
+-
++  $<$<BOOL:${DECOUPLED_CHEM}>:ChemRemote>  # Phase 1b shm transport (fullchem_mod)
+ )
+diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
+new file mode 100644
+index 0000000..231552d
+--- /dev/null
++++ b/GeosCore/chem_remote_mod.F90
+@@ -0,0 +1,655 @@
++!------------------------------------------------------------------------------
++!                  GEOS-Chem High Performance (GCHP)                          !
++!------------------------------------------------------------------------------
++!BOP
++!
++! !MODULE: chem_remote_mod.F90
++!
++! !DESCRIPTION: Decoupled-Chemistry Phase 1b transport layer. Hands the KPP
++!  flat gather buffers from a GCHP MPI rank to a co-located, SEPARATE
++!  kpp_worker process through POSIX shared memory + two named semaphores, and
++!  synchronizes one chemistry superstep.
++!
++!  ZERO-COPY design: the six _1D buffers (C_1D, RCONST_1D, ICNTRL_1D,
++!  RCNTRL_1D, ISTATUS_1D, RSTATE_1D) are mmap'd shared segments; fullchem's
++!  own module POINTERs are C_F_POINTER'd onto them (exactly as the
++!  MPI_LOAD_BALANCE backend does with MPI windows), so gather and scatter run
++!  unchanged and there is no pack step. A semaphore pair is the memory barrier:
++!  the rank posts `ready` after the gather completes, the worker solves in
++!  place and posts `done`, and the rank's scatter reads the solved bytes.
++!
++!  SAFETY VALVE: the rank waits with sem_timedwait (never unbounded). On
++!  timeout / worker refusal it returns solved_remotely=.FALSE., and fullchem
++!  falls back to its verbatim in-process Phase-0 solve loop over the same
++!  (still-resident) shm buffers — bit-identical, non-fatal.
++!
++!  This module is deliberately self-contained: it USEs only ISO_C_BINDING, so
++!  it compiles standalone into BOTH the GeosCore library (rank side, via
++!  fullchem_mod) and the kpp_worker executable (worker side) with an identical
++!  BIND(C) control-struct layout. It has no GEOS-Chem State_* dependencies.
++!
++! !INTERFACE:
++!
++MODULE Chem_Remote_Mod
++!
++! !USES:
++!
++  USE ISO_C_BINDING
++
++  IMPLICIT NONE
++  PRIVATE
++!
++! !PUBLIC MEMBER FUNCTIONS:
++!
++  ! Rank (GCHP) side
++  PUBLIC :: Chem_Remote_Init      ! create segments+sems, return data c_ptrs
++  PUBLIC :: Chem_Remote_SetConst  ! one-time: write ATOL/RTOL/MW into const seg
++  PUBLIC :: Chem_Remote_Solve     ! one superstep handoff (post/timedwait)
++  PUBLIC :: Chem_Remote_Final     ! sentinel + close/unlink/detach
++  PUBLIC :: Chem_Remote_Active    ! .TRUE. once Init succeeded (rank side)
++  ! Worker (kpp_worker) side
++  PUBLIC :: Chem_Remote_Worker_Attach   ! bounded-retry attach, return c_ptrs
++  PUBLIC :: Chem_Remote_Worker_Wait     ! sem_wait(ready), return command
++  PUBLIC :: Chem_Remote_Worker_Done     ! sem_post(done)
++  PUBLIC :: Chem_Remote_Worker_Detach   ! munmap + sem_close (NO unlink)
++  ! Shared control page + const arrays (public so both sides read/write fields)
++  PUBLIC :: gcr_ctl                ! pointer to the BIND(C) control struct
++  PUBLIC :: gcr_const              ! pointer to [ATOL(NVAR) RTOL(NVAR) MW(NSPEC)]
++  PUBLIC :: Chem_Ctl_T
++  ! command codes
++  PUBLIC :: GCR_CMD_IDLE, GCR_CMD_SOLVE, GCR_CMD_EXIT
++!
++! !PUBLIC DATA MEMBERS:
++!
++  ! Command values written into gcr_ctl%command by the rank, read by the worker
++  INTEGER(C_INT), PARAMETER :: GCR_CMD_IDLE  = 0
++  INTEGER(C_INT), PARAMETER :: GCR_CMD_SOLVE = 1
++  INTEGER(C_INT), PARAMETER :: GCR_CMD_EXIT  = 2
++
++  ! Magic / ABI stamp so a mismatched worker/rank build fails loud
++  INTEGER(C_INT), PARAMETER :: GCR_MAGIC = 1112493901  ! 0x424D4B0D "chem" ish
++  INTEGER(C_INT), PARAMETER :: GCR_ABI   = 1
++
++  ! Element byte sizes of the flat buffers. fullchem uses REAL(fp)=real64 and
++  ! default INTEGER=int32; the KPP worker uses REAL(dp)=real64 and INTEGER.
++  ! Both sides agree on these, so the segment sizes computed here match.
++  INTEGER(C_SIZE_T), PARAMETER :: FP_BYTES  = 8_C_SIZE_T
++  INTEGER(C_SIZE_T), PARAMETER :: INT_BYTES = 4_C_SIZE_T
++
++  ! Fixed control leading dimensions of ICNTRL/RCNTRL/ISTATUS/RSTATE (KPP = 20)
++  INTEGER(C_INT), PARAMETER :: NCTRL = 20
++!
++! !DERIVED TYPE:
++!
++  ! Fixed-layout control page shared by rank and worker. BIND(C) guarantees the
++  ! two independent compilations lay it out identically. Scalars only — the
++  ! large ATOL/RTOL/MW arrays live in the separate `const` segment.
++  TYPE, BIND(C) :: Chem_Ctl_T
++     INTEGER(C_INT) :: magic
++     INTEGER(C_INT) :: abi
++     INTEGER(C_INT) :: nspec
++     INTEGER(C_INT) :: nreact
++     INTEGER(C_INT) :: nvar
++     INTEGER(C_INT) :: nfix
++     INTEGER(C_INT) :: ncell_total
++     INTEGER(C_INT) :: ncell_local      ! written by rank each step
++     INTEGER(C_INT) :: ar_flag          ! Use_AutoReduce (1/0)
++     INTEGER(C_INT) :: ss_flag          ! .not.Do_SulfateMod_SeaSalt (1/0)
++     INTEGER(C_INT) :: command          ! GCR_CMD_*
++     INTEGER(C_INT) :: worker_status    ! 0 ok, <0 fatal (worker sets)
++     REAL(C_DOUBLE) :: dt               ! chem timestep [s], written each step
++  END TYPE Chem_Ctl_T
++!
++! !PRIVATE MODULE STATE:
++!
++  LOGICAL,             SAVE :: Chem_Remote_Active = .FALSE.
++  TYPE(Chem_Ctl_T), POINTER :: gcr_ctl   => NULL()
++  REAL(C_DOUBLE),   POINTER :: gcr_const(:) => NULL()
++
++  ! A concrete instance of the control type, used purely to take its byte size
++  ! via C_SIZEOF (both sides compute the identical control-page size this way).
++  TYPE(Chem_Ctl_T), SAVE :: ctl_template
++
++  ! shm base addresses (kept for detach)
++  TYPE(C_PTR), SAVE :: p_ctl   = C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_const = C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_C     = C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_RCONST= C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_ICNTRL= C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_RCNTRL= C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_ISTAT = C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_RSTATE= C_NULL_PTR
++  ! semaphore handles
++  TYPE(C_PTR), SAVE :: sem_ready = C_NULL_PTR
++  TYPE(C_PTR), SAVE :: sem_done  = C_NULL_PTR
++
++  ! segment byte sizes (recomputed identically both sides)
++  INTEGER(C_SIZE_T), SAVE :: sz_ctl, sz_const, sz_C, sz_RCONST
++  INTEGER(C_SIZE_T), SAVE :: sz_ICNTRL, sz_RCNTRL, sz_ISTAT, sz_RSTATE
++
++  ! object name stems (built from jobid+rank), kept for unlink at Final
++  CHARACTER(LEN=192), SAVE :: stem = ''
++
++  ! rank-side timeout (seconds), from env GCHP_CHEM_DEADLINE_S (default 60)
++  REAL(C_DOUBLE), SAVE :: deadline_s = 60.0_C_DOUBLE
++
++  ! handoff-cost accounting (rank side): wall time spent in the post(ready)->
++  ! timedwait(done) bracket, accumulated over supersteps and reported at Final.
++  ! This is the "cost of moving the solve across the process boundary" the
++  ! Phase-1b measurement wants (zero-copy => essentially 2 sem ops + first-touch
++  ! cache-coherence, since the worker solves in place).
++  INTEGER(KIND=8), SAVE :: handoff_ticks = 0_8
++  INTEGER(KIND=8), SAVE :: handoff_rate  = 0_8
++  INTEGER,         SAVE :: handoff_count = 0
++!
++! !PRIVATE C SHIM INTERFACE (chem_remote_shm.c):
++!
++  INTERFACE
++     FUNCTION crshm_create(name, nbytes) BIND(C, name="crshm_create")
++       IMPORT :: C_PTR, C_CHAR, C_SIZE_T
++       TYPE(C_PTR)                          :: crshm_create
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++       INTEGER(C_SIZE_T),      VALUE        :: nbytes
++     END FUNCTION crshm_create
++
++     FUNCTION crshm_attach(name, nbytes) BIND(C, name="crshm_attach")
++       IMPORT :: C_PTR, C_CHAR, C_SIZE_T
++       TYPE(C_PTR)                          :: crshm_attach
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++       INTEGER(C_SIZE_T),      VALUE        :: nbytes
++     END FUNCTION crshm_attach
++
++     FUNCTION crshm_detach(addr, nbytes) BIND(C, name="crshm_detach")
++       IMPORT :: C_PTR, C_SIZE_T, C_INT
++       INTEGER(C_INT)              :: crshm_detach
++       TYPE(C_PTR),      VALUE     :: addr
++       INTEGER(C_SIZE_T), VALUE    :: nbytes
++     END FUNCTION crshm_detach
++
++     FUNCTION crshm_unlink(name) BIND(C, name="crshm_unlink")
++       IMPORT :: C_CHAR, C_INT
++       INTEGER(C_INT)                       :: crshm_unlink
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++     END FUNCTION crshm_unlink
++
++     FUNCTION crshm_unlink_stale(name) BIND(C, name="crshm_unlink_stale")
++       IMPORT :: C_CHAR, C_INT
++       INTEGER(C_INT)                       :: crshm_unlink_stale
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++     END FUNCTION crshm_unlink_stale
++
++     FUNCTION crsem_create(name, val) BIND(C, name="crsem_create")
++       IMPORT :: C_PTR, C_CHAR, C_INT
++       TYPE(C_PTR)                          :: crsem_create
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++       INTEGER(C_INT),         VALUE        :: val
++     END FUNCTION crsem_create
++
++     FUNCTION crsem_attach(name) BIND(C, name="crsem_attach")
++       IMPORT :: C_PTR, C_CHAR
++       TYPE(C_PTR)                          :: crsem_attach
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++     END FUNCTION crsem_attach
++
++     FUNCTION crsem_post(sem) BIND(C, name="crsem_post")
++       IMPORT :: C_PTR, C_INT
++       INTEGER(C_INT)       :: crsem_post
++       TYPE(C_PTR), VALUE   :: sem
++     END FUNCTION crsem_post
++
++     FUNCTION crsem_wait(sem) BIND(C, name="crsem_wait")
++       IMPORT :: C_PTR, C_INT
++       INTEGER(C_INT)       :: crsem_wait
++       TYPE(C_PTR), VALUE   :: sem
++     END FUNCTION crsem_wait
++
++     FUNCTION crsem_timedwait(sem, deadline) BIND(C, name="crsem_timedwait")
++       IMPORT :: C_PTR, C_INT, C_DOUBLE
++       INTEGER(C_INT)          :: crsem_timedwait
++       TYPE(C_PTR),    VALUE   :: sem
++       REAL(C_DOUBLE), VALUE   :: deadline
++     END FUNCTION crsem_timedwait
++
++     FUNCTION crsem_close(sem) BIND(C, name="crsem_close")
++       IMPORT :: C_PTR, C_INT
++       INTEGER(C_INT)       :: crsem_close
++       TYPE(C_PTR), VALUE   :: sem
++     END FUNCTION crsem_close
++
++     FUNCTION crsem_unlink(name) BIND(C, name="crsem_unlink")
++       IMPORT :: C_CHAR, C_INT
++       INTEGER(C_INT)                       :: crsem_unlink
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++     END FUNCTION crsem_unlink
++
++     FUNCTION crsem_unlink_stale(name) BIND(C, name="crsem_unlink_stale")
++       IMPORT :: C_CHAR, C_INT
++       INTEGER(C_INT)                       :: crsem_unlink_stale
++       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
++     END FUNCTION crsem_unlink_stale
++  END INTERFACE
++
++CONTAINS
++!EOC
++!------------------------------------------------------------------------------
++! Helpers
++!------------------------------------------------------------------------------
++
++  ! Convert a Fortran string to a NUL-terminated C_CHAR array.
++  PURE FUNCTION cstr(s) RESULT(carr)
++    CHARACTER(LEN=*), INTENT(IN)  :: s
++    CHARACTER(KIND=C_CHAR)        :: carr(LEN_TRIM(s)+1)
++    INTEGER :: i, n
++    n = LEN_TRIM(s)
++    DO i = 1, n
++       carr(i) = s(i:i)
++    END DO
++    carr(n+1) = C_NULL_CHAR
++  END FUNCTION cstr
++
++  ! Compute all segment byte sizes from the mechanism counts. Called with the
++  ! same arguments on both sides so the sizes agree exactly.
++  SUBROUTINE compute_sizes(nspec, nreact, nvar, ncell_total)
++    INTEGER, INTENT(IN) :: nspec, nreact, nvar, ncell_total
++    INTEGER(C_SIZE_T)   :: nc, ns, nr, nv
++    nc = INT(ncell_total, C_SIZE_T)
++    ns = INT(nspec,       C_SIZE_T)
++    nr = INT(nreact,      C_SIZE_T)
++    nv = INT(nvar,        C_SIZE_T)
++    sz_ctl    = C_SIZEOF(ctl_template)
++    sz_const  = (2_C_SIZE_T*nv + ns) * FP_BYTES
++    sz_C      = ns * nc * FP_BYTES
++    sz_RCONST = nr * nc * FP_BYTES
++    sz_ICNTRL = INT(NCTRL,C_SIZE_T) * nc * INT_BYTES
++    sz_RCNTRL = INT(NCTRL,C_SIZE_T) * nc * FP_BYTES
++    sz_ISTAT  = INT(NCTRL,C_SIZE_T) * nc * INT_BYTES
++    sz_RSTATE = INT(NCTRL,C_SIZE_T) * nc * FP_BYTES
++  END SUBROUTINE compute_sizes
++
++  ! Build the object-name stem "/gchp_<jobid>_r<rank>" from env. Returns the
++  ! integer rank (>=0) or -1 on failure. `which` selects OMPI_COMM_WORLD_RANK
++  ! (rank side) or GCHP_CHEM_RANK (worker side).
++  SUBROUTINE build_stem(worker_side, rank_out)
++    LOGICAL, INTENT(IN)  :: worker_side
++    INTEGER, INTENT(OUT) :: rank_out
++    CHARACTER(LEN=64) :: jobid, rankstr
++    INTEGER :: dlen, dstat, ios
++    rank_out = -1
++    jobid = ''
++    CALL get_environment_variable('GCHP_JOBID', jobid, dlen, dstat)
++    IF ( dstat /= 0 .OR. dlen == 0 ) jobid = '0'
++    IF ( worker_side ) THEN
++       CALL get_environment_variable('GCHP_CHEM_RANK', rankstr, dlen, dstat)
++    ELSE
++       CALL get_environment_variable('OMPI_COMM_WORLD_RANK', rankstr, dlen, dstat)
++    END IF
++    IF ( dstat /= 0 .OR. dlen == 0 ) RETURN
++    READ(rankstr, *, IOSTAT=ios) rank_out
++    IF ( ios /= 0 ) THEN
++       rank_out = -1
++       RETURN
++    END IF
++    WRITE(stem, '(a,a,a,i0)') '/gchp_', TRIM(jobid), '_r', rank_out
++  END SUBROUTINE build_stem
++
++!------------------------------------------------------------------------------
++! Rank (GCHP) side
++!------------------------------------------------------------------------------
++!BOP
++! !IROUTINE: Chem_Remote_Init
++! !DESCRIPTION: Create the shm segments + semaphores for this rank and return
++!  the six data-buffer C pointers so the caller (fullchem) can C_F_POINTER its
++!  own module pointers onto them. Writes the static control fields. The
++!  ATOL/RTOL/MW const arrays are filled later by Chem_Remote_SetConst (they are
++!  not yet populated at Init time). On ANY failure, sets active=.FALSE. and
++!  returns ok=.FALSE. so the caller keeps its plain-ALLOCATE Phase-0 path
++!  (never fatal).
++!EOP
++  SUBROUTINE Chem_Remote_Init( nspec, nreact, nvar, nfix, ncell_total,        &
++                               cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL,         &
++                               cp_ISTAT, cp_RSTATE, ok )
++    INTEGER,        INTENT(IN)  :: nspec, nreact, nvar, nfix, ncell_total
++    TYPE(C_PTR),    INTENT(OUT) :: cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL
++    TYPE(C_PTR),    INTENT(OUT) :: cp_ISTAT, cp_RSTATE
++    LOGICAL,        INTENT(OUT) :: ok
++
++    INTEGER :: rank, dlen, dstat, iread
++    CHARACTER(LEN=64) :: dbuf
++
++    ok = .FALSE.
++    Chem_Remote_Active = .FALSE.
++    cp_C=C_NULL_PTR; cp_RCONST=C_NULL_PTR; cp_ICNTRL=C_NULL_PTR
++    cp_RCNTRL=C_NULL_PTR; cp_ISTAT=C_NULL_PTR; cp_RSTATE=C_NULL_PTR
++
++    CALL build_stem(.FALSE., rank)
++    IF ( rank < 0 ) THEN
++       WRITE(6,*) 'Chem_Remote_Init: no OMPI_COMM_WORLD_RANK; remote OFF'
++       RETURN
++    END IF
++
++    ! optional deadline override
++    CALL get_environment_variable('GCHP_CHEM_DEADLINE_S', dbuf, dlen, dstat)
++    IF ( dstat == 0 .AND. dlen > 0 ) THEN
++       READ(dbuf, *, IOSTAT=iread) deadline_s
++       IF ( iread /= 0 .OR. deadline_s <= 0.0_C_DOUBLE ) deadline_s = 60.0_C_DOUBLE
++    END IF
++
++    CALL compute_sizes(nspec, nreact, nvar, ncell_total)
++
++    ! --- create the 8 segments (unlink-stale is inside crshm_create) ---
++    p_ctl    = crshm_create(cstr(TRIM(stem)//'_ctl'   ), sz_ctl   )
++    p_const  = crshm_create(cstr(TRIM(stem)//'_const' ), sz_const )
++    p_C      = crshm_create(cstr(TRIM(stem)//'_C'     ), sz_C     )
++    p_RCONST = crshm_create(cstr(TRIM(stem)//'_RCONST'), sz_RCONST)
++    p_ICNTRL = crshm_create(cstr(TRIM(stem)//'_ICNTRL'), sz_ICNTRL)
++    p_RCNTRL = crshm_create(cstr(TRIM(stem)//'_RCNTRL'), sz_RCNTRL)
++    p_ISTAT  = crshm_create(cstr(TRIM(stem)//'_ISTATUS'),sz_ISTAT )
++    p_RSTATE = crshm_create(cstr(TRIM(stem)//'_RSTATE'), sz_RSTATE)
++
++    IF ( .NOT.(C_ASSOCIATED(p_ctl)   .AND. C_ASSOCIATED(p_const)  .AND.        &
++               C_ASSOCIATED(p_C)     .AND. C_ASSOCIATED(p_RCONST) .AND.        &
++               C_ASSOCIATED(p_ICNTRL).AND. C_ASSOCIATED(p_RCNTRL) .AND.        &
++               C_ASSOCIATED(p_ISTAT) .AND. C_ASSOCIATED(p_RSTATE)) ) THEN
++       WRITE(6,*) 'Chem_Remote_Init: shm_create failed; remote OFF (rank ',rank,')'
++       CALL teardown_segments(unlink_names=.TRUE.)
++       RETURN
++    END IF
++
++    ! --- create the two semaphores, both init 0 ---
++    sem_ready = crsem_create(cstr(TRIM(stem)//'_ready'), 0_C_INT)
++    sem_done  = crsem_create(cstr(TRIM(stem)//'_done' ), 0_C_INT)
++    IF ( .NOT.(C_ASSOCIATED(sem_ready) .AND. C_ASSOCIATED(sem_done)) ) THEN
++       WRITE(6,*) 'Chem_Remote_Init: sem_create failed; remote OFF (rank ',rank,')'
++       CALL teardown_segments(unlink_names=.TRUE.)
++       RETURN
++    END IF
++
++    ! --- map control struct + const array; populate static fields ---
++    CALL C_F_POINTER(p_ctl, gcr_ctl)
++    CALL C_F_POINTER(p_const, gcr_const, [2*nvar + nspec])
++    gcr_ctl%magic       = GCR_MAGIC
++    gcr_ctl%abi         = GCR_ABI
++    gcr_ctl%nspec       = INT(nspec,  C_INT)
++    gcr_ctl%nreact      = INT(nreact, C_INT)
++    gcr_ctl%nvar        = INT(nvar,   C_INT)
++    gcr_ctl%nfix        = INT(nfix,   C_INT)
++    gcr_ctl%ncell_total = INT(ncell_total, C_INT)
++    gcr_ctl%ncell_local = 0_C_INT
++    gcr_ctl%ar_flag     = 0_C_INT
++    gcr_ctl%ss_flag     = 0_C_INT
++    gcr_ctl%command     = GCR_CMD_IDLE
++    gcr_ctl%worker_status = 0_C_INT
++    gcr_ctl%dt          = 0.0_C_DOUBLE
++    ! const arrays (ATOL/RTOL/MW) are written later by Chem_Remote_SetConst
++
++    ! hand the six data segment addresses back for the caller's C_F_POINTER
++    cp_C=p_C; cp_RCONST=p_RCONST; cp_ICNTRL=p_ICNTRL
++    cp_RCNTRL=p_RCNTRL; cp_ISTAT=p_ISTAT; cp_RSTATE=p_RSTATE
++
++    Chem_Remote_Active = .TRUE.
++    ok = .TRUE.
++    WRITE(6,'(a,i0,a,f0.1,a)') 'Chem_Remote_Init: rank ', rank,               &
++         ' shm ready (deadline ', deadline_s, 's)'
++  END SUBROUTINE Chem_Remote_Init
++!EOC
++!BOP
++! !IROUTINE: Chem_Remote_SetConst
++! !DESCRIPTION: One-time write of the ATOL/RTOL/MW constant arrays into the
++!  `const` shm segment. Called from Do_FullChem after these are populated (they
++!  are not available at Init time). Idempotent; a no-op if remote is inactive.
++!EOP
++  SUBROUTINE Chem_Remote_SetConst( nvar, nspec, ATOL, RTOL, MW )
++    INTEGER,        INTENT(IN) :: nvar, nspec
++    REAL(C_DOUBLE), INTENT(IN) :: ATOL(nvar), RTOL(nvar), MW(nspec)
++    IF ( .NOT. Chem_Remote_Active ) RETURN
++    IF ( .NOT. ASSOCIATED(gcr_const) ) RETURN
++    gcr_const(1:nvar)                = ATOL(1:nvar)
++    gcr_const(nvar+1:2*nvar)         = RTOL(1:nvar)
++    gcr_const(2*nvar+1:2*nvar+nspec) = MW(1:nspec)
++  END SUBROUTINE Chem_Remote_SetConst
++!EOC
++!BOP
++! !IROUTINE: Chem_Remote_Solve
++! !DESCRIPTION: One superstep handoff. Writes the dynamic control fields, posts
++!  `ready`, and waits `done` with a bounded deadline. On success the solved
++!  bytes are already in the shm buffers (zero-copy) and solved_remotely=.TRUE.
++!  On timeout or a worker fatal-status, returns solved_remotely=.FALSE. so the
++!  caller runs its verbatim in-process fallback loop.
++!EOP
++  SUBROUTINE Chem_Remote_Solve( ncell_local, dt, ar_flag, ss_flag,           &
++                                solved_remotely )
++    INTEGER,        INTENT(IN)  :: ncell_local, ar_flag, ss_flag
++    REAL(C_DOUBLE), INTENT(IN)  :: dt
++    LOGICAL,        INTENT(OUT) :: solved_remotely
++    INTEGER(C_INT)  :: rc
++    INTEGER(KIND=8) :: t0, t1
++
++    solved_remotely = .FALSE.
++    IF ( .NOT. Chem_Remote_Active ) RETURN
++
++    ! publish this step's work descriptor, then release the worker
++    gcr_ctl%ncell_local   = INT(ncell_local, C_INT)
++    gcr_ctl%dt            = dt
++    gcr_ctl%ar_flag       = INT(ar_flag, C_INT)
++    gcr_ctl%ss_flag       = INT(ss_flag, C_INT)
++    gcr_ctl%worker_status = 0_C_INT
++    gcr_ctl%command       = GCR_CMD_SOLVE
++    CALL SYSTEM_CLOCK(t0, handoff_rate)
++    rc = crsem_post(sem_ready)
++    IF ( rc /= 0 ) RETURN            ! post failed -> fall back
++
++    rc = crsem_timedwait(sem_done, deadline_s)
++    ! accumulate the post->done bracket = handoff + remote solve wall
++    CALL SYSTEM_CLOCK(t1)
++    handoff_ticks = handoff_ticks + (t1 - t0)
++    handoff_count = handoff_count + 1
++    IF ( rc /= 0 ) THEN
++       WRITE(6,*) 'Chem_Remote_Solve: worker timeout/err (rc=',rc,          &
++                  ') -> in-process fallback'
++       RETURN
++    END IF
++    IF ( gcr_ctl%worker_status < 0 ) THEN
++       WRITE(6,*) 'Chem_Remote_Solve: worker_status=',gcr_ctl%worker_status,&
++                  ' -> in-process fallback'
++       RETURN
++    END IF
++
++    solved_remotely = .TRUE.
++  END SUBROUTINE Chem_Remote_Solve
++!EOC
++!BOP
++! !IROUTINE: Chem_Remote_Final
++! !DESCRIPTION: Signal the worker to exit (sentinel), then close/unlink the
++!  semaphores and detach/unlink all segments. Creator (rank) owns the unlink.
++!EOP
++  SUBROUTINE Chem_Remote_Final()
++    INTEGER(C_INT) :: rc
++    REAL(C_DOUBLE) :: total_s, mean_ms
++    IF ( .NOT. Chem_Remote_Active ) RETURN
++
++    ! report the accumulated handoff cost (post(ready)->timedwait(done) wall).
++    IF ( handoff_count > 0 .AND. handoff_rate > 0_8 ) THEN
++       total_s = REAL(handoff_ticks, C_DOUBLE) / REAL(handoff_rate, C_DOUBLE)
++       mean_ms = 1000.0_C_DOUBLE * total_s / REAL(handoff_count, C_DOUBLE)
++       WRITE(6,'(a,i0,a,f0.4,a,f0.3,a)')                                       &
++            '### PHASE1B HANDOFF: ', handoff_count, ' supersteps, total ',     &
++            total_s, ' s, mean ', mean_ms, ' ms/superstep (post->done wall)'
++    END IF
++
++    ! sentinel: tell the worker to break its service loop
++    IF ( C_ASSOCIATED(sem_ready) .AND. ASSOCIATED(gcr_ctl) ) THEN
++       gcr_ctl%command = GCR_CMD_EXIT
++       rc = crsem_post(sem_ready)
++       ! give the worker a brief chance to acknowledge (non-fatal if it died)
++       rc = crsem_timedwait(sem_done, 5.0_C_DOUBLE)
++    END IF
++
++    IF ( C_ASSOCIATED(sem_ready) ) rc = crsem_close(sem_ready)
++    IF ( C_ASSOCIATED(sem_done ) ) rc = crsem_close(sem_done )
++    rc = crsem_unlink_stale(cstr(TRIM(stem)//'_ready'))
++    rc = crsem_unlink_stale(cstr(TRIM(stem)//'_done' ))
++
++    CALL teardown_segments(unlink_names=.TRUE.)
++    Chem_Remote_Active = .FALSE.
++  END SUBROUTINE Chem_Remote_Final
++!EOC
++
++  ! Detach every mapped segment; optionally unlink the names (rank/creator).
++  SUBROUTINE teardown_segments(unlink_names)
++    LOGICAL, INTENT(IN) :: unlink_names
++    INTEGER(C_INT) :: rc
++    IF (C_ASSOCIATED(p_C     )) rc = crshm_detach(p_C     , sz_C     )
++    IF (C_ASSOCIATED(p_RCONST)) rc = crshm_detach(p_RCONST, sz_RCONST)
++    IF (C_ASSOCIATED(p_ICNTRL)) rc = crshm_detach(p_ICNTRL, sz_ICNTRL)
++    IF (C_ASSOCIATED(p_RCNTRL)) rc = crshm_detach(p_RCNTRL, sz_RCNTRL)
++    IF (C_ASSOCIATED(p_ISTAT )) rc = crshm_detach(p_ISTAT , sz_ISTAT )
++    IF (C_ASSOCIATED(p_RSTATE)) rc = crshm_detach(p_RSTATE, sz_RSTATE)
++    IF (C_ASSOCIATED(p_const )) rc = crshm_detach(p_const , sz_const )
++    IF (C_ASSOCIATED(p_ctl   )) rc = crshm_detach(p_ctl   , sz_ctl   )
++    IF ( unlink_names .AND. LEN_TRIM(stem) > 0 ) THEN
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_C'     ))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_RCONST'))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_ICNTRL'))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_RCNTRL'))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_ISTATUS'))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_RSTATE'))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_const' ))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_ctl'   ))
++    END IF
++    p_C=C_NULL_PTR; p_RCONST=C_NULL_PTR; p_ICNTRL=C_NULL_PTR
++    p_RCNTRL=C_NULL_PTR; p_ISTAT=C_NULL_PTR; p_RSTATE=C_NULL_PTR
++    p_const=C_NULL_PTR; p_ctl=C_NULL_PTR
++    NULLIFY(gcr_ctl); NULLIFY(gcr_const)
++  END SUBROUTINE teardown_segments
++
++!------------------------------------------------------------------------------
++! Worker (kpp_worker) side
++!------------------------------------------------------------------------------
++!BOP
++! !IROUTINE: Chem_Remote_Worker_Attach
++! !DESCRIPTION: Bounded-retry attach to the rank's segments/semaphores (launch
++!  order is not guaranteed). Attaches the fixed-size control page first, reads
++!  the mechanism counts from it, then attaches the const + six data segments and
++!  returns their C pointers for the worker to C_F_POINTER. Verifies magic/abi
++!  and the mechanism identity. ok=.FALSE. on hard mismatch or timeout.
++!EOP
++  SUBROUTINE Chem_Remote_Worker_Attach( w_nspec, w_nreact, w_nvar, w_nfix,   &
++                                        max_wait_s,                          &
++                                        cp_C, cp_RCONST, cp_ICNTRL,          &
++                                        cp_RCNTRL, cp_ISTAT, cp_RSTATE, ok )
++    INTEGER, INTENT(IN)  :: w_nspec, w_nreact, w_nvar, w_nfix
++    ! Explicit C_DOUBLE (NOT bare REAL) so this dummy is ABI-identical whether
++    ! or not the caller was compiled with -fdefault-real-8 (kpp_worker is).
++    REAL(C_DOUBLE), INTENT(IN)  :: max_wait_s
++    TYPE(C_PTR), INTENT(OUT) :: cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL
++    TYPE(C_PTR), INTENT(OUT) :: cp_ISTAT, cp_RSTATE
++    LOGICAL, INTENT(OUT) :: ok
++
++    INTEGER :: rank, tries, max_tries
++    INTEGER(C_SIZE_T) :: sz_ctl_local
++
++    ok = .FALSE.
++    cp_C=C_NULL_PTR; cp_RCONST=C_NULL_PTR; cp_ICNTRL=C_NULL_PTR
++    cp_RCNTRL=C_NULL_PTR; cp_ISTAT=C_NULL_PTR; cp_RSTATE=C_NULL_PTR
++
++    CALL build_stem(.TRUE., rank)
++    IF ( rank < 0 ) THEN
++       WRITE(6,*) 'worker_attach: no GCHP_CHEM_RANK'; RETURN
++    END IF
++
++    ! poll for the control segment (size known independent of ncell)
++    sz_ctl_local = C_SIZEOF(ctl_template)
++    max_tries = MAX(1, INT(max_wait_s / 0.1))
++    DO tries = 1, max_tries
++       p_ctl = crshm_attach(cstr(TRIM(stem)//'_ctl'), sz_ctl_local)
++       IF ( C_ASSOCIATED(p_ctl) ) EXIT
++       CALL msleep_100ms()
++    END DO
++    IF ( .NOT. C_ASSOCIATED(p_ctl) ) THEN
++       WRITE(6,*) 'worker_attach: control segment never appeared (rank ',rank,')'
++       RETURN
++    END IF
++
++    CALL C_F_POINTER(p_ctl, gcr_ctl)
++    IF ( gcr_ctl%magic /= GCR_MAGIC .OR. gcr_ctl%abi /= GCR_ABI ) THEN
++       WRITE(6,*) 'worker_attach: magic/abi mismatch'; RETURN
++    END IF
++    IF ( gcr_ctl%nspec  /= w_nspec  .OR. gcr_ctl%nreact /= w_nreact .OR.       &
++         gcr_ctl%nvar   /= w_nvar   .OR. gcr_ctl%nfix   /= w_nfix ) THEN
++       WRITE(6,*) 'worker_attach: MECHANISM MISMATCH ctl=(',gcr_ctl%nspec,    &
++            gcr_ctl%nreact,gcr_ctl%nvar,gcr_ctl%nfix,') worker=(',            &
++            w_nspec,w_nreact,w_nvar,w_nfix,')'
++       RETURN
++    END IF
++
++    ! now sizes are known from the control page
++    CALL compute_sizes(INT(gcr_ctl%nspec), INT(gcr_ctl%nreact),               &
++                       INT(gcr_ctl%nvar),  INT(gcr_ctl%ncell_total))
++
++    p_const  = crshm_attach(cstr(TRIM(stem)//'_const' ), sz_const )
++    p_C      = crshm_attach(cstr(TRIM(stem)//'_C'     ), sz_C     )
++    p_RCONST = crshm_attach(cstr(TRIM(stem)//'_RCONST'), sz_RCONST)
++    p_ICNTRL = crshm_attach(cstr(TRIM(stem)//'_ICNTRL'), sz_ICNTRL)
++    p_RCNTRL = crshm_attach(cstr(TRIM(stem)//'_RCNTRL'), sz_RCNTRL)
++    p_ISTAT  = crshm_attach(cstr(TRIM(stem)//'_ISTATUS'),sz_ISTAT )
++    p_RSTATE = crshm_attach(cstr(TRIM(stem)//'_RSTATE'), sz_RSTATE)
++    IF ( .NOT.(C_ASSOCIATED(p_const) .AND. C_ASSOCIATED(p_C)     .AND.         &
++               C_ASSOCIATED(p_RCONST).AND. C_ASSOCIATED(p_ICNTRL).AND.         &
++               C_ASSOCIATED(p_RCNTRL).AND. C_ASSOCIATED(p_ISTAT) .AND.         &
++               C_ASSOCIATED(p_RSTATE)) ) THEN
++       WRITE(6,*) 'worker_attach: data segment attach failed'; RETURN
++    END IF
++    CALL C_F_POINTER(p_const, gcr_const, [2*INT(gcr_ctl%nvar)+INT(gcr_ctl%nspec)])
++
++    ! attach both semaphores (must exist by now — rank created before posting)
++    sem_ready = crsem_attach(cstr(TRIM(stem)//'_ready'))
++    sem_done  = crsem_attach(cstr(TRIM(stem)//'_done' ))
++    IF ( .NOT.(C_ASSOCIATED(sem_ready) .AND. C_ASSOCIATED(sem_done)) ) THEN
++       WRITE(6,*) 'worker_attach: sem attach failed'; RETURN
++    END IF
++
++    cp_C=p_C; cp_RCONST=p_RCONST; cp_ICNTRL=p_ICNTRL
++    cp_RCNTRL=p_RCNTRL; cp_ISTAT=p_ISTAT; cp_RSTATE=p_RSTATE
++    ok = .TRUE.
++    WRITE(6,'(a,i0,a)') 'worker_attach: rank ', rank, ' attached OK'
++  END SUBROUTINE Chem_Remote_Worker_Attach
++!EOC
++
++  ! Block until the rank posts `ready`; return the command (SOLVE or EXIT).
++  ! On sem error returns EXIT so the worker shuts down rather than spins.
++  FUNCTION Chem_Remote_Worker_Wait() RESULT(cmd)
++    INTEGER :: cmd
++    INTEGER(C_INT) :: rc
++    rc = crsem_wait(sem_ready)
++    IF ( rc /= 0 ) THEN
++       cmd = INT(GCR_CMD_EXIT)
++       RETURN
++    END IF
++    cmd = INT(gcr_ctl%command)
++  END FUNCTION Chem_Remote_Worker_Wait
++
++  ! Signal the rank that the batch is solved.
++  SUBROUTINE Chem_Remote_Worker_Done()
++    INTEGER(C_INT) :: rc
++    rc = crsem_post(sem_done)
++  END SUBROUTINE Chem_Remote_Worker_Done
++
++  ! Worker teardown: detach segments + close sems, but never unlink (rank owns).
++  SUBROUTINE Chem_Remote_Worker_Detach()
++    INTEGER(C_INT) :: rc
++    IF ( C_ASSOCIATED(sem_ready) ) rc = crsem_close(sem_ready)
++    IF ( C_ASSOCIATED(sem_done ) ) rc = crsem_close(sem_done )
++    CALL teardown_segments(unlink_names=.FALSE.)
++  END SUBROUTINE Chem_Remote_Worker_Detach
++
++  ! Portable ~100ms sleep without adding a C dep: spin on SYSTEM_CLOCK.
++  SUBROUTINE msleep_100ms()
++    INTEGER(KIND=8) :: c0, c1, rate
++    CALL SYSTEM_CLOCK(c0, rate)
++    DO
++       CALL SYSTEM_CLOCK(c1)
++       IF ( REAL(c1 - c0) / REAL(rate) >= 0.1 ) EXIT
++    END DO
++  END SUBROUTINE msleep_100ms
++
++END MODULE Chem_Remote_Mod
+diff --git a/GeosCore/chem_remote_shm.c b/GeosCore/chem_remote_shm.c
+new file mode 100644
+index 0000000..8aab448
+--- /dev/null
++++ b/GeosCore/chem_remote_shm.c
+@@ -0,0 +1,215 @@
++/* chem_remote_shm.c — POSIX shared-memory + named-semaphore shim for the
++ * Decoupled-Chemistry Phase 1b live handoff.
++ *
++ * A GCHP MPI rank and a co-located, separate kpp_worker process exchange the
++ * gathered KPP flat buffers through POSIX shm (mmap of an shm_open segment) and
++ * synchronize with two named semaphores per rank (work_ready / work_done). This
++ * file is the thin Fortran-callable C layer; all policy (naming, sizing, the
++ * handshake) lives in chem_remote_mod.F90 and kpp_worker.F90.
++ *
++ * Design notes (see plan swift-swinging-reef.md):
++ *   - The rank CREATES every segment/semaphore; the worker only ATTACHES and,
++ *     at teardown, closes/detaches — the creator (rank) owns the name and is the
++ *     sole UNLINKer. This avoids a double-unlink race.
++ *   - crshm_create unlink-before-creates so a crashed prior run leaves no stale
++ *     segment (belt-and-suspenders with the launch-script /dev/shm sweep).
++ *   - crsem_timedwait builds the absolute deadline internally from
++ *     CLOCK_REALTIME, which POSIX mandates for sem_timedwait (do NOT pass a
++ *     Fortran-computed absolute time — clock-source mismatch). The separate
++ *     handoff *measurement* uses CLOCK_MONOTONIC on the Fortran side.
++ *   - All byte counts are size_t: NREACT*NCELL_TOTAL*8 overflows int32 well
++ *     before a full C24 grid.
++ *
++ * bind(c) idiom mirrors src/MAPL/shared/Shmem/Shmem.F90:66-101 (SysV shmget).
++ * Link with -lrt -lpthread (see the CMake wiring).
++ */
++
++/* Request POSIX.1-2001 so glibc exposes sem_timedwait, clock_gettime,
++ * CLOCK_REALTIME/MONOTONIC and ftruncate. Must precede all includes.
++ * (Build target is Linux/glibc aarch64; Darwin lacks sem_timedwait, so this
++ * file does not compile on macOS — that is expected, not a build target.) */
++#ifndef _POSIX_C_SOURCE
++#define _POSIX_C_SOURCE 200112L
++#endif
++
++#include <sys/mman.h>   /* shm_open, mmap, munmap, PROT_*, MAP_SHARED       */
++#include <sys/stat.h>   /* mode constants for shm_open/sem_open             */
++#include <fcntl.h>      /* O_* flags                                        */
++#include <unistd.h>     /* ftruncate, close                                 */
++#include <semaphore.h>  /* sem_*                                            */
++#include <time.h>       /* clock_gettime, struct timespec                   */
++#include <errno.h>
++#include <stddef.h>     /* size_t                                           */
++
++/* Permission bits for created objects: owner rw only (same user runs both). */
++#define CR_MODE 0600
++
++/* ------------------------------------------------------------------ shm --- */
++
++/* Create (or re-create) a shared-memory segment of nbytes and map it RW.
++ * Unlink-before-create clears any stale segment from a crashed prior run.
++ * Returns the mapped base address, or NULL on failure. */
++void *crshm_create(const char *name, size_t nbytes)
++{
++    int fd;
++    void *addr;
++
++    /* drop any stale object with this name (ignore ENOENT) */
++    shm_unlink(name);
++
++    fd = shm_open(name, O_CREAT | O_RDWR, CR_MODE);
++    if (fd < 0)
++        return NULL;
++
++    if (ftruncate(fd, (off_t)nbytes) != 0) {
++        close(fd);
++        shm_unlink(name);
++        return NULL;
++    }
++
++    addr = mmap(NULL, nbytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
++    close(fd);                 /* the mapping keeps the segment alive */
++    if (addr == MAP_FAILED)
++        return NULL;
++
++    return addr;
++}
++
++/* Attach an existing segment (created by the rank) and map it RW.
++ * Returns the mapped base address, or NULL if it does not exist yet
++ * (the worker retries — see the bounded-poll attach in kpp_worker). */
++void *crshm_attach(const char *name, size_t nbytes)
++{
++    int fd;
++    void *addr;
++
++    fd = shm_open(name, O_RDWR, CR_MODE);
++    if (fd < 0)
++        return NULL;
++
++    addr = mmap(NULL, nbytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
++    close(fd);
++    if (addr == MAP_FAILED)
++        return NULL;
++
++    return addr;
++}
++
++/* Unmap a segment. Returns 0 on success, -1 on error. */
++int crshm_detach(void *addr, size_t nbytes)
++{
++    return munmap(addr, nbytes);
++}
++
++/* Remove the segment name (creator only). Returns 0 on success, -1 on error. */
++int crshm_unlink(const char *name)
++{
++    return shm_unlink(name);
++}
++
++/* Remove a possibly-stale segment name, treating "not found" as success. */
++int crshm_unlink_stale(const char *name)
++{
++    int rc = shm_unlink(name);
++    if (rc != 0 && errno == ENOENT)
++        return 0;
++    return rc;
++}
++
++/* ------------------------------------------------------------------ sem --- */
++
++/* Create (or re-create) a named semaphore initialized to `value`.
++ * Unlink-before-create clears a stale semaphore. Returns the sem handle as a
++ * void* (opaque sem_t*), or NULL on failure. */
++void *crsem_create(const char *name, unsigned int value)
++{
++    sem_t *s;
++
++    sem_unlink(name);                          /* drop stale (ignore ENOENT) */
++    s = sem_open(name, O_CREAT, CR_MODE, value);
++    if (s == SEM_FAILED)
++        return NULL;
++    return (void *)s;
++}
++
++/* Attach an existing named semaphore. Returns the handle, or NULL if not
++ * present yet (worker retries). */
++void *crsem_attach(const char *name)
++{
++    sem_t *s = sem_open(name, 0);
++    if (s == SEM_FAILED)
++        return NULL;
++    return (void *)s;
++}
++
++/* sem_post. Returns 0 on success, -1 on error. */
++int crsem_post(void *sem)
++{
++    return sem_post((sem_t *)sem);
++}
++
++/* Blocking sem_wait (used by the worker, which has no deadlock risk — if the
++ * rank dies, the worker simply blocks and is reaped by the launch script).
++ * Retries on EINTR. Returns 0 on success, -1 on error. */
++int crsem_wait(void *sem)
++{
++    int rc;
++    do {
++        rc = sem_wait((sem_t *)sem);
++    } while (rc != 0 && errno == EINTR);
++    return rc;
++}
++
++/* Bounded sem_timedwait used by the RANK (deadlock safety valve). The absolute
++ * deadline is built here from CLOCK_REALTIME + deadline_seconds, as POSIX
++ * requires. Retries on EINTR against the same absolute deadline.
++ * Returns:  0 = acquired,  1 = timed out,  -1 = other error. */
++int crsem_timedwait(void *sem, double deadline_seconds)
++{
++    struct timespec ts;
++    long extra_ns;
++    int rc;
++
++    if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
++        return -1;
++
++    ts.tv_sec  += (time_t)deadline_seconds;
++    extra_ns    = (long)((deadline_seconds - (double)((time_t)deadline_seconds))
++                         * 1.0e9);
++    ts.tv_nsec += extra_ns;
++    if (ts.tv_nsec >= 1000000000L) {
++        ts.tv_sec  += ts.tv_nsec / 1000000000L;
++        ts.tv_nsec  = ts.tv_nsec % 1000000000L;
++    }
++
++    do {
++        rc = sem_timedwait((sem_t *)sem, &ts);
++    } while (rc != 0 && errno == EINTR);
++
++    if (rc == 0)
++        return 0;
++    if (errno == ETIMEDOUT)
++        return 1;
++    return -1;
++}
++
++/* sem_close (both sides). Returns 0 on success, -1 on error. */
++int crsem_close(void *sem)
++{
++    return sem_close((sem_t *)sem);
++}
++
++/* Remove the semaphore name (creator only). Returns 0 on success, -1 on error. */
++int crsem_unlink(const char *name)
++{
++    return sem_unlink(name);
++}
++
++/* Remove a possibly-stale semaphore name, treating "not found" as success. */
++int crsem_unlink_stale(const char *name)
++{
++    int rc = sem_unlink(name);
++    if (rc != 0 && errno == ENOENT)
++        return 0;
++    return rc;
++}
+diff --git a/GeosCore/fullchem_mod.F90 b/GeosCore/fullchem_mod.F90
+index 2fd7962..c73c68a 100644
+--- a/GeosCore/fullchem_mod.F90
++++ b/GeosCore/fullchem_mod.F90
+@@ -22,6 +22,15 @@ MODULE FullChem_Mod
+   USE, INTRINSIC :: ISO_C_BINDING
+ #endif
+ 
++#if defined(DECOUPLED_CHEM)
++  ! Phase 1b: live shm handoff of the gathered KPP buffers to a co-located
++  ! kpp_worker process. Default-OFF at runtime (env GCHP_USE_REMOTE_CHEM);
++  ! when off, the DECOUPLED_CHEM path is exactly the proven Phase-0 in-process
++  ! solve. ISO_C_BINDING is needed here for the C_PTR / C_F_POINTER plumbing.
++  USE, INTRINSIC :: ISO_C_BINDING
++  USE Chem_Remote_Mod
++#endif
++
+   IMPLICIT NONE
+   PRIVATE
+ !
+@@ -88,9 +97,14 @@ MODULE FullChem_Mod
+   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
+   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
+ 
+-#if defined(MPI_LOAD_BALANCE)
+-  ! For load balancing implementation
++#if defined(MPI_LOAD_BALANCE) || defined(DECOUPLED_CHEM)
++  ! Flat per-rank buffers for the gather->solve->scatter chemistry seam.
++  ! Shared by the MPI load-balance backend and the DECOUPLED_CHEM in-process
++  ! backend (Phase 0 of decoupled chemistry). Declared POINTER so the MPI
++  ! backend can C_F_POINTER them onto shared-memory windows; the DECOUPLED_CHEM
++  ! backend simply ALLOCATEs them (a POINTER array may be ALLOCATEd directly).
+   INTEGER                :: NCELL_MAX, NCELL_TOTAL
++  INTEGER                :: offset
+   INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
+   INTEGER, POINTER       :: next_cell_index
+   INTEGER, POINTER       :: ICNTRL_1D(:,:)
+@@ -100,9 +114,11 @@ MODULE FullChem_Mod
+   REAL(KIND=fp), POINTER :: RCONST_1D(:,:)
+   REAL(KIND=fp), POINTER :: RCNTRL_1D(:,:)
+   REAL(KIND=fp), POINTER :: RSTATE_1D(:,:)
++#endif
+ 
+-  ! MPI Shared Memory parameters
+-  INTEGER :: disp, ierr, offset
++#if defined(MPI_LOAD_BALANCE)
++  ! MPI Shared Memory parameters (MPI load-balance backend only)
++  INTEGER :: disp, ierr
+   INTEGER :: shm_comm, shm_rank, shm_size
+   INTEGER :: nrcntrl, nicntrl, nistatus, nrstate
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: size
+@@ -264,7 +280,7 @@ CONTAINS
+ #endif
+ #endif
+ 
+-#ifdef MPI_LOAD_BALANCE
++#if defined(MPI_LOAD_BALANCE) || defined(DECOUPLED_CHEM)
+     ! Local copy of all necessary KPP inputs
+     INTEGER    :: IJL_to_Idx(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+ 
+@@ -272,6 +288,13 @@ CONTAINS
+     INTEGER    :: NCELL, NCELL_local, I_CELL
+ #endif
+ 
++#if defined(DECOUPLED_CHEM)
++    ! Phase 1b: .TRUE. when a co-located worker solved this rank's batch over
++    ! shm (then the in-process loop below runs 0 iterations); .FALSE. otherwise
++    ! (then the in-process Phase-0 loop is the byte-identical fallback).
++    LOGICAL    :: solved_remotely
++#endif
++
+ #ifdef MODEL_GEOS
+     REAL(f4) :: NOxTau, NOxConc, NOx_weight, NOx_tau_weighted
+     REAL(f4) :: TROP_NOx_Tau
+@@ -545,8 +568,19 @@ CONTAINS
+     ATOL = State_Chm%KPP_AbsTol   ! Absolute tolerance
+     RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
+ 
+-#if defined(MPI_LOAD_BALANCE)
+-    ! For load balancing
++#if defined(DECOUPLED_CHEM)
++    ! Phase 1b: publish ATOL/RTOL/MW into the shm control segment (no-op unless
++    ! the remote worker path is active). These are constant across the run, so
++    ! this writes the same values every step -- cheap and idempotent. MW is a
++    ! gckpp_Global array; ATOL/RTOL/MW are all REAL(dp)=real64 = C_DOUBLE.
++    CALL Chem_Remote_SetConst( NVAR, NSPEC, ATOL(1:NVAR), RTOL(1:NVAR),        &
++                               MW(1:NSPEC) )
++#endif
++
++#if defined(MPI_LOAD_BALANCE) || defined(DECOUPLED_CHEM)
++    ! Gather-phase init for the flat KPP buffers. For DECOUPLED_CHEM the buffers
++    ! are this rank's whole subdomain: offset=0 and NCELL_MAX=NCELL_TOTAL are set
++    ! in Init_FullChem, so offset+1:offset+NCELL_MAX spans the full buffer here.
+     NCELL_local = offset
+ 
+     ! Indexing
+@@ -1095,9 +1129,10 @@ CONTAINS
+                                               ICNTRL,    RCNTRL             )
+ #endif
+ 
+-#ifndef MPI_LOAD_BALANCE
++#if !defined(MPI_LOAD_BALANCE) && !defined(DECOUPLED_CHEM)
+        !=====================================================================
+-       ! Integrate the box forwards (if not using MPI load balancing)
++       ! Integrate the box forwards (stock path: not using a gather/solve/
++       ! scatter chemistry backend)
+        !=====================================================================
+ 
+        ! Store concentrations before the call to "Integrate".  This will
+@@ -1649,12 +1684,12 @@ CONTAINS
+ 
+        ENDIF
+ 
+-#else  ! MPI_LOAD_BALANCE
++#else  ! MPI_LOAD_BALANCE or DECOUPLED_CHEM: GATHER phase
+        !=====================================================================
+-       ! If doing MPI load balancing, rather than integrating, instead
+-       ! make a note of how many cells we actually have, then go back to
+-       ! the beginning of the loop. The rest of the execution that is skipped
+-       ! will be done following the end of this loop.
++       ! Gather phase (MPI load-balance OR decoupled-chem backend): rather
++       ! than integrating this cell inline, flatten its KPP inputs into the
++       ! rank-wide 1-D buffers and record the (I,J,L)->flat-index map. The
++       ! actual Integrate happens in the solve loop after this OMP region.
+        !=====================================================================
+        NCELL_local = NCELL_local + 1
+        C_1D(:,NCELL_local)      = C(:)
+@@ -1665,17 +1700,88 @@ CONTAINS
+        ! map to shared memory
+        IJL_to_Idx(I,J,L) = NCELL_local
+        cell_status(NCELL_local) = cell_status(NCELL_local) - 1
+-#endif  ! MPI_LOAD_BALANCE
++#endif  ! MPI_LOAD_BALANCE || DECOUPLED_CHEM
+ 
+     ENDDO ! I
+     ENDDO ! J
+     ENDDO ! L
+     !$OMP END PARALLEL DO
+ 
+-#ifdef MPI_LOAD_BALANCE
++#if defined(DECOUPLED_CHEM)
+     !=====================================================================
+-    ! Integrate the box forwards (if using MPI load balancing)
++    ! PHASE 1a INPUT DUMP (default-OFF; no-op unless env GCHP_DUMP_CHEM set).
++    ! Writes this rank's gathered flat KPP-input buffers to a raw unformatted
++    ! stream file so an offline kpp_worker can be proven to reproduce the
++    ! in-process solve BYTE-IDENTICALLY. Dumps only the FIRST time it fires
++    ! (one rank, one step) to keep it tiny. The golden (fullchem-solved) C_1D
++    ! is dumped after the solve loop below. Contract shipped: header + ATOL +
++    ! RTOL + C_1D/RCONST_1D/ICNTRL_1D/RCNTRL_1D (columns 1:NCELL_TOTAL).
+     !=====================================================================
++    block
++      character(len=512) :: dumpdir
++      character(len=640) :: fname
++      integer            :: dlen, dstat, du
++      integer            :: mypid
++      logical, save      :: dumped_in = .false.
++      call get_environment_variable('GCHP_DUMP_CHEM', dumpdir, dlen, dstat)
++      if ( dstat == 0 .and. dlen > 0 .and. (.not. dumped_in) ) then
++         ! PID-tag the file so each MPI rank writes its OWN dump (no shared-path
++         ! race). Each rank's input+golden pair is internally consistent (that
++         ! rank's gathered cells + that rank's solve); the verify picks any one
++         ! pid and compares that worker-run vs that golden.
++         mypid = getpid()
++         write(fname,'(a,"/chemdump_input_",i0,".bin")') trim(dumpdir), mypid
++         open( newunit=du, file=trim(fname), form='unformatted',           &
++               access='stream', status='replace', iostat=dstat )
++         if ( dstat == 0 ) then
++            ! header (all default INTEGER + REAL(dp)); mechanism identity = (NSPEC,NREACT).
++            ! ar_flag carries Input_Opt%Use_AutoReduce (1/0) so the worker replays the
++            ! retry's RCNTRL(12)=-1 branch exactly as the in-process solve does.
++            ! Dump ONLY the gathered (in-chem-grid) cells 1:NCELL_local. Slots
++            ! NCELL_local+1:NCELL_TOTAL are zero-init padding for cells skipped
++            ! by "IF(.not.InChemGrid) CYCLE" (never gathered, never scattered) --
++            ! including them would ship ICNTRL(15)=0 garbage the worker can't and
++            ! shouldn't solve. NCELL_local is the true count of solved chem cells.
++            ! ar_flag = Use_AutoReduce; ss_flag = .not.Do_SulfateMod_SeaSalt (i.e.
++            ! whether fullchem applies the post-Integrate EquivToAlk conversion on
++            ! SALAAL/SALCAL). Also ship MW(1:NSPEC) so the worker can replay that
++            ! conversion (C(ind)=C(ind)/(MW(ind)*7e-5)) bit-identically.
++            block
++              integer :: ar_flag, ss_flag
++              ar_flag = 0;  ss_flag = 0
++              if ( Input_Opt%Use_AutoReduce )              ar_flag = 1
++              if ( .not. State_Chm%Do_SulfateMod_SeaSalt ) ss_flag = 1
++              write(du) NSPEC, NREACT, NVAR, NFIX, NCELL_local, ar_flag, ss_flag
++            end block
++            write(du) DT
++            write(du) ATOL(1:NVAR)
++            write(du) RTOL(1:NVAR)
++            write(du) MW(1:NSPEC)
++            write(du) C_1D(:,1:NCELL_local)
++            write(du) RCONST_1D(:,1:NCELL_local)
++            write(du) ICNTRL_1D(:,1:NCELL_local)
++            write(du) RCNTRL_1D(:,1:NCELL_local)
++            close(du)
++            dumped_in = .true.
++            WRITE(6,*) '### PHASE1A: wrote input dump ', trim(fname),        &
++                       ' NCELL=', NCELL_TOTAL
++         endif
++      endif
++    end block
++#endif
++
++#if defined(MPI_LOAD_BALANCE) || defined(DECOUPLED_CHEM)
++    !=====================================================================
++    ! SOLVE phase (gather/solve/scatter backends): the OMP cell loop above
++    ! only gathered inputs into the flat buffers. Now integrate every cell
++    ! from those buffers, then (further below) scatter results back to the
++    ! 3-D grid. MPI_LOAD_BALANCE uses a one-sided shared-memory work-queue;
++    ! DECOUPLED_CHEM (Phase 0) uses a plain in-process loop over this rank's
++    ! cells. Both call the identical per-cell Integrate + retry + store body.
++    !=====================================================================
++#endif
++
++#ifdef MPI_LOAD_BALANCE
+     ! Initialize shared counter
+     IF (shm_rank == 0) THEN
+        next_cell_index = 1
+@@ -1751,6 +1857,40 @@ CONTAINS
+        I_CELL = fetched_value
+        IF (cell_status(I_CELL) > 0) CYCLE
+        cell_status(I_CELL) = cell_status(I_CELL) + 1
++#endif  ! MPI_LOAD_BALANCE (loop-open); shared solve body continues below
++
++#if defined(DECOUPLED_CHEM)
++    !=====================================================================
++    ! DECOUPLED_CHEM solve.
++    !
++    ! Phase 1b (remote): if a co-located kpp_worker is active, hand this
++    ! rank's gathered buffers to it over shared memory and wait (bounded).
++    ! On success the solved C_1D/RSTATE_1D/ISTATUS_1D are already in the
++    ! shm-backed buffers, so the in-process loop below runs ZERO iterations
++    ! (trip count MERGE(0,...)=0). On timeout / worker failure / remote OFF,
++    ! solved_remotely=.FALSE. and the loop runs 1:NCELL_TOTAL exactly as the
++    ! proven Phase-0 in-process solve -- the byte-identical fallback.
++    !
++    ! Phase 0 (in-process): remote inactive => solved_remotely=.FALSE. =>
++    ! plain serial loop over this rank's cells (bitwise-identical to stock).
++    ! Only 1:NCELL_local are real gathered cells; the tail is never scattered
++    ! (scatter uses IJL_to_Idx, which maps only gathered cells), so looping to
++    ! NCELL_TOTAL vs NCELL_local is immaterial to the result -- kept verbatim.
++    ! The load->Integrate->retry->store body below is shared with the
++    ! MPI_LOAD_BALANCE backend.
++    !=====================================================================
++    solved_remotely = .FALSE.
++    IF ( Chem_Remote_Active ) THEN
++       CALL Chem_Remote_Solve( NCELL_local, DT,                              &
++            MERGE(1,0,Input_Opt%Use_AutoReduce),                             &
++            MERGE(1,0,.not.State_Chm%Do_SulfateMod_SeaSalt),                 &
++            solved_remotely )
++    ENDIF
++    DO I_CELL = 1, MERGE( 0, NCELL_TOTAL, solved_remotely )
++#endif
++
++#if defined(MPI_LOAD_BALANCE) || defined(DECOUPLED_CHEM)
++       ! ---- shared solve body (both gather/solve/scatter backends) ----
+ 
+        ! Skip to the end of the loop if we have failed integration twice
+        IF ( Failed2x ) CYCLE
+@@ -1937,6 +2077,36 @@ CONTAINS
+        RCONST_1D(:,I_CELL) = RCONST(:)
+     ENDDO
+ 
++#if defined(DECOUPLED_CHEM)
++    !=====================================================================
++    ! PHASE 1a GOLDEN DUMP (default-OFF; pairs with the input dump above).
++    ! Writes fullchem's in-process solved C_1D so the offline kpp_worker's
++    ! output can be byte-compared against it. Fires once (same guard).
++    !=====================================================================
++    block
++      character(len=512) :: dumpdir
++      character(len=640) :: fname
++      integer            :: dlen, dstat, du, mypid
++      logical, save      :: dumped_gold = .false.
++      call get_environment_variable('GCHP_DUMP_CHEM', dumpdir, dlen, dstat)
++      if ( dstat == 0 .and. dlen > 0 .and. (.not. dumped_gold) ) then
++         mypid = getpid()
++         write(fname,'(a,"/chemdump_golden_",i0,".bin")') trim(dumpdir), mypid
++         open( newunit=du, file=trim(fname), form='unformatted',           &
++               access='stream', status='replace', iostat=dstat )
++         if ( dstat == 0 ) then
++            ! same range as the input dump: the NCELL_local gathered chem cells.
++            write(du) NSPEC, NCELL_local
++            write(du) C_1D(:,1:NCELL_local)
++            close(du)
++            dumped_gold = .true.
++            WRITE(6,*) '### PHASE1A: wrote golden dump ', trim(fname)
++         endif
++      endif
++    end block
++#endif
++
++#ifdef MPI_LOAD_BALANCE
+     !end access epoch
+     CALL MPI_Win_unlock_all(win_next_cell_index, ierr)
+ 
+@@ -1945,6 +2115,7 @@ CONTAINS
+        CALL GC_Error('MPI_Barrier failed', RC, ThisLoc)
+        RETURN
+     ENDIF
++#endif
+ 
+     ! Loop over the grid to set all persistent 3D arrays from the 1D data
+     ! When not using MPI load balancing this is done in the integration
+@@ -3500,7 +3671,12 @@ CONTAINS
+     USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurChem
+     USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
+     USE Gckpp_Precision
++#if defined(DECOUPLED_CHEM)
++    ! Phase 1b Chem_Remote_Init also needs NVAR/NFIX to size the shm segments.
++    USE Gckpp_Parameters,         ONLY : nFam, nReact, nSpec, nVar, nFix
++#else
+     USE Gckpp_Parameters,         ONLY : nFam, nReact, nSpec
++#endif
+     USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
+     USE Input_Opt_Mod,            ONLY : OptInput
+     USE KppSa_Interface_Mod,      ONLY : KppSa_Config
+@@ -4105,8 +4281,95 @@ CONTAINS
+        RETURN
+     END IF
+ 
+-#endif   ! MPI_LOAD_BALANCE
+-  
++#elif defined(DECOUPLED_CHEM)
++    !=====================================================================
++    ! DECOUPLED_CHEM (Phase 0): allocate the same flat gather/solve/scatter
++    ! buffers as MPI_LOAD_BALANCE, but with plain ALLOCATE (no MPI shared
++    ! windows). This rank's buffers span its whole subdomain, so offset=0
++    ! and NCELL_MAX = NCELL_TOTAL = NX*NY*NZ. The buffers are declared
++    ! POINTER (to match the MPI backend); a POINTER array may be ALLOCATEd
++    ! directly, which leaves it ASSOCIATED for use in the gather/solve/scatter.
++    !=====================================================================
++    NCELL_TOTAL = State_Grid%NX * State_Grid%NY * State_Grid%NZ
++    NCELL_MAX   = NCELL_TOTAL
++    offset      = 0
++
++    ! Rank-private buffers (the worker never sees these) -- always ALLOCATEd.
++    ALLOCATE( Idx_to_IJL(3, NCELL_MAX),       STAT=RC )
++    CALL GC_CheckVar( 'fullchem_mod.F90:Idx_to_IJL',  0, RC )
++    IF ( RC /= GC_SUCCESS ) RETURN
++    ALLOCATE( cell_status(NCELL_TOTAL),        STAT=RC )
++    CALL GC_CheckVar( 'fullchem_mod.F90:cell_status', 0, RC )
++    IF ( RC /= GC_SUCCESS ) RETURN
++    ALLOCATE( next_cell_index,                 STAT=RC )
++    CALL GC_CheckVar( 'fullchem_mod.F90:next_cell_index', 0, RC )
++    IF ( RC /= GC_SUCCESS ) RETURN
++
++    !---------------------------------------------------------------------
++    ! Phase 1b: the six SHIPPED buffers (C_1D/RCONST_1D/ICNTRL_1D/RCNTRL_1D/
++    ! ISTATUS_1D/RSTATE_1D) are either (a) mmap'd shared memory backing a
++    ! co-located kpp_worker, or (b) plain-ALLOCATEd for the in-process
++    ! Phase-0 solve. The env var GCHP_USE_REMOTE_CHEM selects (a); ANY shm
++    ! setup failure silently falls back to (b) -- never fatal.
++    !---------------------------------------------------------------------
++    block
++      character(len=8) :: remote_flag
++      integer          :: rlen, rstat
++      logical          :: want_remote, remote_ok
++      type(C_PTR)      :: cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL
++      type(C_PTR)      :: cp_ISTAT, cp_RSTATE
++
++      want_remote = .FALSE.
++      call get_environment_variable('GCHP_USE_REMOTE_CHEM', remote_flag,      &
++                                    rlen, rstat)
++      if ( rstat == 0 .and. rlen > 0 ) then
++         want_remote = ( remote_flag(1:1) == '1' .or.                         &
++                         remote_flag(1:1) == 'T' .or.                         &
++                         remote_flag(1:1) == 't' )
++      end if
++
++      remote_ok = .FALSE.
++      if ( want_remote ) then
++         call Chem_Remote_Init( NSPEC, NREACT, NVAR, NFIX, NCELL_TOTAL,       &
++              cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL, cp_ISTAT, cp_RSTATE,     &
++              remote_ok )
++         if ( remote_ok ) then
++            call C_F_POINTER( cp_C,      C_1D,       [NSPEC,  NCELL_TOTAL] )
++            call C_F_POINTER( cp_RCONST, RCONST_1D,  [NREACT, NCELL_TOTAL] )
++            call C_F_POINTER( cp_ICNTRL, ICNTRL_1D,  [20,     NCELL_TOTAL] )
++            call C_F_POINTER( cp_RCNTRL, RCNTRL_1D,  [20,     NCELL_TOTAL] )
++            call C_F_POINTER( cp_ISTAT,  ISTATUS_1D, [20,     NCELL_TOTAL] )
++            call C_F_POINTER( cp_RSTATE, RSTATE_1D,  [20,     NCELL_TOTAL] )
++            WRITE(6,*) 'Init_FullChem: DECOUPLED_CHEM buffers are SHM-backed'
++         endif
++      endif
++
++      if ( .not. remote_ok ) then
++         ! Phase-0 in-process path: plain ALLOCATE (also the fallback if the
++         ! remote setup failed or was not requested).
++         ALLOCATE( C_1D(NSPEC,  NCELL_TOTAL),       STAT=RC )
++         CALL GC_CheckVar( 'fullchem_mod.F90:C_1D',        0, RC )
++         IF ( RC /= GC_SUCCESS ) RETURN
++         ALLOCATE( RCONST_1D(NREACT, NCELL_TOTAL),  STAT=RC )
++         CALL GC_CheckVar( 'fullchem_mod.F90:RCONST_1D',   0, RC )
++         IF ( RC /= GC_SUCCESS ) RETURN
++         ALLOCATE( ICNTRL_1D(20, NCELL_TOTAL),      STAT=RC )
++         CALL GC_CheckVar( 'fullchem_mod.F90:ICNTRL_1D',   0, RC )
++         IF ( RC /= GC_SUCCESS ) RETURN
++         ALLOCATE( RCNTRL_1D(20, NCELL_TOTAL),      STAT=RC )
++         CALL GC_CheckVar( 'fullchem_mod.F90:RCNTRL_1D',   0, RC )
++         IF ( RC /= GC_SUCCESS ) RETURN
++         ALLOCATE( ISTATUS_1D(20, NCELL_TOTAL),     STAT=RC )
++         CALL GC_CheckVar( 'fullchem_mod.F90:ISTATUS_1D',  0, RC )
++         IF ( RC /= GC_SUCCESS ) RETURN
++         ALLOCATE( RSTATE_1D(20, NCELL_TOTAL),      STAT=RC )
++         CALL GC_CheckVar( 'fullchem_mod.F90:RSTATE_1D',   0, RC )
++         IF ( RC /= GC_SUCCESS ) RETURN
++      endif
++    end block
++
++#endif   ! MPI_LOAD_BALANCE / DECOUPLED_CHEM
++
+   END SUBROUTINE Init_FullChem
+ !EOC
+ !------------------------------------------------------------------------------
+@@ -4225,8 +4488,31 @@ CONTAINS
+     IF (shm_comm /= MPI_COMM_NULL)          &
+          CALL MPI_Comm_free(shm_comm, ierr)
+ 
+-#endif  ! MPI_LOAD_BALANCE
+-   
++#elif defined(DECOUPLED_CHEM)
++
++    ! DECOUPLED_CHEM: rank-private buffers are always plain-ALLOCATEd.
++    IF ( ASSOCIATED( cell_status     ) ) DEALLOCATE( cell_status     )
++    IF ( ASSOCIATED( next_cell_index ) ) DEALLOCATE( next_cell_index )
++    IF ( ALLOCATED ( Idx_to_IJL      ) ) DEALLOCATE( Idx_to_IJL      )
++
++    IF ( Chem_Remote_Active ) THEN
++       ! Phase 1b: the six shipped buffers are shm-mapped (NOT allocatable-
++       ! owned). Send the worker its exit sentinel and detach/unlink the shm;
++       ! just NULLIFY the Fortran pointers (do NOT DEALLOCATE mmap'd memory).
++       CALL Chem_Remote_Final()
++       NULLIFY( C_1D, RCONST_1D, ICNTRL_1D, RCNTRL_1D, ISTATUS_1D, RSTATE_1D )
++    ELSE
++       ! Phase 0: the six buffers were plain-ALLOCATEd, so DEALLOCATE them.
++       IF ( ASSOCIATED( C_1D            ) ) DEALLOCATE( C_1D            )
++       IF ( ASSOCIATED( RCONST_1D       ) ) DEALLOCATE( RCONST_1D       )
++       IF ( ASSOCIATED( ICNTRL_1D       ) ) DEALLOCATE( ICNTRL_1D       )
++       IF ( ASSOCIATED( RCNTRL_1D       ) ) DEALLOCATE( RCNTRL_1D       )
++       IF ( ASSOCIATED( ISTATUS_1D      ) ) DEALLOCATE( ISTATUS_1D      )
++       IF ( ASSOCIATED( RSTATE_1D       ) ) DEALLOCATE( RSTATE_1D       )
++    ENDIF
++
++#endif  ! MPI_LOAD_BALANCE / DECOUPLED_CHEM
++
+   END SUBROUTINE Cleanup_FullChem
+ !EOC
+ END MODULE FullChem_Mod
+diff --git a/GeosCore/kpp_worker.F90 b/GeosCore/kpp_worker.F90
+new file mode 100644
+index 0000000..c41cff7
+--- /dev/null
++++ b/GeosCore/kpp_worker.F90
+@@ -0,0 +1,288 @@
++PROGRAM KPP_Worker
++  !
++  ! Decoupled-Chemistry KPP worker.
++  !
++  ! Two modes, selected by argv:
++  !
++  !   (Phase 1a) one-shot FILE mode:   kpp_worker <input_dump.bin> <output.bin>
++  !     Reads the flat KPP-input buffers fullchem dumped (env GCHP_DUMP_CHEM),
++  !     replays the per-cell solve, writes solved C_1D to a file. A diff harness
++  !     byte-compares vs fullchem's golden dump. This is the offline
++  !     byte-identity proof and is retained as a regression.
++  !
++  !   (Phase 1b) SERVICE mode:         kpp_worker --service
++  !     Attaches this rank's POSIX shm segments + named semaphores (keyed by env
++  !     GCHP_CHEM_RANK + GCHP_JOBID, see chem_remote_mod), then loops:
++  !         sem_wait(ready) -> (sentinel? exit) -> solve 1:ncell_local in shm
++  !         -> sem_post(done)
++  !     The buffers ARE shared memory, so the solve reads/writes them in place
++  !     (zero-copy) and the co-located GCHP rank sees the results directly. The
++  !     per-cell body is IDENTICAL to file mode -- same integrator, same flags,
++  !     same retry, same envelope -- so bit-identity carries over from Phase 1a.
++  !
++  ! Links ONLY the KPP static lib (gckpp_* + fullchem_*Funcs) -- no GEOS-Chem
++  ! State_* deps. Built in the SAME cmake configure as GCHP so compiler flags,
++  ! -mcpu, ffp-contract and the KPP_INTEGRATOR_AUTOREDUCE def match exactly
++  ! (bit-identity requirement). chem_remote_mod + chem_remote_shm.c are compiled
++  ! directly into this executable (see src/CMakeLists.txt).
++  !
++  ! WORKER OUTPUT CONTRACT (Phase 1b, stricter than 1a): the co-located rank's
++  ! scatter reads back C_1D, RSTATE_1D and ISTATUS_1D (RSTATE feeds
++  ! State_Chm%KPPHvalue -> the restart file; ISTATUS feeds the KPP History
++  ! diagnostics). So the worker writes all THREE back, and accumulates ISTATUS
++  ! on the retry exactly as fullchem_mod.F90:1959. (Phase 1a compared only C_1D,
++  ! so it wrote only C_1D; the full-run checkpoint gate needs all three.)
++  !
++  USE ISO_C_BINDING
++  USE GcKpp_Precision
++  USE GcKpp_Parameters              ! NSPEC, NREACT, NVAR, NFIX, ind_SALAAL, ind_SALCAL
++  USE GcKpp_Global                  ! C, RCONST, ATOL, RTOL, MW (module globals;
++                                    ! RCONST is declared here and THREADPRIVATE)
++  USE GcKpp_Integrator, ONLY : Integrate
++  USE Chem_Remote_Mod
++
++  IMPLICIT NONE
++
++  ! ---- header (must mirror the fullchem dump exactly; FILE mode) ----
++  ! NOTE: DT is NOT declared here -- it is a gckpp_Global module variable
++  ! (use-associated). We read the dumped timestep into a local and pass it
++  ! explicitly to Integrate as TOUT, exactly as fullchem does with GET_TS_CHEM.
++  INTEGER  :: h_NSPEC, h_NREACT, h_NVAR, h_NFIX, NCELL, ar_flag, ss_flag
++  REAL(dp) :: DT_in
++  REAL(dp), ALLOCATABLE :: MW_in(:)   ! (NSPEC) molecular weights for the EquivToAlk conversion
++
++  ! ---- flat buffers (FILE mode owns these; SERVICE mode points at shm) ----
++  REAL(dp), POINTER :: C_1D(:,:)      => NULL()  ! (NSPEC, NCELL)   in/out
++  REAL(dp), POINTER :: RCONST_1D(:,:) => NULL()  ! (NREACT,NCELL)   in
++  INTEGER,  POINTER :: ICNTRL_1D(:,:) => NULL()  ! (20, NCELL)      in
++  REAL(dp), POINTER :: RCNTRL_1D(:,:) => NULL()  ! (20, NCELL)      in
++  INTEGER,  POINTER :: ISTATUS_1D(:,:)=> NULL()  ! (20, NCELL)      out (Phase 1b)
++  REAL(dp), POINTER :: RSTATE_1D(:,:) => NULL()  ! (20, NCELL)      out (Phase 1b)
++  REAL(dp), ALLOCATABLE :: ATOL_in(:), RTOL_in(:)   ! (NVAR)  FILE mode
++
++  ! ---- per-cell working ----
++  INTEGER  :: IERR, i, du, ios, nfail2x
++  CHARACTER(len=1024) :: arg1, arg2
++  INTEGER  :: nArgs
++
++  nArgs = COMMAND_ARGUMENT_COUNT()
++  IF ( nArgs < 1 ) THEN
++     WRITE(6,*) 'usage: kpp_worker <input_dump.bin> <output.bin>   (file mode)'
++     WRITE(6,*) '   or: kpp_worker --service                       (shm mode)'
++     STOP 1
++  ENDIF
++  CALL GET_COMMAND_ARGUMENT(1, arg1)
++
++  IF ( TRIM(arg1) == '--service' ) THEN
++     CALL Run_Service_Mode()
++  ELSE
++     IF ( nArgs < 2 ) THEN
++        WRITE(6,*) 'file mode needs <input_dump.bin> <output.bin>'; STOP 1
++     ENDIF
++     CALL GET_COMMAND_ARGUMENT(2, arg2)
++     CALL Run_File_Mode( TRIM(arg1), TRIM(arg2) )
++  ENDIF
++
++CONTAINS
++
++  !===========================================================================
++  ! Per-cell solve. IDENTICAL numerics for both modes and bit-identical to
++  ! fullchem's in-process DECOUPLED_CHEM loop (fullchem_mod.F90:1849-2034):
++  !   load C/RCONST/ICNTRL/RCNTRL -> Integrate -> two-strike retry (with
++  !   ISTATUS accumulation on retry) -> EquivToAlk envelope -> store
++  !   C_1D/RSTATE_1D/ISTATUS_1D back.
++  ! Reads/writes the module-scope POINTER buffers, which are either the
++  ! ALLOCATEd file buffers or the mmap'd shm buffers -- the body doesn't care.
++  ! `n` is the number of real gathered cells to solve (NCELL_local).
++  !===========================================================================
++  SUBROUTINE Solve_Batch( n, dt_local, ar, ss, nfail2x )
++    INTEGER,  INTENT(IN)    :: n, ar, ss
++    REAL(dp), INTENT(IN)    :: dt_local
++    INTEGER,  INTENT(INOUT) :: nfail2x
++    INTEGER  :: ICNTRL(20), ISTATUS(20)
++    REAL(dp) :: RCNTRL(20), RSTATE(20)
++    REAL(dp) :: C_before(NSPEC)
++    INTEGER  :: j, ie
++
++    DO j = 1, n
++       ISTATUS = 0
++       RSTATE  = 0.0_dp
++       ie      = 0
++
++       RCONST(:)  = RCONST_1D(:,j)     ! module array Integrate reads
++       C(:)       = C_1D(:,j)          ! full NSPEC incl FIX = C(NVAR+1:NSPEC)
++       ICNTRL(:)  = ICNTRL_1D(:,j)
++       RCNTRL(:)  = RCNTRL_1D(:,j)
++       C_before   = C
++
++       CALL Integrate( 0.0_dp, dt_local, ICNTRL, RCNTRL, ISTATUS, RSTATE, ie )
++
++       ! store diagnostics from the first call (fullchem_mod.F90:1874-1875)
++       RSTATE_1D(:,j)  = RSTATE(:)
++       ISTATUS_1D(:,j) = ISTATUS(:)
++
++       ! ---- two-strike retry, identical to fullchem_mod.F90:1928-1965 ----
++       IF ( ie < 0 ) THEN
++          RCNTRL(3) = 0.0_dp
++          C         = C_before
++          IF ( ar == 1 ) RCNTRL(12) = -1.0_dp   ! Use_AutoReduce
++          RCONST(:) = RCONST_1D(:,j)
++          CALL Integrate( 0.0_dp, dt_local, ICNTRL, RCNTRL, ISTATUS, RSTATE, ie )
++          ! accumulate ISTATUS (counts), overwrite RSTATE (fullchem:1959-1960)
++          ISTATUS_1D(:,j) = ISTATUS_1D(:,j) + ISTATUS(:)
++          RSTATE_1D(:,j)  = RSTATE(:)
++          IF ( ie < 0 ) THEN
++             ! double failure: fullchem (GCHP, KppStop off) reverts C to
++             ! pre-integrate. NOTE: fullchem also sets Failed2x + CYCLEs, which
++             ! would skip STORING subsequent cells; on the 1a C24 gate zero
++             ! cells failed twice, so this reversion-and-store is bit-identical
++             ! there. (A real 2x failure is a separate, pre-existing divergence
++             ! in the batched path, out of scope for the transport proof.)
++             C = C_before
++             nfail2x = nfail2x + 1
++          ENDIF
++       ENDIF
++
++       ! ---- post-Integrate envelope: fullchem_ConvertEquivToAlk on
++       !      SALAAL/SALCAL when .not.Do_SulfateMod_SeaSalt (ss==1).
++       !      Mirrors fullchem_SulfurChemFuncs.F90:94-105. ----
++       IF ( ss == 1 ) THEN
++          C(ind_SALAAL) = C(ind_SALAAL) / ( MW(ind_SALAAL) * 7.0e-5_dp )
++          C(ind_SALCAL) = C(ind_SALCAL) / ( MW(ind_SALCAL) * 7.0e-5_dp )
++       ENDIF
++
++       C_1D(:,j) = C(:)
++    ENDDO
++  END SUBROUTINE Solve_Batch
++
++  !===========================================================================
++  ! Phase 1a FILE mode: read dump -> Solve_Batch -> write solved C_1D.
++  !===========================================================================
++  SUBROUTINE Run_File_Mode( infile, outfile )
++    CHARACTER(len=*), INTENT(IN) :: infile, outfile
++
++    OPEN( newunit=du, file=infile, form='unformatted', access='stream',       &
++          status='old', action='read', iostat=ios )
++    IF ( ios /= 0 ) THEN
++       WRITE(6,*) 'kpp_worker: cannot open input ', infile; STOP 2
++    ENDIF
++    READ(du) h_NSPEC, h_NREACT, h_NVAR, h_NFIX, NCELL, ar_flag, ss_flag
++    READ(du) DT_in
++
++    IF ( h_NSPEC /= NSPEC .OR. h_NREACT /= NREACT .OR.                         &
++         h_NVAR  /= NVAR  .OR. h_NFIX   /= NFIX ) THEN
++       WRITE(6,*) 'kpp_worker: MECHANISM MISMATCH. dump=(', h_NSPEC, h_NREACT, &
++            h_NVAR, h_NFIX, ') worker=(', NSPEC, NREACT, NVAR, NFIX, ')'
++       STOP 3
++    ENDIF
++
++    ALLOCATE( ATOL_in(NVAR), RTOL_in(NVAR), MW_in(NSPEC) )
++    ALLOCATE( C_1D(NSPEC,NCELL), RCONST_1D(NREACT,NCELL) )
++    ALLOCATE( ICNTRL_1D(20,NCELL), RCNTRL_1D(20,NCELL) )
++    ALLOCATE( ISTATUS_1D(20,NCELL), RSTATE_1D(20,NCELL) )
++    READ(du) ATOL_in(1:NVAR)
++    READ(du) RTOL_in(1:NVAR)
++    READ(du) MW_in(1:NSPEC)
++    READ(du) C_1D
++    READ(du) RCONST_1D
++    READ(du) ICNTRL_1D
++    READ(du) RCNTRL_1D
++    CLOSE(du)
++
++    ! ATOL/RTOL are module globals; set once from shipped values.
++    ATOL(1:NVAR) = ATOL_in(1:NVAR)
++    RTOL(1:NVAR) = RTOL_in(1:NVAR)
++    MW(1:NSPEC)  = MW_in(1:NSPEC)   ! for the EquivToAlk envelope
++
++    ! contract keystone guard: ICNTRL(15) MUST be -1
++    DO i = 1, NCELL
++       IF ( ICNTRL_1D(15,i) /= -1 ) THEN
++          WRITE(6,*) 'kpp_worker: ICNTRL(15)=', ICNTRL_1D(15,i), ' at cell', i, &
++               ' (need -1). ABORT.'; STOP 4
++       ENDIF
++    ENDDO
++
++    nfail2x = 0
++    CALL Solve_Batch( NCELL, DT_in, ar_flag, ss_flag, nfail2x )
++    IF ( nfail2x > 0 ) WRITE(6,*) 'kpp_worker: ', nfail2x, ' cells failed twice'
++
++    OPEN( newunit=du, file=outfile, form='unformatted', access='stream',      &
++          status='replace', action='write', iostat=ios )
++    IF ( ios /= 0 ) THEN
++       WRITE(6,*) 'kpp_worker: cannot open output ', outfile; STOP 5
++    ENDIF
++    WRITE(du) NSPEC, NCELL
++    WRITE(du) C_1D
++    CLOSE(du)
++    WRITE(6,*) 'kpp_worker: solved ', NCELL, ' cells -> ', outfile
++  END SUBROUTINE Run_File_Mode
++
++  !===========================================================================
++  ! Phase 1b SERVICE mode: attach shm, then loop until the exit sentinel.
++  !===========================================================================
++  SUBROUTINE Run_Service_Mode()
++    TYPE(C_PTR) :: cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL, cp_ISTAT, cp_RSTATE
++    LOGICAL     :: ok
++    INTEGER     :: cmd, n, ar, ss, ncell_tot, nsteps
++    REAL(dp)    :: dt_local
++    REAL(C_DOUBLE) :: attach_wait_s
++
++    attach_wait_s = 60.0_C_DOUBLE   ! bounded-retry attach budget (rank creates early)
++
++    CALL Chem_Remote_Worker_Attach( NSPEC, NREACT, NVAR, NFIX, attach_wait_s, &
++         cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL, cp_ISTAT, cp_RSTATE, ok )
++    IF ( .NOT. ok ) THEN
++       WRITE(6,*) 'kpp_worker[service]: attach FAILED -> exit'
++       ! record fatal status so the rank falls back rather than hanging
++       IF ( ASSOCIATED(gcr_ctl) ) gcr_ctl%worker_status = -1
++       STOP 6
++    ENDIF
++
++    ! Map the six shm segments onto this process's KPP-shaped pointers.
++    ncell_tot = INT(gcr_ctl%ncell_total)
++    CALL C_F_POINTER( cp_C,      C_1D,       [NSPEC,  ncell_tot] )
++    CALL C_F_POINTER( cp_RCONST, RCONST_1D,  [NREACT, ncell_tot] )
++    CALL C_F_POINTER( cp_ICNTRL, ICNTRL_1D,  [20,     ncell_tot] )
++    CALL C_F_POINTER( cp_RCNTRL, RCNTRL_1D,  [20,     ncell_tot] )
++    CALL C_F_POINTER( cp_ISTAT,  ISTATUS_1D, [20,     ncell_tot] )
++    CALL C_F_POINTER( cp_RSTATE, RSTATE_1D,  [20,     ncell_tot] )
++
++    ! ATOL/RTOL/MW live in the const segment [ATOL(NVAR) RTOL(NVAR) MW(NSPEC)].
++    ATOL(1:NVAR) = gcr_const(1:NVAR)
++    RTOL(1:NVAR) = gcr_const(NVAR+1:2*NVAR)
++    MW(1:NSPEC)  = gcr_const(2*NVAR+1:2*NVAR+NSPEC)
++
++    nfail2x = 0
++    nsteps  = 0
++    DO
++       cmd = Chem_Remote_Worker_Wait()          ! blocks on sem ready
++       IF ( cmd == GCR_CMD_EXIT ) EXIT           ! sentinel from rank's Final
++
++       n  = INT(gcr_ctl%ncell_local)
++       dt_local = REAL(gcr_ctl%dt, dp)
++       ar = INT(gcr_ctl%ar_flag)
++       ss = INT(gcr_ctl%ss_flag)
++
++       ! keystone guard on the first cell only (cheap; all shipped cells have
++       ! ICNTRL(15)=-1 because the rank ships 1:ncell_local, never zero-pad).
++       IF ( n >= 1 ) THEN
++          IF ( ICNTRL_1D(15,1) /= -1 ) THEN
++             WRITE(6,*) 'kpp_worker[service]: ICNTRL(15)/=-1; refusing batch'
++             gcr_ctl%worker_status = -2
++             CALL Chem_Remote_Worker_Done()      ! release rank -> it falls back
++             CYCLE
++          ENDIF
++       ENDIF
++
++       CALL Solve_Batch( n, dt_local, ar, ss, nfail2x )
++       gcr_ctl%worker_status = 0
++       nsteps = nsteps + 1
++       CALL Chem_Remote_Worker_Done()            ! post sem done
++    ENDDO
++
++    WRITE(6,'(a,i0,a,i0,a)') 'kpp_worker[service]: exit after ', nsteps,      &
++         ' supersteps (', nfail2x, ' cells failed twice)'
++    CALL Chem_Remote_Worker_Detach()
++  END SUBROUTINE Run_Service_Mode
++
++END PROGRAM KPP_Worker
