@@ -148,11 +148,14 @@ if [ \${#WPIDS[@]} -gt 0 ]; then
   for p in \${WPIDS[@]}; do kill -9 \$p 2>/dev/null; done
 fi
 
-echo "=== RESULT: restart MD5 (compare vs Phase-0 baseline) ==="
-CKPT=\$(ls -t Restarts/GEOSChem.Restart.*z.c24.nc4 2>/dev/null | grep -v 20190101_0000z | head -1)
-[ -z "\$CKPT" ] && CKPT=\$(ls -t Restarts/*.nc4 2>/dev/null | head -1)
-if [ -n "\$CKPT" ]; then
-  echo "RESULT_P1B_MD5 tag=$TAG file=\$(basename \$CKPT) md5=\$(md5sum "\$CKPT" | awk '{print \$1}')"
+echo "=== RESULT: checkpoint MD5 (compare vs Phase-0 baseline) ==="
+# GCHP writes the internal checkpoint to Restarts/gcchem_internal_checkpoint (pnc4,
+# no .nc4 extension). cap_restart advancing to the end time confirms it was written
+# before the benign _dl_fini finalization double-free (signal 6) at process teardown.
+CKPT=Restarts/gcchem_internal_checkpoint
+if [ -f "\$CKPT" ] && [ ! -L "\$CKPT" ]; then
+  echo "RESULT_P1B_CAP tag=$TAG cap_restart=\$(cat cap_restart 2>/dev/null)"
+  echo "RESULT_P1B_MD5 tag=$TAG file=gcchem_internal_checkpoint md5=\$(md5sum "\$CKPT" | awk '{print \$1}') bytes=\$(stat -c%s "\$CKPT" 2>/dev/null)"
 else
   echo "RESULT_P1B_MD5 tag=$TAG NO_CHECKPOINT_FOUND"
 fi

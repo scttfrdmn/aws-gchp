@@ -23,7 +23,7 @@ wait_job(){ # $1=jobid ; block until it leaves the queue
   local jid=$1 n=0
   while squeue -j "$jid" -h 2>/dev/null | grep -q .; do sleep 10; n=$((n+10)); [ $n -ge 2400 ] && { echo "TIMEOUT waiting on job $jid"; return 1; }; done
 }
-md5_from_log(){ grep -aoE "RESULT_P1B_MD5 tag=[^ ]+ file=[^ ]+ md5=[0-9a-f]+" "$1" | grep -oE "md5=[0-9a-f]+" | cut -d= -f2 | tail -1; }
+md5_from_log(){ grep -aoE "md5=[0-9a-f]{32}" "$1" 2>/dev/null | cut -d= -f2 | tail -1; }
 submit(){ "$HERE/gchp-phase1b-run.sh" "$@" | grep -aoE "job=[0-9]+" | cut -d= -f2 | tail -1; }
 slurmlog(){ ls -t $RUNBASE/gchp_$1/slurm-$1-*.log 2>/dev/null | head -1; }
 
