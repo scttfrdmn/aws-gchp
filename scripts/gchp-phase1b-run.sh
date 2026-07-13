@@ -26,14 +26,14 @@ BIN=$SRC/build/bin/gchp
 WORKER=$SRC/build/bin/kpp_worker
 RUNBASE=/scratch
 
-RANKS=${1:-1}
+RANKS=${1:-6}
 MODE=${2:-normal}          # normal | kill1 | baseline
-NX=2; NY=6                 # C24 layouts: 1 rank uses NX=1 NY=... ; see below
+# GCHP requires TOTAL_CORES divisible by 6 (the 6 cubed-sphere faces), so the
+# smallest valid decomposition is 6 ranks (NX=1,NY=6). That is our "small" gate.
 case "$RANKS" in
-  1)  NX=1; NY=6;  RPN=1  ;;   # 1 rank owns whole cube (NX*NY=6 faces)
-  6)  NX=1; NY=6;  RPN=6  ;;
-  12) NX=2; NY=6;  RPN=12 ;;
-  *)  echo "FAIL: pick RANKS in {1,6,12} (C24)"; exit 1 ;;
+  6)  NX=1; NY=6;  RPN=6  ;;   # smallest valid GCHP layout (isolates the boundary)
+  12) NX=2; NY=6;  RPN=12 ;;   # the Phase-1a topology (full identity gate)
+  *)  echo "FAIL: pick RANKS in {6,12} (C24; TOTAL_CORES must be divisible by 6)"; exit 1 ;;
 esac
 TOTAL=$RANKS
 TAG="c24p1b_r${RANKS}_${MODE}"

@@ -45,20 +45,20 @@ grep -q "PHASE1B SHIM SELFTEST PASS" /tmp/p1b_selftest.out || { echo ">>> STOP: 
 echo ">>> STEP 1 PASS"
 
 ########## 2. BASELINE (remote OFF) ##########
-say "2. BASELINE 1-rank remote OFF -> Phase-0 MD5"
-JID=$(submit 1 baseline); echo "baseline job=$JID"; wait_job "$JID" || exit 1
-BLOG=$(slurmlog c24p1b_r1_baseline); echo "log: $BLOG"
+say "2. BASELINE 6-rank remote OFF -> Phase-0 MD5"
+JID=$(submit 6 baseline); echo "baseline job=$JID"; wait_job "$JID" || exit 1
+BLOG=$(slurmlog c24p1b_r6_baseline); echo "log: $BLOG"
 BASE_MD5=$(md5_from_log "$BLOG")
 [ -n "$BASE_MD5" ] || { echo ">>> STOP: no baseline MD5 (run failed?)"; tail -30 "$BLOG"; exit 1; }
 echo ">>> BASELINE MD5 = $BASE_MD5"
 
-########## 3. SINGLE-RANK IDENTITY (remote ON) ##########
-say "3. SINGLE-RANK identity: 1-rank remote ON"
-JID=$(submit 1 normal); echo "job=$JID"; wait_job "$JID" || exit 1
-L=$(slurmlog c24p1b_r1_normal); M=$(md5_from_log "$L")
-echo "  1-rank remote MD5 = $M   (baseline $BASE_MD5)"
+########## 3. SMALL-SCALE IDENTITY (remote ON) ##########
+say "3. SMALL identity: 6-rank remote ON (smallest valid GCHP layout)"
+JID=$(submit 6 normal); echo "job=$JID"; wait_job "$JID" || exit 1
+L=$(slurmlog c24p1b_r6_normal); M=$(md5_from_log "$L")
+echo "  6-rank remote MD5 = $M   (baseline $BASE_MD5)"
 grep -aE "buffers are SHM-backed|PHASE1B HANDOFF" "$L" | head -3
-if [ "$M" = "$BASE_MD5" ]; then echo ">>> STEP 3 PASS (byte-identical)"; else echo ">>> STOP: single-rank MD5 MISMATCH"; tail -40 "$L"; exit 1; fi
+if [ "$M" = "$BASE_MD5" ]; then echo ">>> STEP 3 PASS (byte-identical)"; else echo ">>> STOP: 6-rank MD5 MISMATCH"; tail -40 "$L"; exit 1; fi
 
 ########## 4. FULL 12-RANK IDENTITY ##########
 say "4. FULL 12-rank identity: remote ON"
@@ -81,6 +81,6 @@ grep -aE "PHASE1B HANDOFF" "$L4" | head -12
 
 say "PHASE 1b CHAIN COMPLETE"
 echo "baseline=$BASE_MD5"
-echo "  step3 1-rank : $(md5_from_log "$(slurmlog c24p1b_r1_normal)")"
+echo "  step3 6-rank : $(md5_from_log "$(slurmlog c24p1b_r6_normal)")"
 echo "  step4 12-rank: $(md5_from_log "$L4")"
 echo "  step5 kill1  : $(md5_from_log "$L5")"
