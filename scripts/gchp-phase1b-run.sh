@@ -115,23 +115,40 @@ srun --ntasks-per-node=1 --ntasks=1 sudo mount -o remount,size=48G /dev/shm 2>&1
 export GCHP_JOBID=\$SLURM_JOB_ID
 export GCHP_CHEM_DEADLINE_S=120
 
-WPIDS=()
+SRUN_WPID=""
 if [ "$REMOTE" = "1" ]; then
   export GCHP_USE_REMOTE_CHEM=1
   # sweep any stale objects for this job id (should be none)
   rm -f /dev/shm/gchp_\${GCHP_JOBID}_* /dev/shm/sem.gchp_\${GCHP_JOBID}_* 2>/dev/null
-  echo "=== co-launching $TOTAL kpp_worker --service processes ==="
-  for r in \$(seq 0 \$((TOTAL-1))); do
-    GCHP_CHEM_RANK=\$r GCHP_JOBID=\$GCHP_JOBID $WORKER --service > worker_\${r}.log 2>&1 &
-    WPIDS+=(\$!)
-  done
-else
-  echo "=== BASELINE run: remote OFF (in-process Phase-0 solve) ==="
+  # Co-launch the workers as a FIRST-CLASS srun job step (NOT bare '&' background
+  # shells -- those get orphaned/reaped when the mpirun step starts, and never
+  # attach). --overlap lets this step share the node with the mpirun step. Each
+  # task maps its SLURM_PROCID -> GCHP_CHEM_RANK so worker r keys /gchp_<jobid>_r<r>,
+  # matching the GCHP rank r's OMPI_COMM_WORLD_RANK-derived stem.
+  echo "=== co-launching $TOTAL kpp_worker --service via srun --overlap ==="
+  cat > worker_launch.sh <<'WL'
+#!/bin/bash
+source /sw/gchp-env.sh 2>/dev/null
+export GCHP_CHEM_RANK=\${SLURM_PROCID}
+exec WORKER_BIN_PLACEHOLDER --service
+WL
+  sed -i "s|WORKER_BIN_PLACEHOLDER|$WORKER|" worker_launch.sh
+  chmod +x worker_launch.sh
+  srun --overlap --nodes=1 --ntasks=$TOTAL --ntasks-per-node=$TOTAL \\
+       --output=worker_%t.log --export=ALL \\
+       ./worker_launch.sh &
+  SRUN_WPID=\$!
+  sleep 3    # let the workers attach before the ranks post
 fi
 
-# fallback proof: kill one worker ~8s in, while the run is going
-if [ "$MODE" = "kill1" ] && [ \${#WPIDS[@]} -gt 0 ]; then
-  ( sleep 8; echo "=== [kill1] killing worker rank 0 pid \${WPIDS[0]} ==="; kill -9 \${WPIDS[0]} 2>/dev/null ) &
+if [ "$REMOTE" != "1" ]; then echo "=== BASELINE run: remote OFF (in-process Phase-0 solve) ==="; fi
+
+# fallback proof: kill one worker ~8s in (whole srun step; simplest: signal the
+# co-launch step so at least one worker dies -> that rank times out -> fallback).
+if [ "$MODE" = "kill1" ] && [ -n "\$SRUN_WPID" ]; then
+  ( sleep 8; echo "=== [kill1] killing one worker (scancel step) ==="; \\
+    scancel --signal=KILL \${SLURM_JOB_ID}.\$(squeue -s -j \${SLURM_JOB_ID} -h -o %i 2>/dev/null | grep -v batch | tail -1 | cut -d. -f2) 2>/dev/null; \\
+    pkill -9 -f "kpp_worker --service" 2>/dev/null ) &
 fi
 
 echo "=== mpirun -n $TOTAL gchp (REMOTE=$REMOTE MODE=$MODE) ==="
@@ -139,13 +156,11 @@ mpirun -n $TOTAL --mca mtl_ofi_provider_include efa ./gchp > gchp_$TAG.log 2>&1
 MPIRC=\$?
 echo "RUN_DONE exit=\$MPIRC"
 
-# reap workers; the sentinel (Chem_Remote_Final) exits them, but guard w/ kill.
-if [ \${#WPIDS[@]} -gt 0 ]; then
-  for i in \$(seq 1 20); do
-    still=0; for p in \${WPIDS[@]}; do kill -0 \$p 2>/dev/null && still=1; done
-    [ \$still -eq 0 ] && break; sleep 1
-  done
-  for p in \${WPIDS[@]}; do kill -9 \$p 2>/dev/null; done
+# the sentinel (Chem_Remote_Final) exits workers cleanly; reap the srun step.
+if [ -n "\$SRUN_WPID" ]; then
+  for i in \$(seq 1 20); do kill -0 \$SRUN_WPID 2>/dev/null || break; sleep 1; done
+  kill -9 \$SRUN_WPID 2>/dev/null
+  pkill -9 -f "kpp_worker --service" 2>/dev/null
 fi
 
 echo "=== RESULT: checkpoint MD5 (compare vs Phase-0 baseline) ==="
@@ -164,7 +179,7 @@ grep -a "PHASE1B HANDOFF" gchp_$TAG.log | head -2
 echo "=== RESULT: remote/fallback markers ==="
 grep -aE "buffers are SHM-backed|Chem_Remote_Init: rank|worker timeout/err|in-process fallback" gchp_$TAG.log | head -10
 echo "=== worker exit lines ==="
-grep -aE "exit after|attach OK|attach FAIL" worker_*.log 2>/dev/null | head -20
+grep -ahE "CHEMREMOTE worker|exit after|ATTACHED ok|attach FAIL|control seg NEVER" worker_*.log 2>/dev/null | head -20
 echo "RESULT_P1B_DONE tag=$TAG mpirc=\$MPIRC"
 SL
 
