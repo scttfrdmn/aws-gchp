@@ -82,10 +82,20 @@ fi
 # ---- settings: C24 fullchem, SHORT (10 min = 1 chem step), o-server OFF ----
 R=/input/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190101_0000z.c24.nc4
 mkdir -p Restarts; ln -sf "$R" Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+# Run-dir-reuse hygiene: a stale OUTPUT checkpoint from a prior run makes the
+# NOCLOBBER nf90_create (NetCDF4_FileFormatter.F90:187) abort with NC_EEXIST(-35).
+# Delete only the output checkpoint (glob covers any per-writer split files); NEVER
+# the input GEOSChem.Restart.* symlink recreated just above.
+rm -f Restarts/gcchem_internal_checkpoint*
 echo "20190101 000000" > cap_restart
 sed -i "s/^TOTAL_CORES=.*/TOTAL_CORES=$TOTAL/; s/^NUM_NODES=.*/NUM_NODES=1/; s/^NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=$RPN/; s/^CS_RES=.*/CS_RES=24/; s/^AutoUpdate_NXNY=.*/AutoUpdate_NXNY=OFF/; s/^NX=.*/NX=$NX/; s/^NY=.*/NY=$NY/; s/^Require_Species_in_Restart=.*/Require_Species_in_Restart=0/" setCommonRunSettings.sh
 sed -i 's/^Run_Duration=.*/Run_Duration="00000000 001000"/' setCommonRunSettings.sh
 sed -i "s/^WRITE_RESTART_BY_OSERVER:.*/WRITE_RESTART_BY_OSERVER: NO/" GCHP.rc 2>/dev/null || true
+# Make the checkpoint writer overwrite instead of failing NOCLOBBER: surface the
+# MAPL resource overwrite_checkpoint (default .false.) into GCHP.rc (root reads it
+# via CAP.rc ROOT_CF: GCHP.rc + MAPL_GetResource). Absent from the template -> append.
+# Covers the intra-run periodic/finalize checkpoints too, which the delete cannot.
+grep -q '^overwrite_checkpoint:' GCHP.rc || echo 'overwrite_checkpoint: .true.' >> GCHP.rc
 sed -i "s/domains_stack_size = [0-9]*/domains_stack_size = 64000000/" input.nml 2>/dev/null || true
 ln -sf "$BIN" "$RUNDIR/gchp"
 
@@ -161,6 +171,9 @@ if [ "$MODE" = "kill1" ] && [ -n "\$SRUN_WPID" ]; then
     pkill -9 -f "kpp_worker --service" 2>/dev/null ) &
 fi
 
+# hygiene (again, inside the job): ensure no stale OUTPUT checkpoint survives a
+# resubmit of an already-prepared dir -> avoids NOCLOBBER NC_EEXIST(-35) at write.
+rm -f Restarts/gcchem_internal_checkpoint* 2>/dev/null
 echo "=== mpirun -n $TOTAL gchp (REMOTE=$REMOTE MODE=$MODE) ==="
 mpirun -n $TOTAL --mca mtl_ofi_provider_include efa ./gchp > gchp_$TAG.log 2>&1
 MPIRC=\$?
