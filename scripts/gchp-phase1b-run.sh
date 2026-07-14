@@ -187,9 +187,11 @@ if [ -n "\$SRUN_WPID" ]; then
 fi
 
 echo "=== RESULT: GOLDEN-DUMP set MD5 (solved C_1D per rank, pre-checkpoint) ==="
-# The identity gate: combined MD5 of all per-rank golden dumps (fullchem-solved
-# C_1D). This is the number to compare baseline-vs-remote. Robust to the pnc4
-# checkpoint hang because it is captured strictly before the checkpoint write.
+# Corroborating identity gate: combined MD5 of all per-rank golden dumps
+# (fullchem-solved C_1D), captured right after the solve loop. Secondary to the
+# checkpoint-MD5 gate below (which is now the primary end-to-end gate after the
+# overwrite_checkpoint/hygiene fix); kept because it is independent of the writer
+# and localizes any diff to the solve rather than the restart I/O.
 if ls "\$DUMPDIR"/chemdump_golden_*.bin >/dev/null 2>&1; then
   # Per-dump content MD5s, SORTED (order-independent: PIDs differ across runs, but
   # the SET of per-rank solved-C_1D contents must be identical baseline-vs-remote).
@@ -203,7 +205,7 @@ else
   echo "RESULT_P1B_GOLDEN tag=$TAG NO_GOLDEN_DUMPS"
 fi
 
-echo "=== RESULT: checkpoint MD5 (secondary; may be blocked by pnc4 write hang) ==="
+echo "=== RESULT: checkpoint MD5 (PRIMARY end-to-end gate; includes RSTATE->KPPHvalue) ==="
 CKPT=Restarts/gcchem_internal_checkpoint
 if [ -f "\$CKPT" ] && [ ! -L "\$CKPT" ]; then
   echo "RESULT_P1B_CAP tag=$TAG cap_restart=\$(cat cap_restart 2>/dev/null)"
