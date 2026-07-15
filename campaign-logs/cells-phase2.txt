@@ -1,0 +1,28 @@
+# Phase 2 TT ladder — fills the empty holes only (C24 all, C48 all, C90 2N).
+# Skips already-covered C90-1N + C180 cells. us-east-1 instances, cheapest-first.
+# instance res nodes rpn mech   (rpn: 60 for 128GB Graviton; 96 for 384GB; matched to cores)
+#
+# --- C24 (row nearly empty; 1N across instances) ---
+c7g.16xlarge   24 1 60 tt
+hpc7g.16xlarge 24 1 60 tt
+c8g.48xlarge   24 1 96 tt
+c8i.48xlarge   24 1 96 tt
+c7i.48xlarge   24 1 96 tt
+c7a.48xlarge   24 1 96 tt
+c8a.48xlarge   24 1 96 tt
+m9g.48xlarge   24 1 96 tt
+#
+# --- C48 (totally empty; 1N across instances) ---
+c7g.16xlarge   48 1 60 tt
+hpc7g.16xlarge 48 1 60 tt
+c8g.48xlarge   48 1 96 tt
+c8i.48xlarge   48 1 96 tt
+c7i.48xlarge   48 1 96 tt
+c7a.48xlarge   48 1 96 tt
+c8a.48xlarge   48 1 96 tt
+m9g.48xlarge   48 1 96 tt
+#
+# --- C90 2N (multinode scaling curve missing; key instances) ---
+c8g.48xlarge   90 2 96 tt
+m9g.48xlarge   90 2 96 tt
+c7a.48xlarge   90 2 96 tt
