@@ -106,6 +106,10 @@ setrc "WRITE_RESTART_BY_OSERVER:" "$OSRV"
 ln -sf "$BIN" "$RUNDIR/gchp"
 echo "[ckpt] MODE=$MODE  NUM_WRITERS=$NW SPLIT_CHECKPOINT=$SPLITC SPLIT_RESTART=$SPLITR OSERVER=$OSRV  bin=$BIN"
 
+# Wall backstop: single-segment write tests fit in 40 min; the 3-segment continuation
+# proof (ARM B 40-min sim + ARM A 20+20, each with cold-ish FSx init ~20+ min wall) needs ~2h.
+SBTIME="00:40:00"; [ "$MODE" = "contin" ] && SBTIME="02:00:00"
+
 cat > run_$TAG.slurm <<SL
 #!/bin/bash
 #SBATCH --job-name=$TAG
@@ -113,12 +117,13 @@ cat > run_$TAG.slurm <<SL
 #SBATCH --nodes=$NODES
 #SBATCH --ntasks=$TOTAL
 #SBATCH --ntasks-per-node=$RPN
-#SBATCH --time=00:40:00
+#SBATCH --time=$SBTIME
 #SBATCH --output=slurm-$TAG-%j.log
 #SBATCH --exclusive
 # NO 'set -e': GCHP 14.7.1 exits with a BENIGN finalization SIGABRT (exit 134) AFTER a good checkpoint
 # write. Success = checkpoint file(s) present + cap_restart advanced + process returned, NOT exit code.
-set -uo pipefail
+# NO 'set -u' either: GCHP's own setCommonRunSettings.sh/checkRunSettings.sh reference optional unset
+# positional args (e.g. \$4 in the .rc replace fn at line ~578) and abort under nounset when sourced.
 cd "\$SLURM_SUBMIT_DIR"
 source $STACK/gchp-env.sh
 export PATH="$STACK/libfabric-1.22.0/bin:\$PATH"
@@ -148,7 +153,7 @@ RUN() {  # \$1 = duration "DDDDDDDD HHMMSS" ; \$2 = log suffix
   echo "  last GCHP date: \$(grep -a 'GCHP Date' gchp_${TAG}_\$2.log | tail -1 | grep -oE 'Date: [0-9/]+  Time: [0-9:]+')"
   echo "  -35 in log: \$(grep -ac 'status=-35' gchp_${TAG}_\$2.log)   NetCDF4_FileFormatter fails: \$(grep -ac 'NetCDF4_FileFormatter.F90' gchp_${TAG}_\$2.log)"
   if ckpt_present; then
-    echo "  CHECKPOINT WRITTEN: \$(ls -la \$CKPT_GLOB | awk '{print \$9\"(\"\$5\"B)\"}' | tr '\n' ' ')"
+    echo "  CHECKPOINT WRITTEN:"; ls -la \$CKPT_GLOB | sed 's/^/    /'
     echo "  cap_restart=\$(cat cap_restart)"
   else
     echo "  NO CHECKPOINT (hang or fail). tail:"; tail -6 gchp_${TAG}_\$2.log
