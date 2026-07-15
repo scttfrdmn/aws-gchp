@@ -1,0 +1,75 @@
+# MATRIX TEMPLATE (us-east-1a) — resolution-ladder scaling campaign, @INSTANCE_TYPE@ compute.
+# us-east-1 counterpart of bench-matrix-use2.template.yaml. Substitute @INSTANCE_TYPE@ / @MAXCOUNT@
+# via scripts/launch-matrix-cluster.sh --region us-east-1 --template <this>. Uses the STANDING
+# us-east-1a input FSx (gchp-input-fabrictest, gcgrid, Lustre 2.15) so no new input FSx per run.
+#
+# PlacementGroup OFF: measured free on EFA (161.6~=153.4 d/d on 2N hpc7g) and it removes the 4-node
+# atomic-batch co-location cliff that persistently blocks 192-core parts. Head-node arch bootstrap:
+# @ARCH@ selects the aarch64 (Graviton) vs x86_64 stack sync from S3.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.2xlarge          # ARM login/build host (cheap); compute is @INSTANCE_TYPE@
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a — same AZ as the standing FSx
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/@ARCH_BOOTSTRAP@
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 3
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: @INSTANCE_TYPE@
+          MinCount: 0
+          MaxCount: @MAXCOUNT@
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false              # free on EFA; removes the 4N co-location cliff
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # gchp-input-fabrictest (us-east-1a, gcgrid, Lustre 2.15)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: matrix-ladder-use1

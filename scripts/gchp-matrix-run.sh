@@ -28,18 +28,26 @@ NODES=1
 RANKS_PER_NODE=60
 DAYS=1
 WARMUP=0
+MECH=tt                          # tt | fullchem
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --cs-res) CS_RES="$2"; shift 2 ;;
     --nodes) NODES="$2"; shift 2 ;;
     --ranks-per-node) RANKS_PER_NODE="$2"; shift 2 ;;
     --days) DAYS="$2"; shift 2 ;;
+    --mechanism) MECH="$2"; shift 2 ;;
     --warmup) WARMUP=1; shift ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
   esac
 done
+[[ "$MECH" == tt || "$MECH" == fullchem ]] || { echo "ERROR: --mechanism must be tt|fullchem"; exit 1; }
 TOTAL=$(( NODES * RANKS_PER_NODE ))
-RUNDIR="${SCRATCH}/gchp_c${CS_RES}"
+# per-mechanism run dir + restart species + createRunDir sim-type
+if [[ "$MECH" == fullchem ]]; then
+  RUNDIR="${SCRATCH}/gchp_fc_c${CS_RES}"; RST_SPECIES="fullchem"; SIMTYPE=1
+else
+  RUNDIR="${SCRATCH}/gchp_c${CS_RES}";    RST_SPECIES="TransportTracers"; SIMTYPE=2
+fi
 printf -v DUR '%08d 000000' "$DAYS"
 
 echo "=== matrix run: C${CS_RES}, ${NODES} node(s) x ${RANKS_PER_NODE} = ${TOTAL} ranks, ${DAYS}d, warmup=${WARMUP} ==="
@@ -64,7 +72,9 @@ if [[ ! -f "${RUNDIR}/setCommonRunSettings.sh" ]]; then
     cd "$SRC"
     git submodule update --init --depth 1 src/GCHP_GridComp/GEOSChem_GridComp/geos-chem
   fi
-  TMP_RD="${SCRATCH}/gchp_merra2_TransportTracers"
+  # createRunDir names the dir gchp_merra2_<simtype>; fullchem=1, TransportTracers=2. Use a robust
+  # dispatch loop (fullchem adds an "additional simulation option" prompt TT does not have).
+  if [[ "$MECH" == fullchem ]]; then TMP_RD="${SCRATCH}/gchp_merra2_fullchem"; else TMP_RD="${SCRATCH}/gchp_merra2_TransportTracers"; fi
   rm -rf "$TMP_RD"
   EXP=$(mktemp)
   cat > "$EXP" <<EOF
@@ -72,12 +82,17 @@ if [[ ! -f "${RUNDIR}/setCommonRunSettings.sh" ]]; then
 set timeout 600
 cd ${CRD_DIR}
 spawn ./createRunDir.sh
-expect "Choose simulation type:"        { send "2\r" }
-expect "Choose meteorology source:"      { send "1\r" }
-expect "Enter path where the run directory will be created:" { send "${SCRATCH}\r" }
-expect "Enter run directory name"        { send "\r" }
-expect "track run directory changes with git" { send "n\r" }
-expect eof
+expect {
+  -re "path for ExtData"                     { send "/input\r"; exp_continue }
+  -re "Choose simulation type:"              { send "${SIMTYPE}\r"; exp_continue }
+  -re "additional simulation option"         { send "1\r"; exp_continue }
+  -re "Choose meteorology source:"           { send "1\r"; exp_continue }
+  -re "Enter path where the run directory"   { send "${SCRATCH}\r"; exp_continue }
+  -re "Enter run directory name"             { send "\r"; exp_continue }
+  -re "track run directory changes with git" { send "n\r"; exp_continue }
+  -re "build the KPP-Standalone Box Model"   { send "n\r"; exp_continue }
+  eof
+}
 EOF
   expect "$EXP"; rm -f "$EXP"
   mv "$TMP_RD" "$RUNDIR"
@@ -87,11 +102,23 @@ fi
 cd "$RUNDIR"
 
 # ----- restart symlink for this resolution + RESET start date every run -----
-RST_SRC=$(ls /input/GEOSCHEM_RESTARTS/GC_*/GEOSChem.Restart.TransportTracers.20190101_0000z.c${CS_RES}.nc4 2>/dev/null | head -1)
-[[ -n "$RST_SRC" ]] || { echo "ERROR: no C${CS_RES} restart in /input"; exit 1; }
+RST_SRC=$(ls /input/GEOSCHEM_RESTARTS/GC_*/GEOSChem.Restart.${RST_SPECIES}.20190101_0000z.c${CS_RES}.nc4 2>/dev/null | head -1)
+[[ -n "$RST_SRC" ]] || { echo "ERROR: no C${CS_RES} ${RST_SPECIES} restart in /input"; exit 1; }
 mkdir -p Restarts
 ln -sf "$RST_SRC" "Restarts/GEOSChem.Restart.20190101_0000z.c${CS_RES}.nc4"
 echo "20190101 000000" > cap_restart   # reset so every run starts fresh from the restart
+
+# ----- fullchem-only prerequisites (GMI 5-alias overlay; lifted from gchp-fullchem-m9g.sh:50-75) -----
+if [[ "$MECH" == fullchem ]]; then
+  GMI_OVL=/scratch/gchp_gmi_ovl/GMI/v2015-02; mkdir -p "$GMI_OVL"
+  for f in /input/HEMCO/GMI/v2015-02/gmi.clim.*.nc; do ln -sf "$f" "$GMI_OVL/$(basename "$f")" 2>/dev/null; done
+  for a in IPMN NPMN RIPA RIPB RIPD; do [ -e "$GMI_OVL/gmi.clim.$a.geos5.2x25.nc" ] || aws s3 cp "s3://gchp-shared-storage-us-east-1/gmi-aliases/v2015-02/gmi.clim.$a.geos5.2x25.nc" "$GMI_OVL/gmi.clim.$a.geos5.2x25.nc" --region us-east-1 --only-show-errors; done
+  if [ -L HcoDir ] || [ ! -e HcoDir/GMI/v2015-02/gmi.clim.NPMN.geos5.2x25.nc ]; then
+    rm -f HcoDir; mkdir -p HcoDir/GMI
+    for e in /input/HEMCO/*; do [ "$(basename "$e")" = "GMI" ] || ln -sf "$e" "HcoDir/$(basename "$e")"; done
+    for v in /input/HEMCO/GMI/*; do bn=$(basename "$v"); if [ "$bn" = "v2015-02" ]; then ln -sf "$GMI_OVL" HcoDir/GMI/v2015-02; else ln -sf "$v" "HcoDir/GMI/$bn"; fi; done
+  fi
+fi
 
 # ----- configure resolution / node count / duration -----
 SC="setCommonRunSettings.sh"
@@ -100,6 +127,16 @@ sed -i "s/^NUM_NODES=.*/NUM_NODES=${NODES}/"                            "$SC"
 sed -i "s/^NUM_CORES_PER_NODE=.*/NUM_CORES_PER_NODE=${RANKS_PER_NODE}/" "$SC"
 sed -i "s/^CS_RES=.*/CS_RES=${CS_RES}/"                                 "$SC"
 sed -i "s/^Run_Duration=.*/Run_Duration=\"${DUR}\"/"                    "$SC"
+
+# fullchem needs a bigger FMS halo stack (64M; 20M overflows at coarse decomposition) + MAPL timers
+# for the CHEM/DYNAMICS split. /dev/shm is sized in the SLURM body (SHM_GB below).
+SHM_GB=32
+if [[ "$MECH" == fullchem ]]; then
+  sed -i "s/domains_stack_size = [0-9]*/domains_stack_size = 64000000/" input.nml 2>/dev/null || true
+  grep -q "MAPL_ENABLE_TIMERS" CAP.rc 2>/dev/null && sed -i "s/^MAPL_ENABLE_TIMERS:.*/MAPL_ENABLE_TIMERS: YES/" CAP.rc || echo "MAPL_ENABLE_TIMERS: YES" >> CAP.rc
+  # /dev/shm from the measured anchors: C180 fullchem needs 550G; smaller res scales down.
+  case "$CS_RES" in 180) SHM_GB=550 ;; 90) SHM_GB=200 ;; 48) SHM_GB=96 ;; *) SHM_GB=48 ;; esac
+fi
 
 # CRITICAL multi-node fix: write the internal checkpoint via the MAPL o-server. With the
 # default (NO), GCHP 14.7.1's pnc4 collective checkpoint write HANGS/FAILS across nodes
@@ -136,6 +173,12 @@ source setCommonRunSettings.sh
 source setRestartLink.sh
 source checkRunSettings.sh
 set +e
+
+# fullchem: enlarge /dev/shm for MAPL's on-node MPI_Win_allocate_shared windows (SIGBUS at first
+# KPP if too small). SHM_GB is 32 for TT (default is plenty), sized per-resolution for fullchem.
+if [[ ${SHM_GB} -gt 32 ]]; then
+  srun --ntasks-per-node=1 --ntasks=${NODES} sudo mount -o remount,size=${SHM_GB}G /dev/shm 2>&1 | tail -1
+fi
 
 RUNLOG=gchp_${TAG}.log
 END_DATE=\$(python3 -c "from datetime import date,timedelta;print((date(2019,1,1)+timedelta(days=${DAYS})).strftime('%Y/%m/%d'))" 2>/dev/null)
