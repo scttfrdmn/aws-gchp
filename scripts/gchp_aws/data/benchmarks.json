@@ -1,0 +1,89 @@
+{
+  "_comment": "MEASURED GCHP-on-AWS benchmark points behind the calculator. Every row cites its source {file,line,date} + confidence. This file IS the auditable deliverable — the blog table is generated from it. Add rows as new benchmarks land; never edit a measured value without updating its source.",
+  "schema_version": 1,
+  "nz_levels": 72,
+
+  "throughput_points": [
+    {"cs_res": 180, "mechanism": "fullchem", "instance": "m9g.48xlarge", "nodes": 1, "ranks_per_node": 48, "total_ranks": 48,
+     "sim_days_per_day": 7.4, "chem_step_ddpd": 4.3, "transport_step_ddpd": 18.4, "usd_per_sim_day": 30.46,
+     "confidence": "measured", "source": {"file": "gchp-run-results-2026-06-28.md", "line": 553, "run": "fullchem-m9g job 4", "date": "2026-06-28"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "m9g.48xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 281.8, "usd_per_sim_day": 0.80, "confidence": "measured",
+     "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 171, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "m9g.48xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 582.3, "eff_pct": 103, "confidence": "measured",
+     "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 171, "date": "2026-06-27"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc8a.96xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 157.1, "usd_per_sim_day": 1.21, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 69, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc8a.96xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 268.3, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 69, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc8a.96xlarge", "nodes": 4, "ranks_per_node": 60, "total_ranks": 240,
+     "sim_days_per_day": 411.4, "eff_pct": 65, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 69, "date": "2026-06-27"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc6id.32xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 86.3, "usd_per_sim_day": 1.59, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 70, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc6id.32xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 145.1, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 70, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc6id.32xlarge", "nodes": 4, "ranks_per_node": 60, "total_ranks": 240,
+     "sim_days_per_day": 210.8, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 70, "date": "2026-06-27"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "c8g.48xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 219.0, "usd_per_sim_day": 0.84, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 168, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "c8g.48xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 459.6, "eff_pct": 105, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 168, "date": "2026-06-27"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "c8i.48xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 131.0, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 169, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "c8i.48xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 220.4, "eff_pct": 84, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 169, "date": "2026-06-27"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "c8a.48xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 107.5, "usd_per_sim_day": 2.31, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 71, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "c8a.48xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 178.9, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 71, "date": "2026-06-27"}},
+
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc7g.16xlarge", "nodes": 2, "ranks_per_node": 60, "total_ranks": 120,
+     "sim_days_per_day": 229.5, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 68, "date": "2026-06-27"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "instance": "hpc7g.16xlarge", "nodes": 4, "ranks_per_node": 60, "total_ranks": 240,
+     "sim_days_per_day": 439.7, "eff_pct": 96, "confidence": "measured", "source": {"file": "data/benchmark-multinode-c180-2026-06.md", "line": 68, "date": "2026-06-27"}},
+
+    {"cs_res": 90, "mechanism": "transporttracers", "instance": "c7a.48xlarge", "nodes": 1, "ranks_per_node": 96, "total_ranks": 96,
+     "sim_days_per_day": 184.8, "usd_per_sim_day": 1.280, "confidence": "measured", "source": {"file": "data/benchmark-c90-2026-06.md", "line": 36, "date": "2026-06-26"}},
+    {"cs_res": 90, "mechanism": "transporttracers", "instance": "c7i.48xlarge", "nodes": 1, "ranks_per_node": 96, "total_ranks": 96,
+     "sim_days_per_day": 352.7, "usd_per_sim_day": 0.583, "confidence": "measured", "source": {"file": "data/benchmark-c90-2026-06.md", "line": 38, "date": "2026-06-26"}},
+    {"cs_res": 90, "mechanism": "transporttracers", "instance": "c7g.16xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 847.2, "usd_per_sim_day": 0.066, "confidence": "measured", "source": {"file": "data/benchmark-c90-2026-06.md", "line": 40, "date": "2026-06-26"}},
+    {"cs_res": 90, "mechanism": "transporttracers", "instance": "c8g.16xlarge", "nodes": 1, "ranks_per_node": 60, "total_ranks": 60,
+     "sim_days_per_day": 1067.1, "usd_per_sim_day": 0.057, "confidence": "measured", "source": {"file": "data/benchmark-c90-2026-06.md", "line": 41, "date": "2026-06-26"}}
+  ],
+
+  "memory_points": [
+    {"cs_res": 180, "mechanism": "fullchem", "nodes": 1, "ranks_per_node": 48, "high_water_gb": 556.5,
+     "ramp_gb": {"GCHPctmEnv": 70, "GCHPchem_init": 150, "DYNAMICS_init": 269, "TimeLoop_entry": 306, "first_KPP_chem": 556},
+     "confidence": "measured", "source": {"file": "gchp-run-results-2026-06-28.md", "line": 581, "date": "2026-06-28"}},
+    {"cs_res": 180, "mechanism": "fullchem", "nodes": 1, "ranks_per_node": 60, "phase": "init", "per_node_gb": 108, "outcome": "OOM_on_128GB",
+     "confidence": "measured", "source": {"file": "gchp-run-results-2026-06-28.md", "line": 166, "date": "2026-06-28"}},
+    {"cs_res": 180, "mechanism": "fullchem", "nodes": 2, "ranks_per_node": 60, "phase": "DYNAMICS_init", "per_node_gb": 125.7, "outcome": "OOM_on_128GB",
+     "confidence": "measured", "source": {"file": "gchp-run-results-2026-06-28.md", "line": 166, "date": "2026-06-28"}},
+    {"cs_res": 180, "mechanism": "transporttracers", "per_rank_gb": 2.1, "note": "C180@60 TT at the 128GB memory edge",
+     "confidence": "measured", "source": {"file": "data/benchmark-c90-2026-06.md", "line": 268, "date": "2026-06-26"}}
+  ],
+
+  "guardrail_points": [
+    {"cs_res": 180, "mechanism": "fullchem", "domains_stack_size": 64000000, "dev_shm_gb": 550,
+     "confidence": "measured", "source": {"file": "scripts/gchp-fullchem-m9g.sh", "line": 127, "date": "2026-07"}},
+    {"cs_res": 24, "mechanism": "fullchem", "domains_stack_size": 64000000, "dev_shm_gb": 48,
+     "confidence": "measured", "source": {"file": "scripts/gchp-phase1b-run.sh", "line": 123, "date": "2026-07"}}
+  ],
+
+  "derived_constants": {
+    "tt_to_fullchem_throughput_ratio": {"value": 34, "confidence": "measured-ratio-single-grid",
+      "note": "TT ~34x faster than fullchem on the same C180 grid (fullchem carries the 250-species KPP chem the transport-only TT does not). Single-grid observation; use to EXTRAPOLATE fullchem throughput from TT and flag loudly.",
+      "source": {"file": "gchp-run-results-2026-06-28.md", "line": 578, "date": "2026-06-28"}},
+    "chem_memory_multiplier": {"value": 1.8, "confidence": "low-single-point",
+      "note": "chemistry roughly doubles resident memory over dynamics+transport (306->556 GB at C180). Fit from ONE ramp; treat as order-of-magnitude.",
+      "source": {"file": "gchp-run-results-2026-06-28.md", "line": 583, "date": "2026-06-28"}}
+  }
+}
