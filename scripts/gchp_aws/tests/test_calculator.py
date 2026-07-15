@@ -106,10 +106,19 @@ def test_exampleA_c180_fullchem_cheapest_top_is_measured_m9g():
     assert top["instance"].name == "m9g.48xlarge" and top["nodes"] == 1
     assert top["cost"].confidence == MEASURED
 
-def test_exampleB_c24_fullchem_fastest_refuses():
-    ev = CALC.evaluate(24, "fullchem", "full", 1.0, "fastest", None, False)
+def test_fullchem_fastest_refuses_when_no_basis():
+    # C48 has ZERO measured data (no fullchem, no same-cell TT to extrapolate from),
+    # so the calculator must refuse to rank 'fastest'. (C24 no longer qualifies: once
+    # C24 TT is measured, C24 fullchem becomes TT-ratio EXTRAPOLATABLE — see next test.)
+    ev = CALC.evaluate(48, "fullchem", "full", 1.0, "fastest", None, False)
     ranked, refused = CALC._rank(ev["rows"], "fastest")
-    assert ranked == [] and refused    # refuses to rank on no measured throughput
+    assert ranked == [] and refused
+
+def test_c24_fullchem_extrapolates_once_c24_tt_measured():
+    # Campaign Phase 2 added C24 TT (c7g) -> C24 fullchem is now derivable via the TT/34
+    # ratio, tagged EXTRAPOLATED (never MEASURED). This is the intended honesty upgrade.
+    e = T.throughput(24, "fullchem", "c7g.16xlarge", 1)
+    assert e.confidence == EXTRAPOLATED and e.value > 0
 
 def test_json_has_provenance_on_every_number():
     ev = CALC.evaluate(180, "fullchem", "full", 1.0, "cheapest", None, False)
