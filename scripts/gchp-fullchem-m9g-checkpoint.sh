@@ -35,7 +35,7 @@ TAG="c180fc_ckpt_${MODE}"
 
 # ---- create the fullchem run dir if absent (official createRunDir, non-interactive) ----
 if [ ! -f "$RUNDIR/setCommonRunSettings.sh" ]; then
-  CRD=$(find /scratch/gchp-instr -path '*/run/GCHP/createRunDir.sh' 2>/dev/null | head -1)
+  CRD=$(find /scratch/gchp-instr /scratch/gchp-src -path '*/run/GCHP/createRunDir.sh' 2>/dev/null | head -1)
   [ -n "$CRD" ] || CRD=$(find /sw -path '*/run/GCHP/createRunDir.sh' 2>/dev/null | head -1)
   mkdir -p ~/.geoschem; printf 'export GC_DATA_ROOT=/input\nexport GC_USER_REGISTERED=true\n' > ~/.geoschem/config
   command -v expect >/dev/null || sudo dnf install -y expect >/dev/null 2>&1

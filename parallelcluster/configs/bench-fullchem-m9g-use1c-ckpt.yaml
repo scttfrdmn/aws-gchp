@@ -1,0 +1,79 @@
+# FULLCHEM CHECKPOINT TEST on big-memory Graviton5 (us-east-1c, m9g.48xlarge).
+# Purpose: get GCHP 14.7.1 C180 fullchem to WRITE + RESTART-FROM a clean internal checkpoint at
+# 2 nodes (never done before — prior C180 multi-node runs killed mpirun before the checkpoint).
+# Derived from the WORKING bench-fabrictest-use1.yaml (same subnet + standing FSx that mount cleanly),
+# swapping hpc7g -> m9g.48xlarge (768 GB, needed for C180 fullchem; hpc7g's 128 GB OOMs).
+#
+# AZ NOTE: m9g.48xlarge has NO capacity in us-east-1a (where the 3 standing FSx live), but AWS has
+# capacity in 1b/1c/1d. FSx Lustre is single-AZ, so this config runs in us-east-1c (subnet-f59636d4,
+# where m9g 1+2-node succeeded historically) with a PURPOSE-BUILT input FSx fs-0057a450978a3c785
+# (Lustre 2.15, s3://gcgrid, by-ID to avoid the inline-import WaitCondition timeout), created for
+# this checkpoint experiment. Tear it down with the cluster.
+# Tiers: /sw EBS (aarch64 stack from S3) + /input FSx-by-ID (gcgrid, 1c) + /scratch FSx SCRATCH_2 (r/w).
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.4xlarge          # ARM build/login host; compute is the m9g
+  Networking:
+    SubnetId: subnet-f59636d4         # us-east-1c (standing FSx AZ; m9g offered here)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: m9g.48xlarge
+          MinCount: 0
+          MaxCount: 2                 # 2-node is the deliverable; 4-node best-effort (bump if capacity)
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-f59636d4
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0057a450978a3c785   # gchp-input-1c-ckpt (us-east-1c, gcgrid, Lustre 2.15) — created for m9g capacity in 1c
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: fullchem-m9g-ckpt-1c
