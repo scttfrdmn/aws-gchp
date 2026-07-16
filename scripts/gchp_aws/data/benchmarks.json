@@ -880,6 +880,38 @@
         "date": "2026-07-16"
       },
       "usd_per_sim_day": 1.1924
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "m9g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 1674.7,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-m9g-c24_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.1346
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "m9g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 4443.6,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-m9g-c48_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.0507
     }
   ],
   "memory_points": [

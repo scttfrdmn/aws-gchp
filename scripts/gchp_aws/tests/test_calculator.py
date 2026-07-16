@@ -82,7 +82,9 @@ def test_throughput_extrapolated_via_tt_ratio():
     assert e.confidence == EXTRAPOLATED and e.value > 0
 
 def test_throughput_unknown_refuses():
-    e = T.throughput(24, "fullchem", "m9g.48xlarge", 1)
+    # C360 is the true zero-basis case (no restart, never run — the appendix resolution).
+    # C24 no longer qualifies: m9g C24 TT is now measured, so C24 fullchem EXTRAPOLATES via TT/34.
+    e = T.throughput(360, "fullchem", "m9g.48xlarge", 1)
     assert e.confidence == UNKNOWN and e.value is None
 
 def test_cost_formula():
@@ -91,7 +93,7 @@ def test_cost_formula():
     assert abs(cost.value - (9.39 * 24 / 7.4)) < 1e-6
 
 def test_cost_unknown_when_throughput_unknown():
-    tp = T.throughput(24, "fullchem", "m9g.48xlarge", 1)
+    tp = T.throughput(360, "fullchem", "m9g.48xlarge", 1)   # C360: zero basis -> UNKNOWN
     assert not T.usd_per_sim_day(tp, 9.39, 1).known
 
 
