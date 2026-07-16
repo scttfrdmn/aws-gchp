@@ -1,0 +1,18 @@
+############ INSTANCE c8i.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c8i) ############
+rendered: /tmp/gchp-sw-c8i.yaml (instance=c8i.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh head=c7i.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=3.85.4.31
+=== cell c8i.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  RESULT_TAG=c24_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=24 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=834.1 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8i-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8i-c24_n1x96_tt.log --instance c8i.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c8i
+############ SWEEP DONE. logs in /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs. Append the good ones to benchmarks.json, then re-run pytest + calculator. ############
