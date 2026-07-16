@@ -27,6 +27,9 @@ CS_RES=180
 NODES=1
 RANKS_PER_NODE=60
 DAYS=1
+HOURS=0
+DAYS_SET=0
+HOURS_SET=0
 WARMUP=0
 MECH=tt                          # tt | fullchem
 while [[ $# -gt 0 ]]; do
@@ -34,7 +37,8 @@ while [[ $# -gt 0 ]]; do
     --cs-res) CS_RES="$2"; shift 2 ;;
     --nodes) NODES="$2"; shift 2 ;;
     --ranks-per-node) RANKS_PER_NODE="$2"; shift 2 ;;
-    --days) DAYS="$2"; shift 2 ;;
+    --days) DAYS="$2"; DAYS_SET=1; shift 2 ;;
+    --hours) HOURS="$2"; HOURS_SET=1; shift 2 ;;
     --mechanism) MECH="$2"; shift 2 ;;
     --warmup) WARMUP=1; shift ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
@@ -48,7 +52,19 @@ if [[ "$MECH" == fullchem ]]; then
 else
   RUNDIR="${SCRATCH}/gchp_c${CS_RES}";    RST_SPECIES="TransportTracers"; SIMTYPE=2
 fi
-printf -v DUR '%08d 000000' "$DAYS"
+# Duration model. TT integrates fast (100s-1000s d/d) so 1 simulated DAY finishes in minutes.
+# Fullchem is ~34x slower (C180 = 7.4 d/d => 1 sim-day ~= 3.2 WALL-hours, which would blow the
+# SBATCH backstop and record a false FAILED). So fullchem defaults to 2 simulated HOURS (the
+# methodology of the measured 7.4 anchor, gchp-fullchem-m9g.sh:90), overridable via --hours/--days.
+if [[ "$MECH" == fullchem && $DAYS_SET -eq 0 && $HOURS_SET -eq 0 ]]; then DAYS=0; HOURS=2; fi
+SIMSECS=$(( DAYS*86400 + HOURS*3600 ))
+[[ $SIMSECS -gt 0 ]] || { echo "ERROR: zero simulated duration (--days/--hours)"; exit 1; }
+# Run_Duration is "DDDDDDDD HHMMSS"; derive from SIMSECS so days+hours both work.
+DUR=$(python3 -c "s=${SIMSECS};d=s//86400;r=s%86400;print('%08d %02d%02d%02d'%(d,r//3600,(r%3600)//60,r%60))")
+# SBATCH backstop (hard ceiling; the watcher normally kills far sooner). TT integrates in minutes ->
+# 40min. Fullchem: give a wide margin (the watcher is the real stop). C180 fullchem 2 sim-hr ~= 25
+# wall-min at 7.4 d/d; a coarse-decomposition/M>N/2N run can be slower -> 2h ceiling for fullchem.
+if [[ "$MECH" == fullchem ]]; then SBTIME="02:00:00"; else SBTIME="00:40:00"; fi
 
 echo "=== matrix run: C${CS_RES}, ${NODES} node(s) x ${RANKS_PER_NODE} = ${TOTAL} ranks, ${DAYS}d, warmup=${WARMUP} ==="
 [[ -f "$GCHP_BIN" ]] || { echo "ERROR: gchp binary missing at $GCHP_BIN"; exit 1; }
@@ -155,12 +171,14 @@ cat > "${RUNDIR}/gchp_${TAG}.slurm" <<EOF
 #SBATCH --nodes=${NODES}
 #SBATCH --ntasks=${TOTAL}
 #SBATCH --ntasks-per-node=${RANKS_PER_NODE}
-#SBATCH --time=00:40:00
+#SBATCH --time=${SBTIME}
 #SBATCH --output=slurm-${TAG}-%j.log
 #SBATCH --exclusive
-# NOTE: 40min is a TIGHT backstop only. A C180 1-day run integrates in <20min; we do NOT
-# rely on the timeout — the watcher below detects sim completion and kills mpirun immediately,
-# so a hung pnc4 checkpoint write (known GCHP 14.7.1 multi-node issue) costs seconds, not hours.
+# NOTE: --time is a TIGHT backstop only (TT=40min; fullchem=sized to the sim window below). We do
+# NOT rely on the timeout — the watcher detects sim completion (END_MARK) and kills mpirun
+# immediately, so a hung pnc4 checkpoint write (known GCHP 14.7.1 multi-node issue) costs seconds.
+# Fullchem is ~34x slower than TT: a 2-sim-hour C180 window is ~15-25 wall-min at 7.4 d/d, but coarse
+# decomposition or slower arch can stretch it, so the fullchem backstop carries real headroom.
 set -e
 cd "\$SLURM_SUBMIT_DIR"
 source ${STACK}/gchp-env.sh
@@ -181,8 +199,10 @@ if [[ ${SHM_GB} -gt 32 ]]; then
 fi
 
 RUNLOG=gchp_${TAG}.log
-END_DATE=\$(python3 -c "from datetime import date,timedelta;print((date(2019,1,1)+timedelta(days=${DAYS})).strftime('%Y/%m/%d'))" 2>/dev/null)
-END_MARK="GCHP Date: \${END_DATE}  Time: 00:00:00"
+# END_MARK = the timestep line GCHP prints when it reaches (2019-01-01 00:00:00 + SIMSECS). Handles
+# both whole-day (TT) and sub-day (fullchem 2h) windows -> "GCHP Date: YYYY/MM/DD  Time: HH:MM:SS".
+END_STAMP=\$(python3 -c "from datetime import datetime,timedelta;t=datetime(2019,1,1)+timedelta(seconds=${SIMSECS});print(t.strftime('%Y/%m/%d  Time: %H:%M:%S'))" 2>/dev/null)
+END_MARK="GCHP Date: \${END_STAMP}"
 
 t0=\$(date +%s)
 mpirun -n ${TOTAL} ./gchp > \${RUNLOG} 2>&1 &
@@ -212,11 +232,11 @@ FINAL=\$(grep -a "\${END_MARK}" \${RUNLOG} 2>/dev/null | tail -1)
 read AVG TOT RUNT <<< \$(echo "\$FINAL" | sed 's/.*\[Avg Tot Run\]://' | grep -oE "[0-9]+\.[0-9]+" | head -3 | tr '\n' ' ')
 
 echo "RESULT_TAG=${TAG}"
-echo "RESULT_NODES=${NODES} RESULT_RANKS=${TOTAL} RESULT_CS=${CS_RES} RESULT_DAYS=${DAYS}"
+echo "RESULT_NODES=${NODES} RESULT_RANKS=${TOTAL} RESULT_CS=${CS_RES} RESULT_DAYS=${DAYS} RESULT_MECH=${MECH} RESULT_SIMSECS=${SIMSECS}"
 echo "ELAPSED_SECONDS=\${ELAPSED}"
-echo "INTERNAL_THROUGHPUT_AVG=\${AVG:-NA}"   # primary metric (immune to I/O hang)
+echo "INTERNAL_THROUGHPUT_AVG=\${AVG:-NA}"   # primary metric (immune to I/O hang); GCHP-internal d/d
 echo "INTERNAL_THROUGHPUT_RUN=\${RUNT:-NA}"  # pure integration rate
-echo "WALL_THROUGHPUT_DAYSPERDAY=\$(python3 -c "print(round(${DAYS}*86400/\${ELAPSED},3))" 2>/dev/null || echo NA)"
+echo "WALL_THROUGHPUT_DAYSPERDAY=\$(python3 -c "print(round(${SIMSECS}/86400.0*86400/\${ELAPSED},3))" 2>/dev/null || echo NA)"
 
 if [[ \$SIM_DONE -eq 1 && -n "\${AVG:-}" ]]; then
   echo "RUN_STATUS=SUCCEEDED (sim reached \${END_DATE}; internal Avg=\${AVG} d/d; killed mpirun pre-checkpoint to bound wall time)"
