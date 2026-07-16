@@ -1,0 +1,10 @@
+✅ GCHP Validated Stack (x86_64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c90.nc4
+RESULT_TAG=c90_n2x96
+RESULT_NODES=2 RESULT_RANKS=192 RESULT_CS=90 RESULT_DAYS=1
+ELAPSED_SECONDS=252
+INTERNAL_THROUGHPUT_AVG=396.5
+INTERNAL_THROUGHPUT_RUN=429.1
+WALL_THROUGHPUT_DAYSPERDAY=342.857
+RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=396.5 d/d; killed mpirun pre-checkpoint to bound wall time)

@@ -52,7 +52,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 171,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 0.774
     },
     {
       "cs_res": 180,
@@ -83,7 +84,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 69,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 1.4169
     },
     {
       "cs_res": 180,
@@ -99,7 +101,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 69,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 1.8481
     },
     {
       "cs_res": 180,
@@ -130,7 +133,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 70,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 1.8856
     },
     {
       "cs_res": 180,
@@ -145,7 +149,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 70,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 2.5958
     },
     {
       "cs_res": 180,
@@ -177,7 +182,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 168,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 0.8
     },
     {
       "cs_res": 180,
@@ -192,7 +198,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 169,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 1.6489
     },
     {
       "cs_res": 180,
@@ -208,7 +215,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 169,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 1.9601
     },
     {
       "cs_res": 180,
@@ -239,7 +247,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 71,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 2.777
     },
     {
       "cs_res": 180,
@@ -254,7 +263,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 68,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 0.3514
     },
     {
       "cs_res": 180,
@@ -270,7 +280,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 68,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 0.3668
     },
     {
       "cs_res": 90,
@@ -367,7 +378,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 167,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 0.5962
     },
     {
       "cs_res": 180,
@@ -383,7 +395,8 @@
         "file": "data/benchmark-multinode-c180-2026-06.md",
         "line": 167,
         "date": "2026-06-27"
-      }
+      },
+      "usd_per_sim_day": 0.7752
     },
     {
       "cs_res": 180,
@@ -398,7 +411,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 177,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 0.5471
     },
     {
       "cs_res": 180,
@@ -413,7 +427,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 182,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 0.5743
     },
     {
       "cs_res": 180,
@@ -428,7 +443,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 182,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 0.8942
     },
     {
       "cs_res": 180,
@@ -443,7 +459,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 157,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 3.0554
     },
     {
       "cs_res": 180,
@@ -458,7 +475,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 158,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 3.2925
     },
     {
       "cs_res": 180,
@@ -474,7 +492,8 @@
         "line": 159,
         "date": "2026-06-26"
       },
-      "note": "192 vCPU = 96 physical cores hyperthreaded (Intel)"
+      "note": "192 vCPU = 96 physical cores hyperthreaded (Intel)",
+      "usd_per_sim_day": 4.3028
     },
     {
       "cs_res": 180,
@@ -490,7 +509,8 @@
         "line": 160,
         "date": "2026-06-26"
       },
-      "note": "192 vCPU = 96 physical cores hyperthreaded (Intel)"
+      "note": "192 vCPU = 96 physical cores hyperthreaded (Intel)",
+      "usd_per_sim_day": 5.2203
     },
     {
       "cs_res": 180,
@@ -505,7 +525,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 261,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 0.0664
     },
     {
       "cs_res": 90,
@@ -521,7 +542,8 @@
         "line": 177,
         "date": "2026-06-26"
       },
-      "note": "highest single-instance C90 throughput measured"
+      "note": "highest single-instance C90 throughput measured",
+      "usd_per_sim_day": 0.1297
     },
     {
       "cs_res": 90,
@@ -536,7 +558,8 @@
         "file": "data/benchmark-c90-2026-06.md",
         "line": 183,
         "date": "2026-06-26"
-      }
+      },
+      "usd_per_sim_day": 0.1244
     },
     {
       "cs_res": 90,
@@ -745,6 +768,118 @@
         "date": "2026-07-16"
       },
       "usd_per_sim_day": 0.2941
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "hpc7g.16xlarge",
+      "nodes": 1,
+      "ranks_per_node": 60,
+      "total_ranks": 60,
+      "sim_days_per_day": 1893.6,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-hpc7g-c48_n1x60_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.0213
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "c8g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 3252.0,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8g-c48_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.0565
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "c8a.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 508.5,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8a-c48_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.4885
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "c7i.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 459.7,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7i-c48_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.4474
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "c7a.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 430.1,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7a-c48_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.5496
+    },
+    {
+      "cs_res": 90,
+      "mechanism": "transporttracers",
+      "instance": "c8g.48xlarge",
+      "nodes": 2,
+      "ranks_per_node": 96,
+      "total_ranks": 192,
+      "sim_days_per_day": 2524.8,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8g-c90_n2x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.1456
+    },
+    {
+      "cs_res": 90,
+      "mechanism": "transporttracers",
+      "instance": "c7a.48xlarge",
+      "nodes": 2,
+      "ranks_per_node": 96,
+      "total_ranks": 192,
+      "sim_days_per_day": 396.5,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7a-c90_n2x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 1.1924
     }
   ],
   "memory_points": [
