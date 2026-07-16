@@ -1,0 +1,28 @@
+# Phase 3 FULLCHEM extension. Format: instance res nodes rpn mech
+# Mechanism=fullchem => driver defaults to 2 SIMULATED HOURS + 2h SBATCH backstop + GMI overlay +
+# domains_stack 64M + per-res /dev/shm (C180=550G, C90=200G, C48=96G, C24=48G) + MAPL timers.
+# Memory gate (calculator): C180 fullchem 556G => m9g-ONLY; C90/C48/C24 (200/115/90G) fit 384G boxes.
+# Ordered cheapest+smallest-FIRST so the fullchem path is proven on a fast/cheap cell before the
+# ~25-wall-min C180 m9g runs. All m9g cells run in us-east-1c (chase-AZ, proven on TT).
+#
+# --- SMOKE: prove fullchem runs end-to-end on the cheapest cell first (c8g C24, ~min) ---
+c8g.48xlarge   24 1 96 fullchem
+#
+# --- m9g resolution ladder @1N (kills the 1-point hole; validates TT/34 ratio) ---
+m9g.48xlarge   24 1 96 fullchem
+m9g.48xlarge   48 1 96 fullchem
+m9g.48xlarge   90 1 96 fullchem
+#
+# --- m9g C180 core-sweep @1N (7.4 anchor used 48c; find the floor: does 96/192 help or is it mem/comms-bound?) ---
+m9g.48xlarge  180 1 48 fullchem
+m9g.48xlarge  180 1 96 fullchem
+m9g.48xlarge  180 1 192 fullchem
+#
+# --- cross-arch fullchem C90 + C48 (first off-m9g fullchem; c8g arm-384 + c7a x86-384) ---
+c8g.48xlarge   48 1 96 fullchem
+c8g.48xlarge   90 1 96 fullchem
+c7a.48xlarge   48 1 96 fullchem
+c7a.48xlarge   90 1 96 fullchem
+#
+# --- m9g C180 fullchem 2N (checkpoint proven restartable; needs MaxCount=2 cluster) ---
+m9g.48xlarge  180 2 96 fullchem

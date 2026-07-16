@@ -1,0 +1,73 @@
+# PHASE 3 FULLCHEM on m9g.48xlarge (us-east-1c). Runs the full m9g fullchem set on ONE cluster:
+# C24/C48/C90 ladder @1N, C180 core-sweep 48/96/192 @1N, and C180 @2N (MaxCount=2).
+# m9g has NO us-east-1a capacity (the 3 standing FSx are all 1a); live capacity confirmed in 1c via
+# launch+terminate probe 2026-07-16. Purpose-built input FSx fs-08746ce14d9035d7f (Lustre 2.15,
+# s3://gcgrid ImportPath only). Tear it + the cluster down when the m9g fullchem set is done.
+# Tiers: /sw EBS (aarch64 stack from S3) + /input FSx-by-ID (gcgrid, 1c) + /scratch FSx SCRATCH_2.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.4xlarge          # ARM login/build host; compute is the m9g
+  Networking:
+    SubnetId: subnet-f59636d4         # us-east-1c (m9g capacity + FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: m9g.48xlarge
+          MinCount: 0
+          MaxCount: 2                 # C180 2N is the last cell; 1N cells use 1 node
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-f59636d4
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-08746ce14d9035d7f   # gchp-input-1c-p3fullchem (us-east-1c, gcgrid, Lustre 2.15)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 2400            # bigger scratch: C180 fullchem checkpoints + HISTORY are large
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: fullchem-m9g-p3-1c
