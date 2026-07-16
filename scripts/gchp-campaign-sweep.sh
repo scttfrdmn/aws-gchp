@@ -72,12 +72,18 @@ for INST in $INSTANCES; do
     [[ -n "$RD" && -n "$SL" ]] || { echo "  cell setup failed: $OUT"; continue; }
     JID=$(ssh_h "$IP" "cd $RD && sbatch --parsable $SL" 2>/dev/null | tail -1)
     echo "  job=$JID"
+    [[ "$JID" =~ ^[0-9]+$ ]] || { echo "  submit failed (JID=$JID)"; continue; }
     # poll (compute node powers up on demand; up to ~40 min)
     for _ in $(seq 1 60); do q=$(ssh_h "$IP" "squeue -j $JID -h 2>/dev/null | wc -l"); [[ "$q" == "0" ]] && break; sleep 40; done
-    # collect the slurm log locally
+    # collect the slurm log locally. The run script names its output slurm-<RUNTAG>-<jobid>.log where
+    # RUNTAG = c<RES>_n<NODES>x<RPN> (NO mech suffix — see gchp-matrix-run.sh:150,159). We have the
+    # exact JID from sbatch --parsable, so fetch the exact file rather than glob (the old glob added a
+    # _tt suffix and stripped the leading c, matching nothing -> empty logs even when the run succeeded).
+    RUNTAG="c${RES}_n${NODES}x${RPN}"
     LF="$LOGDIR/slurm-${INST%%.*}-${TAG}.log"
-    ssh_h "$IP" "cat $RD/slurm-${TAG#c}*.log 2>/dev/null || cat $RD/slurm-*${TAG}*.log 2>/dev/null" > "$LF" 2>/dev/null
-    grep -aE "RESULT_|RUN_STATUS" "$LF" | sed 's/^/  /' | head
+    ssh_h "$IP" "cat $RD/slurm-${RUNTAG}-${JID}.log 2>/dev/null" > "$LF" 2>/dev/null
+    [[ -s "$LF" ]] || ssh_h "$IP" "cat \$(ls -t $RD/slurm-${RUNTAG}-*.log 2>/dev/null | head -1) 2>/dev/null" > "$LF" 2>/dev/null
+    if [[ -s "$LF" ]]; then grep -aE "RESULT_|RUN_STATUS" "$LF" | sed 's/^/  /' | head; else echo "  WARNING: empty log harvested for $RUNTAG job $JID"; fi
     echo "  saved -> $LF  (append with: python3 -m gchp_aws.append_benchmark --log $LF --instance $INST --mechanism ${MECH/tt/transporttracers})"
   done
 

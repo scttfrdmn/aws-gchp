@@ -12,7 +12,7 @@ Image:
   Os: alinux2023
 
 HeadNode:
-  InstanceType: c7g.2xlarge          # ARM login/build host (cheap); compute is @INSTANCE_TYPE@
+  InstanceType: @HEAD_INSTANCE@      # arch-matched login/build host (PC requires head==compute arch); compute is @INSTANCE_TYPE@
   Networking:
     SubnetId: subnet-2eec4a71         # us-east-1a — same AZ as the standing FSx
   Ssh:

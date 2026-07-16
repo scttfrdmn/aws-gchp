@@ -24,16 +24,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# arch -> bootstrap script name (the @ARCH_BOOTSTRAP@ placeholder in the use1 template)
+# arch -> bootstrap script name AND head-node instance. ParallelCluster requires the head node and
+# compute to share a CPU architecture (the AMI is arch-specific), so an x86 compute column needs an
+# x86 head — an ARM head (c7g) rejects x86 compute with InstanceArchitectureCompatibilityValidator.
 case "$ARCH" in
-  aarch64) BOOT="sync-stack-arm.sh" ;;
-  x86_64)  BOOT="sync-stack-x86.sh" ;;
+  aarch64) BOOT="sync-stack-arm.sh"; HEAD="c7g.2xlarge" ;;
+  x86_64)  BOOT="sync-stack-x86.sh"; HEAD="c7i.2xlarge" ;;
   *) echo "bad --arch $ARCH (want aarch64|x86_64)" >&2; exit 1 ;;
 esac
 
 OUT="/tmp/${NAME}.yaml"
-sed -e "s/@INSTANCE_TYPE@/${IT}/" -e "s/@MAXCOUNT@/${MAX}/" -e "s/@ARCH_BOOTSTRAP@/${BOOT}/" "$TPL" > "$OUT"
-echo "rendered: $OUT (instance=$IT max=$MAX region=$REGION arch=$ARCH boot=$BOOT)"
+sed -e "s/@INSTANCE_TYPE@/${IT}/" -e "s/@MAXCOUNT@/${MAX}/" -e "s/@ARCH_BOOTSTRAP@/${BOOT}/" \
+    -e "s/@HEAD_INSTANCE@/${HEAD}/" "$TPL" > "$OUT"
+echo "rendered: $OUT (instance=$IT max=$MAX region=$REGION arch=$ARCH boot=$BOOT head=$HEAD)"
 
 echo "=== dry-run ==="
 { AWS_PROFILE=aws uv run pcluster create-cluster --cluster-name "$NAME" \
