@@ -633,6 +633,118 @@
         "date": "2026-07-15"
       },
       "usd_per_sim_day": 0.259
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "c7a.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 446.8,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7a-c24_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.5291
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "c7i.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 497.8,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7i-c24_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.4132
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "c8a.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 528.9,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8a-c24_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.4697
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "c8g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 4206.2,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8g-c24_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.0437
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "hpc7g.16xlarge",
+      "nodes": 1,
+      "ranks_per_node": 60,
+      "total_ranks": 60,
+      "sim_days_per_day": 2963.1,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-hpc7g-c24_n1x60_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.0136
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "c7g.16xlarge",
+      "nodes": 1,
+      "ranks_per_node": 60,
+      "total_ranks": 60,
+      "sim_days_per_day": 1881.3,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7g-c48_n1x60_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.0296
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "transporttracers",
+      "instance": "c8i.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 734.4,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8i-c48_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.2941
     }
   ],
   "memory_points": [

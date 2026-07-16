@@ -1,0 +1,17 @@
+# Phase 2 GAP cells — the C48 + C90-2N holes left after the stdin-drain bug (ssh_h ate the
+# inner per-cell loop's stdin, so only the FIRST cell per instance ran on the first sweep).
+# C24 row is already COMPLETE (8/8). Requires the ssh_h -n fix in gchp-campaign-sweep.sh.
+# Grouped by instance so each cluster runs ALL its remaining cells. Cheapest-first.
+#
+# --- C48 (6 holes; c7g + c8i already got C48 on the buggy run) ---
+hpc7g.16xlarge 48 1 60 tt
+c8g.48xlarge   48 1 96 tt
+c7i.48xlarge   48 1 96 tt
+c7a.48xlarge   48 1 96 tt
+c8a.48xlarge   48 1 96 tt
+m9g.48xlarge   48 1 96 tt
+#
+# --- C90 2N (3 holes; multinode scaling curve) ---
+c8g.48xlarge   90 2 96 tt
+c7a.48xlarge   90 2 96 tt
+m9g.48xlarge   90 2 96 tt

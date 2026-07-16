@@ -107,10 +107,11 @@ def test_exampleA_c180_fullchem_cheapest_top_is_measured_m9g():
     assert top["cost"].confidence == MEASURED
 
 def test_fullchem_fastest_refuses_when_no_basis():
-    # C48 has ZERO measured data (no fullchem, no same-cell TT to extrapolate from),
-    # so the calculator must refuse to rank 'fastest'. (C24 no longer qualifies: once
-    # C24 TT is measured, C24 fullchem becomes TT-ratio EXTRAPOLATABLE — see next test.)
-    ev = CALC.evaluate(48, "fullchem", "full", 1.0, "fastest", None, False)
+    # C360 has ZERO measured data (no restart exists, never run — the appendix resolution),
+    # and no same-cell TT to extrapolate from, so the calculator must refuse to rank 'fastest'.
+    # (C24/C48/C90/C180 no longer qualify: once their TT is measured — Phase 2 filled the whole
+    # C24–C180 ladder — fullchem becomes TT-ratio EXTRAPOLATABLE. See next test.)
+    ev = CALC.evaluate(360, "fullchem", "full", 1.0, "fastest", None, False)
     ranked, refused = CALC._rank(ev["rows"], "fastest")
     assert ranked == [] and refused
 
