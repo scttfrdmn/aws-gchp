@@ -39,7 +39,10 @@ arch_of(){ case "$1" in m9g*|c8g*|c8gn*|c7g*|hpc7g*) echo aarch64 ;; *) echo x86
 pcl(){ AWS_PROFILE=aws timeout 90 ~/.local/bin/pcluster "$@" --region "$REGION" 2>/dev/null; }
 head_ip(){ pcl describe-cluster --cluster-name "$1" | python3 -c "import sys,json;print(json.load(sys.stdin).get('headNode',{}).get('publicIpAddress',''))" 2>/dev/null; }
 cl_status(){ pcl describe-cluster --cluster-name "$1" | python3 -c "import sys,json;print(json.load(sys.stdin).get('clusterStatus',''))" 2>/dev/null; }
-ssh_h(){ local ip="$1"; shift; ssh -i "$KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=45 -o ServerAliveInterval=15 ec2-user@"$ip" "$@"; }
+# -n: redirect ssh stdin from /dev/null. WITHOUT it, the first ssh_h call inside the inner
+# `while read ... done < <(awk ...)` cell-loop consumes the piped cell list, so the loop exits
+# after ONE cell per instance (the bug that left C48 at 2/8 and C90-2N at 0/3 on the first sweep).
+ssh_h(){ local ip="$1"; shift; ssh -n -i "$KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=45 -o ServerAliveInterval=15 ec2-user@"$ip" "$@"; }
 
 # distinct instances, in file order
 INSTANCES=$(awk '!/^#/ && NF {print $1}' "$CELLS" | awk '!seen[$0]++')
