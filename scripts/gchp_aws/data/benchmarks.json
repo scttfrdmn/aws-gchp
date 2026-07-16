@@ -617,6 +617,22 @@
         "date": "2026-07-15"
       },
       "usd_per_sim_day": 0.0197
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "transporttracers",
+      "instance": "c8i.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 834.1,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8i-c24_n1x96_tt.log",
+        "line": 1,
+        "date": "2026-07-15"
+      },
+      "usd_per_sim_day": 0.259
     }
   ],
   "memory_points": [
