@@ -1,0 +1,7 @@
+# Phase 3 Track B — cross-arch fullchem (first off-m9g fullchem). us-east-1a standing FSx via sweep.
+# C90 (200GB) + C48 (115GB) both FIT the 384GB boxes (calculator). C180 (556GB) does NOT -> m9g-only.
+# c8g = Graviton4 384GB, c7a = AMD Genoa 384GB. Cheapest-first. fullchem => 2 sim-hr default.
+c8g.48xlarge   48 1 96 fullchem
+c8g.48xlarge   90 1 96 fullchem
+c7a.48xlarge   48 1 96 fullchem
+c7a.48xlarge   90 1 96 fullchem
