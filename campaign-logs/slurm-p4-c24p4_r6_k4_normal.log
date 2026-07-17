@@ -1,0 +1,36 @@
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+=== co-launching 24 kpp_worker (=6 ranks x 4 workers) via srun --overlap ===
+=== mpirun -n 6 gchp (REMOTE=1 K=4 MODE=normal) ===
+RUN_DONE exit=134 wall=265s
+/var/spool/slurmd/job00004/slurm_script: line 69: 27173 Killed                  srun --overlap --nodes=1 --ntasks=24 --ntasks-per-node=24 --output=worker_%t.log --export=ALL ./worker_launch.sh
+=== RESULT: checkpoint MD5 (PRIMARY gate) ===
+RESULT_P4_CAP tag=c24p4_r6_k4_normal cap_restart=20190101 001000
+RESULT_P4_MD5 tag=c24p4_r6_k4_normal k=4 file=gcchem_internal_checkpoint md5=dd532a95539327633dddc98ba0a76897 bytes=763402691
+=== RESULT: internal throughput (demo) ===
+ GCHP Date: 2019/01/01  Time: 00:10:00  Throughput(days/day)[Avg Tot Run]:          7.4          7.4         54.0  TimeRemaining(Est) 000:00:00    9.4% :  14.6% Mem Comm:Used  Wallclock: 2026/07/17 21:45
+=== RESULT: handoff cost + fan-out ===
+=== RESULT: double-failure count (byte-identity caveat) ===
+=== worker exit lines ===
+[CHEMREMOTE worker 0] ATTACHED ok
+[CHEMREMOTE worker 0] ATTACHED ok
+[CHEMREMOTE worker 2] ATTACHED ok
+[CHEMREMOTE worker 2] ATTACHED ok
+[CHEMREMOTE worker 3] ATTACHED ok
+[CHEMREMOTE worker 3] ATTACHED ok
+[CHEMREMOTE worker 3] ATTACHED ok
+[CHEMREMOTE worker 3] ATTACHED ok
+[CHEMREMOTE worker 4] ATTACHED ok
+[CHEMREMOTE worker 4] ATTACHED ok
+[CHEMREMOTE worker 4] ATTACHED ok
+[CHEMREMOTE worker 4] ATTACHED ok
+[CHEMREMOTE worker 0] ATTACHED ok
+[CHEMREMOTE worker 5] ATTACHED ok
+[CHEMREMOTE worker 5] ATTACHED ok
+[CHEMREMOTE worker 5] ATTACHED ok
+[CHEMREMOTE worker 5] ATTACHED ok
+[CHEMREMOTE worker 0] ATTACHED ok
+[CHEMREMOTE worker 1] ATTACHED ok
+[CHEMREMOTE worker 1] ATTACHED ok
+RESULT_P4_DONE tag=c24p4_r6_k4_normal k=4 mpirc=134
