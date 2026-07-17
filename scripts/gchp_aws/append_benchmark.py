@@ -35,13 +35,17 @@ def _parse_log(text: str) -> dict:
                 raise ValueError(f"log missing pattern {pat!r}")
             return None
         return cast(m.group(1))
-    nodes = grab(r"RESULT_NODES=(\d+)", int)
-    total = grab(r"RESULT_RANKS=(\d+)", int)
-    cs = grab(r"RESULT_CS=(\d+)", int)
-    avg = grab(r"INTERNAL_THROUGHPUT_AVG=([0-9.]+)", float)
     status_ok = "RUN_STATUS=SUCCEEDED" in text
+    nodes = grab(r"RESULT_NODES=(\d+)", int, required=status_ok)
+    total = grab(r"RESULT_RANKS=(\d+)", int, required=status_ok)
+    cs = grab(r"RESULT_CS=(\d+)", int, required=status_ok)
+    # A FAILED run has INTERNAL_THROUGHPUT_AVG=NA (not a float). Don't require it — main() refuses on
+    # !succeeded BEFORE using these fields, so a failed log must parse cleanly enough to be refused,
+    # not crash. (An OOM/abort like C180 fullchem @192r must be refused gracefully, not traceback.)
+    avg = grab(r"INTERNAL_THROUGHPUT_AVG=([0-9.]+)", float, required=False)
     return {"nodes": nodes, "total_ranks": total, "cs_res": cs,
-            "sim_days_per_day": avg, "ranks_per_node": total // nodes,
+            "sim_days_per_day": avg,
+            "ranks_per_node": (total // nodes) if (total and nodes) else None,
             "succeeded": status_ok}
 
 

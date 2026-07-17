@@ -1,0 +1,40 @@
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c180.nc4
+RESULT_TAG=c180_n1x192
+RESULT_NODES=1 RESULT_RANKS=192 RESULT_CS=180 RESULT_DAYS=0 RESULT_MECH=fullchem RESULT_SIMSECS=7200
+ELAPSED_SECONDS=616
+INTERNAL_THROUGHPUT_AVG=NA
+INTERNAL_THROUGHPUT_RUN=NA
+WALL_THROUGHPUT_DAYSPERDAY=11.688
+RUN_STATUS=FAILED (sim did not reach 2019/01/01  Time: 02:00:00)
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:15:00  Throughput(days/day)[Avg Tot Run]:          5.0          1.8          1.8  TimeRemaining(Est) 000:21:07  109.7% :  94.4% Mem Comm:Used  Wallclock: 2026/07/17 01:27
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.154E+05  0.000E+00
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 64 with PID 84504 on node compute-dy-nodes-1 exited on signal 9 (Killed).
+--------------------------------------------------------------------------

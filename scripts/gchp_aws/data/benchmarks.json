@@ -928,6 +928,70 @@
         "date": "2026-07-16"
       },
       "usd_per_sim_day": 0.2518
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "fullchem",
+      "instance": "m9g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 231.1,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-fc-m9g-c48_n1x96_fc.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.9752
+    },
+    {
+      "cs_res": 90,
+      "mechanism": "fullchem",
+      "instance": "m9g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 60.9,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-fc-m9g-c90_n1x96_fc.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 3.7005
+    },
+    {
+      "cs_res": 180,
+      "mechanism": "fullchem",
+      "instance": "m9g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 6.1,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-fc-m9g-c180_n1x96_fc.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 36.9443
+    },
+    {
+      "cs_res": 180,
+      "mechanism": "fullchem",
+      "instance": "m9g.48xlarge",
+      "nodes": 2,
+      "ranks_per_node": 96,
+      "total_ranks": 192,
+      "sim_days_per_day": 12.3,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-fc-m9g-c180_n2x96_fc.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 36.6439
     }
   ],
   "memory_points": [
