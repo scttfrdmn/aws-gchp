@@ -50,10 +50,10 @@ index 852c73b..dbd89ac 100644
  )
 diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
 new file mode 100644
-index 0000000..2a2a63b
+index 0000000..6d23e01
 --- /dev/null
 +++ b/GeosCore/chem_remote_mod.F90
-@@ -0,0 +1,772 @@
+@@ -0,0 +1,775 @@
 +!------------------------------------------------------------------------------
 +!                  GEOS-Chem High Performance (GCHP)                          !
 +!------------------------------------------------------------------------------
@@ -296,6 +296,11 @@ index 0000000..2a2a63b
 +       INTEGER(C_INT)                       :: crsem_unlink_stale
 +       CHARACTER(KIND=C_CHAR), INTENT(IN)   :: name(*)
 +     END FUNCTION crsem_unlink_stale
++
++     SUBROUTINE crshm_msleep_ms(ms) BIND(C, name="crshm_msleep_ms")
++       IMPORT :: C_INT
++       INTEGER(C_INT), VALUE :: ms
++     END SUBROUTINE crshm_msleep_ms
 +  END INTERFACE
 +
 +CONTAINS
@@ -815,23 +820,21 @@ index 0000000..2a2a63b
 +    CALL teardown_segments(unlink_names=.FALSE.)
 +  END SUBROUTINE Chem_Remote_Worker_Detach
 +
-+  ! Portable ~100ms sleep without adding a C dep: spin on SYSTEM_CLOCK.
++  ! ~100ms sleep that YIELDS the CPU (real nanosleep via the C shim). The old
++  ! SYSTEM_CLOCK spin busy-waited a whole core; with M>N (up to `cores` workers
++  ! per node all polling during the >60s GCHP init) that starved the ranks and
++  ! slowed init enough that workers timed out -> in-process fallback -> SLOWER.
 +  SUBROUTINE msleep_100ms()
-+    INTEGER(KIND=8) :: c0, c1, rate
-+    CALL SYSTEM_CLOCK(c0, rate)
-+    DO
-+       CALL SYSTEM_CLOCK(c1)
-+       IF ( REAL(c1 - c0) / REAL(rate) >= 0.1 ) EXIT
-+    END DO
++    CALL crshm_msleep_ms(100_C_INT)
 +  END SUBROUTINE msleep_100ms
 +
 +END MODULE Chem_Remote_Mod
 diff --git a/GeosCore/chem_remote_shm.c b/GeosCore/chem_remote_shm.c
 new file mode 100644
-index 0000000..8aab448
+index 0000000..b76c609
 --- /dev/null
 +++ b/GeosCore/chem_remote_shm.c
-@@ -0,0 +1,215 @@
+@@ -0,0 +1,231 @@
 +/* chem_remote_shm.c — POSIX shared-memory + named-semaphore shim for the
 + * Decoupled-Chemistry Phase 1b live handoff.
 + *
@@ -948,6 +951,22 @@ index 0000000..8aab448
 +    if (rc != 0 && errno == ENOENT)
 +        return 0;
 +    return rc;
++}
++
++/* Real (CPU-yielding) millisecond sleep for the worker's attach poll. The
++ * Fortran-side SYSTEM_CLOCK spin BUSY-WAITS a whole core; with M>N that means
++ * up to (cores) worker processes each pegging a core while the ranks are still
++ * in GCHP init (grid/ESMF/ExtData/restart, >60s at C90/48r) -> the ranks are
++ * starved and init slows dramatically. nanosleep parks the worker instead.
++ * Retries the remaining time on EINTR. */
++void crshm_msleep_ms(int ms)
++{
++    struct timespec req, rem;
++    if (ms <= 0) return;
++    req.tv_sec  = ms / 1000;
++    req.tv_nsec = (long)(ms % 1000) * 1000000L;
++    while (nanosleep(&req, &rem) != 0 && errno == EINTR)
++        req = rem;
 +}
 +
 +/* ------------------------------------------------------------------ sem --- */
@@ -1499,10 +1518,10 @@ index 2fd7962..c73c68a 100644
  END MODULE FullChem_Mod
 diff --git a/GeosCore/kpp_worker.F90 b/GeosCore/kpp_worker.F90
 new file mode 100644
-index 0000000..d06c8ad
+index 0000000..28d0076
 --- /dev/null
 +++ b/GeosCore/kpp_worker.F90
-@@ -0,0 +1,322 @@
+@@ -0,0 +1,334 @@
 +PROGRAM KPP_Worker
 +  !
 +  ! Decoupled-Chemistry KPP worker.
@@ -1745,11 +1764,23 @@ index 0000000..d06c8ad
 +  SUBROUTINE Run_Service_Mode()
 +    TYPE(C_PTR) :: cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL, cp_ISTAT, cp_RSTATE
 +    LOGICAL     :: ok
-+    INTEGER     :: cmd, lo, hi, ar, ss, ncell_tot, nsteps
++    INTEGER     :: cmd, lo, hi, ar, ss, ncell_tot, nsteps, dlen, dstat, ios
 +    REAL(dp)    :: dt_local
 +    REAL(C_DOUBLE) :: attach_wait_s
++    CHARACTER(LEN=64) :: wbuf
 +
-+    attach_wait_s = 60.0_C_DOUBLE   ! bounded-retry attach budget (rank creates early)
++    ! Bounded-retry attach budget. The worker is co-launched at job start but the
++    ! rank only creates the shm segments deep in GCHP init (grid+ESMF+ExtData+
++    ! restart) -- at C90/48-rank that is WELL past 60s (segment appears ~line 1030
++    ! of the run log). If the worker's budget expires first it exits, every rank
++    ! then times out to in-process fallback, and the run is SLOWER not faster. So
++    ! default the budget high (900s) and allow env override GCHP_CHEM_ATTACH_S.
++    attach_wait_s = 900.0_C_DOUBLE
++    CALL get_environment_variable('GCHP_CHEM_ATTACH_S', wbuf, dlen, dstat)
++    IF ( dstat == 0 .AND. dlen > 0 ) THEN
++       READ(wbuf, *, IOSTAT=ios) attach_wait_s
++       IF ( ios /= 0 .OR. attach_wait_s <= 0.0_C_DOUBLE ) attach_wait_s = 900.0_C_DOUBLE
++    END IF
 +
 +    CALL Chem_Remote_Worker_Attach( NSPEC, NREACT, NVAR, NFIX, attach_wait_s, &
 +         cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL, cp_ISTAT, cp_RSTATE, ok )
