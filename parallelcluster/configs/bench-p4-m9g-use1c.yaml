@@ -1,0 +1,74 @@
+# PHASE 4 M>N decoupling demo on m9g.48xlarge (us-east-1c).
+# One cluster: build the decoupled binary on a BIG aarch64 head (c7g.16xlarge, 64c, fast
+# compile ~15-20min, cheap ~$2.32/hr) so m9g compute-hours are spent only on GCHP runs.
+# Then: C24 GATE-3 byte-identity (K=1 baseline vs K=2,4) + C90 fullchem speedup demo
+# (N=48 ranks vs K=2,4 workers on the idle cores). m9g = only 768GB box + the C90/C180
+# regime. Chase-AZ 1c (no use1a m9g capacity). Input FSx fs-0f09de5be555a2730 (gcgrid).
+# Tear both down when the demo is done.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.16xlarge         # 64-core aarch64 build host (fast decoupled compile)
+  Networking:
+    SubnetId: subnet-f59636d4         # us-east-1c (m9g capacity + FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: m9g.48xlarge
+          MinCount: 0
+          MaxCount: 1                 # C24 gate + C90 demo are single-node
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-f59636d4
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0f09de5be555a2730   # gchp-input-1c-p4 (us-east-1c, gcgrid, Lustre 2.15)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 2400
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: p4-mn-m9g-1c
