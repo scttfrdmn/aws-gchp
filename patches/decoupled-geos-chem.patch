@@ -1,59 +1,9 @@
-diff --git a/GeosCore/CMakeLists.txt b/GeosCore/CMakeLists.txt
-index 852c73b..dbd89ac 100644
---- a/GeosCore/CMakeLists.txt
-+++ b/GeosCore/CMakeLists.txt
-@@ -1,5 +1,29 @@
- # GeosCore/CMakeLists.txt
- 
-+#-----------------------------------------------------------------------------
-+# Decoupled-Chemistry Phase 1b transport library (default-OFF at runtime).
-+#
-+# chem_remote_mod.F90 (Fortran, ISO_C_BINDING only -- no GEOS-Chem deps) +
-+# chem_remote_shm.c (POSIX shm/sem wrappers). Compiled ONCE here into a leaf
-+# static lib linked by BOTH libGeosCore (rank side, via fullchem_mod) and the
-+# kpp_worker executable (worker side). All public interfaces use explicit KIND
-+# (C_INT/C_DOUBLE/C_SIZE_T), so the .mod is ABI-identical whether or not the
-+# consumer was compiled with -fdefault-real-8 (kpp_worker is). Links -lrt
-+# -lpthread PUBLIC so both consumers inherit the POSIX shm/sem libs.
-+#
-+# Only built for DECOUPLED_CHEM configs; otherwise the target is not defined
-+# (GeosCore links it conditionally below).
-+#-----------------------------------------------------------------------------
-+if(DECOUPLED_CHEM)
-+  add_library(ChemRemote
-+    STATIC EXCLUDE_FROM_ALL
-+    chem_remote_mod.F90
-+    chem_remote_shm.c
-+  )
-+  target_link_libraries(ChemRemote PUBLIC rt pthread)
-+  set_target_properties(ChemRemote PROPERTIES LINKER_LANGUAGE Fortran)
-+endif()
-+
- # Add a compilation flag to force REAL to REAL*8 if necessary
- # only for file tpcore_window_mod.F90
- if(${USE_REAL8})
-@@ -99,7 +123,7 @@ endif()
- 
- # Define dependencies for libGeosCore.a
- target_link_libraries(GeosCore PUBLIC
--  ObsPack 
-+  ObsPack
-   History
-   KPP
-   HETP_core
-@@ -107,5 +131,5 @@ target_link_libraries(GeosCore PUBLIC
-   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
-   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
-   $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
--
-+  $<$<BOOL:${DECOUPLED_CHEM}>:ChemRemote>  # Phase 1b shm transport (fullchem_mod)
- )
 diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
 new file mode 100644
-index 0000000..d6eca05
+index 0000000..2a2a63b
 --- /dev/null
 +++ b/GeosCore/chem_remote_mod.F90
-@@ -0,0 +1,675 @@
+@@ -0,0 +1,772 @@
 +!------------------------------------------------------------------------------
 +!                  GEOS-Chem High Performance (GCHP)                          !
 +!------------------------------------------------------------------------------
@@ -108,6 +58,8 @@ index 0000000..d6eca05
 +  PUBLIC :: Chem_Remote_Worker_Wait     ! sem_wait(ready), return command
 +  PUBLIC :: Chem_Remote_Worker_Done     ! sem_post(done)
 +  PUBLIC :: Chem_Remote_Worker_Detach   ! munmap + sem_close (NO unlink)
++  PUBLIC :: Chem_Remote_Worker_Slice    ! M>N: this worker's [lo,hi) for the step
++  PUBLIC :: gcr_slices             ! (2*GCR_MAXW) lo,hi pairs (0-based half-open)
 +  ! Shared control page + const arrays (public so both sides read/write fields)
 +  PUBLIC :: gcr_ctl                ! pointer to the BIND(C) control struct
 +  PUBLIC :: gcr_const              ! pointer to [ATOL(NVAR) RTOL(NVAR) MW(NSPEC)]
@@ -153,14 +105,23 @@ index 0000000..d6eca05
 +     INTEGER(C_INT) :: ss_flag          ! .not.Do_SulfateMod_SeaSalt (1/0)
 +     INTEGER(C_INT) :: command          ! GCR_CMD_*
 +     INTEGER(C_INT) :: worker_status    ! 0 ok, <0 fatal (worker sets)
++     INTEGER(C_INT) :: nworkers         ! M>N: # co-located workers for THIS rank (>=1)
 +     REAL(C_DOUBLE) :: dt               ! chem timestep [s], written each step
 +  END TYPE Chem_Ctl_T
++  ! M>N: the per-worker cell slices [lo,hi) live in a SEPARATE fixed-stride shm
++  ! segment `_slices` (2*MAXW int32: lo_0,hi_0, lo_1,hi_1, ...), so the BIND(C)
++  ! control page stays fixed-size (the worker attaches it before it knows K).
++  ! Rank writes the K active pairs each superstep; worker k reads pair k. K=1 puts
++  ! [0,ncell_local) in slot 0 -> byte-identical to the pre-M>N single-batch path.
++  INTEGER(C_INT), PARAMETER :: GCR_MAXW = 64    ! max workers/rank (192 cores/6 min ranks)
 +!
 +! !PRIVATE MODULE STATE:
 +!
 +  LOGICAL,             SAVE :: Chem_Remote_Active = .FALSE.
 +  TYPE(Chem_Ctl_T), POINTER :: gcr_ctl   => NULL()
 +  REAL(C_DOUBLE),   POINTER :: gcr_const(:) => NULL()
++  INTEGER(C_INT),   POINTER :: gcr_slices(:) => NULL()  ! (2*GCR_MAXW): lo,hi pairs
++  INTEGER,             SAVE :: nworkers = 1              ! rank-side K (from env), >=1
 +
 +  ! A concrete instance of the control type, used purely to take its byte size
 +  ! via C_SIZEOF (both sides compute the identical control-page size this way).
@@ -169,6 +130,7 @@ index 0000000..d6eca05
 +  ! shm base addresses (kept for detach)
 +  TYPE(C_PTR), SAVE :: p_ctl   = C_NULL_PTR
 +  TYPE(C_PTR), SAVE :: p_const = C_NULL_PTR
++  TYPE(C_PTR), SAVE :: p_slices= C_NULL_PTR
 +  TYPE(C_PTR), SAVE :: p_C     = C_NULL_PTR
 +  TYPE(C_PTR), SAVE :: p_RCONST= C_NULL_PTR
 +  TYPE(C_PTR), SAVE :: p_ICNTRL= C_NULL_PTR
@@ -182,6 +144,7 @@ index 0000000..d6eca05
 +  ! segment byte sizes (recomputed identically both sides)
 +  INTEGER(C_SIZE_T), SAVE :: sz_ctl, sz_const, sz_C, sz_RCONST
 +  INTEGER(C_SIZE_T), SAVE :: sz_ICNTRL, sz_RCNTRL, sz_ISTAT, sz_RSTATE
++  INTEGER(C_SIZE_T), SAVE :: sz_slices
 +
 +  ! object name stems (built from jobid+rank), kept for unlink at Final
 +  CHARACTER(LEN=192), SAVE :: stem = ''
@@ -320,6 +283,7 @@ index 0000000..d6eca05
 +    sz_RCNTRL = INT(NCTRL,C_SIZE_T) * nc * FP_BYTES
 +    sz_ISTAT  = INT(NCTRL,C_SIZE_T) * nc * INT_BYTES
 +    sz_RSTATE = INT(NCTRL,C_SIZE_T) * nc * FP_BYTES
++    sz_slices = 2_C_SIZE_T * INT(GCR_MAXW,C_SIZE_T) * INT_BYTES  ! lo,hi per worker
 +  END SUBROUTINE compute_sizes
 +
 +  ! Build the object-name stem "/gchp_<jobid>_r<rank>" from env. Returns the
@@ -390,11 +354,24 @@ index 0000000..d6eca05
 +       IF ( iread /= 0 .OR. deadline_s <= 0.0_C_DOUBLE ) deadline_s = 60.0_C_DOUBLE
 +    END IF
 +
++    ! M>N: how many co-located workers serve THIS rank (env GCHP_CHEM_NWORKERS,
++    ! default 1 = the proven 1:1 path). Clamped to [1, GCR_MAXW]. The launcher
++    ! spawns exactly this many kpp_worker --service tasks keyed to this rank, each
++    ! with a distinct GCHP_CHEM_SUBRANK in 0..nworkers-1.
++    nworkers = 1
++    CALL get_environment_variable('GCHP_CHEM_NWORKERS', dbuf, dlen, dstat)
++    IF ( dstat == 0 .AND. dlen > 0 ) THEN
++       READ(dbuf, *, IOSTAT=iread) nworkers
++       IF ( iread /= 0 .OR. nworkers < 1 ) nworkers = 1
++       IF ( nworkers > GCR_MAXW ) nworkers = GCR_MAXW
++    END IF
++
 +    CALL compute_sizes(nspec, nreact, nvar, ncell_total)
 +
-+    ! --- create the 8 segments (unlink-stale is inside crshm_create) ---
++    ! --- create the 9 segments (unlink-stale is inside crshm_create) ---
 +    p_ctl    = crshm_create(cstr(TRIM(stem)//'_ctl'   ), sz_ctl   )
 +    p_const  = crshm_create(cstr(TRIM(stem)//'_const' ), sz_const )
++    p_slices = crshm_create(cstr(TRIM(stem)//'_slices'), sz_slices)
 +    p_C      = crshm_create(cstr(TRIM(stem)//'_C'     ), sz_C     )
 +    p_RCONST = crshm_create(cstr(TRIM(stem)//'_RCONST'), sz_RCONST)
 +    p_ICNTRL = crshm_create(cstr(TRIM(stem)//'_ICNTRL'), sz_ICNTRL)
@@ -403,6 +380,7 @@ index 0000000..d6eca05
 +    p_RSTATE = crshm_create(cstr(TRIM(stem)//'_RSTATE'), sz_RSTATE)
 +
 +    IF ( .NOT.(C_ASSOCIATED(p_ctl)   .AND. C_ASSOCIATED(p_const)  .AND.        &
++               C_ASSOCIATED(p_slices).AND.                                     &
 +               C_ASSOCIATED(p_C)     .AND. C_ASSOCIATED(p_RCONST) .AND.        &
 +               C_ASSOCIATED(p_ICNTRL).AND. C_ASSOCIATED(p_RCNTRL) .AND.        &
 +               C_ASSOCIATED(p_ISTAT) .AND. C_ASSOCIATED(p_RSTATE)) ) THEN
@@ -420,9 +398,11 @@ index 0000000..d6eca05
 +       RETURN
 +    END IF
 +
-+    ! --- map control struct + const array; populate static fields ---
++    ! --- map control struct + const array + slice table; populate static fields ---
 +    CALL C_F_POINTER(p_ctl, gcr_ctl)
 +    CALL C_F_POINTER(p_const, gcr_const, [2*nvar + nspec])
++    CALL C_F_POINTER(p_slices, gcr_slices, [2*GCR_MAXW])
++    gcr_slices(:)       = 0_C_INT
 +    gcr_ctl%magic       = GCR_MAGIC
 +    gcr_ctl%abi         = GCR_ABI
 +    gcr_ctl%nspec       = INT(nspec,  C_INT)
@@ -435,6 +415,7 @@ index 0000000..d6eca05
 +    gcr_ctl%ss_flag     = 0_C_INT
 +    gcr_ctl%command     = GCR_CMD_IDLE
 +    gcr_ctl%worker_status = 0_C_INT
++    gcr_ctl%nworkers    = INT(nworkers, C_INT)
 +    gcr_ctl%dt          = 0.0_C_DOUBLE
 +    ! const arrays (ATOL/RTOL/MW) are written later by Chem_Remote_SetConst
 +
@@ -483,11 +464,30 @@ index 0000000..d6eca05
 +    LOGICAL,        INTENT(OUT) :: solved_remotely
 +    INTEGER(C_INT)  :: rc
 +    INTEGER(KIND=8) :: t0, t1
++    INTEGER         :: k, lo, hi, base, extra, cur
 +
 +    solved_remotely = .FALSE.
 +    IF ( .NOT. Chem_Remote_Active ) RETURN
 +
-+    ! publish this step's work descriptor, then release the worker
++    ! ---- M>N fan-out: partition [0,ncell_local) into `nworkers` CONTIGUOUS
++    ! slices and publish them in the slice table. Contiguous + deterministic =>
++    ! the union solved is exactly cells 1..ncell_local in the same order the
++    ! single-batch path visits them, so (absent a double-failure) the result is
++    ! byte-identical regardless of K. Front slices get the +1 remainder cell.
++    ! Slot k holds [lo_k, hi_k) as 0-based half-open indices (worker adds 1). ----
++    base  = ncell_local / nworkers
++    extra = MOD(ncell_local, nworkers)
++    cur   = 0
++    DO k = 0, nworkers-1
++       lo = cur
++       hi = lo + base
++       IF ( k < extra ) hi = hi + 1          ! distribute remainder to front slices
++       gcr_slices(2*k+1) = INT(lo, C_INT)
++       gcr_slices(2*k+2) = INT(hi, C_INT)
++       cur = hi
++    END DO
++
++    ! publish this step's work descriptor, then release ALL workers (K posts)
 +    gcr_ctl%ncell_local   = INT(ncell_local, C_INT)
 +    gcr_ctl%dt            = dt
 +    gcr_ctl%ar_flag       = INT(ar_flag, C_INT)
@@ -495,19 +495,28 @@ index 0000000..d6eca05
 +    gcr_ctl%worker_status = 0_C_INT
 +    gcr_ctl%command       = GCR_CMD_SOLVE
 +    CALL SYSTEM_CLOCK(t0, handoff_rate)
-+    rc = crsem_post(sem_ready)
-+    IF ( rc /= 0 ) RETURN            ! post failed -> fall back
++    DO k = 1, nworkers
++       rc = crsem_post(sem_ready)
++       IF ( rc /= 0 ) RETURN         ! a post failed -> fall back (some may be stuck;
++    END DO                           ! the deadline below bounds any partial state)
 +
-+    rc = crsem_timedwait(sem_done, deadline_s)
-+    ! accumulate the post->done bracket = handoff + remote solve wall
++    ! counting barrier: wait for ALL K workers to post `done`. Any single timeout
++    ! or fatal worker_status fails the whole superstep -> in-process fallback (the
++    ! rank re-solves 1:ncell_local itself, overwriting whatever partial shm state).
++    DO k = 1, nworkers
++       rc = crsem_timedwait(sem_done, deadline_s)
++       IF ( rc /= 0 ) THEN
++          CALL SYSTEM_CLOCK(t1); handoff_ticks = handoff_ticks + (t1-t0)
++          handoff_count = handoff_count + 1
++          WRITE(6,*) 'Chem_Remote_Solve: worker timeout/err (rc=',rc,          &
++                     ' at done ',k,'/',nworkers,') -> in-process fallback'
++          RETURN
++       END IF
++    END DO
++    ! accumulate the post->all-done bracket = handoff + slowest remote slice wall
 +    CALL SYSTEM_CLOCK(t1)
 +    handoff_ticks = handoff_ticks + (t1 - t0)
 +    handoff_count = handoff_count + 1
-+    IF ( rc /= 0 ) THEN
-+       WRITE(6,*) 'Chem_Remote_Solve: worker timeout/err (rc=',rc,          &
-+                  ') -> in-process fallback'
-+       RETURN
-+    END IF
 +    IF ( gcr_ctl%worker_status < 0 ) THEN
 +       WRITE(6,*) 'Chem_Remote_Solve: worker_status=',gcr_ctl%worker_status,&
 +                  ' -> in-process fallback'
@@ -534,6 +543,7 @@ index 0000000..d6eca05
 +  SUBROUTINE Chem_Remote_Final()
 +    INTEGER(C_INT) :: rc
 +    REAL(C_DOUBLE) :: total_s, mean_ms
++    INTEGER        :: k
 +    IF ( .NOT. Chem_Remote_Active ) RETURN
 +
 +    ! report the accumulated handoff cost (post(ready)->timedwait(done) wall).
@@ -545,12 +555,18 @@ index 0000000..d6eca05
 +            total_s, ' s, mean ', mean_ms, ' ms/superstep (post->done wall)'
 +    END IF
 +
-+    ! sentinel: tell the worker to break its service loop
++    ! sentinel: tell ALL workers to break their service loop. Each worker consumes
++    ! exactly one `ready` token per loop iteration, so with K workers we must post
++    ! the EXIT command K times (a single post would wake one worker and leave the
++    ! other K-1 blocked on sem_wait forever). Reap up to K done-acks (best-effort).
 +    IF ( C_ASSOCIATED(sem_ready) .AND. ASSOCIATED(gcr_ctl) ) THEN
 +       gcr_ctl%command = GCR_CMD_EXIT
-+       rc = crsem_post(sem_ready)
-+       ! give the worker a brief chance to acknowledge (non-fatal if it died)
-+       rc = crsem_timedwait(sem_done, 5.0_C_DOUBLE)
++       DO k = 1, nworkers
++          rc = crsem_post(sem_ready)
++       END DO
++       DO k = 1, nworkers
++          rc = crsem_timedwait(sem_done, 5.0_C_DOUBLE)   ! non-fatal if a worker died
++       END DO
 +    END IF
 +
 +    IF ( C_ASSOCIATED(sem_ready) ) rc = crsem_close(sem_ready)
@@ -573,6 +589,7 @@ index 0000000..d6eca05
 +    IF (C_ASSOCIATED(p_RCNTRL)) rc = crshm_detach(p_RCNTRL, sz_RCNTRL)
 +    IF (C_ASSOCIATED(p_ISTAT )) rc = crshm_detach(p_ISTAT , sz_ISTAT )
 +    IF (C_ASSOCIATED(p_RSTATE)) rc = crshm_detach(p_RSTATE, sz_RSTATE)
++    IF (C_ASSOCIATED(p_slices)) rc = crshm_detach(p_slices, sz_slices)
 +    IF (C_ASSOCIATED(p_const )) rc = crshm_detach(p_const , sz_const )
 +    IF (C_ASSOCIATED(p_ctl   )) rc = crshm_detach(p_ctl   , sz_ctl   )
 +    IF ( unlink_names .AND. LEN_TRIM(stem) > 0 ) THEN
@@ -582,13 +599,14 @@ index 0000000..d6eca05
 +       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_RCNTRL'))
 +       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_ISTATUS'))
 +       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_RSTATE'))
++       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_slices'))
 +       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_const' ))
 +       rc = crshm_unlink_stale(cstr(TRIM(stem)//'_ctl'   ))
 +    END IF
 +    p_C=C_NULL_PTR; p_RCONST=C_NULL_PTR; p_ICNTRL=C_NULL_PTR
 +    p_RCNTRL=C_NULL_PTR; p_ISTAT=C_NULL_PTR; p_RSTATE=C_NULL_PTR
-+    p_const=C_NULL_PTR; p_ctl=C_NULL_PTR
-+    NULLIFY(gcr_ctl); NULLIFY(gcr_const)
++    p_const=C_NULL_PTR; p_ctl=C_NULL_PTR; p_slices=C_NULL_PTR
++    NULLIFY(gcr_ctl); NULLIFY(gcr_const); NULLIFY(gcr_slices)
 +  END SUBROUTINE teardown_segments
 +
 +!------------------------------------------------------------------------------
@@ -663,19 +681,22 @@ index 0000000..d6eca05
 +                       INT(gcr_ctl%nvar),  INT(gcr_ctl%ncell_total))
 +
 +    p_const  = crshm_attach(cstr(TRIM(stem)//'_const' ), sz_const )
++    p_slices = crshm_attach(cstr(TRIM(stem)//'_slices'), sz_slices)
 +    p_C      = crshm_attach(cstr(TRIM(stem)//'_C'     ), sz_C     )
 +    p_RCONST = crshm_attach(cstr(TRIM(stem)//'_RCONST'), sz_RCONST)
 +    p_ICNTRL = crshm_attach(cstr(TRIM(stem)//'_ICNTRL'), sz_ICNTRL)
 +    p_RCNTRL = crshm_attach(cstr(TRIM(stem)//'_RCNTRL'), sz_RCNTRL)
 +    p_ISTAT  = crshm_attach(cstr(TRIM(stem)//'_ISTATUS'),sz_ISTAT )
 +    p_RSTATE = crshm_attach(cstr(TRIM(stem)//'_RSTATE'), sz_RSTATE)
-+    IF ( .NOT.(C_ASSOCIATED(p_const) .AND. C_ASSOCIATED(p_C)     .AND.         &
++    IF ( .NOT.(C_ASSOCIATED(p_const) .AND. C_ASSOCIATED(p_slices).AND.         &
++               C_ASSOCIATED(p_C)     .AND.                                     &
 +               C_ASSOCIATED(p_RCONST).AND. C_ASSOCIATED(p_ICNTRL).AND.         &
 +               C_ASSOCIATED(p_RCNTRL).AND. C_ASSOCIATED(p_ISTAT) .AND.         &
 +               C_ASSOCIATED(p_RSTATE)) ) THEN
 +       WRITE(6,*) 'worker_attach: data segment attach failed'; RETURN
 +    END IF
 +    CALL C_F_POINTER(p_const, gcr_const, [2*INT(gcr_ctl%nvar)+INT(gcr_ctl%nspec)])
++    CALL C_F_POINTER(p_slices, gcr_slices, [2*GCR_MAXW])
 +
 +    ! attach both semaphores (must exist by now — rank created before posting)
 +    sem_ready = crsem_attach(cstr(TRIM(stem)//'_ready'))
@@ -709,6 +730,32 @@ index 0000000..d6eca05
 +    INTEGER(C_INT) :: rc
 +    rc = crsem_post(sem_done)
 +  END SUBROUTINE Chem_Remote_Worker_Done
++
++  ! M>N: return THIS worker's cell slice for the current superstep as 1-based
++  ! inclusive [lo,hi] (the natural Fortran loop bound). The rank published the
++  ! slot as 0-based half-open [lo0,hi0); we return lo0+1 .. hi0. The worker's slot
++  ! index comes from env GCHP_CHEM_SUBRANK (0..K-1); default 0 (the 1:1 case, where
++  ! slot 0 = the whole batch, so this reduces to 1..ncell_local exactly). An empty
++  ! slice (lo>hi) is valid and means "no cells for me this step" (K > ncell_local).
++  SUBROUTINE Chem_Remote_Worker_Slice( lo, hi )
++    INTEGER, INTENT(OUT) :: lo, hi
++    INTEGER, SAVE :: sub = -1
++    CHARACTER(LEN=64) :: sbuf
++    INTEGER :: dlen, dstat, ios
++    IF ( sub < 0 ) THEN                 ! resolve subrank once
++       sub = 0
++       CALL get_environment_variable('GCHP_CHEM_SUBRANK', sbuf, dlen, dstat)
++       IF ( dstat == 0 .AND. dlen > 0 ) THEN
++          READ(sbuf, *, IOSTAT=ios) sub
++          IF ( ios /= 0 .OR. sub < 0 .OR. sub >= GCR_MAXW ) sub = 0
++       END IF
++    END IF
++    IF ( .NOT. ASSOCIATED(gcr_slices) ) THEN   ! defensive: behave as 1:1 whole-batch
++       lo = 1; hi = INT(gcr_ctl%ncell_local); RETURN
++    END IF
++    lo = INT(gcr_slices(2*sub+1)) + 1          ! 0-based half-open -> 1-based inclusive
++    hi = INT(gcr_slices(2*sub+2))
++  END SUBROUTINE Chem_Remote_Worker_Slice
 +
 +  ! Worker teardown: detach segments + close sems, but never unlink (rank owns).
 +  SUBROUTINE Chem_Remote_Worker_Detach()
@@ -1402,10 +1449,10 @@ index 2fd7962..c73c68a 100644
  END MODULE FullChem_Mod
 diff --git a/GeosCore/kpp_worker.F90 b/GeosCore/kpp_worker.F90
 new file mode 100644
-index 0000000..2e043ab
+index 0000000..d06c8ad
 --- /dev/null
 +++ b/GeosCore/kpp_worker.F90
-@@ -0,0 +1,306 @@
+@@ -0,0 +1,322 @@
 +PROGRAM KPP_Worker
 +  !
 +  ! Decoupled-Chemistry KPP worker.
@@ -1503,8 +1550,19 @@ index 0000000..2e043ab
 +  ! ALLOCATEd file buffers or the mmap'd shm buffers -- the body doesn't care.
 +  ! `n` is the number of real gathered cells to solve (NCELL_local).
 +  !===========================================================================
-+  SUBROUTINE Solve_Batch( n, dt_local, ar, ss, nfail2x )
-+    INTEGER,  INTENT(IN)    :: n, ar, ss
++  ! Solve cells [lo,hi] (1-based inclusive). In 1:1 / file mode lo=1,hi=NCELL so
++  ! this is the whole batch (byte-identical to before). In M>N service mode each
++  ! worker gets a CONTIGUOUS sub-slice, so the union across K workers is exactly
++  ! 1..ncell_local in the same order -- identical numerics per cell.
++  ! NOTE ON Failed2x (M>N caveat): the sticky Failed2x that abandons the REST of a
++  ! worker's slice is now PER-SLICE, not global. A double-failure in worker k's
++  ! slice does NOT skip cells in worker k+1's slice, unlike the monolithic inline
++  ! loop. This diverges from inline ONLY when a cell double-fails (rare; the GATE-3
++  ! C24 checkpoint-MD5 vs the inline baseline is the arbiter -- if it matches, no
++  ! double-failure occurred in the gate and identity holds). nfail2x is reported so
++  ! divergence is never silent.
++  SUBROUTINE Solve_Batch( lo, hi, dt_local, ar, ss, nfail2x )
++    INTEGER,  INTENT(IN)    :: lo, hi, ar, ss
 +    REAL(dp), INTENT(IN)    :: dt_local
 +    INTEGER,  INTENT(INOUT) :: nfail2x
 +    INTEGER  :: ICNTRL(20), ISTATUS(20)
@@ -1513,13 +1571,10 @@ index 0000000..2e043ab
 +    INTEGER  :: j, ie
 +    LOGICAL  :: Failed2x
 +
-+    ! Mirror fullchem's sticky Failed2x: once any cell fails twice, the
-+    ! in-process loop abandons the REST of the batch (fullchem_mod.F90:1853
-+    ! "IF (Failed2x) CYCLE" at the top of every subsequent iteration), leaving
-+    ! those cells' C_1D/RSTATE_1D/ISTATUS_1D at their gathered-input values.
++    ! Mirror fullchem's sticky Failed2x within this slice (see caveat above).
 +    Failed2x = .FALSE.
 +
-+    DO j = 1, n
++    DO j = lo, hi
 +       IF ( Failed2x ) CYCLE            ! fullchem_mod.F90:1853
 +
 +       ISTATUS = 0
@@ -1620,7 +1675,7 @@ index 0000000..2e043ab
 +    ENDDO
 +
 +    nfail2x = 0
-+    CALL Solve_Batch( NCELL, DT_in, ar_flag, ss_flag, nfail2x )
++    CALL Solve_Batch( 1, NCELL, DT_in, ar_flag, ss_flag, nfail2x )   ! file mode = whole batch
 +    IF ( nfail2x > 0 ) WRITE(6,*) 'kpp_worker: ', nfail2x, ' cells failed twice'
 +
 +    OPEN( newunit=du, file=outfile, form='unformatted', access='stream',      &
@@ -1640,7 +1695,7 @@ index 0000000..2e043ab
 +  SUBROUTINE Run_Service_Mode()
 +    TYPE(C_PTR) :: cp_C, cp_RCONST, cp_ICNTRL, cp_RCNTRL, cp_ISTAT, cp_RSTATE
 +    LOGICAL     :: ok
-+    INTEGER     :: cmd, n, ar, ss, ncell_tot, nsteps
++    INTEGER     :: cmd, lo, hi, ar, ss, ncell_tot, nsteps
 +    REAL(dp)    :: dt_local
 +    REAL(C_DOUBLE) :: attach_wait_s
 +
@@ -1677,33 +1732,41 @@ index 0000000..2e043ab
 +    nsteps  = 0
 +    DO
 +       cmd = Chem_Remote_Worker_Wait()          ! blocks on sem ready
-+       IF ( cmd == GCR_CMD_EXIT ) EXIT           ! sentinel from rank's Final
++       IF ( cmd == GCR_CMD_EXIT ) THEN           ! sentinel from rank's Final
++          CALL Chem_Remote_Worker_Done()         ! ack the exit so the rank's reap
++          EXIT                                    ! loop returns promptly (M>N: K acks)
++       END IF
 +
 +       ! const is populated by now (rank SetConst precedes its first post(ready))
 +       ATOL(1:NVAR) = gcr_const(1:NVAR)
 +       RTOL(1:NVAR) = gcr_const(NVAR+1:2*NVAR)
 +       MW(1:NSPEC)  = gcr_const(2*NVAR+1:2*NVAR+NSPEC)
 +
-+       n  = INT(gcr_ctl%ncell_local)
 +       dt_local = REAL(gcr_ctl%dt, dp)
 +       ar = INT(gcr_ctl%ar_flag)
 +       ss = INT(gcr_ctl%ss_flag)
 +
-+       ! keystone guard on the first cell only (cheap; all shipped cells have
++       ! M>N: this worker's contiguous cell slice [lo,hi] (1-based inclusive). In
++       ! the 1:1 case (SUBRANK=0, nworkers=1) this is 1..ncell_local exactly.
++       CALL Chem_Remote_Worker_Slice( lo, hi )
++
++       ! keystone guard on THIS slice's first cell (cheap; all shipped cells have
 +       ! ICNTRL(15)=-1 because the rank ships 1:ncell_local, never zero-pad).
-+       IF ( n >= 1 ) THEN
-+          IF ( ICNTRL_1D(15,1) /= -1 ) THEN
-+             WRITE(6,*) 'kpp_worker[service]: ICNTRL(15)/=-1; refusing batch'
++       ! DO NOT reset worker_status to 0 on success: with K workers sharing the ctl
++       ! page, a 0-write here could clobber a sibling worker's fatal negative status
++       ! (last-writer-wins). The rank inits worker_status=0 before posting; a worker
++       ! only ever writes it NEGATIVE, on refusal/failure.
++       IF ( hi >= lo ) THEN
++          IF ( ICNTRL_1D(15,lo) /= -1 ) THEN
++             WRITE(6,*) 'kpp_worker[service]: ICNTRL(15)/=-1 at cell',lo,'; refusing'
 +             gcr_ctl%worker_status = -2
 +             CALL Chem_Remote_Worker_Done()      ! release rank -> it falls back
 +             CYCLE
 +          ENDIF
++          CALL Solve_Batch( lo, hi, dt_local, ar, ss, nfail2x )
 +       ENDIF
-+
-+       CALL Solve_Batch( n, dt_local, ar, ss, nfail2x )
-+       gcr_ctl%worker_status = 0
 +       nsteps = nsteps + 1
-+       CALL Chem_Remote_Worker_Done()            ! post sem done
++       CALL Chem_Remote_Worker_Done()            ! post sem done (one per worker)
 +    ENDDO
 +
 +    WRITE(6,'(a,i0,a,i0,a)') 'kpp_worker[service]: exit after ', nsteps,      &
