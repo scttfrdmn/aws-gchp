@@ -912,6 +912,22 @@
         "date": "2026-07-16"
       },
       "usd_per_sim_day": 0.0507
+    },
+    {
+      "cs_res": 24,
+      "mechanism": "fullchem",
+      "instance": "m9g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 895.0,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-fc-m9g-c24_n1x96_fc.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.2518
     }
   ],
   "memory_points": [
