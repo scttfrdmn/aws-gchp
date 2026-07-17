@@ -992,6 +992,70 @@
         "date": "2026-07-16"
       },
       "usd_per_sim_day": 36.6439
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "fullchem",
+      "instance": "c8g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 238.8,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8g-c48_n1x96_fullchem.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 0.7698
+    },
+    {
+      "cs_res": 90,
+      "mechanism": "fullchem",
+      "instance": "c8g.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 67.5,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c8g-c90_n1x96_fullchem.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 2.7236
+    },
+    {
+      "cs_res": 48,
+      "mechanism": "fullchem",
+      "instance": "c7a.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 126.5,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7a-c48_n1x96_fullchem.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 1.8688
+    },
+    {
+      "cs_res": 90,
+      "mechanism": "fullchem",
+      "instance": "c7a.48xlarge",
+      "nodes": 1,
+      "ranks_per_node": 96,
+      "total_ranks": 96,
+      "sim_days_per_day": 42.8,
+      "confidence": "measured",
+      "source": {
+        "file": "scripts/logs/slurm-c7a-c90_n1x96_fullchem.log",
+        "line": 1,
+        "date": "2026-07-16"
+      },
+      "usd_per_sim_day": 5.5234
     }
   ],
   "memory_points": [
