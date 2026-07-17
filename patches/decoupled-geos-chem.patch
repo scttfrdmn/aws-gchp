@@ -1,3 +1,53 @@
+diff --git a/GeosCore/CMakeLists.txt b/GeosCore/CMakeLists.txt
+index 852c73b..dbd89ac 100644
+--- a/GeosCore/CMakeLists.txt
++++ b/GeosCore/CMakeLists.txt
+@@ -1,5 +1,29 @@
+ # GeosCore/CMakeLists.txt
+ 
++#-----------------------------------------------------------------------------
++# Decoupled-Chemistry Phase 1b transport library (default-OFF at runtime).
++#
++# chem_remote_mod.F90 (Fortran, ISO_C_BINDING only -- no GEOS-Chem deps) +
++# chem_remote_shm.c (POSIX shm/sem wrappers). Compiled ONCE here into a leaf
++# static lib linked by BOTH libGeosCore (rank side, via fullchem_mod) and the
++# kpp_worker executable (worker side). All public interfaces use explicit KIND
++# (C_INT/C_DOUBLE/C_SIZE_T), so the .mod is ABI-identical whether or not the
++# consumer was compiled with -fdefault-real-8 (kpp_worker is). Links -lrt
++# -lpthread PUBLIC so both consumers inherit the POSIX shm/sem libs.
++#
++# Only built for DECOUPLED_CHEM configs; otherwise the target is not defined
++# (GeosCore links it conditionally below).
++#-----------------------------------------------------------------------------
++if(DECOUPLED_CHEM)
++  add_library(ChemRemote
++    STATIC EXCLUDE_FROM_ALL
++    chem_remote_mod.F90
++    chem_remote_shm.c
++  )
++  target_link_libraries(ChemRemote PUBLIC rt pthread)
++  set_target_properties(ChemRemote PROPERTIES LINKER_LANGUAGE Fortran)
++endif()
++
+ # Add a compilation flag to force REAL to REAL*8 if necessary
+ # only for file tpcore_window_mod.F90
+ if(${USE_REAL8})
+@@ -99,7 +123,7 @@ endif()
+ 
+ # Define dependencies for libGeosCore.a
+ target_link_libraries(GeosCore PUBLIC
+-  ObsPack 
++  ObsPack
+   History
+   KPP
+   HETP_core
+@@ -107,5 +131,5 @@ target_link_libraries(GeosCore PUBLIC
+   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
+   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
+   $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
+-
++  $<$<BOOL:${DECOUPLED_CHEM}>:ChemRemote>  # Phase 1b shm transport (fullchem_mod)
+ )
 diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
 new file mode 100644
 index 0000000..2a2a63b
