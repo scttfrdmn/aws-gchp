@@ -118,7 +118,11 @@ fi
 cd "$RUNDIR"
 
 # ----- restart symlink for this resolution + RESET start date every run -----
-RST_SRC=$(ls /input/GEOSCHEM_RESTARTS/GC_*/GEOSChem.Restart.${RST_SPECIES}.20190101_0000z.c${CS_RES}.nc4 2>/dev/null | head -1)
+# Prefer the NEWEST GC version (version-sort, not lexical): closest to the 14.7.1 mechanism, so the
+# FEWEST species need bootstrapping. A plain `ls|head -1` picked GC_14.0.0 (oldest) -> fullchem was
+# missing many species; combined with Require_Species_in_Restart=0 (set above) this now starts from
+# GC_14.7.0 and bootstraps only the handful still absent.
+RST_SRC=$(ls /input/GEOSCHEM_RESTARTS/GC_*/GEOSChem.Restart.${RST_SPECIES}.20190101_0000z.c${CS_RES}.nc4 2>/dev/null | sort -V | tail -1)
 [[ -n "$RST_SRC" ]] || { echo "ERROR: no C${CS_RES} ${RST_SPECIES} restart in /input"; exit 1; }
 mkdir -p Restarts
 ln -sf "$RST_SRC" "Restarts/GEOSChem.Restart.20190101_0000z.c${CS_RES}.nc4"
@@ -150,6 +154,12 @@ SHM_GB=32
 if [[ "$MECH" == fullchem ]]; then
   sed -i "s/domains_stack_size = [0-9]*/domains_stack_size = 64000000/" input.nml 2>/dev/null || true
   grep -q "MAPL_ENABLE_TIMERS" CAP.rc 2>/dev/null && sed -i "s/^MAPL_ENABLE_TIMERS:.*/MAPL_ENABLE_TIMERS: YES/" CAP.rc || echo "MAPL_ENABLE_TIMERS: YES" >> CAP.rc
+  # The gcgrid restarts predate GCHP 14.7.1's fullchem KPP species list, so the restart is MISSING
+  # species (e.g. SPC_ACO3) -> without this GCHP ABORTS at NCIO.F90:3382 "Could not find field".
+  # Require_Species_in_Restart=0 tells MAPL to BOOTSTRAP missing species to background values instead
+  # of failing — the sanctioned way to spin a newer mechanism off an older restart (this is exactly
+  # what the measured 7.4-anchor run did, gchp-fullchem-m9g.sh:95). TT restarts are complete -> N/A.
+  sed -i "s/^Require_Species_in_Restart=.*/Require_Species_in_Restart=0/" "$SC"
   # /dev/shm from the measured anchors: C180 fullchem needs 550G; smaller res scales down.
   case "$CS_RES" in 180) SHM_GB=550 ;; 90) SHM_GB=200 ;; 48) SHM_GB=96 ;; *) SHM_GB=48 ;; esac
 fi
@@ -239,10 +249,10 @@ echo "INTERNAL_THROUGHPUT_RUN=\${RUNT:-NA}"  # pure integration rate
 echo "WALL_THROUGHPUT_DAYSPERDAY=\$(python3 -c "print(round(${SIMSECS}/86400.0*86400/\${ELAPSED},3))" 2>/dev/null || echo NA)"
 
 if [[ \$SIM_DONE -eq 1 && -n "\${AVG:-}" ]]; then
-  echo "RUN_STATUS=SUCCEEDED (sim reached \${END_DATE}; internal Avg=\${AVG} d/d; killed mpirun pre-checkpoint to bound wall time)"
+  echo "RUN_STATUS=SUCCEEDED (sim reached \${END_STAMP}; internal Avg=\${AVG} d/d; killed mpirun pre-checkpoint to bound wall time)"
   exit 0
 else
-  echo "RUN_STATUS=FAILED (sim did not reach \${END_DATE})" >&2
+  echo "RUN_STATUS=FAILED (sim did not reach \${END_STAMP})" >&2
   tail -30 \${RUNLOG} >&2
   exit 1
 fi
