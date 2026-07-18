@@ -51,10 +51,10 @@ index 852c73b..8d2afa6 100644
  )
 diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
 new file mode 100644
-index 0000000..6bafd66
+index 0000000..d7c2bcf
 --- /dev/null
 +++ b/GeosCore/chem_remote_mod.F90
-@@ -0,0 +1,981 @@
+@@ -0,0 +1,1001 @@
 +!------------------------------------------------------------------------------
 +!                  GEOS-Chem High Performance (GCHP)                          !
 +!------------------------------------------------------------------------------
@@ -745,7 +745,7 @@ index 0000000..6bafd66
 +    INTEGER,        INTENT(IN)  :: ncell_local, ar_flag, ss_flag
 +    REAL(C_DOUBLE), INTENT(IN)  :: dt
 +    LOGICAL,        INTENT(OUT) :: solved_remotely
-+    INTEGER :: k, lo, hi, nsp, nre, nvr, rc
++    INTEGER :: k, lo, hi, nsp, nre, nvr, rc, iread
 +    CHARACTER(LEN=320) :: inpath, outpath
 +    TYPE(C_PTR) :: p_atol, p_rtol, p_mw
 +    solved_remotely = .FALSE.
@@ -766,18 +766,38 @@ index 0000000..6bafd66
 +       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_put_in failed k=',k,' rc=',rc; RETURN; END IF
 +    END DO
 +
-+    ! 2) poll each slice's .done (bounded) + GET .out + deserialize into [lo,hi)
++    ! 2) ATOMIC-COMMIT barrier: poll ALL slices' .done FIRST, writing NOTHING to the live
++    ! buffers. Only if EVERY slice is done do we GET+deserialize (phase 3). This is essential:
++    ! crs3_read_out overwrites s3_C[lo:hi] in place, so if we read slice k=0's result and THEN
++    ! slice k=1 times out, the in-process fallback would re-solve cells that already hold SOLVED
++    ! values (double chemistry -> divergence -- exactly the demo2 c3358aec bug). Deferring all
++    ! writes until all-done guarantees the fallback re-solves from pristine inputs.
 +    DO k = 0, nworkers-1
 +       lo = INT(gcr_slices(2*k+1)); hi = INT(gcr_slices(2*k+2))
 +       IF ( hi <= lo ) CYCLE
 +       rc = crs3_poll_done( gcr_rank, k, gcr_step, deadline_s )
 +       IF ( rc /= 0 ) THEN
-+          WRITE(6,*) 'crs3_poll_done TIMEOUT k=',k,' step=',gcr_step,' -> in-process fallback'
-+          RETURN
++          WRITE(6,*) 'crs3_poll_done TIMEOUT k=',k,' step=',gcr_step,          &
++                     ' -> in-process fallback (NO buffers written yet)'
++          RETURN                                     ! s3_C untouched -> pristine fallback
 +       END IF
++    END DO
++
++    ! 3) all slices confirmed done -> the .out objects are ALL durably in S3 (each worker wrote
++    ! .out BEFORE its .done marker), so GET can only fail transiently. RETRY the GET (up to 5x
++    ! with a short sleep) rather than abort -- once we start writing s3_C we are committed, and
++    ! aborting mid-write would leave the double-solve hazard. This makes phase 3 effectively
++    ! always-succeed given phase 2 passed, so solved_remotely is all-or-nothing.
++    DO k = 0, nworkers-1
++       lo = INT(gcr_slices(2*k+1)); hi = INT(gcr_slices(2*k+2))
++       IF ( hi <= lo ) CYCLE
 +       WRITE(outpath,'(a,a,i0,a,i0,a,i0,a)') TRIM(gcr_tmpdir),'/crs3_r',gcr_rank,'_k',k,'_s',gcr_step,'.out'
-+       rc = crs3_get_out( gcr_rank, k, gcr_step, cstr(TRIM(outpath)) )
-+       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_get_out failed k=',k,' rc=',rc; RETURN; END IF
++       DO iread = 1, 5
++          rc = crs3_get_out( gcr_rank, k, gcr_step, cstr(TRIM(outpath)) )
++          IF ( rc == 0 ) EXIT
++          CALL crshm_msleep_ms(500_C_INT)
++       END DO
++       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_get_out failed k=',k,' rc=',rc,' (5 tries)'; RETURN; END IF
 +       rc = crs3_read_out( cstr(TRIM(outpath)), nsp, lo, hi, s3_C, s3_RSTATE, s3_ISTAT )
 +       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_read_out failed k=',k,' rc=',rc; RETURN; END IF
 +       rc = crs3_cleanup( gcr_rank, k, gcr_step )     ! best-effort key cleanup
