@@ -1,0 +1,73 @@
+# PHASE C2 S3 byte-identity GATE — cheap c7g in us-east-1a on the STANDING input FSx.
+# The S3-transport byte-identity proof needs neither big memory nor high resolution: C24 fullchem
+# (~90GB) fits c7g's 128GB, and byte-identity at C24 == the proof at C90. So run the gate on the
+# cheapest capable box (c7g.16xlarge $2.32/hr, aarch64) in us-east-1a on the standing gcgrid FSx
+# (no chase-AZ FSx needed). Head builds the decoupled binary (64c, ~15-20min). The elastic S3 worker
+# pool runs as processes on the compute node for the GATE (proves the S3 path byte-identical); the
+# SEPARATE-cluster / spot / N!=M / Amdahl demos come after the gate passes.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.16xlarge         # 64c aarch64 build host (fast decoupled compile)
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (standing FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess      # rank PUT/GET + worker claim on chemq/
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: c7g.16xlarge
+          MinCount: 0
+          MaxCount: 1                 # C24 6-rank gate + worker processes on ONE node
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: false            # S3 path needs NO EFA — the whole point
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # standing gchp-input-fabrictest (us-east-1a, gcgrid)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: s3gate-c7g-1a
