@@ -97,12 +97,16 @@ def main(argv=None):
         got=False
         for k in todo:
             if claim(a.bucket,k,a.claim_ttl):
-                if solve_one(a.bucket,k,a.worker_bin): solved+=1; got=True; idle=0
+                if solve_one(a.bucket,k,a.worker_bin):
+                    solved+=1; got=True; idle=0
+                    # per-solve line so the pool's work is DIRECTLY countable (grep SLICE_SOLVED),
+                    # not inferred from byte-identity. Flushed immediately (srun may truncate at exit).
+                    sys.stderr.write(f"SLICE_SOLVED {k} (this worker total {solved})\n"); sys.stderr.flush()
                 break
         if not got:
             idle+=1
             if a.idle_exit and idle>=a.idle_exit:
-                sys.stderr.write(f"idle {idle} polls, exiting (solved {solved})\n"); return 0
+                sys.stderr.write(f"idle {idle} polls, exiting (solved {solved})\n"); sys.stderr.flush(); return 0
             time.sleep(1)
 
 def _exists(bucket,key):
