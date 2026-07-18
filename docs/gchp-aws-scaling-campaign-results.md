@@ -26,15 +26,24 @@ count. Throughput in sim-days/day:
 | C48 TT  | **m9g 4444** · c8g 3252 · c8i 734 · c8a 508 · c7i 460 · c7a 430 |
 | C90 TT  | **m9g 1381** · c8g 1156 · c8i 556 · c8a 408 · c7a 360 · c7i 353 |
 
-**Findings:**
-- **Graviton dominates decisively** — c8g (Graviton4) and m9g (Graviton5) beat the fastest x86 (Intel
-  Emerald c8i) by **3–6×** at equal core count across the ladder. AMD (c7a/c8a) and Intel trail closely
-  behind each other and well behind Graviton.
-- **Graviton4 vs Graviton5 swaps with resolution.** c8g (G4) wins C24 (clock-bound, tiny per-rank work);
-  m9g (G5) wins C48/C90 (once there's real work per rank). m9g's *unique* advantage is **memory
-  capacity** (768 GB) — it is the only in-region box that fits C180 fullchem at all.
-- At C24 the workload is init/comms-bound (m9g's internal integrate-rate was 15000 d/d but wall was
-  overhead-dominated), so small-resolution rankings are **not** predictive of production (C180) behavior.
+**Findings (with an important regime distinction):**
+- **The raw TT gap is large but MOSTLY an overhead artifact, not compute.** Graviton (c8g) beats AMD
+  (c7a) by **9.4× at C24 TT, 7.6× at C48 TT** — but that gap **collapses to 1.6–1.9× on compute-bound
+  fullchem** (c8g/c7a = 1.9× at C48, 1.6× at C90). The shrink is the tell: at small resolution GCHP is
+  dominated by *fixed per-timestep overhead* (MPI collective latency, halo exchange, per-step setup)
+  because cells/rank is tiny (~2,600 at C24/96r) and timesteps are short — so throughput measures
+  *how fast you can dispatch timesteps* (latency), not FLOPs. Graviton's on-package memory-controller +
+  interconnect integration wins that latency game hugely. **Don't quote the 9×; it's not the compute
+  advantage.**
+- **The defensible production-workload advantage is ~1.6–1.9×** (compute-bound fullchem), and it is
+  very plausibly **memory bandwidth** — GEOS-Chem's KPP Rosenbrock solver is a sparse gather/scatter
+  workload (memory-bound, not FLOP-bound), and Graviton4's DDR5 + on-die controllers deliver more
+  effective BW/core than the AMD Genoa part here. (STREAM Triad per-arch confirms the mechanism — see
+  §5a.) **Caveat:** only 2 cross-arch fullchem points measured (both c8g-vs-c7a); no Intel fullchem,
+  no matched-core m9g-vs-c8g fullchem. So "~1.7×, likely bandwidth" is what the data supports — not more.
+- **Graviton4 vs Graviton5 swaps with resolution.** c8g (G4) wins C24 TT (clock/latency); m9g (G5) wins
+  C48/C90 (real work per rank). m9g's *unique, unambiguous* advantage is **memory capacity** (768 GB) —
+  it is the only in-region box that fits C180 fullchem at all, independent of any bandwidth argument.
 
 **Multi-node:** super-linear-ish 2N on Graviton for C90 TT (c8g 1478→2525 d/d = 1.7×); 4N reliably
 achievable only PlacementGroup-OFF (192-core parts are capacity-blocked under a PG). C180 TT 2N
@@ -116,17 +125,55 @@ to the stock inline monolith at every worker count:
   `ready` K times, waits `done` K times). K=1 reduces exactly to the proven 1:1 path. Default-off,
   flag-gated (`GCHP_USE_REMOTE_CHEM`, `GCHP_CHEM_NWORKERS`), upstreamable as patches (no fork).
 
+**Beyond on-node: horizontal (off-node) chemistry.** On one node, M>N is capped at the box's core
+count (the 2.23× at K=4 IS that wall — 192 = all cores). The next step is a **remote chemistry fleet**:
+the transport ranks ship column state off-node and a separate pool solves it. The transport cost is
+already measured (per-superstep state ≈ 230 MB/rank, ~27 GB/domain at C180):
+
+| transport | 27 GB handoff | spans nodes | durable / time-decoupled |
+|---|--:|:--:|:--:|
+| POSIX shm (what's built) | 0.33 s | no (on-node) | no |
+| RDMA / EFA one-sided | 2.1 s (13 GB/s) | yes | no (both ends co-scheduled) |
+| S3-wide (own-key/rank) | ~32 s round-trip | yes | **yes (N≠M, spot-tolerant)** |
+| shared Lustre | 168 s | yes | no (lock contention — fatal) |
+
+The chemistry compute this offloads is tens of seconds to minutes per superstep, so **the handoff is
+1–2 orders of magnitude cheaper than the physics it moves** — off-node scaling is *not* transport-gated,
+only orchestration-gated. Two regimes: **RDMA** (2.1 s, essentially free) for a co-scheduled remote
+chem fleet — my slice/counting-barrier mechanism ports with only a shm→RDMA backend swap; and
+**S3-wide** (~32 s) for the operational prize — an **elastic/spot/GPU chemistry tier** that decouples in
+*time*, not just space (producers and consumers needn't be the same count or alive simultaneously).
+Per-cell chemistry is embarrassingly parallel, so off-node has **no core-count cap** — it runs to the
+Amdahl ceiling (3.78× here) and rises further as resolution pushes the chem fraction toward 80%+.
+
 ---
 
 ## 5. What this means for a GCHP-on-AWS user
 
 - **Pick by memory first, then throughput.** C180 fullchem → m9g (only ≥768 GB in-region). C90/C48
   fullchem → any 384 GB box (c8g best value). TT at any resolution → hpc7g (cheapest $/sim-day).
-- **Prefer Graviton.** 3–6× the x86 throughput at equal cores, and the cheapest $/sim-day at every cell.
+- **Prefer Graviton** — but for the *right* reason. On production fullchem the advantage over AMD is
+  **~1.6–1.9×** (not the 7–9× the tiny-resolution TT numbers suggest; that gap is per-timestep overhead,
+  not compute). It's very likely memory-bandwidth-driven (see §5a) and it comes at a *lower* $/hr, so
+  Graviton also holds the cheapest $/sim-day at every measured cell — the value case is strong even at
+  the honest 1.7×.
 - **Don't over-decompose fullchem.** Adding ranks past the memory-optimal point slows it or OOMs it
   (C180: 48r is faster than 96r and 192r OOMs). Match ranks to the memory-feasible layout.
 - **Decoupling is a real lever at production resolution**, where chemistry is 60–74% of the wall and the
   idle cores are otherwise stranded — up to ~2.2× today, more with more cores.
+
+## 5a. Why Graviton wins fullchem — memory bandwidth (STREAM Triad, per arch)
+
+To test whether the ~1.7× compute-bound advantage is bandwidth (not clock/FLOPs), STREAM Triad
+(sustained DRAM bandwidth, OpenMP over all cores, 1.6 GB arrays to defeat cache) on each bare instance:
+
+@@STREAM_TABLE@@
+
+**Reading it:** if the STREAM bandwidth ratio (Graviton4/AMD) tracks the fullchem throughput ratio
+(~1.7×), memory bandwidth is confirmed as the mechanism — GCHP's KPP solver is bandwidth-bound, so the
+box that feeds its cores more bytes/sec wins, and it's not about clock speed or peak FLOPs. (This
+isolates the *compute-bound* advantage; the 7–9× TT gap in §1 is separate — that's per-timestep
+dispatch latency, which STREAM does not measure.)
 
 ## 6. Appendix — C360 (characterized, not run)
 
