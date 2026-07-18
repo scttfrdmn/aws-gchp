@@ -1,0 +1,72 @@
+# PHASE C2 DEMO — SEPARATE elastic chemistry worker cluster (us-east-1a).
+# This cluster runs ONLY the s3_chem_worker.py pool (kpp_worker file-mode solves). It has its OWN
+# lifecycle, NO EFA, NO placement group, and shares NOTHING with the transport cluster except the S3
+# chemq/ bucket. That is the whole thesis: chemistry is decoupled from transport in PROVISIONING, not
+# just in code — launch it separately, on different/cheaper/spot hardware, whenever capacity appears.
+# Same aarch64 /sw stack (kpp_worker links netcdf/esmf/openmpi) via the arm bootstrap.
+# Scoped IAM: chemq/* RW only. Cheap c7g. Tear down with the demo.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.2xlarge          # tiny head; the pool runs on the compute node
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a — same AZ (S3 is regional; AZ irrelevant to the claim)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: pool
+      ComputeResources:
+        - Name: workers
+          InstanceType: c7g.16xlarge  # 64 cores of chem workers; scale MaxCount for the fleet-sweep
+          MinCount: 0
+          MaxCount: 2                 # up to 128 worker cores; bump for larger fleet-sweep
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: false            # NO EFA — proving the point
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false              # NO placement group — independent of the transport cluster
+      CapacityType: ONDEMAND          # (spot in the fault-tolerance demo variant)
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: scratch
+    StorageType: Ebs                  # workers need only local scratch for the in/out temp files
+    MountDir: /scratch
+    EbsSettings:
+      VolumeType: gp3
+      Size: 100
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: s3-workerpool-1a
