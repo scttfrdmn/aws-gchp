@@ -1,0 +1,86 @@
+/* chem_remote_s3.c — S3 transport backend for decoupled chemistry (Phase C2).
+ *
+ * The RANK side of the S3-wide handoff. Writes a slice's flat KPP input buffers to a local
+ * temp file in EXACTLY the kpp_worker FILE-mode layout, uploads it to a per-slice S3 key,
+ * then (after releasing) polls for the worker's .done marker and downloads the .out blob.
+ * The elastic worker pool (scripts/s3_chem_worker.py, launched SEPARATELY — no co-scheduling,
+ * no EFA, spot-ok) does the GET/solve/PUT. This is the operational prize: transport ranks and
+ * the chem fleet have independent lifecycles.
+ *
+ * Serialization MUST byte-match kpp_worker Run_File_Mode:
+ *   record 1: int32  h_NSPEC,h_NREACT,h_NVAR,h_NFIX,NCELL,ar_flag,ss_flag
+ *   record 2: f64    DT
+ *   record 3: f64    ATOL(NVAR)
+ *   record 4: f64    RTOL(NVAR)
+ *   record 5: f64    MW(NSPEC)
+ *   record 6: f64    C(NSPEC,NCELL)      [column-major, cell-contiguous]
+ *   record 7: f64    RCONST(NREACT,NCELL)
+ *   record 8: int32  ICNTRL(20,NCELL)
+ *   record 9: f64    RCNTRL(20,NCELL)
+ * NOTE: Fortran unformatted STREAM has NO record markers -> raw concatenation. We match that.
+ * OUT blob (from worker, full contract): int32 NSPEC,NCELL ; f64 C ; f64 RSTATE(20,N) ; i32 ISTATUS(20,N).
+ *
+ * All object I/O shells to `aws s3api` (already on the AMI, IAM via instance role) — no SDK dep,
+ * mirroring s3_chem_worker.py. Fortran-callable; policy (slicing, barrier) stays in chem_remote_mod.
+ * This backend is SELECTED only when GCHP_CHEM_TRANSPORT=s3; the shm path never calls it.
+ */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdarg.h>
+
+/* env-provided: bucket + jobid; set once by the launch script. */
+static const char *crs3_bucket(void){ const char*b=getenv("GCHP_CHEM_S3_BUCKET"); return b?b:""; }
+static const char *crs3_jobid (void){ const char*j=getenv("GCHP_JOBID"); return j?j:"0"; }
+
+/* run `aws s3api <...>`; return 0 on success. Quiet unless CRS3_DEBUG. */
+static int aws(const char *fmt, ...) {
+    char cmd[4096];
+    va_list ap; va_start(ap,fmt); vsnprintf(cmd,sizeof cmd,fmt,ap); va_end(ap);
+    if (!getenv("CRS3_DEBUG")) { strncat(cmd," >/dev/null 2>&1", sizeof cmd-strlen(cmd)-1); }
+    return system(cmd);
+}
+
+/* PUT a local file to chemq/<jobid>/r<rank>_k<sub>_s<step>.in  */
+int crs3_put_in(int rank, int sub, int step, const char *localpath) {
+    return aws("aws s3api put-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in --body %s",
+               crs3_bucket(), crs3_jobid(), rank, sub, step, localpath);
+}
+
+/* Does the worker's .done marker exist yet? 0 = yes (done), nonzero = not yet. */
+int crs3_done_exists(int rank, int sub, int step) {
+    return aws("aws s3api head-object --bucket %s --key chemq/%s/r%d_k%d_s%d.done",
+               crs3_bucket(), crs3_jobid(), rank, sub, step);
+}
+
+/* GET the worker's .out blob to a local file. 0 on success. */
+int crs3_get_out(int rank, int sub, int step, const char *localpath) {
+    return aws("aws s3api get-object --bucket %s --key chemq/%s/r%d_k%d_s%d.out %s",
+               crs3_bucket(), crs3_jobid(), rank, sub, step, localpath);
+}
+
+/* Best-effort cleanup of a slice's objects (rank owns its keys). */
+int crs3_cleanup(int rank, int sub, int step) {
+    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in",   crs3_bucket(),crs3_jobid(),rank,sub,step);
+    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.out",  crs3_bucket(),crs3_jobid(),rank,sub,step);
+    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.done", crs3_bucket(),crs3_jobid(),rank,sub,step);
+    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in.claim", crs3_bucket(),crs3_jobid(),rank,sub,step);
+    return 0;
+}
+
+/* Poll crs3_done_exists up to deadline_s (sleep step_ms between). Return 0 if done, 1 timeout. */
+int crs3_poll_done(int rank, int sub, int step, double deadline_s) {
+    struct timespec t0,t1; clock_gettime(CLOCK_MONOTONIC,&t0);
+    for (;;) {
+        if (crs3_done_exists(rank,sub,step)==0) return 0;
+        clock_gettime(CLOCK_MONOTONIC,&t1);
+        double el=(t1.tv_sec-t0.tv_sec)+(t1.tv_nsec-t0.tv_nsec)*1e-9;
+        if (el>=deadline_s) return 1;
+        struct timespec ns={0,200*1000*1000L}; nanosleep(&ns,NULL);   /* 200ms poll */
+    }
+}
