@@ -1,0 +1,29 @@
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+=== launching S3 worker pool (8 workers) for jobid 10 ===
+=== mpirun -n 6 gchp (REMOTE=1 TRANSPORT=s3 K=2) ===
+RUN_DONE exit=134 wall=409s
+=== RESULT: checkpoint MD5 (== baseline dd532a95539327633dddc98ba0a76897 ?) ===
+RESULT_S3_MD5 tag=c24s3_r6_k2_normal k=2 md5=dd532a95539327633dddc98ba0a76897 bytes=763402691
+=== S3 transport markers ===
+Chem_Remote_Init: NOTE transport=2 (0=shm 1=rdma 2=s3) -- off-node backend selected
+Chem_Remote_Init: NOTE transport=2 (0=shm 1=rdma 2=s3) -- off-node backend selected
+Chem_Remote_Init[s3]: rank 4 ready (2 slices/step -> S3 elastic pool)
+Chem_Remote_Init[s3]: rank 0 ready (2 slices/step -> S3 elastic pool)
+Chem_Remote_Init: NOTE transport=2 (0=shm 1=rdma 2=s3) -- off-node backend selected
+Chem_Remote_Init[s3]: rank 3 ready (2 slices/step -> S3 elastic pool)
+Chem_Remote_Init: NOTE transport=2 (0=shm 1=rdma 2=s3) -- off-node backend selected
+Chem_Remote_Init[s3]: rank 5 ready (2 slices/step -> S3 elastic pool)
+Chem_Remote_Init: NOTE transport=2 (0=shm 1=rdma 2=s3) -- off-node backend selected
+Chem_Remote_Init[s3]: rank 1 ready (2 slices/step -> S3 elastic pool)
+=== worker pool activity ===
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+s3_chem_worker up: bucket=gchp-shared-storage-us-east-1 prefix=chemq/10/ bin=/scratch/gchp-instr/GCHP-decoupled/build/bin/kpp_worker
+RESULT_S3_DONE tag=c24s3_r6_k2_normal mpirc=134

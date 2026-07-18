@@ -1038,10 +1038,10 @@ index 0000000..6bafd66
 +END MODULE Chem_Remote_Mod
 diff --git a/GeosCore/chem_remote_s3.c b/GeosCore/chem_remote_s3.c
 new file mode 100644
-index 0000000..cc5dbcc
+index 0000000..939dbcb
 --- /dev/null
 +++ b/GeosCore/chem_remote_s3.c
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,162 @@
 +/* chem_remote_s3.c — S3 transport backend for decoupled chemistry (Phase C2).
 + *
 + * The RANK side of the S3-wide handoff. Writes a slice's flat KPP input buffers to a local
@@ -1077,11 +1077,34 @@ index 0000000..cc5dbcc
 +#include <unistd.h>
 +#include <time.h>
 +#include <stdarg.h>
++#include <stdint.h>
 +
 +/* Plain heap buffers for S3 mode (no shm — the rank owns the data and ships copies).
 + * Mirrors the shm path's "Init returns C_PTRs, fullchem C_F_POINTERs onto them". */
 +void *crs3_alloc(size_t nbytes) { return calloc(1, nbytes); }
 +void  crs3_free (void *p)       { free(p); }
++
++/* CRITICAL: GCHP compiles ALL GeosChem Fortran with -fconvert=big-endian, so kpp_worker's
++ * unformatted READ/WRITE are BIG-ENDIAN. aarch64 is little-endian, so this C shim must
++ * byte-swap every int32/f64 it writes (and un-swap on read) to match the worker's I/O.
++ * (Phase 1a/1b never hit this: Fortran wrote AND read, both big-endian, self-consistent.
++ * Our C serialization is the first non-Fortran producer -> it MUST swap.) These write one
++ * element at a time swapped; the payload is ~200MB but dominated by the chem solve, and the
++ * whole handoff is still << compute (measured). */
++static uint32_t bswap32(uint32_t x){ return __builtin_bswap32(x); }
++static uint64_t bswap64(uint64_t x){ return __builtin_bswap64(x); }
++/* write n int32 big-endian */
++static size_t fwrite_be_i32(const int *p, size_t n, FILE *f){
++    size_t w=0; for(size_t i=0;i<n;i++){ uint32_t v=bswap32((uint32_t)p[i]); w+=fwrite(&v,4,1,f);} return w; }
++/* write n f64 big-endian */
++static size_t fwrite_be_f64(const double *p, size_t n, FILE *f){
++    size_t w=0; for(size_t i=0;i<n;i++){ uint64_t v; memcpy(&v,&p[i],8); v=bswap64(v); w+=fwrite(&v,8,1,f);} return w; }
++/* read n int32 big-endian into native */
++static size_t fread_be_i32(int *p, size_t n, FILE *f){
++    size_t r=0; uint32_t v; for(size_t i=0;i<n;i++){ if(fread(&v,4,1,f)!=1)break; v=bswap32(v); memcpy(&p[i],&v,4); r++;} return r; }
++/* read n f64 big-endian into native */
++static size_t fread_be_f64(double *p, size_t n, FILE *f){
++    size_t r=0; uint64_t v; for(size_t i=0;i<n;i++){ if(fread(&v,8,1,f)!=1)break; v=bswap64(v); memcpy(&p[i],&v,8); r++;} return r; }
 +
 +/* Serialize one slice's inputs to `path` in EXACT kpp_worker FILE-mode byte layout
 + * (Fortran unformatted stream = raw concatenation, no record markers). Buffers are the
@@ -1099,16 +1122,17 @@ index 0000000..cc5dbcc
 +    if (!f) return 1;
 +    int ncell = hi - lo;
 +    int hdr[7] = { nspec, nreact, nvar, nfix, ncell, ar, ss };
++    double dt_local = dt;
 +    size_t ok = 1;
-+    ok &= fwrite(hdr, sizeof(int), 7, f) == 7;
-+    ok &= fwrite(&dt, sizeof(double), 1, f) == 1;
-+    ok &= fwrite(atol, sizeof(double), nvar, f) == (size_t)nvar;
-+    ok &= fwrite(rtol, sizeof(double), nvar, f) == (size_t)nvar;
-+    ok &= fwrite(mw,   sizeof(double), nspec, f) == (size_t)nspec;
-+    ok &= fwrite(C      + (size_t)lo*nspec,  sizeof(double), (size_t)ncell*nspec,  f) == (size_t)ncell*nspec;
-+    ok &= fwrite(RCONST + (size_t)lo*nreact, sizeof(double), (size_t)ncell*nreact, f) == (size_t)ncell*nreact;
-+    ok &= fwrite(ICNTRL + (size_t)lo*20,     sizeof(int),    (size_t)ncell*20,     f) == (size_t)ncell*20;
-+    ok &= fwrite(RCNTRL + (size_t)lo*20,     sizeof(double), (size_t)ncell*20,     f) == (size_t)ncell*20;
++    ok &= fwrite_be_i32(hdr, 7, f) == 7;                     /* big-endian to match -fconvert */
++    ok &= fwrite_be_f64(&dt_local, 1, f) == 1;
++    ok &= fwrite_be_f64(atol, (size_t)nvar, f) == (size_t)nvar;
++    ok &= fwrite_be_f64(rtol, (size_t)nvar, f) == (size_t)nvar;
++    ok &= fwrite_be_f64(mw,   (size_t)nspec, f) == (size_t)nspec;
++    ok &= fwrite_be_f64(C      + (size_t)lo*nspec,  (size_t)ncell*nspec,  f) == (size_t)ncell*nspec;
++    ok &= fwrite_be_f64(RCONST + (size_t)lo*nreact, (size_t)ncell*nreact, f) == (size_t)ncell*nreact;
++    ok &= fwrite_be_i32(ICNTRL + (size_t)lo*20,     (size_t)ncell*20,     f) == (size_t)ncell*20;
++    ok &= fwrite_be_f64(RCNTRL + (size_t)lo*20,     (size_t)ncell*20,     f) == (size_t)ncell*20;
 +    fclose(f);
 +    return ok ? 0 : 2;
 +}
@@ -1121,11 +1145,11 @@ index 0000000..cc5dbcc
 +    FILE *f = fopen(path, "rb");
 +    if (!f) return 1;
 +    int hdr[2]; int ncell = hi - lo;
-+    size_t ok = fread(hdr, sizeof(int), 2, f) == 2;
++    size_t ok = fread_be_i32(hdr, 2, f) == 2;               /* big-endian: worker wrote BE */
 +    if (!ok || hdr[0] != nspec || hdr[1] != ncell) { fclose(f); return 3; }
-+    ok &= fread(C       + (size_t)lo*nspec, sizeof(double), (size_t)ncell*nspec, f) == (size_t)ncell*nspec;
-+    ok &= fread(RSTATE  + (size_t)lo*20,    sizeof(double), (size_t)ncell*20,    f) == (size_t)ncell*20;
-+    ok &= fread(ISTATUS + (size_t)lo*20,    sizeof(int),    (size_t)ncell*20,    f) == (size_t)ncell*20;
++    ok &= fread_be_f64(C       + (size_t)lo*nspec, (size_t)ncell*nspec, f) == (size_t)ncell*nspec;
++    ok &= fread_be_f64(RSTATE  + (size_t)lo*20,    (size_t)ncell*20,    f) == (size_t)ncell*20;
++    ok &= fread_be_i32(ISTATUS + (size_t)lo*20,    (size_t)ncell*20,    f) == (size_t)ncell*20;
 +    fclose(f);
 +    return ok ? 0 : 2;
 +}
