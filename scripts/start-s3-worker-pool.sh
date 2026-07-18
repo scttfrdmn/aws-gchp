@@ -7,7 +7,7 @@
 # Usage (on the worker-cluster head):  start-s3-worker-pool.sh <transport_jobid> <nworkers_total>
 set -uo pipefail
 BUCKET=gchp-shared-storage-us-east-1
-JOBID="${1:?need the transport cluster's GCHP_JOBID (the chemq/<jobid> prefix)}"
+JOBID="${1:?need the shared chemq jobid prefix}"
 NW="${2:-64}"                        # total worker processes across the pool
 WORKER=/scratch/kpp_worker; POOL=/scratch/s3_chem_worker.py
 # pull staged artifacts (once)
