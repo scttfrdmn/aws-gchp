@@ -1,8 +1,8 @@
 diff --git a/GeosCore/CMakeLists.txt b/GeosCore/CMakeLists.txt
-index 852c73b..dbd89ac 100644
+index 852c73b..8d2afa6 100644
 --- a/GeosCore/CMakeLists.txt
 +++ b/GeosCore/CMakeLists.txt
-@@ -1,5 +1,29 @@
+@@ -1,5 +1,30 @@
  # GeosCore/CMakeLists.txt
  
 +#-----------------------------------------------------------------------------
@@ -24,6 +24,7 @@ index 852c73b..dbd89ac 100644
 +    STATIC EXCLUDE_FROM_ALL
 +    chem_remote_mod.F90
 +    chem_remote_shm.c
++    chem_remote_s3.c
 +  )
 +  target_link_libraries(ChemRemote PUBLIC rt pthread)
 +  set_target_properties(ChemRemote PROPERTIES LINKER_LANGUAGE Fortran)
@@ -32,7 +33,7 @@ index 852c73b..dbd89ac 100644
  # Add a compilation flag to force REAL to REAL*8 if necessary
  # only for file tpcore_window_mod.F90
  if(${USE_REAL8})
-@@ -99,7 +123,7 @@ endif()
+@@ -99,7 +124,7 @@ endif()
  
  # Define dependencies for libGeosCore.a
  target_link_libraries(GeosCore PUBLIC
@@ -41,7 +42,7 @@ index 852c73b..dbd89ac 100644
    History
    KPP
    HETP_core
-@@ -107,5 +131,5 @@ target_link_libraries(GeosCore PUBLIC
+@@ -107,5 +132,5 @@ target_link_libraries(GeosCore PUBLIC
    $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
    $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
    $<$<BOOL:${GTMM}>:Hg>       # depends on Hg iff GTMM is true
@@ -50,10 +51,10 @@ index 852c73b..dbd89ac 100644
  )
 diff --git a/GeosCore/chem_remote_mod.F90 b/GeosCore/chem_remote_mod.F90
 new file mode 100644
-index 0000000..6d23e01
+index 0000000..6bafd66
 --- /dev/null
 +++ b/GeosCore/chem_remote_mod.F90
-@@ -0,0 +1,775 @@
+@@ -0,0 +1,981 @@
 +!------------------------------------------------------------------------------
 +!                  GEOS-Chem High Performance (GCHP)                          !
 +!------------------------------------------------------------------------------
@@ -116,6 +117,9 @@ index 0000000..6d23e01
 +  PUBLIC :: Chem_Ctl_T
 +  ! command codes
 +  PUBLIC :: GCR_CMD_IDLE, GCR_CMD_SOLVE, GCR_CMD_EXIT
++  ! transport backend selector (Phase C: off-node). shm is the proven default.
++  PUBLIC :: GCR_TRANSPORT_SHM, GCR_TRANSPORT_RDMA, GCR_TRANSPORT_S3
++  PUBLIC :: Chem_Remote_Transport   ! resolved backend for this run (from env)
 +!
 +! !PUBLIC DATA MEMBERS:
 +!
@@ -123,6 +127,15 @@ index 0000000..6d23e01
 +  INTEGER(C_INT), PARAMETER :: GCR_CMD_IDLE  = 0
 +  INTEGER(C_INT), PARAMETER :: GCR_CMD_SOLVE = 1
 +  INTEGER(C_INT), PARAMETER :: GCR_CMD_EXIT  = 2
++
++  ! Transport backend (Phase C). shm = on-node zero-copy (built, proven byte-identical).
++  ! rdma = co-scheduled off-node over EFA one-sided (C1). s3 = elastic off-node, no
++  ! co-scheduling (C2, the paper headline). Selected at runtime by GCHP_CHEM_TRANSPORT;
++  ! default shm so every existing run and the K=1..4 gate are byte-for-byte unchanged.
++  INTEGER, PARAMETER :: GCR_TRANSPORT_SHM  = 0
++  INTEGER, PARAMETER :: GCR_TRANSPORT_RDMA = 1
++  INTEGER, PARAMETER :: GCR_TRANSPORT_S3   = 2
++  INTEGER, SAVE      :: Chem_Remote_Transport = GCR_TRANSPORT_SHM
 +
 +  ! Magic / ABI stamp so a mismatched worker/rank build fails loud
 +  INTEGER(C_INT), PARAMETER :: GCR_MAGIC = 1112493901  ! 0x424D4B0D "chem" ish
@@ -198,6 +211,17 @@ index 0000000..6d23e01
 +
 +  ! object name stems (built from jobid+rank), kept for unlink at Final
 +  CHARACTER(LEN=192), SAVE :: stem = ''
++
++  ! S3 backend state (Phase C2). In S3 mode the buffers are plain heap (crs3_alloc),
++  ! NOT shm — the rank owns them and ships copies to S3. gcr_rank is this rank's index
++  ! (for the S3 key), gcr_step counts supersteps (unique keys per step), gcr_tmpdir is a
++  ! node-local scratch dir for the serialize/deserialize temp files.
++  INTEGER,            SAVE :: gcr_rank = -1
++  INTEGER,            SAVE :: gcr_step = 0
++  CHARACTER(LEN=256), SAVE :: gcr_tmpdir = '/tmp'
++  ! kept C_PTRs to the 6 heap buffers (S3 mode) for serialize + free
++  TYPE(C_PTR), SAVE :: s3_C=C_NULL_PTR, s3_RCONST=C_NULL_PTR, s3_ICNTRL=C_NULL_PTR
++  TYPE(C_PTR), SAVE :: s3_RCNTRL=C_NULL_PTR, s3_ISTAT=C_NULL_PTR, s3_RSTATE=C_NULL_PTR
 +
 +  ! rank-side timeout (seconds), from env GCHP_CHEM_DEADLINE_S (default 60)
 +  REAL(C_DOUBLE), SAVE :: deadline_s = 60.0_C_DOUBLE
@@ -301,6 +325,58 @@ index 0000000..6d23e01
 +       IMPORT :: C_INT
 +       INTEGER(C_INT), VALUE :: ms
 +     END SUBROUTINE crshm_msleep_ms
++
++     ! --- S3 transport backend (chem_remote_s3.c; Phase C2) ---
++     FUNCTION crs3_alloc(nbytes) BIND(C, name="crs3_alloc")
++       IMPORT :: C_PTR, C_SIZE_T
++       TYPE(C_PTR)              :: crs3_alloc
++       INTEGER(C_SIZE_T), VALUE :: nbytes
++     END FUNCTION crs3_alloc
++     SUBROUTINE crs3_free(p) BIND(C, name="crs3_free")
++       IMPORT :: C_PTR
++       TYPE(C_PTR), VALUE :: p
++     END SUBROUTINE crs3_free
++     FUNCTION crs3_write_in(path,nspec,nreact,nvar,nfix,lo,hi,ar,ss,dt,        &
++                            atol,rtol,mw,C,RCONST,ICNTRL,RCNTRL)               &
++                            BIND(C, name="crs3_write_in")
++       IMPORT :: C_INT, C_CHAR, C_DOUBLE, C_PTR
++       INTEGER(C_INT)                     :: crs3_write_in
++       CHARACTER(KIND=C_CHAR), INTENT(IN) :: path(*)
++       INTEGER(C_INT), VALUE :: nspec,nreact,nvar,nfix,lo,hi,ar,ss
++       REAL(C_DOUBLE), VALUE :: dt
++       TYPE(C_PTR),    VALUE :: atol,rtol,mw,C,RCONST,ICNTRL,RCNTRL
++     END FUNCTION crs3_write_in
++     FUNCTION crs3_read_out(path,nspec,lo,hi,C,RSTATE,ISTATUS)                 &
++                            BIND(C, name="crs3_read_out")
++       IMPORT :: C_INT, C_CHAR, C_PTR
++       INTEGER(C_INT)                     :: crs3_read_out
++       CHARACTER(KIND=C_CHAR), INTENT(IN) :: path(*)
++       INTEGER(C_INT), VALUE :: nspec,lo,hi
++       TYPE(C_PTR),    VALUE :: C,RSTATE,ISTATUS
++     END FUNCTION crs3_read_out
++     FUNCTION crs3_put_in(rank,sub,step,localpath) BIND(C, name="crs3_put_in")
++       IMPORT :: C_INT, C_CHAR
++       INTEGER(C_INT)                     :: crs3_put_in
++       INTEGER(C_INT), VALUE              :: rank,sub,step
++       CHARACTER(KIND=C_CHAR), INTENT(IN) :: localpath(*)
++     END FUNCTION crs3_put_in
++     FUNCTION crs3_get_out(rank,sub,step,localpath) BIND(C, name="crs3_get_out")
++       IMPORT :: C_INT, C_CHAR
++       INTEGER(C_INT)                     :: crs3_get_out
++       INTEGER(C_INT), VALUE              :: rank,sub,step
++       CHARACTER(KIND=C_CHAR), INTENT(IN) :: localpath(*)
++     END FUNCTION crs3_get_out
++     FUNCTION crs3_poll_done(rank,sub,step,deadline_s) BIND(C, name="crs3_poll_done")
++       IMPORT :: C_INT, C_DOUBLE
++       INTEGER(C_INT)        :: crs3_poll_done
++       INTEGER(C_INT), VALUE :: rank,sub,step
++       REAL(C_DOUBLE), VALUE :: deadline_s
++     END FUNCTION crs3_poll_done
++     FUNCTION crs3_cleanup(rank,sub,step) BIND(C, name="crs3_cleanup")
++       IMPORT :: C_INT
++       INTEGER(C_INT)        :: crs3_cleanup
++       INTEGER(C_INT), VALUE :: rank,sub,step
++     END FUNCTION crs3_cleanup
 +  END INTERFACE
 +
 +CONTAINS
@@ -421,7 +497,62 @@ index 0000000..6d23e01
 +       IF ( nworkers > GCR_MAXW ) nworkers = GCR_MAXW
 +    END IF
 +
++    ! Transport backend (Phase C). Default shm (on-node, proven). rdma/s3 are off-node.
++    Chem_Remote_Transport = GCR_TRANSPORT_SHM
++    CALL get_environment_variable('GCHP_CHEM_TRANSPORT', dbuf, dlen, dstat)
++    IF ( dstat == 0 .AND. dlen > 0 ) THEN
++       SELECT CASE ( TRIM(ADJUSTL(dbuf)) )
++       CASE ('rdma','RDMA'); Chem_Remote_Transport = GCR_TRANSPORT_RDMA
++       CASE ('s3','S3');     Chem_Remote_Transport = GCR_TRANSPORT_S3
++       CASE DEFAULT;         Chem_Remote_Transport = GCR_TRANSPORT_SHM
++       END SELECT
++    END IF
++    IF ( Chem_Remote_Transport /= GCR_TRANSPORT_SHM ) THEN
++       WRITE(6,'(a,i0,a)') 'Chem_Remote_Init: NOTE transport=', Chem_Remote_Transport, &
++            ' (0=shm 1=rdma 2=s3) -- off-node backend selected'
++    END IF
++
 +    CALL compute_sizes(nspec, nreact, nvar, ncell_total)
++
++    ! ================= S3 BACKEND INIT (Phase C2) =================
++    ! No shm, no semaphores, no co-located worker. Allocate PLAIN HEAP buffers (the rank
++    ! owns them; it serializes+ships copies to S3 each superstep). Return their C_PTRs so
++    ! fullchem C_F_POINTERs onto them exactly as in the shm path. const (ATOL/RTOL/MW) also
++    ! heap, filled later by SetConst. gcr_const/gcr_slices are plain heap here too (Solve
++    ! uses the slice math + const arrays but never shm). Then EARLY RETURN.
++    IF ( Chem_Remote_Transport == GCR_TRANSPORT_S3 ) THEN
++       gcr_rank = rank
++       gcr_step = 0
++       CALL get_environment_variable('GCHP_CHEM_TMPDIR', dbuf, dlen, dstat)
++       IF ( dstat == 0 .AND. dlen > 0 ) gcr_tmpdir = TRIM(dbuf)
++       s3_C      = crs3_alloc(sz_C);      s3_RCONST = crs3_alloc(sz_RCONST)
++       s3_ICNTRL = crs3_alloc(sz_ICNTRL); s3_RCNTRL = crs3_alloc(sz_RCNTRL)
++       s3_ISTAT  = crs3_alloc(sz_ISTAT);  s3_RSTATE = crs3_alloc(sz_RSTATE)
++       p_const   = crs3_alloc(sz_const)
++       p_slices  = crs3_alloc(sz_slices)
++       IF ( .NOT.(C_ASSOCIATED(s3_C).AND.C_ASSOCIATED(s3_RCONST).AND.            &
++                  C_ASSOCIATED(s3_ICNTRL).AND.C_ASSOCIATED(s3_RCNTRL).AND.       &
++                  C_ASSOCIATED(s3_ISTAT).AND.C_ASSOCIATED(s3_RSTATE).AND.        &
++                  C_ASSOCIATED(p_const).AND.C_ASSOCIATED(p_slices)) ) THEN
++          WRITE(6,*) 'Chem_Remote_Init[s3]: heap alloc failed; remote OFF (rank ',rank,')'
++          RETURN
++       END IF
++       CALL C_F_POINTER(p_const,  gcr_const,  [2*nvar + nspec])
++       CALL C_F_POINTER(p_slices, gcr_slices, [2*GCR_MAXW])
++       gcr_slices(:) = 0_C_INT
++       ! stash the mechanism counts locally (no ctl page in S3 mode); reuse a heap ctl
++       p_ctl = crs3_alloc(sz_ctl); CALL C_F_POINTER(p_ctl, gcr_ctl)
++       gcr_ctl%nspec=INT(nspec,C_INT);  gcr_ctl%nreact=INT(nreact,C_INT)
++       gcr_ctl%nvar =INT(nvar,C_INT);   gcr_ctl%nfix  =INT(nfix,C_INT)
++       gcr_ctl%ncell_total=INT(ncell_total,C_INT); gcr_ctl%nworkers=INT(nworkers,C_INT)
++       cp_C=s3_C; cp_RCONST=s3_RCONST; cp_ICNTRL=s3_ICNTRL
++       cp_RCNTRL=s3_RCNTRL; cp_ISTAT=s3_ISTAT; cp_RSTATE=s3_RSTATE
++       Chem_Remote_Active = .TRUE.; ok = .TRUE.
++       WRITE(6,'(a,i0,a,i0,a)') 'Chem_Remote_Init[s3]: rank ',rank,' ready (',   &
++            nworkers,' slices/step -> S3 elastic pool)'
++       RETURN
++    END IF
++    ! ==============================================================
 +
 +    ! --- create the 9 segments (unlink-stale is inside crshm_create) ---
 +    p_ctl    = crshm_create(cstr(TRIM(stem)//'_ctl'   ), sz_ctl   )
@@ -542,6 +673,22 @@ index 0000000..6d23e01
 +       cur = hi
 +    END DO
 +
++    ! ================= S3 BACKEND SOLVE (Phase C2) =================
++    ! Off-node, no co-scheduling. For each slice: serialize [lo,hi) to a temp file in
++    ! kpp_worker FILE-mode layout, PUT to S3; after ALL slices are PUT, the elastic worker
++    ! pool (running independently) claims/solves/PUTs .out+.done; then poll each slice's
++    ! .done + GET .out + deserialize into this rank's heap buffers at [lo,hi). One timeout
++    ! -> in-process fallback (rank re-solves 1:ncell_local, same safety valve as shm).
++    IF ( Chem_Remote_Transport == GCR_TRANSPORT_S3 ) THEN
++       CALL SYSTEM_CLOCK(t0, handoff_rate)
++       CALL Chem_Remote_Solve_S3( ncell_local, dt, ar_flag, ss_flag, solved_remotely )
++       CALL SYSTEM_CLOCK(t1)
++       handoff_ticks = handoff_ticks + (t1 - t0); handoff_count = handoff_count + 1
++       gcr_step = gcr_step + 1
++       RETURN
++    END IF
++    ! ==============================================================
++
 +    ! publish this step's work descriptor, then release ALL workers (K posts)
 +    gcr_ctl%ncell_local   = INT(ncell_local, C_INT)
 +    gcr_ctl%dt            = dt
@@ -590,6 +737,53 @@ index 0000000..6d23e01
 +    END IF
 +  END SUBROUTINE Chem_Remote_Solve
 +!EOC
++
++  ! S3-mode superstep: serialize each slice -> PUT all -> poll+GET all -> deserialize.
++  ! Buffers are the heap arrays (s3_*); const is gcr_const. gcr_ctl/gcr_slices give the
++  ! mechanism counts + slice bounds. solved_remotely=.TRUE. only if EVERY slice round-trips.
++  SUBROUTINE Chem_Remote_Solve_S3( ncell_local, dt, ar_flag, ss_flag, solved_remotely )
++    INTEGER,        INTENT(IN)  :: ncell_local, ar_flag, ss_flag
++    REAL(C_DOUBLE), INTENT(IN)  :: dt
++    LOGICAL,        INTENT(OUT) :: solved_remotely
++    INTEGER :: k, lo, hi, nsp, nre, nvr, rc
++    CHARACTER(LEN=320) :: inpath, outpath
++    TYPE(C_PTR) :: p_atol, p_rtol, p_mw
++    solved_remotely = .FALSE.
++    nsp = INT(gcr_ctl%nspec); nre = INT(gcr_ctl%nreact); nvr = INT(gcr_ctl%nvar)
++    ! const sub-array pointers (gcr_const = [ATOL(nvar) RTOL(nvar) MW(nspec)])
++    p_atol = C_LOC(gcr_const(1)); p_rtol = C_LOC(gcr_const(nvr+1)); p_mw = C_LOC(gcr_const(2*nvr+1))
++
++    ! 1) serialize + PUT every slice (all in flight before we poll -> workers parallelize)
++    DO k = 0, nworkers-1
++       lo = INT(gcr_slices(2*k+1)); hi = INT(gcr_slices(2*k+2))
++       IF ( hi <= lo ) CYCLE                         ! empty slice (K > ncell): nothing to ship
++       WRITE(inpath,'(a,a,i0,a,i0,a,i0,a)') TRIM(gcr_tmpdir),'/crs3_r',gcr_rank,'_k',k,'_s',gcr_step,'.in'
++       rc = crs3_write_in( cstr(TRIM(inpath)), nsp, nre, nvr, INT(gcr_ctl%nfix), &
++              lo, hi, ar_flag, ss_flag, dt, p_atol, p_rtol, p_mw,                 &
++              s3_C, s3_RCONST, s3_ICNTRL, s3_RCNTRL )
++       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_write_in failed k=',k,' rc=',rc; RETURN; END IF
++       rc = crs3_put_in( gcr_rank, k, gcr_step, cstr(TRIM(inpath)) )
++       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_put_in failed k=',k,' rc=',rc; RETURN; END IF
++    END DO
++
++    ! 2) poll each slice's .done (bounded) + GET .out + deserialize into [lo,hi)
++    DO k = 0, nworkers-1
++       lo = INT(gcr_slices(2*k+1)); hi = INT(gcr_slices(2*k+2))
++       IF ( hi <= lo ) CYCLE
++       rc = crs3_poll_done( gcr_rank, k, gcr_step, deadline_s )
++       IF ( rc /= 0 ) THEN
++          WRITE(6,*) 'crs3_poll_done TIMEOUT k=',k,' step=',gcr_step,' -> in-process fallback'
++          RETURN
++       END IF
++       WRITE(outpath,'(a,a,i0,a,i0,a,i0,a)') TRIM(gcr_tmpdir),'/crs3_r',gcr_rank,'_k',k,'_s',gcr_step,'.out'
++       rc = crs3_get_out( gcr_rank, k, gcr_step, cstr(TRIM(outpath)) )
++       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_get_out failed k=',k,' rc=',rc; RETURN; END IF
++       rc = crs3_read_out( cstr(TRIM(outpath)), nsp, lo, hi, s3_C, s3_RSTATE, s3_ISTAT )
++       IF ( rc /= 0 ) THEN; WRITE(6,*) 'crs3_read_out failed k=',k,' rc=',rc; RETURN; END IF
++       rc = crs3_cleanup( gcr_rank, k, gcr_step )     ! best-effort key cleanup
++    END DO
++    solved_remotely = .TRUE.
++  END SUBROUTINE Chem_Remote_Solve_S3
 +!BOP
 +! !IROUTINE: Chem_Remote_Final
 +! !DESCRIPTION: Signal the worker to exit (sentinel), then close/unlink the
@@ -608,6 +802,19 @@ index 0000000..6d23e01
 +       WRITE(6,'(a,i0,a,f0.4,a,f0.3,a)')                                       &
 +            '### PHASE1B HANDOFF: ', handoff_count, ' supersteps, total ',     &
 +            total_s, ' s, mean ', mean_ms, ' ms/superstep (post->done wall)'
++    END IF
++
++    ! S3 mode: no sems/shm to sentinel-or-unlink. Free the heap buffers + done.
++    ! (The elastic worker pool exits on its own --idle-exit or is torn down with its
++    ! cluster; there is no co-scheduled worker to signal.)
++    IF ( Chem_Remote_Transport == GCR_TRANSPORT_S3 ) THEN
++       CALL crs3_free(s3_C);      CALL crs3_free(s3_RCONST)
++       CALL crs3_free(s3_ICNTRL); CALL crs3_free(s3_RCNTRL)
++       CALL crs3_free(s3_ISTAT);  CALL crs3_free(s3_RSTATE)
++       CALL crs3_free(p_const);   CALL crs3_free(p_slices); CALL crs3_free(p_ctl)
++       NULLIFY(gcr_ctl); NULLIFY(gcr_const); NULLIFY(gcr_slices)
++       Chem_Remote_Active = .FALSE.
++       RETURN
 +    END IF
 +
 +    ! sentinel: tell ALL workers to break their service loop. Each worker consumes
@@ -829,6 +1036,150 @@ index 0000000..6d23e01
 +  END SUBROUTINE msleep_100ms
 +
 +END MODULE Chem_Remote_Mod
+diff --git a/GeosCore/chem_remote_s3.c b/GeosCore/chem_remote_s3.c
+new file mode 100644
+index 0000000..cc5dbcc
+--- /dev/null
++++ b/GeosCore/chem_remote_s3.c
+@@ -0,0 +1,138 @@
++/* chem_remote_s3.c — S3 transport backend for decoupled chemistry (Phase C2).
++ *
++ * The RANK side of the S3-wide handoff. Writes a slice's flat KPP input buffers to a local
++ * temp file in EXACTLY the kpp_worker FILE-mode layout, uploads it to a per-slice S3 key,
++ * then (after releasing) polls for the worker's .done marker and downloads the .out blob.
++ * The elastic worker pool (scripts/s3_chem_worker.py, launched SEPARATELY — no co-scheduling,
++ * no EFA, spot-ok) does the GET/solve/PUT. This is the operational prize: transport ranks and
++ * the chem fleet have independent lifecycles.
++ *
++ * Serialization MUST byte-match kpp_worker Run_File_Mode:
++ *   record 1: int32  h_NSPEC,h_NREACT,h_NVAR,h_NFIX,NCELL,ar_flag,ss_flag
++ *   record 2: f64    DT
++ *   record 3: f64    ATOL(NVAR)
++ *   record 4: f64    RTOL(NVAR)
++ *   record 5: f64    MW(NSPEC)
++ *   record 6: f64    C(NSPEC,NCELL)      [column-major, cell-contiguous]
++ *   record 7: f64    RCONST(NREACT,NCELL)
++ *   record 8: int32  ICNTRL(20,NCELL)
++ *   record 9: f64    RCNTRL(20,NCELL)
++ * NOTE: Fortran unformatted STREAM has NO record markers -> raw concatenation. We match that.
++ * OUT blob (from worker, full contract): int32 NSPEC,NCELL ; f64 C ; f64 RSTATE(20,N) ; i32 ISTATUS(20,N).
++ *
++ * All object I/O shells to `aws s3api` (already on the AMI, IAM via instance role) — no SDK dep,
++ * mirroring s3_chem_worker.py. Fortran-callable; policy (slicing, barrier) stays in chem_remote_mod.
++ * This backend is SELECTED only when GCHP_CHEM_TRANSPORT=s3; the shm path never calls it.
++ */
++#ifndef _POSIX_C_SOURCE
++#define _POSIX_C_SOURCE 200112L
++#endif
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++#include <time.h>
++#include <stdarg.h>
++
++/* Plain heap buffers for S3 mode (no shm — the rank owns the data and ships copies).
++ * Mirrors the shm path's "Init returns C_PTRs, fullchem C_F_POINTERs onto them". */
++void *crs3_alloc(size_t nbytes) { return calloc(1, nbytes); }
++void  crs3_free (void *p)       { free(p); }
++
++/* Serialize one slice's inputs to `path` in EXACT kpp_worker FILE-mode byte layout
++ * (Fortran unformatted stream = raw concatenation, no record markers). Buffers are the
++ * rank's full-domain arrays; we write only columns [lo,hi) (0-based half-open), so NCELL=hi-lo.
++ *   hdr: i32 nspec,nreact,nvar,nfix,ncell,ar,ss ; f64 dt ; f64 atol(nvar),rtol(nvar),mw(nspec) ;
++ *   f64 C(nspec,ncell) ; f64 RCONST(nreact,ncell) ; i32 ICNTRL(20,ncell) ; f64 RCNTRL(20,ncell)
++ * The column-major full arrays have stride = leading dim; column j lives at base + j*ld, so the
++ * slice [lo,hi) is a contiguous block base+lo*ld .. base+hi*ld (cell-contiguous) — one fwrite each. */
++int crs3_write_in(const char *path, int nspec, int nreact, int nvar, int nfix,
++                  int lo, int hi, int ar, int ss, double dt,
++                  const double *atol, const double *rtol, const double *mw,
++                  const double *C, const double *RCONST,
++                  const int *ICNTRL, const double *RCNTRL) {
++    FILE *f = fopen(path, "wb");
++    if (!f) return 1;
++    int ncell = hi - lo;
++    int hdr[7] = { nspec, nreact, nvar, nfix, ncell, ar, ss };
++    size_t ok = 1;
++    ok &= fwrite(hdr, sizeof(int), 7, f) == 7;
++    ok &= fwrite(&dt, sizeof(double), 1, f) == 1;
++    ok &= fwrite(atol, sizeof(double), nvar, f) == (size_t)nvar;
++    ok &= fwrite(rtol, sizeof(double), nvar, f) == (size_t)nvar;
++    ok &= fwrite(mw,   sizeof(double), nspec, f) == (size_t)nspec;
++    ok &= fwrite(C      + (size_t)lo*nspec,  sizeof(double), (size_t)ncell*nspec,  f) == (size_t)ncell*nspec;
++    ok &= fwrite(RCONST + (size_t)lo*nreact, sizeof(double), (size_t)ncell*nreact, f) == (size_t)ncell*nreact;
++    ok &= fwrite(ICNTRL + (size_t)lo*20,     sizeof(int),    (size_t)ncell*20,     f) == (size_t)ncell*20;
++    ok &= fwrite(RCNTRL + (size_t)lo*20,     sizeof(double), (size_t)ncell*20,     f) == (size_t)ncell*20;
++    fclose(f);
++    return ok ? 0 : 2;
++}
++
++/* Read the worker's .out blob at `path` back into the rank's full arrays at columns [lo,hi).
++ *   out layout: i32 nspec,ncell ; f64 C(nspec,ncell) ; f64 RSTATE(20,ncell) ; i32 ISTATUS(20,ncell)
++ * Writes into C[lo*nspec..], RSTATE[lo*20..], ISTATUS[lo*20..]. Verifies nspec/ncell match. */
++int crs3_read_out(const char *path, int nspec, int lo, int hi,
++                  double *C, double *RSTATE, int *ISTATUS) {
++    FILE *f = fopen(path, "rb");
++    if (!f) return 1;
++    int hdr[2]; int ncell = hi - lo;
++    size_t ok = fread(hdr, sizeof(int), 2, f) == 2;
++    if (!ok || hdr[0] != nspec || hdr[1] != ncell) { fclose(f); return 3; }
++    ok &= fread(C       + (size_t)lo*nspec, sizeof(double), (size_t)ncell*nspec, f) == (size_t)ncell*nspec;
++    ok &= fread(RSTATE  + (size_t)lo*20,    sizeof(double), (size_t)ncell*20,    f) == (size_t)ncell*20;
++    ok &= fread(ISTATUS + (size_t)lo*20,    sizeof(int),    (size_t)ncell*20,    f) == (size_t)ncell*20;
++    fclose(f);
++    return ok ? 0 : 2;
++}
++
++/* env-provided: bucket + jobid; set once by the launch script. */
++static const char *crs3_bucket(void){ const char*b=getenv("GCHP_CHEM_S3_BUCKET"); return b?b:""; }
++static const char *crs3_jobid (void){ const char*j=getenv("GCHP_JOBID"); return j?j:"0"; }
++
++/* run `aws s3api <...>`; return 0 on success. Quiet unless CRS3_DEBUG. */
++static int aws(const char *fmt, ...) {
++    char cmd[4096];
++    va_list ap; va_start(ap,fmt); vsnprintf(cmd,sizeof cmd,fmt,ap); va_end(ap);
++    if (!getenv("CRS3_DEBUG")) { strncat(cmd," >/dev/null 2>&1", sizeof cmd-strlen(cmd)-1); }
++    return system(cmd);
++}
++
++/* PUT a local file to chemq/<jobid>/r<rank>_k<sub>_s<step>.in  */
++int crs3_put_in(int rank, int sub, int step, const char *localpath) {
++    return aws("aws s3api put-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in --body %s",
++               crs3_bucket(), crs3_jobid(), rank, sub, step, localpath);
++}
++
++/* Does the worker's .done marker exist yet? 0 = yes (done), nonzero = not yet. */
++int crs3_done_exists(int rank, int sub, int step) {
++    return aws("aws s3api head-object --bucket %s --key chemq/%s/r%d_k%d_s%d.done",
++               crs3_bucket(), crs3_jobid(), rank, sub, step);
++}
++
++/* GET the worker's .out blob to a local file. 0 on success. */
++int crs3_get_out(int rank, int sub, int step, const char *localpath) {
++    return aws("aws s3api get-object --bucket %s --key chemq/%s/r%d_k%d_s%d.out %s",
++               crs3_bucket(), crs3_jobid(), rank, sub, step, localpath);
++}
++
++/* Best-effort cleanup of a slice's objects (rank owns its keys). */
++int crs3_cleanup(int rank, int sub, int step) {
++    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in",   crs3_bucket(),crs3_jobid(),rank,sub,step);
++    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.out",  crs3_bucket(),crs3_jobid(),rank,sub,step);
++    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.done", crs3_bucket(),crs3_jobid(),rank,sub,step);
++    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in.claim", crs3_bucket(),crs3_jobid(),rank,sub,step);
++    return 0;
++}
++
++/* Poll crs3_done_exists up to deadline_s (sleep step_ms between). Return 0 if done, 1 timeout. */
++int crs3_poll_done(int rank, int sub, int step, double deadline_s) {
++    struct timespec t0,t1; clock_gettime(CLOCK_MONOTONIC,&t0);
++    for (;;) {
++        if (crs3_done_exists(rank,sub,step)==0) return 0;
++        clock_gettime(CLOCK_MONOTONIC,&t1);
++        double el=(t1.tv_sec-t0.tv_sec)+(t1.tv_nsec-t0.tv_nsec)*1e-9;
++        if (el>=deadline_s) return 1;
++        struct timespec ns={0,200*1000*1000L}; nanosleep(&ns,NULL);   /* 200ms poll */
++    }
++}
 diff --git a/GeosCore/chem_remote_shm.c b/GeosCore/chem_remote_shm.c
 new file mode 100644
 index 0000000..b76c609
@@ -1518,10 +1869,10 @@ index 2fd7962..c73c68a 100644
  END MODULE FullChem_Mod
 diff --git a/GeosCore/kpp_worker.F90 b/GeosCore/kpp_worker.F90
 new file mode 100644
-index 0000000..28d0076
+index 0000000..e551dba
 --- /dev/null
 +++ b/GeosCore/kpp_worker.F90
-@@ -0,0 +1,334 @@
+@@ -0,0 +1,341 @@
 +PROGRAM KPP_Worker
 +  !
 +  ! Decoupled-Chemistry KPP worker.
@@ -1752,8 +2103,15 @@ index 0000000..28d0076
 +    IF ( ios /= 0 ) THEN
 +       WRITE(6,*) 'kpp_worker: cannot open output ', outfile; STOP 5
 +    ENDIF
++    ! FULL output contract (Phase 1b/C): C_1D + RSTATE_1D + ISTATUS_1D. RSTATE feeds
++    ! State_Chm%KPPHvalue -> the restart, ISTATUS feeds the KPP History diagnostic, so
++    ! the S3/off-node path (which reconstructs the rank's buffers from this file) needs
++    ! all three for checkpoint byte-identity -- exactly what SERVICE mode writes back.
++    ! (Phase 1a wrote only C_1D because it byte-compared just C; harmless superset now.)
 +    WRITE(du) NSPEC, NCELL
 +    WRITE(du) C_1D
++    WRITE(du) RSTATE_1D
++    WRITE(du) ISTATUS_1D
 +    CLOSE(du)
 +    WRITE(6,*) 'kpp_worker: solved ', NCELL, ' cells -> ', outfile
 +  END SUBROUTINE Run_File_Mode

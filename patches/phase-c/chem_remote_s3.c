@@ -34,6 +34,58 @@
 #include <time.h>
 #include <stdarg.h>
 
+/* Plain heap buffers for S3 mode (no shm — the rank owns the data and ships copies).
+ * Mirrors the shm path's "Init returns C_PTRs, fullchem C_F_POINTERs onto them". */
+void *crs3_alloc(size_t nbytes) { return calloc(1, nbytes); }
+void  crs3_free (void *p)       { free(p); }
+
+/* Serialize one slice's inputs to `path` in EXACT kpp_worker FILE-mode byte layout
+ * (Fortran unformatted stream = raw concatenation, no record markers). Buffers are the
+ * rank's full-domain arrays; we write only columns [lo,hi) (0-based half-open), so NCELL=hi-lo.
+ *   hdr: i32 nspec,nreact,nvar,nfix,ncell,ar,ss ; f64 dt ; f64 atol(nvar),rtol(nvar),mw(nspec) ;
+ *   f64 C(nspec,ncell) ; f64 RCONST(nreact,ncell) ; i32 ICNTRL(20,ncell) ; f64 RCNTRL(20,ncell)
+ * The column-major full arrays have stride = leading dim; column j lives at base + j*ld, so the
+ * slice [lo,hi) is a contiguous block base+lo*ld .. base+hi*ld (cell-contiguous) — one fwrite each. */
+int crs3_write_in(const char *path, int nspec, int nreact, int nvar, int nfix,
+                  int lo, int hi, int ar, int ss, double dt,
+                  const double *atol, const double *rtol, const double *mw,
+                  const double *C, const double *RCONST,
+                  const int *ICNTRL, const double *RCNTRL) {
+    FILE *f = fopen(path, "wb");
+    if (!f) return 1;
+    int ncell = hi - lo;
+    int hdr[7] = { nspec, nreact, nvar, nfix, ncell, ar, ss };
+    size_t ok = 1;
+    ok &= fwrite(hdr, sizeof(int), 7, f) == 7;
+    ok &= fwrite(&dt, sizeof(double), 1, f) == 1;
+    ok &= fwrite(atol, sizeof(double), nvar, f) == (size_t)nvar;
+    ok &= fwrite(rtol, sizeof(double), nvar, f) == (size_t)nvar;
+    ok &= fwrite(mw,   sizeof(double), nspec, f) == (size_t)nspec;
+    ok &= fwrite(C      + (size_t)lo*nspec,  sizeof(double), (size_t)ncell*nspec,  f) == (size_t)ncell*nspec;
+    ok &= fwrite(RCONST + (size_t)lo*nreact, sizeof(double), (size_t)ncell*nreact, f) == (size_t)ncell*nreact;
+    ok &= fwrite(ICNTRL + (size_t)lo*20,     sizeof(int),    (size_t)ncell*20,     f) == (size_t)ncell*20;
+    ok &= fwrite(RCNTRL + (size_t)lo*20,     sizeof(double), (size_t)ncell*20,     f) == (size_t)ncell*20;
+    fclose(f);
+    return ok ? 0 : 2;
+}
+
+/* Read the worker's .out blob at `path` back into the rank's full arrays at columns [lo,hi).
+ *   out layout: i32 nspec,ncell ; f64 C(nspec,ncell) ; f64 RSTATE(20,ncell) ; i32 ISTATUS(20,ncell)
+ * Writes into C[lo*nspec..], RSTATE[lo*20..], ISTATUS[lo*20..]. Verifies nspec/ncell match. */
+int crs3_read_out(const char *path, int nspec, int lo, int hi,
+                  double *C, double *RSTATE, int *ISTATUS) {
+    FILE *f = fopen(path, "rb");
+    if (!f) return 1;
+    int hdr[2]; int ncell = hi - lo;
+    size_t ok = fread(hdr, sizeof(int), 2, f) == 2;
+    if (!ok || hdr[0] != nspec || hdr[1] != ncell) { fclose(f); return 3; }
+    ok &= fread(C       + (size_t)lo*nspec, sizeof(double), (size_t)ncell*nspec, f) == (size_t)ncell*nspec;
+    ok &= fread(RSTATE  + (size_t)lo*20,    sizeof(double), (size_t)ncell*20,    f) == (size_t)ncell*20;
+    ok &= fread(ISTATUS + (size_t)lo*20,    sizeof(int),    (size_t)ncell*20,    f) == (size_t)ncell*20;
+    fclose(f);
+    return ok ? 0 : 2;
+}
+
 /* env-provided: bucket + jobid; set once by the launch script. */
 static const char *crs3_bucket(void){ const char*b=getenv("GCHP_CHEM_S3_BUCKET"); return b?b:""; }
 static const char *crs3_jobid (void){ const char*j=getenv("GCHP_JOBID"); return j?j:"0"; }
