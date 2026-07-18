@@ -1,0 +1,3 @@
+STREAM Phase D: NO_RESULT x5 — cluster-access SG (sg-0c7cedcbee728d27f) blocks SSH from this IP.
+FIX for retry: use S3 sink (attach S3-write IAM role + PUT result) OR find/make an SG open to my IP.
+Instances DID run STREAM (self-contained user-data); only the SSH RETRIEVAL failed. All terminated, no leak.
