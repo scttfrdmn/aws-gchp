@@ -62,12 +62,18 @@ Options: `--cs-res` (24/48/90/180/360), `--mechanism fullchem|transporttracers`,
 
 ## Known-weak spots (the tool states these itself)
 
-1. **Fullchem throughput = one measured point** (m9g/48r/1N). All other fullchem d/d
-   is EXTRAPOLATED via the ~34× TT ratio or UNKNOWN.
-2. **Chem memory multiplier fit from one ramp**; the resolution² scaling for fullchem
-   memory is theory → off-C180 fullchem memory is EXTRAPOLATED.
+1. **Fullchem throughput now measured at 10 points across C24/C48/C90/C180** (Phase 3+4:
+   m9g ladder + c8g/c7a cross-arch). Cells without a measured point EXTRAPOLATE via the
+   **per-resolution** TT/fullchem ratio (1.9× C24 → 113× C180; the old flat 34× is a fallback
+   that can mis-predict ~10× and says so). C360 = UNKNOWN (no restart; loud extrapolation only).
+2. **Chem memory model validated** against C180 anchors: 48r=556 GB exact, 192r pred 801 vs
+   measured 715 GB high-water (+12%, conservative → correctly predicts >768 GB OOM). Off-C180
+   fullchem memory is still EXTRAPOLATED via resolution² but now anchored at both ends.
 3. **Node-scaling has 2 points** (1N, 2N) → trusted for ÷nodes, not beyond 4N.
-4. **Prices** verified live 2026-07-15 but drift; each carries a date + confidence.
+4. **Prices** verified live 2026-07-15/16 but drift; each carries a date + confidence.
+5. **Decoupling speedup measured** (C90 fullchem, 2.23× at K=4, byte-identical) — the calculator
+   does not yet model M>N speedup; it reports the baseline (inline) throughput. See
+   `gchp-aws-scaling-campaign-results.md` §4.
 
 ## Reuse / architecture
 
