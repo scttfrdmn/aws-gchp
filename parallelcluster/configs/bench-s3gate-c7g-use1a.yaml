@@ -18,7 +18,8 @@ HeadNode:
     KeyName: aws-gchp
   Iam:
     AdditionalIamPolicies:
-      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess      # rank PUT/GET + worker claim on chemq/
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess               # stacks/gmi bootstrap reads
+      - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq     # scoped chemq/* RW
       - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
   CustomActions:
     OnNodeConfigured:
@@ -44,6 +45,9 @@ Scheduling:
         PlacementGroup:
           Enabled: false
       CapacityType: ONDEMAND
+      Iam:                            # COMPUTE fleet needs S3 write for the chem queue —
+        AdditionalIamPolicies:        # the HeadNode role does NOT propagate to compute nodes.
+          - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq   # scoped: chemq/* only
 
 SharedStorage:
   - Name: software

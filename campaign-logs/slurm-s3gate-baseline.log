@@ -1,0 +1,5 @@
+=== RESULT: checkpoint MD5 (== baseline dd532a95539327633dddc98ba0a76897 ?) ===
+RESULT_S3_MD5 tag=c24s3_r6_k1_baseline k=1 md5=dd532a95539327633dddc98ba0a76897 bytes=763402691
+=== S3 transport markers ===
+=== worker pool activity ===
+RESULT_S3_DONE tag=c24s3_r6_k1_baseline mpirc=134
