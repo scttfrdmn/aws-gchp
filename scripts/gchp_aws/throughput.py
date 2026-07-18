@@ -25,6 +25,11 @@ def _load() -> Dict[str, Any]:
 _DB = _load()
 _TP: List[Dict[str, Any]] = _DB["throughput_points"]
 _TT_RATIO = _DB["derived_constants"]["tt_to_fullchem_throughput_ratio"]
+# Per-resolution TT/fullchem ratio (Phase 3+4 recalibration). The ratio is NOT flat: it grows
+# with resolution (1.9x C24 -> ~12x C48 -> ... -> 113x C180) as chemistry's share of the wall
+# explodes with cell count. Prefer the resolution-matched value; fall back to the flat single-grid
+# 34 only when no per-resolution measurement exists (and say so, loudly).
+_TT_RATIO_BY_RES = _DB["derived_constants"].get("tt_to_fullchem_ratio_by_res", {}).get("value", {})
 
 
 def _find(cs_res: int, mechanism: str, instance: str, nodes: int) -> Optional[Dict[str, Any]]:
@@ -44,11 +49,20 @@ def throughput(cs_res: int, mechanism: str, instance: str, nodes: int) -> Estima
     if mechanism == "fullchem":
         tt = _find(cs_res, "transporttracers", instance, nodes)
         if tt:
-            val = tt["sim_days_per_day"] / _TT_RATIO["value"]
-            return Estimate(val, EXTRAPOLATED, _TT_RATIO["source"], unit="sim-d/day",
-                            note=(f"fullchem = TT({tt['sim_days_per_day']:.0f}) / {_TT_RATIO['value']} "
-                                  "[single-grid ratio; the ONLY measured fullchem point is "
-                                  "C180/m9g/48r/1N = 7.4 d/d]"))
+            # Prefer the resolution-matched ratio (recalibrated Phase 3+4); the flat 34 is a
+            # single-C180 point that over-predicts smaller grids ~10x. Flag which was used.
+            res_ratio = _TT_RATIO_BY_RES.get(str(cs_res))
+            if res_ratio:
+                val = tt["sim_days_per_day"] / res_ratio
+                note = (f"fullchem = TT({tt['sim_days_per_day']:.0f}) / {res_ratio} "
+                        f"[per-resolution ratio for C{cs_res}, mean of same-instance measured pairs; "
+                        "ratio grows with resolution 1.9x(C24)->113x(C180)]")
+            else:
+                val = tt["sim_days_per_day"] / _TT_RATIO["value"]
+                note = (f"fullchem = TT({tt['sim_days_per_day']:.0f}) / {_TT_RATIO['value']} "
+                        f"[NO per-resolution ratio for C{cs_res}; using the flat single-grid 34 "
+                        "which can mis-predict by up to 10x -- treat as rough order-of-magnitude]")
+            return Estimate(val, EXTRAPOLATED, _TT_RATIO["source"], unit="sim-d/day", note=note)
     return unknown(note="no measured throughput for this (resolution, mechanism, instance, nodes)",
                    unit="sim-d/day")
 

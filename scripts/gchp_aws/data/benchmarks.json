@@ -1168,6 +1168,20 @@
         "line": 583,
         "date": "2026-06-28"
       }
+    },
+    "tt_to_fullchem_ratio_by_res": {
+      "value": {
+        "24": 1.9,
+        "48": 12.1,
+        "90": 8.4
+      },
+      "confidence": "measured-ratio-per-resolution",
+      "note": "TT/fullchem throughput ratio, MEAN of same-instance same-rpn pairs, PER RESOLUTION. Measured Phase 3+4: the ratio is NOT flat -- it grows steeply with resolution (chemistry's share of the wall explodes with cell count) AND varies by arch (~3x-19x spread at C48). Use the resolution-matched value to extrapolate fullchem from TT; flag loudly. The old flat 34 was a single C180 point and mis-predicts smaller grids by up to 10x.",
+      "source": {
+        "file": "scripts/gchp_aws/data/benchmarks.json",
+        "line": 1,
+        "date": "2026-07-17"
+      }
     }
   }
 }

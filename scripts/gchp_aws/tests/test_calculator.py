@@ -118,10 +118,21 @@ def test_fullchem_fastest_refuses_when_no_basis():
     assert ranked == [] and refused
 
 def test_c24_fullchem_extrapolates_once_c24_tt_measured():
-    # Campaign Phase 2 added C24 TT (c7g) -> C24 fullchem is now derivable via the TT/34
+    # Campaign Phase 2 added C24 TT (c7g) -> C24 fullchem is now derivable via the per-resolution
     # ratio, tagged EXTRAPOLATED (never MEASURED). This is the intended honesty upgrade.
     e = T.throughput(24, "fullchem", "c7g.16xlarge", 1)
     assert e.confidence == EXTRAPOLATED and e.value > 0
+
+def test_fullchem_extrapolation_uses_per_resolution_ratio_not_flat34():
+    # Phase 3+4 recalibration: the TT/fullchem ratio is NOT flat. C24's measured ratio is ~1.9,
+    # so extrapolated C24 fullchem must be ~TT/1.9, i.e. WAY higher than the old flat TT/34 would give.
+    # This guards against regressing to the single-grid flat ratio that over-predicted by ~10x.
+    tt = T.throughput(24, "transporttracers", "c7g.16xlarge", 1)
+    fc = T.throughput(24, "fullchem", "c7g.16xlarge", 1)
+    assert fc.confidence == EXTRAPOLATED
+    implied = tt.value / fc.value
+    assert implied < 5.0, f"C24 ratio should be ~1.9 (per-res), not ~34 (flat); got {implied:.1f}"
+    assert "per-resolution" in (fc.note or "")
 
 def test_json_has_provenance_on_every_number():
     ev = CALC.evaluate(180, "fullchem", "full", 1.0, "cheapest", None, False)
