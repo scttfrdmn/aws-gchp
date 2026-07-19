@@ -9,6 +9,7 @@ set -uo pipefail
 STACK=/sw; SRC=/scratch/gchp-instr/GCHP-decoupled
 BIN=$SRC/build/bin/gchp; RUNBASE=/scratch; BUCKET=gchp-shared-storage-us-east-1
 RANKS=${1:-6}; K=${2:-2}; CS=${3:-24}; JOBID=${4:?need a fixed jobid shared with the worker cluster}
+BASELINE=${GCHP_BASELINE:-0}   # 1 = inline on-node reference (no S3); baked into the SLURM script below
 case "$CS" in 24) case "$RANKS" in 6) NX=1;NY=6;; 12) NX=2;NY=6;; *) echo "C24 RANKS 6|12";exit 1;;esac; DUR='00000000 001000'; SHMG=48;;
               90) NX=0;NY=0; DUR='00000000 020000'; SHMG=200;; *) echo "cs 24|90";exit 1;; esac
 TOTAL=$RANKS; RPN=$RANKS; TAG="c${CS}demo_r${RANKS}_k${K}_j${JOBID}"; RUNDIR=$RUNBASE/gchp_$TAG
@@ -73,9 +74,15 @@ source setCommonRunSettings.sh; source setRestartLink.sh; source checkRunSetting
 srun --ntasks-per-node=1 --ntasks=1 sudo mount -o remount,size=${SHMG}G /dev/shm 2>&1 | tail -1
 # FIXED jobid (shared with the worker cluster) -- NOT SLURM_JOB_ID
 export GCHP_JOBID=$JOBID
-export GCHP_USE_REMOTE_CHEM=1 GCHP_CHEM_TRANSPORT=s3 GCHP_CHEM_NWORKERS=$K
-export GCHP_CHEM_S3_BUCKET=$BUCKET GCHP_CHEM_DEADLINE_S=600
-export GCHP_CHEM_TMPDIR=/scratch/s3demo_tmp_$JOBID; mkdir -p \$GCHP_CHEM_TMPDIR
+# GCHP_BASELINE=1 (from the caller's env) -> INLINE on-node solve (the sweep's reference point):
+# leave GCHP_USE_REMOTE_CHEM unset so fullchem runs its in-process loop. Otherwise -> S3 off-node.
+if [ "$BASELINE" != "1" ]; then
+  export GCHP_USE_REMOTE_CHEM=1 GCHP_CHEM_TRANSPORT=s3 GCHP_CHEM_NWORKERS=$K
+  export GCHP_CHEM_S3_BUCKET=$BUCKET GCHP_CHEM_DEADLINE_S=600
+  export GCHP_CHEM_TMPDIR=/scratch/s3demo_tmp_$JOBID; mkdir -p \$GCHP_CHEM_TMPDIR
+else
+  echo "=== ON-NODE BASELINE: GCHP_USE_REMOTE_CHEM unset -> inline solve ==="
+fi
 DUMPDIR=/scratch/s3demo_dump_$JOBID; rm -rf "\$DUMPDIR"; mkdir -p "\$DUMPDIR"; export GCHP_DUMP_CHEM=\$DUMPDIR
 # NOTE: NO local worker pool here -- chemistry is served by the SEPARATE worker cluster.
 echo "=== transport run: chemistry served by SEPARATE cluster via chemq/$JOBID (no local pool) ==="
