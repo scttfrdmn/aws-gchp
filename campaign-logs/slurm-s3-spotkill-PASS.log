@@ -1,0 +1,10 @@
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+=== transport run: chemistry served by SEPARATE cluster via chemq/spotkill (no local pool) ===
+RUN_DONE exit=134 wall=427s
+RESULT_DEMO_MD5 tag=c24demo_r6_k2_jspotkill md5=dd532a95539327633dddc98ba0a76897 bytes=763402691
+RESULT_DEMO_GOLDENSET tag=c24demo_r6_k2_jspotkill md5=baeb290d0e167d933e58fea818292b11
+=== fallback/error check ===
+  fallback/err lines = 0
+RESULT_DEMO_DONE tag=c24demo_r6_k2_jspotkill mpirc=134 wall=427s
