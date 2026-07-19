@@ -35,7 +35,7 @@ Scheduling:
         - Name: workers
           InstanceType: c7g.16xlarge  # 64 cores of chem workers; scale MaxCount for the fleet-sweep
           MinCount: 0
-          MaxCount: 2                 # up to 128 worker cores; bump for larger fleet-sweep
+          MaxCount: 6                 # up to 384 worker cores for the C90 Amdahl fleet-sweep
           DisableSimultaneousMultithreading: true
           Efa:
             Enabled: false            # NO EFA — proving the point
