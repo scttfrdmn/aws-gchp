@@ -19,7 +19,7 @@ RANKS=48; K=4    # 192 slices/step -> sweep pools that can chew them
 poll_tx(){ for _ in $(seq 1 60); do q=$(sshn "$TXIP" "squeue -h 2>/dev/null|wc -l"); [[ "$q" == 0 ]] && return; sleep 40; done; }
 
 run_point(){  # $1=label(on-node|P<cores>)  $2=poolsize(0 for on-node baseline)
-  local LABEL="$1" POOL="$2" JOB="c90swp_${LABEL}"
+  local LABEL="$1"; local POOL="$2"; local JOB="c90swp_${LABEL}"   # separate: ${LABEL} in JOB needs LABEL already set (set -u)
   echo "=== SWEEP POINT: $LABEL (pool=$POOL) ==="
   aws s3 rm s3://$BUCKET/chemq/$JOB/ --recursive >/dev/null 2>&1
   if [[ "$POOL" -gt 0 ]]; then
