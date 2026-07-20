@@ -1,19 +1,34 @@
-# C180 fullchem OFF-NODE (S3) throughput test — HONEST RESULT.
+# C180 fullchem OFF-NODE (S3) throughput test — RESULT + IMPLEMENTATION-ARTIFACT CORRECTION.
 # Transport m9g 1c (768GB), N=48 ranks K=4 (192 slices/step, ~140MB each = ~27GB/superstep state).
 # label     pool   RUN_dd   note
   on-node    0     18.5     inline reference (full 2 sim-hr, 0 fallback)
   P96       96     18.5     off-node TIMED OUT per superstep -> IN-PROCESS FALLBACK (=on-node)
-  P192     192     18.4     same: S3 round-trip > deadline -> fallback
+  P192     192     18.4     same: timed out -> fallback
   P384     384     NA       pool provisioning/slow; same regime
 #
-# VERDICT: off-node-via-S3 does NOT work at C180. Per-superstep state ~27GB across 192 slices,
-# each PUT+GET through the `aws s3` CLI serially -> ~19 WALL-MIN per superstep (vs ~2min chem
-# compute) -> exceeds the chem deadline -> crs3_poll_done TIMEOUT -> in-process fallback (correct
-# but no speedup; RUN=18.5 == on-node BECAUSE it fell back to on-node). S3 per-object latency
-# scales POORLY to C180's large state.
+# OBSERVED: off-node timed out at C180 (~19 WALL-MIN/superstep) -> crs3_poll_done TIMEOUT (600s)
+# -> in-process fallback (correct, RUN=18.5 == on-node BECAUSE it fell back).
 #
-# SCIENTIFIC BOUNDARY (the real finding): S3 decoupling's value is ELASTICITY / DECOUPLED
-# PROVISIONING / FAULT-TOLERANCE (proven byte-identical at C24), NOT large-state throughput.
-# The throughput/speedup regime (C180, chem=74% of wall) needs RDMA (2.1s/27GB, measured) --
-# the C1 backend spec (docs/phase-c-rdma-spec.md), deferred. On-node M>N already gave 2.23x@C180.
-# So: on-node shm M>N = throughput; S3 = operational decoupling; RDMA = off-node throughput (future).
+# *** DO NOT CONCLUDE "S3 CAN'T DO C180 THROUGHPUT." *** The ~19min/superstep is an ARTIFACT of the
+# transport IMPLEMENTATION, not S3 bandwidth:
+#   chem_remote_s3.c shells `system("aws s3api put-object/get-object/head-object/delete-object ...")`
+#   ONCE PER OBJECT PER OP. At C180: 192 slices x ~10 aws invocations/slice/superstep (put + repeated
+#   head-object polls + get + 4 deletes) = ~1920 aws-CLI process launches/superstep. aws-CLI cold
+#   start ~0.6s (python import) -> ~1920 x 0.6s = ~19 min/superstep IN CLI STARTUP ALONE -- matches
+#   the observed wall almost exactly. The bottleneck is PROCESS SPAWN, not data movement.
+#
+# PROOF S3 ITSELF IS FAST ENOUGH: scripts/s3_handoff_bench.c moved 27GB in ~32s via `aws s3 cp`
+# (multipart, concurrent, wide) during the design phase. My production shim discarded that by using
+# single-part per-object s3api + per-object system() forks + SEQUENTIAL per-slice PUT then poll.
+#
+# HONEST STATUS: S3-as-transport at C180 is UNTESTED pending a proper implementation. A rewrite that
+# (a) uses an in-process SDK / persistent client (no per-op fork), (b) multipart+concurrent transfers,
+# (c) batches all K slices per rank into ONE object, (d) polls all slices concurrently -- would cut
+# the ~1920 forks to O(ranks) SDK calls and is expected to bring the handoff toward the ~32s/27GB the
+# benchmark showed. THEN re-run C180 to get the real off-node-S3 throughput number.
+#
+# WHAT IS SOLID (unchanged): S3 decoupling's ELASTICITY / DECOUPLED-PROVISIONING / FAULT-TOLERANCE
+# are proven BYTE-IDENTICAL at C24 (separate-cluster, spot-kill, N!=M) -- those don't depend on the
+# per-object throughput. On-node shm M>N gave 2.23x@C180 (proven). RDMA (2.1s/27GB measured; C1 spec)
+# remains the co-scheduled off-node throughput path. The S3 off-node THROUGHPUT verdict is DEFERRED,
+# not negative -- it awaits a non-fork, multipart, batched-slice transport rewrite.
