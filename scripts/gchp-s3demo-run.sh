@@ -11,7 +11,9 @@ BIN=$SRC/build/bin/gchp; RUNBASE=/scratch; BUCKET=gchp-shared-storage-us-east-1
 RANKS=${1:-6}; K=${2:-2}; CS=${3:-24}; JOBID=${4:?need a fixed jobid shared with the worker cluster}
 BASELINE=${GCHP_BASELINE:-0}   # 1 = inline on-node reference (no S3); baked into the SLURM script below
 case "$CS" in 24) case "$RANKS" in 6) NX=1;NY=6;; 12) NX=2;NY=6;; *) echo "C24 RANKS 6|12";exit 1;;esac; DUR='00000000 001000'; SHMG=48;;
-              90) NX=0;NY=0; DUR='00000000 020000'; SHMG=200;; *) echo "cs 24|90";exit 1;; esac
+              90)  NX=0;NY=0; DUR='00000000 020000'; SHMG=200;;
+              180) NX=0;NY=0; DUR='00000000 020000'; SHMG=550;;   # C180 fullchem: 550G /dev/shm (proven Phase-3)
+              *) echo "cs 24|90|180";exit 1;; esac
 TOTAL=$RANKS; RPN=$RANKS; TAG="c${CS}demo_r${RANKS}_k${K}_j${JOBID}"; RUNDIR=$RUNBASE/gchp_$TAG
 [ -x "$BIN" ] || { echo "FAIL: no gchp"; exit 1; }
 
