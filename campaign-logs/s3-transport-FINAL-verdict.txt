@@ -1,0 +1,28 @@
+# S3 transport — FINAL microbench verdict (m9g.48xlarge, real network, 228MB C180-K4 round-trip).
+#
+# TRANSPORT                                   ROUND-TRIP   vs SHIPPED
+#   V0  per-object `aws s3api` (SHIPPED)        7.49 s       1.0x    <- caused the C180 timeout
+#   V2  batched single `aws s3 cp`             1.84 s       4.1x
+#   CRT aws-c-s3 (cross-built, static, aarch64) 0.82 s      9.1x
+#   V3c boto3 conc64 (persistent, multipart)   0.70 s      10.7x    <- WINNER for integration
+#   target (design bench agg @120-rank wide)   0.19 s
+#
+# fork cost (direct): aws CLI cold-start 0.295s -> C180 ~1920 launches/superstep = 9.4 min in spawn alone.
+#
+# DECISION: integrate BOTO3 (persistent sidecar + TransferConfig multipart max_concurrency=64), NOT the CRT.
+#   - boto3 0.70s vs CRT 0.82s -> effectively TIED; both ~10x the shipped path. A single 228MB object
+#     doesn't saturate the 100Gbps NIC, so the CRT's auto-parallel-multipart gives NO edge at this per-rank
+#     payload (its setup overhead makes it a hair slower here). CRT wins only with many concurrent large xfers.
+#   - boto3 integration = a persistent Python sidecar (simple); CRT = link 11 static C libs + async
+#     event-loop C API (heavy). Same speed -> choose simplicity.
+#   - The CRT WAS worth building: it PROVES boto3 leaves no throughput on the table (both ~10x, both
+#     NIC/object-size bound, not client-bound). CRT cross-build recipe kept (scripts/build-aws-crt-s3-aarch64.sh)
+#     + harness (patches/phase-c/crt/) as a future option if per-rank payloads grow or we batch across ranks.
+#
+# WHY THIS FIXES C180: shipped ~1140s/superstep (192 per-object s3api forks). boto3 batched+persistent+
+#   concurrent -> per-rank ~0.7s, 48 ranks CONCURRENT (independent keys) -> ~1-2s/superstep = ~600-1000x.
+#   C180 chem compute ~minutes/superstep -> handoff NEGLIGIBLE -> off-node C180 speedup ACHIEVABLE.
+#
+# NEXT: rewrite chem_remote_s3 -> persistent boto3 sidecar (one long-lived proc/rank over a pipe) that
+#   batches all K slices/rank into ONE object, uses TransferConfig multipart, and the rank polls slices
+#   concurrently. Then re-run the C180 off-node throughput test (the currently-deferred real number).
