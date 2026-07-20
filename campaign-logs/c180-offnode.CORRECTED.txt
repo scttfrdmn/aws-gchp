@@ -1,0 +1,19 @@
+# C180 fullchem OFF-NODE (S3) throughput test — HONEST RESULT.
+# Transport m9g 1c (768GB), N=48 ranks K=4 (192 slices/step, ~140MB each = ~27GB/superstep state).
+# label     pool   RUN_dd   note
+  on-node    0     18.5     inline reference (full 2 sim-hr, 0 fallback)
+  P96       96     18.5     off-node TIMED OUT per superstep -> IN-PROCESS FALLBACK (=on-node)
+  P192     192     18.4     same: S3 round-trip > deadline -> fallback
+  P384     384     NA       pool provisioning/slow; same regime
+#
+# VERDICT: off-node-via-S3 does NOT work at C180. Per-superstep state ~27GB across 192 slices,
+# each PUT+GET through the `aws s3` CLI serially -> ~19 WALL-MIN per superstep (vs ~2min chem
+# compute) -> exceeds the chem deadline -> crs3_poll_done TIMEOUT -> in-process fallback (correct
+# but no speedup; RUN=18.5 == on-node BECAUSE it fell back to on-node). S3 per-object latency
+# scales POORLY to C180's large state.
+#
+# SCIENTIFIC BOUNDARY (the real finding): S3 decoupling's value is ELASTICITY / DECOUPLED
+# PROVISIONING / FAULT-TOLERANCE (proven byte-identical at C24), NOT large-state throughput.
+# The throughput/speedup regime (C180, chem=74% of wall) needs RDMA (2.1s/27GB, measured) --
+# the C1 backend spec (docs/phase-c-rdma-spec.md), deferred. On-node M>N already gave 2.23x@C180.
+# So: on-node shm M>N = throughput; S3 = operational decoupling; RDMA = off-node throughput (future).
