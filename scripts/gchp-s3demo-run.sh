@@ -82,6 +82,11 @@ if [ "$BASELINE" != "1" ]; then
   export GCHP_USE_REMOTE_CHEM=1 GCHP_CHEM_TRANSPORT=s3 GCHP_CHEM_NWORKERS=$K
   export GCHP_CHEM_S3_BUCKET=$BUCKET GCHP_CHEM_DEADLINE_S=600
   export GCHP_CHEM_TMPDIR=/scratch/s3demo_tmp_$JOBID; mkdir -p \$GCHP_CHEM_TMPDIR
+  # PERSISTENT boto3 SIDECAR (the throughput fix): each rank spawns crs3_sidecar.py once ->
+  # no per-object aws fork. Ensure boto3 + the script are present on this compute node.
+  export GCHP_CHEM_S3_SIDECAR=/scratch/crs3_sidecar.py
+  srun --ntasks-per-node=1 --ntasks=\$SLURM_NNODES bash -c 'python3 -c "import boto3" 2>/dev/null || (sudo dnf install -y python3-pip >/dev/null 2>&1; sudo python3 -m pip install --quiet boto3 >/dev/null 2>&1)'
+  echo "sidecar=\$GCHP_CHEM_S3_SIDECAR boto3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1 | tail -1)"
 else
   echo "=== ON-NODE BASELINE: GCHP_USE_REMOTE_CHEM unset -> inline solve ==="
 fi

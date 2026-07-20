@@ -34,6 +34,68 @@
 #include <time.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <sys/wait.h>
+
+/* ============================================================================
+ * PERSISTENT boto3 SIDECAR (the throughput fix). The original per-object
+ * `system("aws s3api ...")` shim forked the whole AWS CLI once per object per op
+ * (~1920 forks/superstep at C180 = ~9.4 min in process-spawn ALONE -> the C180
+ * timeout). Instead we fork ONE long-lived crs3_sidecar.py per rank at first use
+ * and speak a one-line-per-op protocol over pipes: NO per-op fork, and the sidecar
+ * holds a persistent boto3 client + tuned multipart TransferConfig (max_concurrency
+ * =64 -> 0.70s/228MB on m9g, ~10x the CLI, NIC-bound per the microbench). Falls back
+ * to per-object `aws s3api` (the old aws() path) only if the sidecar can't be started.
+ * ==========================================================================*/
+static pid_t  crs3_sc_pid = -1;
+static FILE  *crs3_sc_out = NULL;   /* write commands here (sidecar stdin)  */
+static FILE  *crs3_sc_in  = NULL;   /* read replies here   (sidecar stdout) */
+
+/* Start the sidecar once. Returns 0 on success. Idempotent. */
+static int crs3_sidecar_start(void) {
+    if (crs3_sc_pid > 0) return 0;                 /* already up */
+    const char *script = getenv("GCHP_CHEM_S3_SIDECAR");   /* path to crs3_sidecar.py */
+    if (!script) return 1;
+    int to_sc[2], from_sc[2];                      /* parent->child, child->parent */
+    if (pipe(to_sc) != 0 || pipe(from_sc) != 0) return 1;
+    pid_t pid = fork();
+    if (pid < 0) return 1;
+    if (pid == 0) {                                /* child: wire pipes to stdio, exec python */
+        dup2(to_sc[0], STDIN_FILENO); dup2(from_sc[1], STDOUT_FILENO);
+        close(to_sc[0]); close(to_sc[1]); close(from_sc[0]); close(from_sc[1]);
+        execlp("python3", "python3", script, (char*)NULL);
+        _exit(127);
+    }
+    close(to_sc[0]); close(from_sc[1]);
+    crs3_sc_out = fdopen(to_sc[1], "w");
+    crs3_sc_in  = fdopen(from_sc[0], "r");
+    crs3_sc_pid = pid;
+    if (!crs3_sc_out || !crs3_sc_in) { crs3_sc_pid = -1; return 1; }
+    /* readiness handshake: PING -> expect "OK" */
+    fprintf(crs3_sc_out, "PING\n"); fflush(crs3_sc_out);
+    char rep[256] = {0};
+    if (!fgets(rep, sizeof rep, crs3_sc_in) || strncmp(rep, "OK", 2) != 0) {
+        crs3_sc_pid = -1; return 1;
+    }
+    return 0;
+}
+
+/* Send one command, read one reply. Return 0 iff reply starts "OK". */
+static int crs3_sc_cmd(const char *fmt, ...) {
+    if (crs3_sc_pid <= 0) return -1;
+    va_list ap; va_start(ap, fmt); vfprintf(crs3_sc_out, fmt, ap); va_end(ap);
+    fputc('\n', crs3_sc_out); fflush(crs3_sc_out);
+    char rep[256] = {0};
+    if (!fgets(rep, sizeof rep, crs3_sc_in)) return -1;    /* sidecar died */
+    return (strncmp(rep, "OK", 2) == 0) ? 0 : 1;
+}
+
+void crs3_sidecar_stop(void) {
+    if (crs3_sc_pid > 0) {
+        if (crs3_sc_out) { fprintf(crs3_sc_out, "QUIT\n"); fflush(crs3_sc_out); }
+        int st; waitpid(crs3_sc_pid, &st, 0);
+        crs3_sc_pid = -1;
+    }
+}
 
 /* Plain heap buffers for S3 mode (no shm — the rank owns the data and ships copies).
  * Mirrors the shm path's "Init returns C_PTRs, fullchem C_F_POINTERs onto them". */
@@ -122,30 +184,56 @@ static int aws(const char *fmt, ...) {
     return system(cmd);
 }
 
-/* PUT a local file to chemq/<jobid>/r<rank>_k<sub>_s<step>.in  */
+/* Build the slice object key with a HASH PREFIX for S3 request-rate spreading.
+ * S3 allows ~3500 PUT/s PER PREFIX; 48 ranks x K slices under one flat prefix can throttle at
+ * high superstep rates. A 2-hex-nibble hash of (rank,sub) fans keys across 256 prefixes -- S3's
+ * own recommended high-throughput pattern. (This is a REQUEST-RATE guard, not a speed play; the
+ * per-object throughput is NIC-bound either way per the microbench.) Layout:
+ *   chemq/<jobid>/<hh>/r<rank>_k<sub>_s<step>.<suffix>
+ * The elastic worker pool (s3_chem_worker.py) LISTs chemq/<jobid>/ recursively so it still finds
+ * all slices regardless of the hash subdir. */
+static void crs3_key(char *out, size_t n, int rank, int sub, int step, const char *suffix) {
+    unsigned h = ((unsigned)rank * 2654435761u + (unsigned)sub * 40503u) & 0xffu;  /* 0..255 */
+    snprintf(out, n, "chemq/%s/%02x/r%d_k%d_s%d.%s", crs3_jobid(), h, rank, sub, step, suffix);
+}
+
+/* PUT a local file to the slice .in key. Sidecar if up, else per-object aws fallback. */
 int crs3_put_in(int rank, int sub, int step, const char *localpath) {
-    return aws("aws s3api put-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in --body %s",
-               crs3_bucket(), crs3_jobid(), rank, sub, step, localpath);
+    char key[512]; crs3_key(key, sizeof key, rank, sub, step, "in");
+    if (crs3_sidecar_start() == 0) return crs3_sc_cmd("PUT %s %s", localpath, key);
+    return aws("aws s3api put-object --bucket %s --key %s --body %s", crs3_bucket(), key, localpath);
 }
 
 /* Does the worker's .done marker exist yet? 0 = yes (done), nonzero = not yet. */
 int crs3_done_exists(int rank, int sub, int step) {
-    return aws("aws s3api head-object --bucket %s --key chemq/%s/r%d_k%d_s%d.done",
-               crs3_bucket(), crs3_jobid(), rank, sub, step);
+    char key[512]; crs3_key(key, sizeof key, rank, sub, step, "done");
+    if (crs3_sidecar_start() == 0) return crs3_sc_cmd("HEAD %s", key);
+    return aws("aws s3api head-object --bucket %s --key %s", crs3_bucket(), key);
 }
 
 /* GET the worker's .out blob to a local file. 0 on success. */
 int crs3_get_out(int rank, int sub, int step, const char *localpath) {
-    return aws("aws s3api get-object --bucket %s --key chemq/%s/r%d_k%d_s%d.out %s",
-               crs3_bucket(), crs3_jobid(), rank, sub, step, localpath);
+    char key[512]; crs3_key(key, sizeof key, rank, sub, step, "out");
+    if (crs3_sidecar_start() == 0) return crs3_sc_cmd("GET %s %s", key, localpath);
+    return aws("aws s3api get-object --bucket %s --key %s %s", crs3_bucket(), key, localpath);
 }
 
 /* Best-effort cleanup of a slice's objects (rank owns its keys). */
 int crs3_cleanup(int rank, int sub, int step) {
-    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in",   crs3_bucket(),crs3_jobid(),rank,sub,step);
-    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.out",  crs3_bucket(),crs3_jobid(),rank,sub,step);
-    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.done", crs3_bucket(),crs3_jobid(),rank,sub,step);
-    aws("aws s3api delete-object --bucket %s --key chemq/%s/r%d_k%d_s%d.in.claim", crs3_bucket(),crs3_jobid(),rank,sub,step);
+    char kin[512],kout[512],kdone[512],kclaim[512];
+    crs3_key(kin,  sizeof kin,  rank,sub,step,"in");
+    crs3_key(kout, sizeof kout, rank,sub,step,"out");
+    crs3_key(kdone,sizeof kdone,rank,sub,step,"done");
+    crs3_key(kclaim,sizeof kclaim,rank,sub,step,"in.claim");
+    if (crs3_sc_pid > 0) {
+        crs3_sc_cmd("DEL %s", kin);  crs3_sc_cmd("DEL %s", kout);
+        crs3_sc_cmd("DEL %s", kdone); crs3_sc_cmd("DEL %s", kclaim);
+    } else {
+        aws("aws s3api delete-object --bucket %s --key %s", crs3_bucket(), kin);
+        aws("aws s3api delete-object --bucket %s --key %s", crs3_bucket(), kout);
+        aws("aws s3api delete-object --bucket %s --key %s", crs3_bucket(), kdone);
+        aws("aws s3api delete-object --bucket %s --key %s", crs3_bucket(), kclaim);
+    }
     return 0;
 }
 
