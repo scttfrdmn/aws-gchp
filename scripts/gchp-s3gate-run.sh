@@ -95,6 +95,11 @@ if [ "$REMOTE" = "1" ]; then
   export GCHP_CHEM_NWORKERS=$K
   export GCHP_CHEM_S3_BUCKET=$BUCKET
   export GCHP_CHEM_TMPDIR=/scratch/s3g_tmp_\${GCHP_JOBID}; mkdir -p \$GCHP_CHEM_TMPDIR
+  # NEW TRANSPORT: persistent boto3 sidecar (re-gate the rewritten chem_remote_s3, not the old
+  # per-object aws fallback). Ensure boto3 + the sidecar script are present on this compute node.
+  export GCHP_CHEM_S3_SIDECAR=/scratch/crs3_sidecar.py
+  python3 -c "import boto3" 2>/dev/null || (sudo dnf install -y python3-pip >/dev/null 2>&1; sudo python3 -m pip install --quiet boto3 >/dev/null 2>&1)
+  echo "sidecar=\$GCHP_CHEM_S3_SIDECAR boto3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1|tail -1)"
   # sweep any stale chemq keys for this jobid
   aws s3 rm s3://$BUCKET/chemq/\${GCHP_JOBID}/ --recursive >/dev/null 2>&1
   # ELASTIC WORKER POOL: for the GATE, launch a handful of workers on THIS node (proves the
