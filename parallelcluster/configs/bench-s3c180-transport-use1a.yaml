@@ -1,0 +1,78 @@
+# PHASE C2 C180 off-node THROUGHPUT test — transport cluster (m9g.48xl, 768GB, us-east-1a).
+# The regime where off-node decoupling CAN beat the on-node cap: C180 fullchem chem = ~74% of wall,
+# so the per-superstep S3 handoff latency that dominated C90 becomes a small fraction of the much
+# larger chem compute. m9g is the only in-region 768GB box (transport rank holds full grid state even
+# with chem off-node). Runs in 1a on a STANDING gcgrid FSx (fs-0804c4d8... proven-mountable by the
+# C90 clusters) -> no FSx pre-creation. If m9g has no 1a capacity, fall back to the 1c config (which
+# needs a fresh FSx since the old fs-09980551 was deleted). Builds the decoupled binary + boto3 worker.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.16xlarge         # 64c aarch64 build host
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (standing FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: m9g.48xlarge  # 192c / 768GB — only in-region box for C180 fullchem
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true             # m9g has EFA; harmless for the S3 path (unused)
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # standing gcgrid (us-east-1a), proven-mountable
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 2400
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: s3-c180-transport-1a
