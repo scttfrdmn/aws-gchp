@@ -60,7 +60,7 @@ SharedStorage:
     StorageType: FsxLustre
     MountDir: /input
     FsxLustreSettings:
-      FileSystemId: fs-09980551dd63e7204   # gchp-input-1c-c180off (gcgrid, Lustre 2.15)
+      FileSystemId: fs-0168e4b5b35235fc2   # gchp-input-1c-c180off-v2 (gcgrid, Lustre 2.15; old fs-09980551 was deleted)
   - Name: scratch
     StorageType: FsxLustre
     MountDir: /scratch
