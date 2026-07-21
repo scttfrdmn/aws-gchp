@@ -1,0 +1,38 @@
+C90 OFF-NODE DE-RISK — rewritten boto3-sidecar transport (before the C180 spend)
+=================================================================================
+Date: 2026-07-21   Cluster: gchp-s3c90 (c8g.48xl 384GB, us-east-1a, standing FSx fs-0804c4d8...)
+Build: decoupled backend, chem_remote_s3 SIDECAR rewrite. 48 transport ranks, co-located worker pool.
+Purpose: the prior C90 Amdahl sweep (c90-amdahl-sweep.CORRECTED.txt) used the OLD per-object aws shim
+  (the C180 killer). Re-measure C90 off-node with the NEW persistent-boto3 sidecar to confirm the
+  transport is correct + STABLE at ~10x C24 per-slice state, and see if faster handoff moves the wall.
+
+BASELINE (inline, remote OFF, 48 ranks):
+  md5=662af2ab4207ce2d1e316ecfbc8eafa2  goldenset=b847ff9d5d0c51bf9871f2f6a323a56e
+  RUN throughput = 128.7 d/d   wall = 634s (1 sim-hr)
+
+OFF-NODE S3 SIDECAR (48 ranks, K=1 -> 48 slices/step, 48 co-located workers = 96 procs / 192 cores):
+  md5=662af2ab4207ce2d1e316ecfbc8eafa2  == baseline  ✅ BYTE-IDENTICAL
+  goldenset=b847ff9d5d0c51bf9871f2f6a323a56e  == baseline  ✅
+  fallback/error lines = 0   (sidecar served ALL chemistry; boto3=1.42.97)
+  RUN throughput = 118.3 d/d  (92% of baseline -- active integration nearly full-speed)
+  wall = 1690s  (2.7x baseline)
+  node load 40-76 on 192 cores -> NO oversubscription, NO thrash, NO timeout
+
+FIRST ATTEMPT (K=4 -> 192 slices, 192 co-located workers + 48 ranks = 241 procs / 192 cores):
+  load average 213 -> CATASTROPHIC OVERSUBSCRIPTION, forward progress stalled (.done frozen 61/192).
+  Killed + re-run at K=1. LESSON: co-located pool must satisfy ranks + workers <= cores.
+
+VERDICT:
+  (1) TRANSPORT CORRECT + STABLE at scale -- byte-identical, 0 fallback, and crucially NO timeout/
+      thrash (the C180 failure mode). The producer-side sidecar eliminated the per-object fork-storm.
+  (2) OFF-NODE WALL = 2.7x on-node at C90. NOT a transport-producer problem (RUN=92% of baseline);
+      the drag is the WORKER side (still per-object aws s3api, ~6 forks/slice) + per-superstep S3
+      round-trip latency dominating C90's modest chem fraction. Consistent w/ prior finding:
+      S3 decoupling = elasticity/provisioning/fault-tolerance, NOT raw speed, at C90.
+  (3) C180 remains the open question: 74% chem fraction (vs C90's smaller) may amortize the handoff
+      far better (on-node decoupling got 2.23x at C180). But the worker-side per-object aws would
+      also drag C180 until it too is moved to a sidecar.
+
+NOTE: per-step handoff logging (### PHASE1B HANDOFF / [CHEMREMOTE handoff]) is only wired into the
+  SHM path, not the S3 branch, and exit=134 (benign MAPL finalize double-free) preempts the summary.
+  Wall attribution above is from GCHP-internal RUN d/d + wall stamps, not the handoff counter.
