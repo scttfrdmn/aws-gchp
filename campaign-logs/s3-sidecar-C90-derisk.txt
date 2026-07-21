@@ -36,3 +36,32 @@ VERDICT:
 NOTE: per-step handoff logging (### PHASE1B HANDOFF / [CHEMREMOTE handoff]) is only wired into the
   SHM path, not the S3 branch, and exit=134 (benign MAPL finalize double-free) preempts the summary.
   Wall attribution above is from GCHP-internal RUN d/d + wall stamps, not the handoff counter.
+
+=================================================================================
+UPDATE 2026-07-21 — WORKER PORTED TO boto3 (was per-object aws), re-measured C90:
+  Cluster gchp-s3c90b (fresh decoupled build, byte-identical: baseline md5 662af2ab reproduced
+  EXACTLY across two independent builds -> build determinism confirmed).
+
+  config: 48 ranks, K=1 (48 slices/step), 48 co-located boto3 workers = 96 procs / 192 cores.
+
+  BASELINE (inline):        md5=662af2ab  RUN=128.4 d/d  wall=635s
+  OFF-NODE (boto3 worker):  md5=662af2ab  RUN=129.2 d/d  wall=1273s   goldenset b847ff9d, 0 fallback
+                            worker transport=boto3 (confirmed), 144 solves, node load 3.9-48
+
+  DELTA vs OLD aws worker (1690s, RUN 118.3, load 40-76):
+    wall   1690 -> 1273 s   (-25%, 2.7x -> 2.0x on-node)
+    RUN    118.3 -> 129.2   (recovered to FULL baseline speed)
+    load   40-76 -> 3.9-48  (fork-storm eliminated)
+
+  VERDICT: porting the worker to boto3 removed the worker-side drag entirely -- compute-tier
+  throughput now == baseline, node no longer fork-thrashed. Residual 2.0x wall is NOT compute
+  and NOT worker forks; it is intrinsic per-superstep S3 ROUND-TRIP LATENCY (PUT->poll .done->GET)
+  serialized against C90's modest chemistry fraction. This is the S3-medium floor at C90's
+  chem:transport ratio -- exactly why C180 (chem ~74% of wall) is the real test: there the same
+  fixed per-superstep latency is amortized over far more chemistry compute.
+
+  decoupled aarch64 binary MD5s (gchp-s3c90b build, 2026-07-21):
+    gchp        5a2f760808477b4151e4dbe5919851ee
+    kpp_worker  939b5586f3fde553b919e67b763457f3
+  (C180 m9g cluster rebuilds from the S3 patch -- head IAM is chemq/*-scoped, can't PUT to instr/;
+   build-from-patch is proven + self-contained, no local round-trip needed.)
