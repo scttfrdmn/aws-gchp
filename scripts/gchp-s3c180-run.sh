@@ -97,7 +97,12 @@ srun --ntasks-per-node=1 --ntasks=1 sudo mount -o remount,size=550G /dev/shm 2>&
 
 export GCHP_JOBID=\$SLURM_JOB_ID
 export GCHP_CHEM_DEADLINE_S=900           # C180 slices are big; generous S3 round-trip budget
-DUMPDIR=/scratch/s3c180_dump_${TAG}; rm -rf "\$DUMPDIR"; mkdir -p "\$DUMPDIR"; export GCHP_DUMP_CHEM=\$DUMPDIR
+# GCHP_DUMP_CHEM (goldenset dump) is OFF at C180: it serialized 124G of per-rank state on top of the
+# ~500G grid + decoupled heap buffers -> OOM-killed (exit 137) the first attempt on 768G. Byte-identity
+# is already proven at C24+C90 (same kpp_worker binary, per-cell chemistry is resolution-independent);
+# at C180 the checkpoint MD5 alone proves it. Set GCHP_DUMP_CHEM externally only for a debug run.
+DUMPDIR=/scratch/s3c180_dump_${TAG}
+if [ "\${GCHP_C180_DUMP:-0}" = "1" ]; then rm -rf "\$DUMPDIR"; mkdir -p "\$DUMPDIR"; export GCHP_DUMP_CHEM=\$DUMPDIR; echo "GCHP_DUMP_CHEM ON (debug)"; fi
 
 WPOOL_PID=""
 if [ "$REMOTE" = "1" ]; then
@@ -107,8 +112,25 @@ if [ "$REMOTE" = "1" ]; then
   export GCHP_CHEM_S3_BUCKET=$BUCKET
   export GCHP_CHEM_TMPDIR=/scratch/s3c180_tmp_\${GCHP_JOBID}; mkdir -p \$GCHP_CHEM_TMPDIR
   export GCHP_CHEM_S3_SIDECAR=/scratch/crs3_sidecar.py
-  python3 -c "import boto3" 2>/dev/null || (sudo dnf install -y python3-pip >/dev/null 2>&1; sudo python3 -m pip install --quiet boto3 >/dev/null 2>&1)
-  echo "sidecar=\$GCHP_CHEM_S3_SIDECAR boto3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1|tail -1)"
+  # boto3 on the compute node: this m9g node has NO internet route to PyPI (1c subnet, S3-gateway
+  # only), so pip-from-PyPI fails ("Network is unreachable"). Install OFFLINE from a pre-staged wheel
+  # bundle in S3 (reachable via the gateway endpoint) into a shared /scratch tree on PYTHONPATH.
+  # HARD-VERIFY + ABORT: a missing boto3 => dead workers => ranks block forever (the stuck-run bug).
+  BOTO3_LIB=/scratch/boto3lib
+  if ! PYTHONPATH="\$BOTO3_LIB" python3 -c "import boto3" 2>/dev/null; then
+    mkdir -p \$BOTO3_LIB /scratch/boto3whl
+    # NOTE: under chemq/ (not bootstrap/) — the compute-node IAM is scoped to chemq/* only.
+    aws s3 cp s3://$BUCKET/chemq/bootstrap/boto3-aarch64-py39.tgz /scratch/boto3whl/b.tgz --region us-east-1 --only-show-errors
+    tar xzf /scratch/boto3whl/b.tgz -C /scratch/boto3whl
+    python3 -m pip install --no-index --find-links /scratch/boto3whl --target \$BOTO3_LIB boto3 >/scratch/boto3_offline_install.log 2>&1
+  fi
+  export PYTHONPATH="\$BOTO3_LIB\${PYTHONPATH:+:\$PYTHONPATH}"
+  B3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1 | tail -1)
+  echo "sidecar=\$GCHP_CHEM_S3_SIDECAR boto3=\$B3 (PYTHONPATH=\$BOTO3_LIB)"
+  case "\$B3" in
+    [0-9]*) : ;;   # looks like a version -> good
+    *) echo "FATAL: boto3 unavailable on compute node (\$B3) -> workers+sidecar would die, ranks block. Aborting."; exit 3 ;;
+  esac
   aws s3 rm s3://$BUCKET/chemq/\${GCHP_JOBID}/ --recursive >/dev/null 2>&1
   echo "=== launching CO-LOCATED boto3 worker pool ($POOL workers) for jobid \$GCHP_JOBID ==="
   for w in \$(seq 1 $POOL); do
@@ -123,7 +145,8 @@ fi
 rm -f Restarts/gcchem_internal_checkpoint* 2>/dev/null
 echo "=== mpirun -n $TOTAL gchp (REMOTE=$REMOTE TRANSPORT=s3 K=$K POOL=$POOL) ==="
 t0=\$(date +%s)
-mpirun -n $TOTAL ./gchp > gchp_$TAG.log 2>&1
+# -x PYTHONPATH: propagate the offline boto3 tree to every rank so the sidecars they fork can import it.
+mpirun -n $TOTAL \${PYTHONPATH:+-x PYTHONPATH} ./gchp > gchp_$TAG.log 2>&1
 MPIRC=\$?; t1=\$(date +%s)
 echo "RUN_DONE exit=\$MPIRC wall=\$(( t1 - t0 ))s"
 [ -n "\$WPOOL_PID" ] && kill \$WPOOL_PID 2>/dev/null; pkill -f s3_chem_worker 2>/dev/null
