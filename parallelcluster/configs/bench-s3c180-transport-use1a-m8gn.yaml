@@ -50,6 +50,12 @@ Scheduling:
         PlacementGroup:
           Enabled: false
       CapacityType: ONDEMAND
+      CustomActions:
+        OnNodeConfigured:
+          # multi-NIC (2 ENI) asymmetric-routing fix: loose rp_filter so slurm control + NFS (/sw,
+          # /opt/slurm) return packets aren't dropped when heavy S3 traffic uses the 2nd card. Without
+          # this the node went DOWN mid-run (slurmd<->slurmctld port-6818 timeout).
+          Script: s3://gchp-shared-storage-us-east-1/bootstrap/compute-multinic-fix.sh
       Iam:
         AdditionalIamPolicies:
           - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq

@@ -1,0 +1,43 @@
+C180 OFF-NODE NIC RE-TEST on m8gn — the "is 0.75x an m9g single-NIC artifact?" experiment
+============================================================================================
+Date: 2026-07-23. Goal: rerun the C180 off-node test on m8gn.48xl (768GB, 192c, SAME aarch64 binary)
+to check whether m9g's 0.75x speed + 22 PUT failures were caused by m9g being the SINGLE-NIC (100Gbps)
+box. Everything held constant vs m9g except the instance type.
+
+OUTCOME: NO CLEAN THROUGHPUT NUMBER — blocked by infrastructure, not physics. 3 job attempts:
+  - baseline (inline): md5=9ea1a39d... == m9g EXACTLY (byte-identical, as expected). RUN 16.7 d/d
+    vs m9g 18.9 (Graviton4 vs Graviton5 core diff), wall 873s.
+  - off-node job 2: ran ~15 min, PUT superstep-1's 47 slices with **0 PUT failures** (vs m9g's 22!),
+    then the NODE WENT DOWN (slurmd<->slurmctld port-6818 socket timeout -> marked DOWN -> requeued).
+  - off-node job 3 (after adding a compute rp_filter bootstrap): node SURVIVED but STALLED at superstep 0
+    for 20+ min -- 47 .in slices queued, 48 workers up (boto3 loaded) but NOT consuming them (1 solve).
+    Compute-node diagnostics (srun --overlap) repeatedly timed out -> node comms degraded under load.
+
+ROOT DISCOVERIES (the real lessons):
+  1. m8gn's "600 Gbps" is 2 PHYSICAL CARDS x 300 (NOT one 600 pipe), AND PC attaches the 2nd card but
+     the OS never brings it up with an IP (verified: node had card0=ens68 172.31.109.200, card1 + a 3rd
+     ENI both PrivateIp=None, only ens68 configured). => for single-node S3 (plain TCP to one endpoint)
+     you get CARD 0 = 300 Gbps MAX. The 600 is an EFA/RDMA-across-cards number, useless to a TCP/S3
+     workload without explicit multi-IP OS networking that ParallelCluster does not configure.
+  2. Multi-NIC instances CANNOT get an auto-assigned public IP -> compute must run on a PRIVATE subnet.
+     Created one in 1a (172.31.96.0/20). But /sw + /opt/slurm reach compute via NFS from the head over
+     172.31/16, and slurm control is port 6818 -> on the 2-ENI node under heavy S3 load these got
+     starved/timed out -> node death (job 2) then worker-consumption stall (job 3). This is AWS multi-NIC
+     plumbing, ORTHOGONAL to the chemistry-decoupling physics being measured.
+  3. Interface endpoints allow only ONE subnet per AZ (DuplicateSubnetsInSameZone) -> can't add a 2nd
+     1a subnet to the SSM/EC2 endpoints; but the existing ENI in subnet-2eec4a71 serves the whole
+     172.31/16 VPC, so the private subnet reached SSM/S3 fine (that part worked).
+
+WHAT SURVIVES (the qualitative finding, solid):
+  - m9g's single 100Gbps NIC starved the 48-rank S3 aggregate at C180 -> the 0.75x speed + 22 PUT
+    failures were substantially an INSTANCE-SELECTION artifact, not a property of off-node chemistry.
+  - Direct supporting evidence: m8gn's card-0 (300Gbps = 3x m9g) PUT superstep-1 with **0 PUT failures**
+    vs m9g's 22, under identical config, before infra killed the run. Consistent with the bandwidth thesis.
+  - CANNOT quantify the speed improvement -- m8gn's usable-for-S3 bandwidth is 300 (not 600), and the
+    multi-NIC/private-subnet/co-located-pool stack was too unstable to complete a clean run.
+
+CONCEPTUAL BOTTOM LINE (unchanged): off-node S3 throughput at C180 is TRANSPORT-TIER-NIC-BANDWIDTH
+bound. m9g (100Gbps single NIC) was the worst choice for a bandwidth-bound test. A clean quantification
+would need either (a) i8ge.24xl (single card 150Gbps, no multi-NIC complications, but 96c) or (b) proper
+multi-IP OS networking to actually use m8gn's 2nd card for S3 -- both beyond the value of one more number.
+Decision (user): STOP; the qualitative finding + the m8gn/PC multi-NIC gotchas are the deliverable.
