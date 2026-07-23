@@ -18,14 +18,37 @@ THE AMORTIZATION THESIS — CONFIRMED:
   trend is the headline: S3 off-node decoupling closes toward on-node throughput at scale, and
   is byte-identical throughout. (RUN 17.0 vs 18.9 = 90% -> active integration nearly full-speed.)
 
-ROBUSTNESS NOTE (honest):
-  22 of 192 slice-PUTs failed with 'crs3_put_in failed rc=1' (boto3 SIDECAR replied ERR under
-  C180-scale slices at 89% node memory). Chem_Remote_Solve fallback = 0 timeouts; these are
-  PUT-side sidecar errors -> rank returns solved_remotely=FALSE -> IN-PROCESS re-solve -> that is
-  WHY the checkpoint is byte-identical. Only 74 slices actually round-tripped through S3; the rest
-  the rank re-solved locally. So 1.31x is a CONSERVATIVE number -- a hardened sidecar (retry the
-  PUT, or lower memory pressure with fewer ranks) would push more slices through S3 and the wall
-  closer to baseline. The safety valve worked exactly as designed: transport hiccup != wrong answer.
+SPEED (not wall) framing: off-node runs at 1/1.31 = ~0.75x BASELINE SPEED at C180 (and 1/2.0 =
+  0.5x at C90). The trend is 0.5x -> 0.75x -> climbing toward 1.0x as resolution grows. This is
+  SLOWER than baseline by construction -- off-node buys ELASTICITY, not speed. (Contrast the OTHER
+  decoupling mode, on-node M>N over shm: ~2.23x baseline, FASTER, because the shm handoff is free
+  and it uses the ~144 idle cores. MN = speed; off-node = elasticity. Different levers, different goals.)
+
+THE REAL BOTTLENECK IS NIC BANDWIDTH ON THE TRANSPORT TIER (contention, not S3, not latency):
+  This test ran 48 ranks on ONE m9g node = ONE NIC. Every superstep that NIC must PUT ~40 GB of
+  slice inputs out to S3 and GET the results back. At this project's measured ~1.4 GB/s single-node
+  S3 throughput, ~40 GB is ~28 s of PUT through one NIC before any result returns. That is the wall.
+  - S3 shard contention is NOT the problem: keys are hash-prefixed (256 prefixes, ~900k PUT/s
+    headroom vs 192 PUTs/superstep), every slice a unique key -> no hotspot.
+  - Pool WIDTH does NOT fix it: the C90 pool sweep was FLAT 126->125 d/d from 64 to 384 worker
+    cores. Once ~1 worker/slice exists, extra workers idle; the funnel is upstream on the producer NIC.
+  - REGIME SHIFT: C90 small slices -> LATENCY-bound (width-immune). C180 0.83 GB slices -> the NIC
+    SATURATES -> BANDWIDTH-bound. Bandwidth scales with NUMBER OF NICs = number of TRANSPORT nodes.
+  - CONSEQUENCE: the "tiny transport footprint feeding a huge elastic chem fleet" dream is capped by
+    the transport tier's aggregate NIC bandwidth -- a wider chem fleet cannot help if the FEED is one
+    NIC. Off-node throughput scales only by WIDENING THE TRANSPORT TIER (more nodes/NICs), which is
+    exactly where GCHP already goes multi-node for memory. Off-node pays off ON TOP OF multi-node transport.
+
+CO-LOCATION ARTIFACT (why 0.75x is conservative): to prove correctness cheaply, workers were
+  co-located on the SAME node as the ranks -> that one NIC carried 4 streams (producer PUT-out +
+  worker GET-in + worker PUT-out + rank GET-in ~= 4x traffic) AND the node ran at 89% RAM. That
+  memory pressure caused 22 of 192 slice-PUTs to fail ('crs3_put_in failed rc=1', boto3 sidecar
+  replied ERR); Chem_Remote_Solve timeout-fallback = 0. Each failed PUT -> rank returns
+  solved_remotely=FALSE -> IN-PROCESS re-solve -> THAT is why the checkpoint stayed byte-identical.
+  Only 74 slices actually round-tripped through S3. A SEPARATE WORKER FLEET (bench-s3workerpool)
+  removes 3 of the 4 NIC streams + the RAM pressure from the transport node -> should recover 0.75x
+  toward ~1.0x and eliminate the PUT failures. THAT is the untested cell and the decisive experiment
+  for the contention thesis. Safety valve worked exactly as designed: transport hiccup != wrong answer.
 
 TWO BUGS FIXED EN ROUTE (both env/infra, not transport logic):
   1. m9g had NO capacity in us-east-1a (InsufficientInstanceCapacity) -> probed 1c OK -> ran 1c.
