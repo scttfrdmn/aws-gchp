@@ -22,18 +22,24 @@ aws s3 cp s3://$BUCKET/chemq/bootstrap/s3_chem_worker.py  $POOL   --region us-ea
 [ -x "$WORKER" ] || { echo "FAIL: no kpp_worker (stage it to chemq/bootstrap/ from the transport build)"; exit 1; }
 [ -f "$POOL" ]   || { echo "FAIL: no s3_chem_worker.py in chemq/bootstrap/"; exit 1; }
 
+BOTO3_LIB=/scratch/boto3lib
+# Install boto3 ONCE into the shared /scratch/boto3lib (head-served NFS -> visible to all workers).
+# Doing it per-task raced 48 processes into one --target dir (FileExistsError -> half-install -> all
+# workers exit 3). Install here, single-threaded, before launching the pool. Idempotent (skip if good).
+if ! PYTHONPATH="$BOTO3_LIB" python3 -c "import boto3, boto3 as _; print(_.__version__)" >/dev/null 2>&1; then
+  rm -rf "$BOTO3_LIB"; mkdir -p "$BOTO3_LIB" /scratch/boto3whl
+  aws s3 cp s3://$BUCKET/chemq/bootstrap/boto3-aarch64-py39.tgz /scratch/boto3whl/b.tgz --region us-east-1 --only-show-errors
+  tar xzf /scratch/boto3whl/b.tgz -C /scratch/boto3whl 2>/dev/null
+  python3 -m pip install --no-index --find-links /scratch/boto3whl --target "$BOTO3_LIB" boto3 >/scratch/boto3_offline_install.log 2>&1
+fi
+B3H=$(PYTHONPATH="$BOTO3_LIB" python3 -c 'import boto3;print(boto3.__version__)' 2>&1 | tail -1)
+case "$B3H" in [0-9]*) echo "boto3 pre-installed in $BOTO3_LIB (v$B3H)";; *) echo "FAIL: boto3 offline install broken ($B3H)"; tail -5 /scratch/boto3_offline_install.log; exit 1;; esac
+
 cat > /scratch/pool_task.sh <<EOF
 #!/bin/bash
 source /sw/gchp-env.sh 2>/dev/null
-# boto3 for the worker (in-process client). Offline install from chemq/bootstrap wheels (no PyPI route).
-BOTO3_LIB=/scratch/boto3lib
-if ! PYTHONPATH="\$BOTO3_LIB" python3 -c "import boto3" 2>/dev/null; then
-  mkdir -p \$BOTO3_LIB /scratch/boto3whl
-  aws s3 cp s3://$BUCKET/chemq/bootstrap/boto3-aarch64-py39.tgz /scratch/boto3whl/b.tgz --region us-east-1 --only-show-errors
-  tar xzf /scratch/boto3whl/b.tgz -C /scratch/boto3whl 2>/dev/null
-  python3 -m pip install --no-index --find-links /scratch/boto3whl --target \$BOTO3_LIB boto3 >/scratch/boto3_offline_\${SLURM_PROCID:-0}.log 2>&1
-fi
-export PYTHONPATH="\$BOTO3_LIB\${PYTHONPATH:+:\$PYTHONPATH}"
+# boto3 was pre-installed ONCE into $BOTO3_LIB by the launcher (no per-task install race). Just use it.
+export PYTHONPATH="$BOTO3_LIB\${PYTHONPATH:+:\$PYTHONPATH}"
 B3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1 | tail -1)
 case "\$B3" in [0-9]*) : ;; *) echo "FATAL worker \${SLURM_PROCID:-?}: boto3 unavailable (\$B3)"; exit 3 ;; esac
 # each srun task runs ONE worker; the fleet self-balances via the S3 claim lease.
@@ -45,4 +51,4 @@ chmod +x /scratch/pool_task.sh
 echo "=== launching $NW S3 workers (jobid=$JOBID) across the SEPARATE worker fleet ==="
 # spread NW tasks across whatever nodes the 'pool' partition brings up (MaxCount in the config)
 srun --partition=pool --ntasks=$NW --output=/scratch/poolw_%t.log /scratch/pool_task.sh &
-echo "pool launched (pid $!); logs /scratch/poolw_*.log ; boto3 offline logs /scratch/boto3_offline_*.log"
+echo "pool launched (pid $!); logs /scratch/poolw_*.log"
