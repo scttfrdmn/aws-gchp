@@ -40,6 +40,11 @@ cat > /scratch/pool_task.sh <<EOF
 source /sw/gchp-env.sh 2>/dev/null
 # boto3 was pre-installed ONCE into $BOTO3_LIB by the launcher (no per-task install race). Just use it.
 export PYTHONPATH="$BOTO3_LIB\${PYTHONPATH:+:\$PYTHONPATH}"
+# TMPDIR -> per-node RAM (/dev/shm), NOT the SHARED NFS /scratch. 48 workers writing 0.83GB C180 slice
+# temps to one shared 100GB NFS scratch hit 'No space left' 36x -> retry stalls (the 4th bottleneck).
+# /dev/shm is per-node (~64GB default on a 128GB c7g), local, fast; tempfile/boto3 honor \$TMPDIR.
+export TMPDIR=/dev/shm
+mkdir -p \$TMPDIR 2>/dev/null || true
 B3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1 | tail -1)
 case "\$B3" in [0-9]*) : ;; *) echo "FATAL worker \${SLURM_PROCID:-?}: boto3 unavailable (\$B3)"; exit 3 ;; esac
 # each srun task runs ONE worker; the fleet self-balances via the S3 claim lease.

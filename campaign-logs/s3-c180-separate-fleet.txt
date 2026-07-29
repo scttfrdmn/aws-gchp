@@ -42,3 +42,36 @@ BOTTOM LINE: separate-fleet off-node decoupling is CORRECT (byte-identical), ful
   transport, 0 PUT failures), and throughput-preserving at the compute tier (RUN = baseline). A clean
   wall-clock speedup number needs a warm/stable fleet; this run proved the architecture, not the wall.
   Co-location artifacts (m9g NIC / r8gn CPU) are GONE; the remaining variable is fleet warm-management.
+
+=================================================================================
+UPDATE 2026-07-29 — WARM-FLEET re-runs (2 attempts) for the clean wall. STILL no clean number.
+The clean-wall number defeated a 4th and 5th operational bottleneck, NOT physics:
+
+WARM RUN 1 (MinCount:4 fleet pinned, workers --idle-exit 0 poll-forever):
+  BYTE-IDENTICAL again (md5 9ea1a39d), 0 PUT failures, 100% off-node. Wall 2549s vs baseline 781s.
+  Per-superstep cadence: still an ~11-min GAP on one chem step (down from 19-min unwarmed, NOT gone).
+  Root cause = worker-side OSError [Errno 28] No space left: the pool's /scratch is a SHARED 100GB NFS
+  mount (head EBS), 48 workers writing 0.83GB C180 slice temps to it -> 36 no-space errors -> retry stalls.
+
+WARM RUN 2 (added TMPDIR=/dev/shm so worker temp is per-node RAM, not shared NFS):
+  STALLED: solves froze at 8, 40 no-space errors, transport 0 supersteps at 18min. The No-space MOVED
+  but did NOT go away -- boto3's s3transfer (/scratch/boto3lib/s3transfer/utils.py) still writes staging
+  bytes to a path that fills (TMPDIR didn't fully redirect boto3's download/upload temp). Killed + tore down.
+
+FIVE BOTTLENECKS, in order, each fix exposing the next (all OPERATIONAL, none physics/decoupling):
+  1. m9g single 100Gbps NIC        -> NIC-starved 48-rank S3 aggregate (fixed: r8gn 300Gbps)
+  2. r8gn 96c co-located           -> 48 ranks + 48 workers saturate cores (fixed: separate fleet)
+  3. separate fleet cold           -> nodes scaled down between bursty chem steps (fixed: MinCount:4)
+  4. shared NFS /scratch, 100GB    -> 48 workers' slice temps exhaust it (attempted: TMPDIR=/dev/shm)
+  5. boto3 s3transfer staging path -> still fills despite TMPDIR (UNFIXED; needs finding boto3's temp knob)
+
+VERDICT — STOP CHASING THE WALL. The architecture is THOROUGHLY PROVEN and re-proven every single run:
+  byte-identical (md5 9ea1a39d on m9g, r8gn co-located, r8gn separate-fleet, and both warm runs),
+  100% off-node (transport does zero chemistry), 0 producer PUT failures on the right NIC, and RUN
+  (compute-tier) throughput = baseline (12.8-12.9 d/d). What has NEVER cleanly measured is the WALL-CLOCK
+  number, because every run trips a DIFFERENT worker-fleet operational detail. This is an ops-tuning
+  rabbit hole (fleet disk/temp/lifecycle sizing), not a question about whether off-node decoupling works.
+  The clean wall would need: node-local scratch sized for 48x0.83GB + boto3 configured to stage there
+  (TransferConfig / a writable large TMPDIR that s3transfer actually honors) + pinned warm fleet. That is
+  a worker-image/config engineering task, deferred. The SCIENCE (correct, off-node, throughput-preserving)
+  is done; the WALL is an infra-hardening exercise.
