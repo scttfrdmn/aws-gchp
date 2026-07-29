@@ -34,8 +34,8 @@ Scheduling:
       ComputeResources:
         - Name: workers
           InstanceType: c7g.16xlarge  # 64 cores of chem workers; scale MaxCount for the fleet-sweep
-          MinCount: 0
-          MaxCount: 4                 # 4 nodes x 64c = 256c + 4 NICs for 48 workers (separate-fleet C180)
+          MinCount: 4                 # PINNED WARM: 4 nodes always up -> NO cold-resume gap between the
+          MaxCount: 4                 #   transport's bursty chem supersteps (the clean-wall fix). 4x64c/4 NICs.
           DisableSimultaneousMultithreading: true
           Efa:
             Enabled: false            # NO EFA — proving the point

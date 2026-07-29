@@ -43,8 +43,9 @@ export PYTHONPATH="$BOTO3_LIB\${PYTHONPATH:+:\$PYTHONPATH}"
 B3=\$(python3 -c 'import boto3;print(boto3.__version__)' 2>&1 | tail -1)
 case "\$B3" in [0-9]*) : ;; *) echo "FATAL worker \${SLURM_PROCID:-?}: boto3 unavailable (\$B3)"; exit 3 ;; esac
 # each srun task runs ONE worker; the fleet self-balances via the S3 claim lease.
-# --idle-exit 45 -> a worker exits ~45s after work drains (so the fleet scales down after the run).
-python3 $POOL --bucket $BUCKET --jobid $JOBID --worker-bin $WORKER --claim-ttl 600 --idle-exit 45
+# --idle-exit 0 = POLL FOREVER (never self-exit). With MinCount:4 the fleet stays warm across the
+# transport's long init + bursty chem supersteps -> no cold-resume gap -> clean wall. Tear down manually.
+python3 $POOL --bucket $BUCKET --jobid $JOBID --worker-bin $WORKER --claim-ttl 600 --idle-exit 0
 EOF
 chmod +x /scratch/pool_task.sh
 
