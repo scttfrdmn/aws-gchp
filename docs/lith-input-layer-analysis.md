@@ -56,10 +56,10 @@ Consequences:
 - The footer-family plan (fetch the tail on open) does not apply to HDF5.
 - A naive `--header-window N` (fetch the first N MiB) does not either — the
   metadata is interleaved with the data, not clustered at either end.
-- On lith's demand path a ~1 KB metadata read pulls a 1 MiB cache chunk
-  (`internal/blockstore/blockstore.go:717`), so the worst case is ~224 MiB
-  fetched to deliver 200 KiB (~1000× amplification) unless the byte-exact
-  sparse-fill path (`internal/blockstore/extent.go`, `fill.go:93`) covers it.
+- The amplification is real and large, but **our inferred cause was wrong** — see
+  *Upstream outcome* below. We read `blockstore.go:717` ("a small read fetches a
+  single 1 MiB chunk") and blamed demand-path chunk rounding; that comment was
+  stale, and the bytes were actually whole-chunk *readahead*.
 - The cost is **per open**, so it multiplies by ranks (48–192/node here) and by
   every re-read across time steps, restarts, and campaign reruns.
 
@@ -78,10 +78,11 @@ existing sequential detector, 8 MiB fills, and parallel parts already serve at
 NIC line rate. **An HDF5 chunk-index parser would buy nothing for this
 workload.**
 
-## Recommendation to lith
+## Recommendation to lith (as filed)
 
-Filed upstream as [lith#210](https://github.com/scttfrdmn/lith/issues/210). In
-short:
+Filed upstream as [lith#210](https://github.com/scttfrdmn/lith/issues/210), now
+**closed as resolved** — the outcome, including where this recommendation was
+wrong, is in *Upstream outcome* below. As filed:
 
 **Do not build HDF5 chunk-grid tier 2.** The spec surface (B-tree v1,
 fixed/extensible array, implicit indexes) is large, it is a well-known fuzzing
@@ -114,6 +115,51 @@ skip NetCDF-3 classic until a bucket-wide magic sweep finds any; leave chunk-gri
 tier 2 deferred, noting that if a future store *does* have shuffled chunks the
 Zarr tier-2 fixed/varying-axis planner ports over almost unchanged with byte
 ranges substituted for keys.
+
+## Upstream outcome (as of 2026-09-16)
+
+lith#210 is closed. Both findings were accepted as the workload-shaped evidence
+the `docs/scope.md` gate asks for, **one of our two causal claims was measured
+and refuted, and the fix that landed is neither thing we proposed.** Recorded
+here so the campaign does not carry the wrong story.
+
+**Held — Finding 2.** HDF5 chunk-grid tier 2 stays deferred, with #210 as the
+recorded evidence. Zero-gap monotonic chunks mean the existing sequential
+machinery already serves the natural read unit; a chunk planner buys ~nothing.
+
+**Refuted — our diagnosis of Finding 1's cause.** Upstream implemented the
+demand-path byte-exact fix we ranked first (their step 1a, lith#212) and measured
+it against our three objects staged into their bench bucket: **A1 −0.4%, A3dyn
+~0%, ALD2 unchanged**, GET counts identical. Demand fills were only 1–2% of the
+bytes; **97–99% were whole-chunk readahead.** The `blockstore.go` comment we
+reasoned from was stale — #118 had already made straddling demand reads
+extent-aware.
+
+**The actual lever was the prefetch detector.** `inBand` in
+`internal/prefetch/prefetch.go` compared positions in 8 MiB *block* space, so an
+ascending HDF5 metadata walk with 8–870 MiB byte gaps still read as Sequential
+(A3dyn: 51 of 55 reads), the window grew to 16 blocks / 128 MiB, and lith
+prefetched straight through the scatter. Requiring the *byte* gap ≤ one block
+(lith#213, merged `e203b55d`) gives, cold, 3-run medians on our objects:
+
+| object | S3 bytes before → after | GETs | amplification |
+|---|---|---|---|
+| `A1` | 676 → **186 MB** (−72%) | 95 → 67 | 199× → 55× |
+| `A3dyn` | 3701 → **291 MB** (−92%) | 450 → 86 | 980× → 82× |
+
+Wall-clock neutral-to-faster (A3dyn 6.1 → 2.5 s). Cross-checked against a
+CloudTrail S3 data-event ledger, not just lith's own counters (lith#214).
+
+**Our proposal was deprioritized on its merits, correctly.** With the detector
+fixed, the residual over-read is window re-growth during the initial contiguous
+superblock burst — not repeated reads of the same extents across files, so it is
+not memoization's case. Learned metadata extents is deferred with a trigger under
+lith#211. The small-file case (`ALD2`, 13.7 MB, whole-loaded by parts-fetch
+rather than by the detector) is covered separately by lith#220 → lith#229.
+
+**Lesson for our own reasoning:** a code comment is not a measurement. The
+`blockstore.go:717` inference was the one claim in this document not backed by a
+number we took ourselves, and it was the one that was wrong.
 
 ## What this changes in our architecture
 
@@ -164,12 +210,24 @@ works on EBS. Low upside, new variable.
 2. **Per-node mount vs `lith serve nfs`.** Expect per-node mounts to win for
    48–192-rank nodes, for the same reason the S3-wide handoff beat shared Lustre
    by ~9×: no shared lock, and aggregate bandwidth grows with readers.
-3. **Cold-open latency with learned extents absent.** Measure GCHP init time on
-   a lith `/input` today (224-GET opens, 1 MiB granularity) to quantify what the
-   upstream feature is worth before it exists.
-4. **A/B control.** Keep one FSx `/input` run in the matrix. lith is nine days
-   old with no external users; the campaign is publication-bound, and an input
-   layer change must not silently confound comparisons with existing numbers.
+3. **Cold-open cost — pin the version, don't build from `main`.** The original
+   framing of this gate (quantify the 224-GET / 1 MiB-granularity cost so we know
+   what the upstream feature is worth) is obsolete: the cost was largely removed
+   upstream before we measured it on a cluster. What remains worth measuring is
+   GCHP init time on a lith `/input` **with the gap-aware detector in it**, which
+   means **v1.1** — the fix (`e203b55d`) and the follow-on unified fetch policy
+   (lith#229, `1f4d1e22`) both postdate the v1.0.1 tag. v1.1 is the M17
+   "hardening by shape" milestone and is imminent as of 2026-09-16; wait for the
+   tag rather than pinning a `main` SHA, so the campaign cites a release.
+   Still open in M17 and worth watching for our shape: lith#233 (block-0
+   coalescing on cold sequential reads), lith#230 (byte-vs-request tradeoff by
+   storage class — gcgrid is Standard, so this should not bite us).
+4. **A/B control.** Keep one FSx `/input` run in the matrix. lith reached 1.0
+   eleven days after its first commit and the read path is still moving — the
+   detector rule and the fetch policy both changed after our measurements. The
+   campaign is publication-bound; an input-layer change must not silently
+   confound comparisons with existing numbers, and the lith version must be
+   recorded with every run.
 
 ## Provenance
 
@@ -177,6 +235,13 @@ Every number here was measured on 2026-09-14 against live `s3://gcgrid` objects
 via ranged reads (no full-object downloads, no cluster spend). Reproduce with
 `scripts/lith/h5probe.py` and `scripts/lith/h5chunks.py`.
 
+The *Upstream outcome* numbers are **not ours** — they were measured by lith
+upstream on their bench box against our three objects, and are cited from
+lith#212 / #213 / #214.
+
 Refs: [`scttfrdmn/lith#210`](https://github.com/scttfrdmn/lith/issues/210)
-(HDF5/NetCDF4 measured demand — filed 2026-09-14 with these measurements);
-`docs/scope.md:142` is the gate this analysis answers.
+(HDF5/NetCDF4 measured demand — filed 2026-09-14 with these measurements, closed
+resolved 2026-09-16); lith#212 (step 1a, verdict "little"), lith#213 (gap-aware
+sequential classification — the fix), lith#214 (CloudTrail confirmation),
+lith#211 (learned extents, deferred with a trigger), lith#229 (unified fetch
+policy). `docs/scope.md:142` is the gate this analysis answers.
