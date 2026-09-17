@@ -116,12 +116,18 @@ tier 2 deferred, noting that if a future store *does* have shuffled chunks the
 Zarr tier-2 fixed/varying-axis planner ports over almost unchanged with byte
 ranges substituted for keys.
 
-## Upstream outcome (as of 2026-09-16)
+## Upstream outcome — shipped in lith v1.1.0
 
-lith#210 is closed. Both findings were accepted as the workload-shaped evidence
-the `docs/scope.md` gate asks for, **one of our two causal claims was measured
-and refuted, and the fix that landed is neither thing we proposed.** Recorded
-here so the campaign does not carry the wrong story.
+lith#210 is closed and **the fixes shipped in
+[v1.1.0](https://github.com/scttfrdmn/lith/releases/tag/v1.1.0), 2026-09-16**,
+which is the version to test against. Both findings were accepted as the
+workload-shaped evidence the `docs/scope.md` gate asks for, **one of our two
+causal claims was measured and refuted, and the fix that landed is neither thing
+we proposed.** Recorded here so the campaign does not carry the wrong story.
+
+The v1.1.0 changelog names this workload directly — "cut over-read 72–92% on the
+GEOS-Chem gcgrid workload, ledger-confirmed" — so the release is traceable back
+to these measurements.
 
 **Held — Finding 2.** HDF5 chunk-grid tier 2 stays deferred, with #210 as the
 recorded evidence. Zero-gap monotonic chunks mean the existing sequential
@@ -150,12 +156,30 @@ prefetched straight through the scatter. Requiring the *byte* gap ≤ one block
 Wall-clock neutral-to-faster (A3dyn 6.1 → 2.5 s). Cross-checked against a
 CloudTrail S3 data-event ledger, not just lith's own counters (lith#214).
 
-**Our proposal was deprioritized on its merits, correctly.** With the detector
+**The bigger win for us is the second v1.1.0 change, which we did not ask for.**
+lith#229 gates *all* broad fetching — open-time parts-fetch, the initial readahead
+ramp, and the post-seek re-anchor — on one signal: whether reads in a trailing
+window actually tile. Nothing broad is fetched until the pattern establishes. Its
+measured effect on **HDF5 hyperslab reads is 92.5× → 6.3× amplification**, with
+COG windows 22.1× → 1.27× and GRIB `.idx` 8.1× → 3.35×; streaming and the
+CargoShip tree walk stay byte-identical.
+
+That matters more to `/input` than the metadata fix does. A hyperslab *is* what
+ExtData issues — one variable, one time slice, out of a file holding 50 of them —
+so it is the bulk of our traffic, whereas the metadata walk is a per-open cost.
+It also subsumes the small-file case (`ALD2`, 13.7 MB, whole-loaded by
+parts-fetch rather than by the detector: lith#220 → lith#229).
+
+The stated cost is a cold sequential copy paying roughly one extra round-trip for
+its first block — byte-identical, cold-only, shrinking with file size. That is
+lith#233, still open in M17. For 1–4 GB met files it should be noise; worth
+confirming rather than assuming, since cold reads are exactly our shape.
+
+**Our own proposal was deprioritized on its merits, correctly.** With the detector
 fixed, the residual over-read is window re-growth during the initial contiguous
 superblock burst — not repeated reads of the same extents across files, so it is
 not memoization's case. Learned metadata extents is deferred with a trigger under
-lith#211. The small-file case (`ALD2`, 13.7 MB, whole-loaded by parts-fetch
-rather than by the detector) is covered separately by lith#220 → lith#229.
+lith#211.
 
 **Lesson for our own reasoning:** a code comment is not a measurement. The
 `blockstore.go:717` inference was the one claim in this document not backed by a
@@ -210,18 +234,19 @@ works on EBS. Low upside, new variable.
 2. **Per-node mount vs `lith serve nfs`.** Expect per-node mounts to win for
    48–192-rank nodes, for the same reason the S3-wide handoff beat shared Lustre
    by ~9×: no shared lock, and aggregate bandwidth grows with readers.
-3. **Cold-open cost — pin the version, don't build from `main`.** The original
-   framing of this gate (quantify the 224-GET / 1 MiB-granularity cost so we know
-   what the upstream feature is worth) is obsolete: the cost was largely removed
-   upstream before we measured it on a cluster. What remains worth measuring is
-   GCHP init time on a lith `/input` **with the gap-aware detector in it**, which
-   means **v1.1** — the fix (`e203b55d`) and the follow-on unified fetch policy
-   (lith#229, `1f4d1e22`) both postdate the v1.0.1 tag. v1.1 is the M17
-   "hardening by shape" milestone and is imminent as of 2026-09-16; wait for the
-   tag rather than pinning a `main` SHA, so the campaign cites a release.
-   Still open in M17 and worth watching for our shape: lith#233 (block-0
-   coalescing on cold sequential reads), lith#230 (byte-vs-request tradeoff by
-   storage class — gcgrid is Standard, so this should not bite us).
+3. **Read cost on a real GCHP init — pin `v1.1.0`.** The original framing of this
+   gate (quantify the 224-GET / 1 MiB-granularity cost to size what the upstream
+   feature is worth) is obsolete: the cost was largely removed upstream before we
+   measured it on a cluster. What is worth measuring now is GCHP init and ExtData
+   read time on a lith `/input` at **v1.1.0**, which carries both the gap-aware
+   detector (`e203b55d`) and the unified fetch policy (`1f4d1e22`); neither is in
+   v1.0.1. Install from the release's **deb/rpm** — v1.1.0 ships packages, an
+   SBOM, cosign signatures and SLSA provenance (lith#207), so nodes need no Go
+   toolchain and the artifact is verifiable, which suits a published campaign.
+   Record the exact version and `parts-fetch` setting with every run.
+   Two open M17 items to watch for our shape: lith#233 (the cold-sequential
+   first-block round-trip that lith#229 costs us) and lith#230 (byte-vs-request
+   tradeoff by storage class — gcgrid is Standard, so this should not bite).
 4. **A/B control.** Keep one FSx `/input` run in the matrix. lith reached 1.0
    eleven days after its first commit and the read path is still moving — the
    detector rule and the fetch policy both changed after our measurements. The
@@ -244,4 +269,6 @@ Refs: [`scttfrdmn/lith#210`](https://github.com/scttfrdmn/lith/issues/210)
 resolved 2026-09-16); lith#212 (step 1a, verdict "little"), lith#213 (gap-aware
 sequential classification — the fix), lith#214 (CloudTrail confirmation),
 lith#211 (learned extents, deferred with a trigger), lith#229 (unified fetch
-policy). `docs/scope.md:142` is the gate this analysis answers.
+policy — the hyperslab win), lith#233 (its cold first-block cost).
+Both shipped in **lith v1.1.0** (2026-09-16), which is the version this branch
+should test. `docs/scope.md:142` is the gate this analysis answers.
