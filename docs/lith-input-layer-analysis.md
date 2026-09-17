@@ -659,9 +659,35 @@ handle") returned on **`fstat`/GETATTR**, never on READ. What this rules out:
   59068 vs 15598), but the plain-options control still fails at C≥64 — and gate 2's
   GCHP arm used plain options. The flags change the rate, not the existence.
 
-So it looks like a file-handle→object mapping that does not survive concurrent
-GETATTR — a bounded/recycled handle table or a racy lookup — which the numbers
-locate rather than the code, since lith's internals were not read here.
+From the outside this looked like a file-handle→object mapping that does not
+survive concurrent GETATTR — a bounded/recycled handle table or a racy lookup —
+which the numbers located rather than the code, since lith's internals were not
+read here.
+
+**That inference was wrong, and it is the only part of this section that was.**
+Root-caused upstream within the hour (lith#244), from the categorized STALE logging
+that was asked for here and shipped in lith#245:
+
+- lith's handles are **computed**, not tabled — `(sha256[:8] of index, inode)`, 16
+  bytes, no table, no eviction, no lock. So there is nothing to exhaust or recycle.
+- The handler is `-race`-clean at 96 goroutines × 200 `ToHandle`→`FromHandle`
+  round-trips, with **zero** STALE. lith provably emits correct handle bytes.
+- The logged failures are `inode not found` and `root id mismatch`, never
+  `bad length`, and the handles arrive with **4-byte-word-level corruption of the
+  tail** — inode low word zeroed, inode fully zeroed, or root-id low word zeroed.
+- So the corruption appears strictly on the **wire round-trip**: it is in
+  `go-nfs` v0.0.4's opaque-handle XDR encode/frame/decode, not in lith. Leading
+  suspect is the multi-entry response path (READDIRPLUS packs a filehandle per
+  entry) mis-framing under load, which the client then caches and replays on
+  GETATTR — consistent with GETATTR-only failures whose rate tracks GETATTR volume.
+
+Two lessons worth keeping. First, **the measurements all held and only the
+mechanism guess failed** — which is the argument for labelling inference as
+inference rather than dropping it: the wrong-but-explicit guess is what made the
+diagnostic ask concrete. Second, `serve nfs` is now documented with a **~32-reader
+ceiling** (`docs/serving-a-cluster.md`), so the envelope is bounded even though
+`go-nfs` v0.0.4 is the newest tag and there is nothing to bump to yet. #244 stays
+open pending that upstream fix.
 
 ### Why a 0.04% failure rate is nonetheless fatal
 
@@ -708,7 +734,17 @@ init at 96 ranks. Per-node mounts, meanwhile, ran multi-node GCHP to completion 
 96 ranks across 2 nodes, twice, with zero read errors and zero fallbacks, which is
 the first multi-node confirmation of the gate 3c result.
 
-Reported upstream on lith#210 with the standalone repro and the threshold table.
+Reported upstream on lith#210 (multi-node results and both corrections) and filed
+as lith#244 with the standalone repro and the threshold table. Both are answered:
+#244 is root-caused to `go-nfs`, and lith#245 ships the two asks made here
+(categorized STALE logging, and a documented concurrency ceiling).
+
+**Work is parked here pending upstream.** Open on lith's side: PR #245 (in
+review), #244 (blocked on a `go-nfs` fix that has no tag to bump to), and #233
+(our confirmation posted, no response yet). Resume item once #245 lands: re-run
+`scripts/lith/gate2-nfs-errno-probe.sh` against it — the STALE log line now names
+the category and prints the handle, which would confirm the READDIRPLUS framing
+hypothesis from our side. That is a ~90-second head-node run and costs nothing.
 
 ### Harness bugs worth remembering
 
