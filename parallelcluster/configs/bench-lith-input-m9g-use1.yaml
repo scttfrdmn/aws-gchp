@@ -1,0 +1,89 @@
+# LITH AS /input — A/B AGAINST FSx LUSTRE (us-east-1a, m9g.48xlarge).
+#
+# Purpose: run the gates in docs/lith-input-layer-analysis.md. Identical to
+# bench-fullchem-m9g-use1.yaml (the proven C180 fullchem config) in every respect
+# that touches the science, so the only variable is where ExtData reads from:
+#   /input      FSx Lustre by-ID (fs-0804c4d8e01897d21, gcgrid, us-east-1a)  <- CONTROL (gate 4)
+#   /input-lith lith v1.1.0 FUSE mounts over s3://gcgrid, per compute node    <- TREATMENT
+#
+# Gate 1 is already answered by source inspection (no collective MPI-IO in MAPL;
+# num_readers defaults to 1) so nothing here needs to keep restarts off lith.
+#
+# The control FSx is REUSED, not created: a fresh full-bucket ImportPath takes
+# ~33 min and times out the head-node WaitCondition (see memory
+# fsx_inline_import_waitcondition). Deleting it would forfeit the control.
+#
+# COST NOTE: MinCount 0 everywhere and ScaledownIdletime 5 so nothing compute
+# bills while the index builds. /scratch is created and deleted with the cluster.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.4xlarge          # ARM login/index host; compute is the m9g
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (control FSx AZ + m9g availability)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Sequence:
+        - Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+        - Script: s3://gchp-shared-storage-us-east-1/bootstrap/install-lith.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: m9g.48xlarge
+          MinCount: 0
+          MaxCount: 2                 # 1 node for gate 3; 2 for gate 2 (per-node mount vs serve nfs)
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://gchp-shared-storage-us-east-1/bootstrap/install-lith.sh
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # CONTROL: gcgrid, us-east-1a, already hydrated
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: lith-input-ab
