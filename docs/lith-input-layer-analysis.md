@@ -16,11 +16,41 @@ layout measurement is what rules the parser out.
 
 **Answered by the integration A/B (gate 3c, below):** GCHP 14.7.1 completed a
 full simulation with **100% of its input served from `s3://gcgrid` through lith**,
-at 48 ranks on one node, twice, with zero read errors and zero fallbacks. Against
-FSx Lustre at the same temperature: **1.73× faster init cold, parity warm.** The
-byte advantage over a whole init is **1.43×**, not the 9.3× a single hyperslab
-suggested — the win is cold latency and the deleted pre-hydration step, not
-bandwidth.
+at 48 ranks on one node and 96 ranks across two, with zero read errors and zero
+fallbacks. It works, and it is believed to be the first time GCHP has run with its
+input tree on object storage.
+
+**But there is no performance case, and this document should not be read as
+making one.** Corrected 2026-09-17 after all four arms were in:
+
+| comparison | FSx | lith | |
+|---|---|---|---|
+| 1-node 48-rank, **warm vs warm**, init | 16.66 s | 15.94 s | tie |
+| 1-node 48-rank, **warm vs warm**, to sim end | 34.2 s | 34.2 s | **dead tie** |
+| 1-node, cold vs cold, init | 45.26 s | 26.09 s | lith 1.73× |
+| 2-node 96-rank, init | 33.13 s (warm) | 41.43 s (cold) | **lith 25% slower** |
+
+The 1.73× is real but it is measured against a state we deliberately never run in:
+`lfs hsm_restore` of the scoped working set before launch is standing policy, so
+the operationally honest comparison is against **warm** FSx, where lith ties at one
+node and loses at two. Two further reasons the performance framing does not
+survive: a C180 fullchem sim-day is ~3.2 h on 48 cores, so ±10 s of init is ~0.1%
+of wall and cannot matter at any run length; and **repeat runs favour FSx**, because
+hydration amortises across every job on the volume forever while lith's mem-cache
+dies with the daemon each job — and at 2 GB cannot hold the 4.1 GB working set in
+any case, so every job re-fetches.
+
+The byte advantage over a whole init is **1.43×**, not the 9.3× a single hyperslab
+suggested, and in-region S3→EC2 bytes are free, so that column decides nothing
+either.
+
+**What lith is actually worth here is cost and provisioning complexity, not
+speed:** it removes ~$168/month/volume of standing FSx `/input`, and it deletes
+five separately-recorded deployment traps (the ~33 min create+import
+WaitCondition timeout, the v2.15-or-mount-fails version pin, the Lustre-ports
+security group, AZ pinning, and the pre-hydration step itself). Time-to-first-run
+on a fresh cluster goes from ~33 min of FSx import to a ~4 s mount. Judge the
+change on those terms.
 
 ## What lith is
 
