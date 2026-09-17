@@ -57,6 +57,21 @@ Scheduling:
         PlacementGroup:
           Enabled: false
       CapacityType: ONDEMAND
+      # REQUIRED, and easy to miss: a queue-level CustomAction script hosted in S3
+      # is downloaded by the COMPUTE node role, which is a different role from the
+      # head node's. Declaring AmazonS3ReadOnlyAccess under HeadNode/Iam does not
+      # grant it here. Without this block the compute node's OnNodeConfigured
+      # download fails with HeadObject 403, ParallelCluster treats that as a
+      # bootstrap failure, and the instance powers ITSELF off ~2 min in — which
+      # surfaces as EC2 StateReason "Client.InstanceInitiatedShutdown" and looks
+      # exactly like a capacity or AMI problem. Three m9g launches died this way.
+      # The breadcrumb is the CloudWatch stream <node>.bootstrap_error_msg.
+      # SSM is here so a compute node can be inspected directly instead of only
+      # through the head node.
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+          - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       CustomActions:
         OnNodeConfigured:
           Script: s3://gchp-shared-storage-us-east-1/bootstrap/install-lith.sh
