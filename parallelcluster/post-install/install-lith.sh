@@ -20,6 +20,22 @@ set -euo pipefail
 LITH_VERSION="1.1.1"
 LITH_RPM="lith_${LITH_VERSION}_linux_arm64.rpm"
 LITH_SHA256="cf9956722fb86d6773eea6142c00e0158870e1690db19330a89f76c58eec5b7f"
+# COMPUTE NODES HAVE NO INTERNET EGRESS. They get no public IP, and this VPC has
+# no NAT gateway — only an S3 gateway endpoint (which is also why `dnf install
+# fuse3` works here while github.com does not). Fetching the release directly
+# from GitHub fails on a compute node with
+#   curl: (28) Failed to connect to github.com port 443 after 136064 ms
+# and, because this script runs under `set -e` as OnNodeConfigured, that failure
+# powers the whole instance off ~4 min into bootstrap. So the artifact is
+# mirrored into the project bucket and pulled over the S3 endpoint. That is also
+# the better provenance story for a benchmark: the rpm is pinned in a bucket we
+# control rather than re-fetched from a mutable release page.
+# Mirror populated with:
+#   curl -fsSL -o $LITH_RPM \
+#     https://github.com/scttfrdmn/lith/releases/download/v1.1.1/$LITH_RPM
+#   aws s3 cp $LITH_RPM s3://gchp-shared-storage-us-east-1/lith/$LITH_RPM
+# sha256 verified against the release checksums.txt before upload and again below.
+LITH_S3="s3://gchp-shared-storage-us-east-1/lith/${LITH_RPM}"
 LITH_URL="https://github.com/scttfrdmn/lith/releases/download/v${LITH_VERSION}/${LITH_RPM}"
 
 log() { echo "[install-lith $(date -u +%H:%M:%S)] $*"; }
@@ -35,7 +51,19 @@ dnf install -y fuse3 >/dev/null
 
 log "downloading ${LITH_RPM}"
 cd /tmp
-curl -fsSL -o "${LITH_RPM}" "${LITH_URL}"
+rm -f "${LITH_RPM}"
+# S3 mirror first (works on both node roles, no egress needed). GitHub only as a
+# fallback for a node that has internet but no bucket access, and with short
+# timeouts so a no-egress node fails in seconds instead of stalling bootstrap for
+# over two minutes before the instance kills itself.
+if aws s3 cp "${LITH_S3}" "${LITH_RPM}" --only-show-errors; then
+    log "fetched from S3 mirror"
+elif curl -fsSL --connect-timeout 10 --max-time 120 -o "${LITH_RPM}" "${LITH_URL}"; then
+    log "fetched from GitHub (S3 mirror unavailable)"
+else
+    log "FATAL: could not fetch ${LITH_RPM} from ${LITH_S3} or ${LITH_URL}"
+    exit 1
+fi
 
 # Verify against the checksum published with the release. The release also ships
 # a keyless cosign bundle (checksums.txt.bundle) and SLSA provenance; verifying
