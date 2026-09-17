@@ -60,8 +60,10 @@ Consequences:
   *Upstream outcome* below. We read `blockstore.go:717` ("a small read fetches a
   single 1 MiB chunk") and blamed demand-path chunk rounding; that comment was
   stale, and the bytes were actually whole-chunk *readahead*.
-- The cost is **per open**, so it multiplies by ranks (48–192/node here) and by
-  every re-read across time steps, restarts, and campaign reruns.
+- The cost is **per open** — but **not** per rank, contrary to what this document
+  and lith#210 originally claimed. MAPL reads through a small reader set (default
+  1); see *Gate 1, answered* below. It still recurs across time steps, restarts
+  and campaign reruns.
 
 ### Finding 2 — the chunks are already sequential on disk
 
@@ -227,10 +229,30 @@ works on EBS. Low upside, new variable.
 
 ## Gates to test on this branch
 
-1. **Collective MPI-IO reads.** Determine whether MAPL reads the cold-start
-   restart via `H5FD_MPIO`. If it does, keep restarts off lith — cross-node
-   locking is explicitly outside lith's scope. Met-field/emissions reads through
-   ExtData are ordinary reads and are the bulk of the traffic.
+1. ~~**Collective MPI-IO reads.**~~ **ANSWERED 2026-09-17 by source inspection,
+   no spend — and the answer removes the restriction.** MAPL does **not** use
+   collective MPI-IO: `nf90_open_par`, `nf90_create_par` and `H5FD_MPIO` have
+   **zero** occurrences in `GEOS-ESM/MAPL`, even though our own HDF5 is built
+   `--enable-parallel` (`build-gchp-stack-validated-arm64.sh:350`), so the
+   capability is present and simply unused. Instead:
+   - **Restarts:** `base/NCIO.F90` ~2218–2290 — `amIRoot = MAPL_am_i_root(layout)`
+     → `formatter%get_var(...)` on that rank only → `ArrayScatter` /
+     `ArrayScatterShm`, or `MAPL_CommsBcast` in the non-tiled branch.
+     `num_readers` **defaults to 1** (`base/FileIOShared.F90:107`), capped at `NY`
+     and required to divide it evenly.
+   - **ExtData (the bulk):** `griddedio/GriddedIO.F90:1288` issues
+     `i_Clients%collective_prefetch_data(...)` with each rank's own
+     `localStart`/`globalStart`/`globalCount`. Ranks *request* subdomains and a
+     pFIO reader set serves them — a request/serve design specifically so the file
+     is not opened once per rank.
+
+   Consequences: (a) the cross-node-locking boundary in lith's `docs/scope.md` is
+   **not in play** for GCHP reads — a restart read is one rank doing ordinary
+   POSIX reads, so restarts need not be kept off lith as this document first
+   assumed; (b) the "multiplies by 48–192 ranks" claim was wrong and has been
+   corrected upstream (lith#210 comment); (c) `num_readers` is now a *tuning knob
+   for the lith experiment* — raising it toward `NY` spreads metadata opens across
+   ranks, which is the natural A/B against a single-reader baseline.
 2. **Per-node mount vs `lith serve nfs`.** Expect per-node mounts to win for
    48–192-rank nodes, for the same reason the S3-wide handoff beat shared Lustre
    by ~9×: no shared lock, and aggregate bandwidth grows with readers.
