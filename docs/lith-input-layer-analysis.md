@@ -297,6 +297,17 @@ so every cold number is a genuinely cold file. Harnesses:
 ways (lith#237), which would have clamped `parts-max` to 4 MiB. Derived settings
 recorded per run: `parts-max` 64 MiB, readahead 67 blocks, coalesce gap 585,937 B.
 
+> **Correction — the 15 was wrong, and the real numbers are better than the table.**
+> `c7g.4xlarge` is "Up to 15 Gigabit" but its `DescribeInstanceTypes`
+> **baseline is 7.5 Gbps**; 15 is the burst peak. `--nic-gbps` wants the baseline,
+> so every cold number below was taken with the NIC overstated 2×. Re-measured on
+> the same file, 3 reps each: at the correct **7.5** the `A3dyn` cold slab moves
+> **382 MB, amplification 3.5×**, versus 654 MB / 6.0× at 15 — **42% fewer bytes
+> for no wall-time change** (read 2.4–3.3 s either way, ranges overlapping).
+> So the bias ran *against* lith: its true byte advantage over FSx on that read is
+> **9.3×** (382 vs 3564 MB), not the 5.4× the table states, and the wall-clock
+> comparisons are unaffected. Reported upstream on lith#237.
+
 | read shape | FSx cold | lith cold | lith adv. | FSx bytes | lith bytes |
 |---|---|---|---|---|---|
 | `A1` 0.95 GB, 3.3 MB slab (`/ALBEDO`, 1 step) | 6.9 s | **0.24 s** | **29×** | 954 MB | **3.0 MB** |
@@ -325,10 +336,12 @@ for the `A3dyn/U` slice also independently confirms Finding 2's predicted 114.6 
 contiguous time slice.
 
 **Residual amplification, and one refuted prediction of ours.** lith's cold
-over-read is 5.9× on the big hyperslab (654 MB fetched for 110 MB used) —
-independently reproducing lith#229's own 6.3× hyperslab figure on a different box.
-FSx's equivalent is 32× (3564/110), so lith moves 5.4× fewer bytes *despite* its
-amplification. Small files amplify worst: 8.0× on the HEMCO walk (31 MB for
+over-read is 5.9× on the big hyperslab (654 MB fetched for 110 MB used) at the
+overstated NIC setting, and **3.5× (382 MB) at the correct 7.5 Gbps baseline** —
+either way bracketing lith#229's own 6.3× hyperslab figure, independently
+reproduced on different hardware and through the C library rather than h5py.
+FSx's equivalent is 32× (3564/110), so lith moves 5.4–9.3× fewer bytes *despite*
+its amplification. Small files amplify worst: 8.0× on the HEMCO walk (31 MB for
 3.9 MB), though trivial in absolute terms.
 
 Gate 3b was designed to find the regime where lith loses — HEMCO files are 13 MB,
