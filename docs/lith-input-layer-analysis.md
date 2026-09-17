@@ -256,7 +256,14 @@ works on EBS. Low upside, new variable.
 2. **Per-node mount vs `lith serve nfs`.** Expect per-node mounts to win for
    48–192-rank nodes, for the same reason the S3-wide handoff beat shared Lustre
    by ~9×: no shared lock, and aggregate bandwidth grows with readers.
-3. **Read cost on a real GCHP init — pin `v1.1.0`.** The original framing of this
+3. **MEASURED 2026-09-17 — read cost on `v1.1.0`, lith vs an FSx control.** Results
+   in *Gate 3 results* below. lith wins cold by **8.5–29×**, matches FSx warm to
+   within noise, moves **5.4–16× fewer bytes**, and returns **byte-identical
+   data** (checksums match on all six file/day pairs). The GCHP-init integration
+   run on `m9g.48xlarge` is still outstanding; everything below is head-node
+   microbenchmark on the authentic HDF5 1.14.0 that GCHP links.
+
+   Original framing of this gate, kept for provenance: The original framing of this
    gate (quantify the 224-GET / 1 MiB-granularity cost to size what the upstream
    feature is worth) is obsolete: the cost was largely removed upstream before we
    measured it on a cluster. What is worth measuring now is GCHP init and ExtData
@@ -275,6 +282,65 @@ works on EBS. Low upside, new variable.
    campaign is publication-bound; an input-layer change must not silently
    confound comparisons with existing numbers, and the lith version must be
    recorded with every run.
+
+## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
+
+Cluster `gchp-lith-ab`, head node `c7g.4xlarge`, us-east-1a. lith 1.1.0 from the
+release rpm. Reads issued through **the GCHP stack's own HDF5 1.14.0**
+(`/sw/hdf5-1.14.0`), not a Python approximation, so the access pattern is the one
+MAPL actually produces. Three replicates on three different days (2019-07-02/03/04)
+so every cold number is a genuinely cold file. Harnesses:
+`scripts/lith/gate3-read-cost.sh`, `scripts/lith/gate3b-hemco-walk.sh`,
+`scripts/lith/slabread.c`. Raw data: `data/lith-gates/gate3*-results.tsv`.
+
+`--nic-gbps 15` passed explicitly — autodetection fails on ParallelCluster both
+ways (lith#237), which would have clamped `parts-max` to 4 MiB. Derived settings
+recorded per run: `parts-max` 64 MiB, readahead 67 blocks, coalesce gap 585,937 B.
+
+| read shape | FSx cold | lith cold | lith adv. | FSx bytes | lith bytes |
+|---|---|---|---|---|---|
+| `A1` 0.95 GB, 3.3 MB slab (`/ALBEDO`, 1 step) | 6.9 s | **0.24 s** | **29×** | 954 MB | **3.0 MB** |
+| `A3dyn` 3.5 GB, 239 MB slab (`/U`, 1 step × 72 lev) | 24.8 s | **2.90 s** | **8.5×** | 3564 MB | **654 MB** |
+| HEMCO walk, 31 files, 502 MB | 39.7 s | **3.6 s** | **11×** | 502 MB | **31 MB** |
+| any of the above, warm | 0.02–1.12 s | 0.02–1.12 s | parity | 0 | **0** |
+
+Medians of 3; spread was tight (`A3dyn` cold open 22.5/24.4/23.6 s FSx,
+0.09/0.11/0.16 s lith).
+
+**The cold win is not a read-speed win — it is the whole-object lazy load.** On
+FSx, touching a file's *metadata* costs hydrating the entire object: `A3dyn` cold
+`H5Fopen` alone took **22.5–24.4 s** while the subsequent 239 MB `H5Dread` took
+1.18 s. lith's `H5Fopen` on the same file: **0.09–0.16 s**. GCHP opens a file and
+reads a few variables; FSx charges for all 3.5 GB of it.
+
+This is precisely the cost that our `lfs hsm_restore` pre-hydration ritual exists
+to pay up front (memory `fsx_prehydrate_before_runs`). So the honest framing is:
+**FSx warm equals lith warm on read speed — but reaching FSx warm costs the full
+hydration of the working set, and lith's "cold" *is* its steady state.** lith does
+not make reads faster than Lustre; it deletes a provisioning step.
+
+**Byte-identical.** `slabread` FNV-checksums the returned buffer; all six
+file/day pairs matched between backends exactly. The 110 MB `distinct_bytes_read`
+for the `A3dyn/U` slice also independently confirms Finding 2's predicted 114.6 MB
+contiguous time slice.
+
+**Residual amplification, and one refuted prediction of ours.** lith's cold
+over-read is 5.9× on the big hyperslab (654 MB fetched for 110 MB used) —
+independently reproducing lith#229's own 6.3× hyperslab figure on a different box.
+FSx's equivalent is 32× (3564/110), so lith moves 5.4× fewer bytes *despite* its
+amplification. Small files amplify worst: 8.0× on the HEMCO walk (31 MB for
+3.9 MB), though trivial in absolute terms.
+
+Gate 3b was designed to find the regime where lith loses — HEMCO files are 13 MB,
+below `parts-max` 64 MiB, so we predicted lith would whole-fetch them and move the
+same 502 MB FSx does. **Wrong: lith moved 31 MB.** #229's "nothing broad until
+reads tile" means a metadata-only walk never triggers the parts path at all. The
+prediction was mine, and the measurement refuted it — the same lesson as
+`blockstore.go:717`, on the same branch.
+
+Not yet explained: `lith_sibling_prefetch_total` stayed at **0** across a 31-file
+walk opened in sorted key order, so the sibling-walk detector never fired. Asked
+upstream rather than guessed at.
 
 ## Provenance
 
