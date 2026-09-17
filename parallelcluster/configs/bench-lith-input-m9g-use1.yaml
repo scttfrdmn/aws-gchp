@@ -44,7 +44,32 @@ Scheduling:
     - Name: compute
       ComputeResources:
         - Name: nodes
-          InstanceType: m9g.48xlarge
+          # Two SINGLE-NETWORK-CARD types, so EC2 can satisfy capacity: two
+          # m9g.48xlarge at once in us-east-1a returned InsufficientInstanceCapacity
+          # (job 5, 2026-09-17) — m9g scarcity is AZ-specific, and one node was
+          # obtainable while two were not. A capacity failure launches nothing and
+          # so costs nothing, which makes listing a fallback free insurance.
+          #
+          # WHY NOT the 600 Gbps 2-card boxes (c8gn/m8gn/m8gb.48xlarge): they are
+          # rejected outright here. This is the DEFAULT VPC, every subnet has
+          # MapPublicIpOnLaunch=true, and EC2 cannot attach a public IP to an
+          # instance with more than one NIC, so MultiNetworkInterfacesInstancesValidator
+          # fails the config. A queue-level AssignPublicIp: false does NOT satisfy it
+          # — the validator reads the subnet attribute. Fixing it properly needs a
+          # private subnet in us-east-1a, i.e. new shared network infrastructure in
+          # the user's default VPC, which is out of scope for this gate.
+          #
+          # And it does not matter for THIS workload: the C24 working set is ~3.3 GB
+          # over a ~26 s init, about 1 Gbps of real demand. Both types below exceed
+          # that by 50-100x, so the link is nowhere near binding and gate 2's
+          # shared-gateway cost will show up as request latency and NFSv3
+          # round-trips, not bandwidth. Baselines verified via DescribeInstanceTypes.
+          #
+          # Both are aarch64, 192 vCPU and EFA-capable (EFA is a hard requirement:
+          # GCHP multi-node aborts at MPI_Win_create over plain TCP).
+          Instances:
+            - InstanceType: c8g.48xlarge    # 384 GiB  1 card,  50 Gbps baseline
+            - InstanceType: m9g.48xlarge    # 768 GiB  1 card, 100 Gbps baseline (gate 3c's box)
           MinCount: 0
           MaxCount: 2                 # 1 node for gate 3; 2 for gate 2 (per-node mount vs serve nfs)
           DisableSimultaneousMultithreading: true
@@ -56,6 +81,10 @@ Scheduling:
           - subnet-2eec4a71
         PlacementGroup:
           Enabled: false
+        # NOTE: a queue-level `AssignPublicIp: false` does NOT let multi-NIC
+        # instance types into this subnet — MultiNetworkInterfacesInstancesValidator
+        # inspects the subnet's MapPublicIpOnLaunch attribute, not this setting.
+        # Tried and rejected; see the ComputeResources comment above.
       CapacityType: ONDEMAND
       # REQUIRED, and easy to miss: a queue-level CustomAction script hosted in S3
       # is downloaded by the COMPUTE node role, which is a different role from the

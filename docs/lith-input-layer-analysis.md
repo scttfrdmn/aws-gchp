@@ -261,7 +261,17 @@ works on EBS. Low upside, new variable.
    corrected upstream (lith#210 comment); (c) `num_readers` is now a *tuning knob
    for the lith experiment* — raising it toward `NY` spreads metadata opens across
    ranks, which is the natural A/B against a single-reader baseline.
-2. **Per-node mount vs `lith serve nfs`.** Expect per-node mounts to win for
+2. ~~**Per-node mount vs `lith serve nfs`.**~~ **MEASURED 2026-09-17 — results in
+   *Gate 2 results* below. Per-node mounts win, but not for the predicted reason,
+   and the prediction below was wrong twice over.** The shared gateway does not
+   lose a performance race; it **cannot run GCHP at all** (ESTALE under concurrent
+   GETATTR, reproduced standalone). And the "aggregate bandwidth grows with
+   readers" premise never engaged: measurement showed reads are *not* centralised
+   to begin with, so per-node mounts fetch the whole working set **once per node**
+   rather than sharing it — a byte argument *for* a gateway, opposite to the guess
+   recorded here.
+
+   Original framing, kept for provenance: Expect per-node mounts to win for
    48–192-rank nodes, for the same reason the S3-wide handoff beat shared Lustre
    by ~9×: no shared lock, and aggregate bandwidth grows with readers.
 3. **MEASURED 2026-09-17 — read cost on `v1.1.0`, lith vs an FSx control.** Results
@@ -488,7 +498,8 @@ reproduce on the model.
 Single replicate per arm on the timing (the two cold runs excepted); C24, which
 is the smallest useful resolution, so init is a large fraction of a 34–90 s
 total and the *relative* cold penalty will shrink on production-length runs;
-one node, so this says nothing yet about multi-node (gate 2). GCHP's own
+one node — multi-node is now covered by *Gate 2 results* below, where per-node
+mounts carried 96 ranks across 2 nodes to completion. GCHP's own
 post-checkpoint `double free or corruption (!prev)` in `_dl_fini` is present on
 both backends identically and is unrelated to lith; the harness polls for GCHP's
 own completion evidence rather than waiting on `mpirun`, which never returns.
@@ -509,6 +520,162 @@ the CloudWatch stream `<node>.bootstrap_error_msg`.
    S3-backed) while `curl https://github.com` stalls 136 s and fails. The lith
    rpm is now mirrored into the project bucket and pulled over the S3 endpoint,
    which is better provenance anyway.
+
+## Gate 2 results — per-node mounts vs one shared `lith serve nfs`, 2 nodes, 96 ranks
+
+Cluster `gchp-lith-ab`, **two `c8g.48xlarge`** (192 vCPU, 384 GiB, aarch64, EFA)
+in us-east-1a, 96 MPI ranks at 48 per node, GCHP 14.7.1 C24 TransportTracers,
+1 simulated day, lith v1.1.1. Layout `NX=4, NY=24` — not invented for this test:
+`setCommonRunSettings.sh` lists `(NX=4,NY=24) -> 96 cores` as a *good* example and
+puts C24's ceiling at 216 cores, so no new run directory was needed and
+`AutoUpdate_NXNY=ON` derived it. Harness `scripts/lith/gate2-mount-vs-nfs.sbatch`.
+
+### The headline: the shared gateway cannot run GCHP
+
+| arm | topology | `NUM_READERS` | init | to sim end | steps |
+|---|---|---|---|---|---|
+| `fsx-r1` | FSx Lustre (warm) — anchor | 1 | 33.13 s | 69.13 s | 144/144 |
+| `mount-r1` | per-node lith FUSE, cold | 1 | 41.43 s | 88.43 s | 144/144 |
+| `mount-r24` | per-node lith FUSE, cold | 24 | 41.88 s | 93.88 s | 144/144 |
+| `nfs-r1` | one shared `lith serve nfs` | 1 | — | — | **0/144, aborted at 4 s** |
+
+`fsx-r1` and `mount-r1` reproduced across two separate jobs to ~1 s, so the
+per-node numbers are not single-shot. Note the FSx anchor here is **warm**
+(hydrated) against a **cold** lith, the same asymmetry as gate 3c — where cold
+FSx lost to cold lith by 1.73×. This is not a like-for-like temperature
+comparison and should not be read as one.
+
+`NUM_READERS=24` changed nothing measurable (41.43 → 41.88 s, ~1%), which is
+consistent with gate 1: `NUM_READERS` governs only the **restart** read (39 MB),
+and the bulk is ExtData/pFIO (~3.2 GB), which it does not touch.
+
+The gateway arm died 4 s in, on many ranks at once:
+
+```
+nf90_open: returned error code (-51) opening gchp_restart.nc4 [NetCDF: Unknown file format]
+nf90_open: returned error code (116) opening gchp_restart.nc4 [Stale file handle]
+pe=00071 FAIL at line=00297  NetCDF4_FileFormatter.F90  <status=-51>
+pe=00071 FAIL at line=00517  MAPL_GridManager.F90       <status=-51>
+```
+
+`MAPL_GridManager.F90:517` is **not** gated by `NUM_READERS`, so all 96 ranks open
+that one file simultaneously — which is precisely the load that breaks.
+
+### Root cause, isolated on the head node for $0: ESTALE under concurrent GETATTR
+
+"GCHP crashed" is not a bug report, so the failure was reduced to a standalone
+repro with no MPI, no model and no compute nodes — three probes on the head node,
+which was already billing. Each compares bytes against the *same S3 object* as
+materialised by FSx (`md5 909d6648…`, 38736962 B).
+
+1. `gate2-nfs-concurrency-probe.sh` — 96 concurrent `md5sum` of one file through
+   the gateway: **perfectly clean**. But its own metrics said why that proved
+   nothing: `op="read" 39`, `s3_bytes 3.87e7` — *one* file's worth. The kernel NFS
+   client's page cache served the other 95 readers, so the gateway never saw
+   concurrency. Any single-host cached sequential test is structurally incapable of
+   reproducing this.
+2. `gate2-nfs-random-read-probe.sh` — random 1 MiB offsets with `iflag=direct` to
+   defeat that cache, verified per offset. **Reproduced:** 232/1920 reads failed at
+   C=96, while the FUSE control at the same concurrency was clean.
+3. `gate2-nfs-errno-probe.sh` — captures the errno and walks the threshold.
+
+| concurrent readers | plain `nolock,ro` | with `noac,actimeo=0` |
+|---|---|---|
+| 32 | 0 / 640 | 0 / 640 |
+| 48 | 0 / 960 | 63 / 960 (6.6%) |
+| 64 | 2 / 1280 (0.2%) | 221 / 1280 (17.3%) |
+| 96 | 1 / 1920 (0.1%) | 304 / 1920 (15.8%) |
+| 128 | 1 / 2560 (0.0%) | 542 / 2560 (21.2%) |
+
+**Every** failure, in both columns, is the same thing: `ESTALE` ("Stale file
+handle") returned on **`fstat`/GETATTR**, never on READ. What this rules out:
+
+- **Not corruption.** `mismatch=0` on every rung of every probe — the gateway never
+  served a wrong byte. That matters: a silent-corruption bug would be far worse.
+- **Not the network or S3.** 6.5–7.7 GB served from mem-cache against 37.7 MB
+  fetched from S3.
+- **Not a timeout or retransmit.** Client `retrans=0` throughout; the server
+  answers promptly and *chooses* to return `NFS3ERR_STALE`.
+- **Not fd or thread exhaustion.** Gateway threads 14→17, fds flat at 10–14.
+- **Not my mount flags.** `noac` amplifies the rate ~100× (it raises GETATTR ~10:1,
+  59068 vs 15598), but the plain-options control still fails at C≥64 — and gate 2's
+  GCHP arm used plain options. The flags change the rate, not the existence.
+
+So it looks like a file-handle→object mapping that does not survive concurrent
+GETATTR — a bounded/recycled handle table or a racy lookup — which the numbers
+locate rather than the code, since lith's internals were not read here.
+
+### Why a 0.04% failure rate is nonetheless fatal
+
+The plain-options rate looks negligible: 1 bad read in 2560. It is still a hard
+stop for this workload, because **an MPI job has no retry semantics at file open.**
+One rank getting ESTALE from `nf90_open` aborts that rank, and one aborted rank
+takes down all 96. At GCHP's scale — 96 ranks × 2 client hosts, each opening the
+same restart plus 15 met files — even a per-open failure probability of 10⁻³ makes
+a successful init unlikely. That asymmetry (a rate a filesystem would shrug off
+being fatal to a tightly-coupled job) is the transferable lesson, and it is also
+why the `-51 NetCDF: Unknown file format` and `116 Stale file handle` errors appear
+*together*: one cause, two renderings, depending on whether HDF5 got ESTALE while
+reading the superblock or had it surfaced verbatim.
+
+### The read-topology finding, which inverts the gate's own premise
+
+Per-node `lith_s3_bytes_total`, `mount-r1`:
+
+| node | fetched from S3 |
+|---|---|
+| `compute-dy-nodes-1` | 4152.1 MB |
+| `compute-dy-nodes-2` | 4127.7 MB |
+
+Both nodes independently fetch **the entire ~4.1 GB working set** — reads are *not*
+centralised at stock settings, and per-node mounts therefore move ~8.3 GB of S3
+traffic for a 3.3 GB distinct working set. On byte volume that is an argument
+**for** a shared gateway, the opposite of what this gate predicted. Two reasons it
+does not change the recommendation:
+
+- The gateway is unavailable anyway until the ESTALE defect is fixed.
+- The duplication is economically ~free: in-region S3 → EC2 transfer costs nothing,
+  and the request cost is ~3800 GETs per node per run, i.e. **fractions of a cent**.
+  It duplicates bytes that were never billed.
+
+It would start to matter at high node counts on a metered path (cross-region, or a
+requester-pays bucket), which is the condition under which the gateway is worth
+revisiting.
+
+### Verdict
+
+**Use per-node lith FUSE mounts. Do not use `lith serve nfs` for GCHP.** Not
+because it is slower — that race was never run — but because it cannot complete an
+init at 96 ranks. Per-node mounts, meanwhile, ran multi-node GCHP to completion at
+96 ranks across 2 nodes, twice, with zero read errors and zero fallbacks, which is
+the first multi-node confirmation of the gate 3c result.
+
+Reported upstream on lith#210 with the standalone repro and the threshold table.
+
+### Harness bugs worth remembering
+
+Three of these cost real allocation time, and all three are the same species —
+a diagnostic that lies rather than fails:
+
+- `grep` treats a 96-rank mpirun log as **binary** (NUL bytes from interleaved
+  output) and prints "binary file matches" *instead of* the matching line, so
+  `init`/`sim_end` silently became `NA` while the run itself was perfect. `-c` and
+  `-q` are unaffected, which is exactly why it hid: the step count and the
+  SIM_COMPLETE verdict still worked. **`grep -a` for any field extraction.**
+- `pgrep -fc '[l]ith-1.1.1 serve'` returned **15 for 5 servers** and skipped both
+  NFS arms while all five gateways were up and serving. Each server contributes
+  three matching command lines (the ssh-spawned `bash -c`, the `setsid nohup`
+  wrapper, the real process). The bracket trick defeats *self*-matching, not
+  *launcher*-matching. **Check a bound socket with `ss`, not a process count.**
+  Relatedly, `pkill -f` still kills its own ssh shell if the plain string appears
+  anywhere else in the same command line — including in a later command.
+- A bare `wait` in bash 5 also waits on the process substitution from
+  `exec > >(tee …)`, and `tee` never exits, so the probe deadlocked with every
+  reader already finished. **Collect PIDs and `wait "${pids[@]}"`.**
+
+And `ssh host 'cmd &'` never returns even with all three fds redirected; use
+`ssh -f -n` with a `timeout` guard. `lith mount --daemon` self-detaches, but
+`lith serve nfs` has no `--daemon`, which is what made the difference.
 
 ## Provenance
 

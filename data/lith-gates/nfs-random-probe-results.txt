@@ -1,0 +1,42 @@
+### random-read probe 2026-09-17T17:31:37Z on ip-172-31-39-157
+
+=== truth table — md5 of each 1 MiB block, from the FSx copy of the same object ===
+  ok   36 block hashes  file=38736962 B
+
+=== arm A — FUSE control, random offsets ===
+  ok   FUSE mounted
+RAND FUSE  direct=no  C=8   reads=160   mismatch=0    err=0     0.46s
+RAND FUSE  direct=no  C=32  reads=640   mismatch=0    err=0     0.44s
+RAND FUSE  direct=no  C=96  reads=1920  mismatch=0    err=0     1.35s
+
+=== arm B — NFS gateway, random offsets, O_DIRECT (every read hits the wire) ===
+  ok   gateway listening on :20494
+  ok   NFS mounted (noac, O_DIRECT reads)
+RAND NFS   direct=yes C=8   reads=160   mismatch=0    err=0     1.14s
+RAND NFS   direct=yes C=32  reads=640   mismatch=0    err=0     0.61s
+RAND NFS   direct=yes C=96  reads=1920  mismatch=0    err=232   1.74s
+  --- first 5 bad reads:
+      88 blk=21 EMPTY_OR_ERR
+      4 blk=4 EMPTY_OR_ERR
+      86 blk=28 EMPTY_OR_ERR
+      69 blk=14 EMPTY_OR_ERR
+      85 blk=34 EMPTY_OR_ERR
+
+=== gateway metrics — confirm the reads actually reached it this time ===
+lith_nfs_clients 1
+lith_nfs_ops_total{op="getattr"} 21647
+lith_nfs_ops_total{op="read"} 2488
+lith_nfs_read_bytes_total 2.608857088e+09
+lith_nfs_seq_states 1
+lith_s3_bytes_total 3.8736962e+07
+
+=== gateway log ===
+{"time":"2026-09-17T17:31:56.817595062Z","level":"INFO","msg":"[ERROR] No handler for 100227.0"}
+
+=== RANDOM-READ SUMMARY ===
+RAND FUSE  direct=no  C=8   reads=160   mismatch=0    err=0     0.46s
+RAND FUSE  direct=no  C=32  reads=640   mismatch=0    err=0     0.44s
+RAND FUSE  direct=no  C=96  reads=1920  mismatch=0    err=0     1.35s
+RAND NFS   direct=yes C=8   reads=160   mismatch=0    err=0     1.14s
+RAND NFS   direct=yes C=32  reads=640   mismatch=0    err=0     0.61s
+RAND NFS   direct=yes C=96  reads=1920  mismatch=0    err=232   1.74s
