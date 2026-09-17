@@ -1,0 +1,67 @@
+
+=== node identity ===
+instance: m9g.48xlarge   host: compute-dy-nodes-1   cores: 192
+               total        used        free      shared  buff/cache   available
+Mem:             742          43         698           0           0         696
+  PASS  instance type
+
+=== node bootstrap: did OnNodeConfigured actually run this time? ===
+node lith: lith 1.1.1
+  PASS  node rpm is 1.1.1
+  PASS  fusermount3 present
+  PASS  /input-lith exists
+
+=== pinned binary on shared scratch ===
+  PASS  /scratch/lith-gates/lith-1.1.1 (lith 1.1.1)
+
+=== shared storage ===
+  PASS  /input mounted
+  PASS  /scratch mounted
+  PASS  /sw stack present
+lfs available: /usr/bin/lfs
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A1.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+
+=== lith#237 datapoint: IMDS NIC estimate on a 100 Gbps node ===
+[INFO] nic                    50.0 Gbps (source=imds-estimate) → parts-max 64 MiB, inflight 1192 MiB — estimated from m9g.48xlarge size (DescribeInstanceTypes denied); pass --nic-gbps for the exact baseline
+
+=== A/B premise: the two run dirs differ ONLY in where input comes from ===
+diff: /scratch/gchp_lith_TransportTracers/ChemDir: No such file or directory
+Files /scratch/gchp_merra2_TransportTracers/HEMCO_Config.rc and /scratch/gchp_lith_TransportTracers/HEMCO_Config.rc differ
+diff: /scratch/gchp_lith_TransportTracers/HcoDir: No such file or directory
+diff: /scratch/gchp_lith_TransportTracers/MetDir: No such file or directory
+diff: /scratch/gchp_lith_TransportTracers/gchp_restart.nc4: No such file or directory
+(differences above should be the input pointers and nothing else)
+
+=== mounting all five lith prefixes at --nic-gbps 100 ===
+lith mounted in the background (pid 22728); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 22846); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 22963); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 23081); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 23201); logs: /tmp/lith-1000-mount.log
+  PASS  5 fuse.lith mounts
+
+=== the model's own entry points resolve through lith ===
+  PASS  MERRA2.20190101.A1.05x0625.nc4 306980344 bytes
+  PASS  MERRA2.20150101.CN.05x0625.nc4 809084 bytes
+  PASS  gchp_restart.nc4 38736962 bytes
+
+=== a real read through lith (16 MB off a met file) ===
+16777216 bytes (17 MB, 16 MiB) copied, 0.798424 s, 21.0 MB/s
+  read wall: 0.80s
+
+=== metrics endpoints ===
+  PASS  :9110 serving metrics
+  PASS  :9111 serving metrics
+  PASS  :9112 serving metrics
+  PASS  :9113 serving metrics
+  PASS  :9114 serving metrics
+
+=== concurrency probe: 48 simultaneous readers on one FUSE mount ===
+  48x4MB concurrent: 0.08s
+  PASS  48 concurrent readers returned without deadlock
+
+=== unmounting ===
+  PASS  all mounts released
+
+=== VERDICT ===
+PREFLIGHT PASS — safe to release gate3c

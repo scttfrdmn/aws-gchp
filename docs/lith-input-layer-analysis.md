@@ -14,6 +14,14 @@ Replacing FSx Lustre with lith for `/input` (gcgrid) is supported by measurement
 **not** a chunk-grid parser — it is metadata-read memoization, and the chunk
 layout measurement is what rules the parser out.
 
+**Answered by the integration A/B (gate 3c, below):** GCHP 14.7.1 completed a
+full simulation with **100% of its input served from `s3://gcgrid` through lith**,
+at 48 ranks on one node, twice, with zero read errors and zero fallbacks. Against
+FSx Lustre at the same temperature: **1.73× faster init cold, parity warm.** The
+byte advantage over a whole init is **1.43×**, not the 9.3× a single hyperslab
+suggested — the win is cold latency and the deleted pre-hydration step, not
+bandwidth.
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -354,6 +362,153 @@ prediction was mine, and the measurement refuted it — the same lesson as
 Not yet explained: `lith_sibling_prefetch_total` stayed at **0** across a 31-file
 walk opened in sorted key order, so the sibling-walk detector never fired. Asked
 upstream rather than guessed at.
+
+## Gate 3c results — the integration A/B: real GCHP, lith v1.1.1 vs FSx Lustre
+
+Gate 3 measured read shapes with a harness. Gate 3c runs **the model**, so
+ExtData/HEMCO/pFIO issue the reads, and 48 MPI ranks hit the FUSE mounts
+concurrently — the risk no head-node measurement could retire.
+
+Cluster `gchp-lith-ab`, compute `m9g.48xlarge` (192 cores, 742 GB, 100 Gbps),
+us-east-1a, lith **v1.1.1**. GCHP 14.7.1, C24 TransportTracers, MERRA-2
+0.5°×0.625°, 1 simulated day, **48 ranks**, aarch64. The two run directories
+differ only in where input comes from — same binary (`cmp`-identical), same
+`CAP.rc`/`GCHP.rc`/`HISTORY.rc`, same restart, same resolution, same rank count.
+`--nic-gbps 100` (the authoritative `DescribeInstanceTypes` baseline, not a peak).
+Harnesses: `scripts/lith/gate3c-gchp-init.sbatch` (four arms),
+`scripts/lith/gate3c-fsxcold.sbatch` (the paired cold arms),
+`scripts/lith/gate3c-preflight.sbatch`.
+
+### All four arms completed a full simulation
+
+Every arm reached `2019/01/02 00:00`, advanced `cap_restart`, and wrote a
+checkpoint. Zero read errors, zero fallbacks. **100% of model input on the lith
+arms came from `s3://gcgrid` through five prefix-scoped FUSE mounts** — met,
+the date-pinned 2015 constant field, HEMCO, CHEM_INPUTS, and the restart. There
+were no residual `/input/` references in the run directory, so silent fallback
+to Lustre was not possible.
+
+| arm | init | to completion | vs FSx same temperature |
+|---|---|---|---|
+| **FSx cold** (HSM released, 6.25 GB working set) | 45.26 s | 90.4 s | — |
+| **lith cold** (fresh mounts, nothing cached) | **26.09 s** | **55.3 s** | **1.73× / 1.64× faster** |
+| FSx warm (fully hydrated Lustre) | 16.66 s | 34.2 s | — |
+| **lith warm** (mem-cache) | **15.94 s** | **34.2 s** | **parity** |
+
+"init" is wall seconds to the first completed timestep — startup plus all
+ExtData/HEMCO/restart reads. Interleaved for reference: FSx *hydrated but
+page-cache-cold* sat between at 22.34 s / 42.2 s.
+
+**Cold, lith beats a Lustre filesystem that has to hydrate: 1.73× on init,
+1.64× to completion. Warm, it is a tie — 15.94 s vs 16.66 s init and 34.2 s vs
+34.2 s to completion.** That is the gate 3 conclusion reproduced by the actual
+model rather than inferred from read shapes: lith does not make reads faster
+than Lustre, it deletes the provisioning step.
+
+### Reproducibility
+
+`lith cold` was measured twice, in two separate jobs, on the same node:
+
+| | init | to completion | S3 bytes | GETs | amplification |
+|---|---|---|---|---|---|
+| run 1 | 26.02 s | 55.3 s | 4361.9 MB | 3822 | 1.31× |
+| run 2 | 26.09 s | 55.3 s | 4363.3 MB | 3819 | 1.31× |
+
+0.07 s apart on init and 0.03% apart on bytes, independently.
+
+### Bytes: 1.31× amplification, 1.43× advantage
+
+| mount | distinct | from S3 | ampl. | GETs | KB/GET |
+|---|---|---|---|---|---|
+| MERRA2 2019/01 | 3222.9 MB | 4105.4 MB | 1.27× | 3647 | 1099 |
+| HEMCO | 65.4 MB | 216.4 MB | 3.31× | 124 | 1704 |
+| restarts | 38.8 MB | 38.9 MB | 1.00× | 46 | 827 |
+| MERRA2 2015/01 + CHEM_INPUTS | 1.2 MB | 1.2 MB | ~1× | 5 | — |
+| **total** | **3328.2 MB** | **4361.9 MB** | **1.31×** | **3822** | **1115** |
+
+FSx moved the whole working set — **6252.1 MB**, measured directly (`released
+15/15 files, 6252076702 bytes`), not estimated. So lith's byte advantage on a
+cold init is **1.43×**.
+
+**This is much smaller than gate 3's 9.3×, and that is the honest headline for
+anyone sizing lith for this workload.** Gate 3's figure was a single hyperslab —
+the adversarial case. Across a whole init GCHP reads **53% of the bytes of every
+met file it opens** (3328 MB distinct of 6252 MB on disk), and there is only so
+much a lazy reader can save against a workload that dense. Size the byte win at
+~1.4×; the real prize is the cold latency above and the deleted provisioning
+step (no `lfs hsm_restore` ritual, no 33-minute `ImportPath` hydration, no
+1.2 TiB filesystem minimum).
+
+Amplification is also *better* under the real model than under the harness —
+1.31× here versus 3.5× for the synthetic hyperslab at the correct baseline.
+#229's "nothing broad until reads tile" is being vindicated: ExtData reads many
+fields out of each collection, so the access genuinely tiles and the broad fetch
+is the right call.
+
+### 48-rank concurrency: not a problem
+
+The largest open risk in the proposal, retired. 48 concurrent 4 MB readers
+against one FUSE mount: **0.08 s**, no deadlock, no `EACCES` (preflight). Under
+the real model, 48 ranks drove 3822 GETs through five daemons with zero errors
+and zero fallbacks, twice.
+
+### The warm arm issued *no* S3 requests at all
+
+The metrics after `lith-warm` are **byte-for-byte identical** to those after
+`lith-cold` — same `s3_bytes_total`, same GET count. The entire 3.3 GB working
+set stayed resident in the bounded mem-cache, so the second run went to S3 zero
+times. That is why warm lith ties warm Lustre.
+
+Note `--mem-cache` must be bounded explicitly per mount: its default is 25% of
+system memory **per daemon**, so five mounts default to reserving 125% of the
+box. On a 742 GB m9g that is 192 GB apiece, and GCHP wants that memory.
+
+### lith#237 datapoint: the size table underestimates m9g 2×
+
+On `m9g.48xlarge`, whose authoritative baseline is **100.0 Gbps**:
+
+```
+[INFO] nic 50.0 Gbps (source=imds-estimate) → parts-max 64 MiB, inflight 1192 MiB
+       — estimated from m9g.48xlarge size (DescribeInstanceTypes denied)
+```
+
+A **2× underestimate**, where the same table was exact on `c7g.4xlarge` (7.5).
+Conservative rather than harmful — `parts-max` still clamps at its 64 MiB
+ceiling, and under-stating the baseline fetches *fewer* wasted bytes — but wrong.
+Reported upstream.
+
+It also answers the open worry I raised in #237, that a 100 Gbps baseline might
+blow amplification up to multiple GB: **it does not.** Real-workload
+amplification went 1.17× (15 Gbps, 6 ranks) → 1.31× (100 Gbps, 48 ranks). The
+near-linear bytes-vs-NIC scaling I saw on the synthetic hyperslab does not
+reproduce on the model.
+
+### Caveats
+
+Single replicate per arm on the timing (the two cold runs excepted); C24, which
+is the smallest useful resolution, so init is a large fraction of a 34–90 s
+total and the *relative* cold penalty will shrink on production-length runs;
+one node, so this says nothing yet about multi-node (gate 2). GCHP's own
+post-checkpoint `double free or corruption (!prev)` in `_dl_fini` is present on
+both backends identically and is unrelated to lith; the harness polls for GCHP's
+own completion evidence rather than waiting on `mpirun`, which never returns.
+
+### Two ParallelCluster traps this cost us four self-terminated m9g nodes
+
+Both surfaced as EC2 `StateReason: Client.InstanceInitiatedShutdown` with
+clustermgtd reporting "power up state without valid backing instance" — which
+reads exactly like a capacity or AMI problem and is neither. The breadcrumb is
+the CloudWatch stream `<node>.bootstrap_error_msg`.
+
+1. **A queue-level `CustomAction` script in S3 is fetched by the compute node
+   role**, not the head node role. `AmazonS3ReadOnlyAccess` under `HeadNode/Iam`
+   does not grant it; the head node bootstrapped fine while every compute node
+   got `HeadObject 403`. Needs `Iam.AdditionalIamPolicies` on the queue too.
+2. **Compute nodes have no internet egress** — no public IP, no NAT, only an S3
+   gateway endpoint. `dnf install fuse3` therefore works (AL2023 repos are
+   S3-backed) while `curl https://github.com` stalls 136 s and fails. The lith
+   rpm is now mirrored into the project bucket and pulled over the S3 endpoint,
+   which is better provenance anyway.
 
 ## Provenance
 

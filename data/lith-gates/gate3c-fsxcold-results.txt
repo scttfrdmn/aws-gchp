@@ -1,0 +1,126 @@
+
+=== node facts ===
+host: compute-dy-nodes-1  cores: 192  lith(node): lith 1.1.1
+
+=== releasing FSx HSM blocks as root (part 1 failed here with EACCES) ===
+released 15/15 files, 6252076702 bytes of working set
+
+=== HSM state after release (every line MUST say 'released') ===
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A1.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3cld.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3dyn.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3mstC.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3mstE.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.I3.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.soil.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A1.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A3cld.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A3dyn.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A3mstC.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A3mstE.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.I3.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.soil.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+/input/GEOS_0.5x0.625/MERRA2/2015/01/MERRA2.20150101.CN.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+
+=== RUN fsx-cold-real  (/scratch/gchp_merra2_TransportTracers) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+RESULT fsx-cold-real  init=45.26s  sim_end=86.26s  to_completion=90.4s  cap_restart->20190102  SUCCEEDED
+
+=== FSx HSM state after the cold run (released blocks should now be resident) ===
+      1 /input/GEOS_0.5x0.625/MERRA2/2015/01/MERRA2.20150101.CN.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A1.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3cld.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3dyn.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3mstC.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A3mstE.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.I3.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.soil.05x0625.nc4: (0x0000000d) released exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A1.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+      1 /input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190102.A3cld.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+
+=== mounting lith fresh (--nic-gbps 100, --mem-cache bounded per mount) ===
+lith mounted in the background (pid 50710); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 50827); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 50943); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 51061); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 51179); logs: /tmp/lith-1000-mount.log
+fuse.lith mounts: 5
+
+=== RUN lith-cold-2  (/scratch/gchp_lith_TransportTracers) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+RESULT lith-cold-2    init=26.09s  sim_end=51.09s  to_completion=55.3s  cap_restart->20190102  SUCCEEDED
+
+=== lith metrics after lith-cold-2 ===
+-- merra2-2019 (:9110)
+lith_cache_misses_total 3149
+lith_distinct_bytes_read 3.223191552e+09
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 3117
+lith_prefetch_uncovered_total 3211
+lith_prefetch_used_total 2339
+lith_read_straddle_total 3043
+lith_s3_bytes_total 4.104688241e+09
+lith_s3_requests_total{op="get",status="ok"} 3644
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+-- merra2-2015 (:9111)
+lith_cache_misses_total 1
+lith_distinct_bytes_read 851968
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 0
+lith_prefetch_uncovered_total 1
+lith_prefetch_used_total 0
+lith_read_straddle_total 0
+lith_s3_bytes_total 809084
+lith_s3_requests_total{op="get",status="ok"} 1
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+-- hemco (:9112)
+lith_cache_misses_total 137
+lith_distinct_bytes_read 6.5667072e+07
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 149
+lith_prefetch_uncovered_total 94
+lith_prefetch_used_total 11
+lith_read_straddle_total 44
+lith_s3_bytes_total 2.18436119e+08
+lith_s3_requests_total{op="get",status="ok"} 121
+lith_sibling_prefetch_total 1
+lith_sibling_prefetch_unread_total 0
+-- chem-inputs (:9113)
+lith_cache_misses_total 2
+lith_distinct_bytes_read 262144
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 2
+lith_prefetch_uncovered_total 2
+lith_prefetch_used_total 0
+lith_read_straddle_total 0
+lith_s3_bytes_total 387496
+lith_s3_requests_total{op="get",status="ok"} 4
+lith_sibling_prefetch_total 2
+lith_sibling_prefetch_unread_total 0
+-- restarts (:9114)
+lith_cache_misses_total 61
+lith_distinct_bytes_read 3.8797312e+07
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 18
+lith_prefetch_uncovered_total 45
+lith_prefetch_used_total 18
+lith_read_straddle_total 35
+lith_s3_bytes_total 3.893357e+07
+lith_s3_requests_total{op="get",status="ok"} 49
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+
+=== done — /scratch/lith-gates/gate3c-fsxcold-results.txt ===
+RESULT fsx-cold-real  init=45.26s  sim_end=86.26s  to_completion=90.4s  cap_restart->20190102  SUCCEEDED
+RESULT lith-cold-2    init=26.09s  sim_end=51.09s  to_completion=55.3s  cap_restart->20190102  SUCCEEDED
