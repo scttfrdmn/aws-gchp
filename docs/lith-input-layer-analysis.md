@@ -20,37 +20,62 @@ at 48 ranks on one node and 96 ranks across two, with zero read errors and zero
 fallbacks. It works, and it is believed to be the first time GCHP has run with its
 input tree on object storage.
 
-**But there is no performance case, and this document should not be read as
-making one.** Corrected 2026-09-17 after all four arms were in:
+**Performance is a wash-to-slight-edge for lith warm, and a clear lith win cold.
+It is not the reason to adopt it either way** — the reasons are provisioning time
+and standing cost. All four arms, C24 TransportTracers:
 
 | comparison | FSx | lith | |
 |---|---|---|---|
-| 1-node 48-rank, **warm vs warm**, init | 16.66 s | 15.94 s | tie |
+| 1-node 48-rank, **warm vs warm**, init | 16.66 s | 15.94 s | tie (~4% lith) |
 | 1-node 48-rank, **warm vs warm**, to sim end | 34.2 s | 34.2 s | **dead tie** |
-| 1-node, cold vs cold, init | 45.26 s | 26.09 s | lith 1.73× |
-| 2-node 96-rank, init | 33.13 s (warm) | 41.43 s (cold) | **lith 25% slower** |
+| 1-node, **cold vs cold**, init | 45.26 s | 26.09 s | **lith 1.73×** |
+| 1-node, **cold vs cold**, to sim end | 90.4 s | 55.3 s | **lith 1.63×** |
+| 2-node 96-rank, init | 33.13 s (**warm**) | 41.43 s (**cold**) | not like-for-like |
 
-The 1.73× is real but it is measured against a state we deliberately never run in:
-`lfs hsm_restore` of the scoped working set before launch is standing policy, so
-the operationally honest comparison is against **warm** FSx, where lith ties at one
-node and loses at two. Two further reasons the performance framing does not
-survive: a C180 fullchem sim-day is ~3.2 h on 48 cores, so ±10 s of init is ~0.1%
-of wall and cannot matter at any run length; and **repeat runs favour FSx**, because
-hydration amortises across every job on the volume forever while lith's mem-cache
-dies with the daemon each job — and at 2 GB cannot hold the 4.1 GB working set in
-any case, so every job re-fetches.
+**Which temperature is the honest one depends on whether the FSx volume is
+standing, and that is a cost decision, not a physical fact.** This document
+briefly argued that warm FSx was the operationally honest baseline because
+pre-launch `lfs hsm_restore` is standing policy. That was wrong on its own terms:
+pre-hydration is only cheap because two 1.2 TB `/input` volumes are kept alive at
+~$168/month each *specifically* to dodge the ~33 min setup penalty. Retire them —
+which is the entire point of adopting lith — and every fresh ephemeral cluster
+gets a **cold** FSx. **Ephemeral, on-demand clusters are the normal case in the
+cloud, so cold-vs-cold is the comparison that matters, and lith wins it 1.73×.**
+
+The 2-node row is cold lith against warm FSx and should not be read as a lith
+loss; 2-node FSx **cold** was never measured. The 1-node cold arm is the only
+like-for-like cold evidence we have.
+
+Two arguments against lith that were made here and do **not** hold up:
+
+- *"Repeat runs favour FSx, because hydration amortises while lith's mem-cache
+  dies each job."* This was an artifact of the harness, not of lith: the probe
+  launched daemons per job with `--mem-cache 2GB` against a 4.1 GB working set.
+  Mount lith once at cluster boot from post-install with `--mem-cache 32GB` — on a
+  node with 384–768 GB — and the working set stays cached for the cluster's whole
+  life. The amortisation advantage largely evaporates.
+- *"Init is ~0.1% of a C180 fullchem sim-day (~3.2 h on 48 cores), so this cannot
+  matter."* True, but symmetric: it dissolves FSx's warm advantage exactly as much
+  as lith's cold one. It is an argument for deciding on provisioning and cost, not
+  an argument for FSx.
 
 The byte advantage over a whole init is **1.43×**, not the 9.3× a single hyperslab
 suggested, and in-region S3→EC2 bytes are free, so that column decides nothing
-either.
+either way.
 
-**What lith is actually worth here is cost and provisioning complexity, not
-speed:** it removes ~$168/month/volume of standing FSx `/input`, and it deletes
-five separately-recorded deployment traps (the ~33 min create+import
-WaitCondition timeout, the v2.15-or-mount-fails version pin, the Lustre-ports
-security group, AZ pinning, and the pre-hydration step itself). Time-to-first-run
-on a fresh cluster goes from ~33 min of FSx import to a ~4 s mount. Judge the
-change on those terms.
+**The decisive terms:** lith removes ~$168/month per retired `/input` volume, takes
+time-to-first-run from ~33 min of FSx create+import to a ~4 s mount, and deletes
+five separately-recorded deployment traps (the create+import WaitCondition timeout,
+the v2.15-or-mount-fails version pin, the Lustre-ports security group, AZ pinning,
+and pre-hydration itself). For a fleet of two-hour clusters, 33 minutes is a third
+of the cluster's life.
+
+**The remaining real unknown is working-set scale, not speed.** Every number above
+is C24 TransportTracers. C180 fullchem touches 48 of 50 gcgrid input families
+against TT's handful, so the per-node cold fetch is far larger; whether the 1.73×
+cold advantage grows, holds, or inverts there is untested. That is the measurement
+worth buying next, and it is the one thing that could still change this
+recommendation.
 
 ## What lith is
 
