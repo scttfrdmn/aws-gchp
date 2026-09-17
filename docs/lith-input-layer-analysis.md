@@ -294,6 +294,9 @@ works on EBS. Low upside, new variable.
    Two open M17 items to watch for our shape: lith#233 (the cold-sequential
    first-block round-trip that lith#229 costs us) and lith#230 (byte-vs-request
    tradeoff by storage class — gcgrid is Standard, so this should not bite).
+   **lith#233 is now MEASURED 2026-09-17 — see *lith#233 confirmation* below.
+   Confirmed on 4 MB–1.17 GB met objects, and it does not bite us: GCHP never
+   enters the regime the bug is about.**
 4. **A/B control.** Keep one FSx `/input` run in the matrix. lith reached 1.0
    eleven days after its first commit and the read path is still moving — the
    detector rule and the fetch policy both changed after our measurements. The
@@ -676,6 +679,101 @@ a diagnostic that lies rather than fails:
 And `ssh host 'cmd &'` never returns even with all three fds redirected; use
 `ssh -f -n` with a `timeout` guard. `lith mount --daemon` self-detaches, but
 `lith serve nfs` has no `--daemon`, which is what made the difference.
+
+## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
+
+Head node only, no cluster spend. `scripts/lith/gate233-block0-probe.sh`, lith
+v1.1.1, real gcgrid MERRA-2 objects from `GEOS_0.5x0.625/MERRA2/2019/01`, fresh
+cold mount and dropped page cache for **every** rung.
+
+**Verdict: lith#233 is real, reproduced exactly, and irrelevant to GCHP.** The
+mechanism is confirmed to the GET; the cost decays with size as claimed; and the
+reason it does not bite us is that GCHP never reaches the regime where the tax is
+an *extra* cost.
+
+### The mechanism, confirmed to the GET
+
+A 1 MiB-stepped ladder across the first-block boundary of a 1168.4 MB object,
+`dd bs=128k`:
+
+| first N MiB read | GETs | MB from S3 | prefetch issued |
+|---|---|---|---|
+| 7 | 7 | 7.0 | 0 |
+| **8** | **8** | **8.0** | **0** |
+| **9** | **9** | **9.0** | **264** |
+| 10 | 10 | 10.0 | 264 |
+| 12 | 22 | 116.0 | 264 |
+| 16 | 47 | 272.0 | 272 |
+| 24 | 50 | 288.0 | 280 |
+
+This is #233 exactly as described. The first 8 MiB costs **8 GETs where 1 would
+do** — one 1 MiB GET per 128 KiB×8 of reading, no coalescing at all — and
+`prefetch issued` stays at **0** for the whole of block 0. It becomes 264 at
+**N=9**, the first read that crosses into block 1. Establishment requires a
+block-advance, so it cannot fire until the reader leaves block 0, and block 0 is
+therefore paid for at 1 MiB granularity. The predicate is confirmed too: the FUSE
+read-size histogram is `128K:513` for a 64 MiB read — 512 reads plus one, i.e.
+**MaxWrite is pinned at 128 KiB**, so a sequential reader really does need ~64
+reads to advance one 8 MiB block.
+
+### Correction to my own first reading: the amplification is prefetch, not waste
+
+The first run of this probe showed a 16 MiB read pulling **248 MB** from S3 and I
+noted it as ~15× amplification that "no version of the #233 mechanism predicts".
+That reading was wrong, and part B is what settles it — on reads that run to EOF,
+bytes fetched land on the file size **exactly**:
+
+| file | size MB | GETs | ideal | excess | excess % | MB from S3 | wall |
+|---|---|---|---|---|---|---|---|
+| `MERRA2.20190104.soil` | 4.3 | 5 | 1 | +4 | +400.0% | **4.3** | 0.53 s |
+| `MERRA2.20190116.A1` | 292.5 | 51 | 37 | +14 | +37.8% | **292.5** | 1.59 s |
+| `MERRA2.20190112.A3dyn` | 1168.4 | 161 | 147 | +14 | +9.5% | **1168.4** | 2.39 s |
+
+Zero byte over-fetch. The 272–288 MB seen on the truncated rungs is the
+read-ahead window doing its job for bytes my `dd` then declined to read — an
+artifact of stopping early, not a defect. `prefetch_evicted_unread` cannot
+corroborate that either way here, because the probe unmounts rather than evicting.
+Note also that the truncated rungs are the only *non-reproducible* numbers between
+the two runs (16 MiB: 42 GETs/248 MB vs 49/280) precisely because they sample an
+async ramp mid-flight; every deterministic rung reproduced exactly.
+
+So the real cost of #233 is **GET count and latency, not bytes** — which matters,
+because in-region S3→EC2 bytes are free and GETs are $0.0004/1000.
+
+### Size decay confirmed, but the constant is +14 GETs, not +7
+
+The excess is **stable in absolute terms at +14 GETs** across a 4× size range,
+which is what makes it decay as a percentage (+400% → +37.8% → +9.5%). Block 0
+accounts for +7 of that. The arithmetic on both large files fits the first **two**
+8 MiB blocks being fetched at 1 MiB granularity (16 GETs where 2 would do): for
+the 292.5 MB file, 8 + 8 + 35 coalesced ≈ 51 observed. That is inference from GET
+counts, not from reading lith's source — offered upstream as a hypothesis, not a
+claim. It is a slightly larger constant than the +8 upstream measured on a 30 MB
+object, so the ramp may not be size-invariant.
+
+The wall cost is bounded the same way: block 0 moves 8 MiB at ~32 MB/s (0.25 s)
+against 489 MB/s steady-state on the 1.17 GB read, so the tax is a **~0.23 s
+fixed cold-start per object**. That is ~10% of a 1.17 GB read and over half of a
+4.3 MB one — consistent with upstream's "+55% on 30 MB", and it explains the
+decay without needing a second mechanism.
+
+### Why it does not bite GCHP
+
+From the committed gate 3c metric dump, over a **full GCHP init** on the MERRA-2
+mount: `lith_s3_requests_total{get,ok} = 3647` for `lith_s3_bytes_total = 4105.4
+MB`, i.e. **~1125 KB per GET**, with `lith_fill_runs_total = 0`.
+
+GCHP runs at 1 MiB granularity for the *entire* init, not just for block 0. It
+reads netCDF hyperslabs — 53% of each file, scattered — so the sequential
+detector never establishes and no fill runs are ever issued. The block-0 tax is
+not an *incremental* cost for GCHP; it is the whole cost model, and it is the one
+lith already beat FSx cold by 1.73× while paying. Fixing #233 would speed up
+whole-file sequential consumers (`cp`, `tar`, staging tools, and any pre-hydration
+step) and would do nothing measurable for the model.
+
+That is the useful conclusion for our architecture: **#233 needs no action from
+us and should not gate the input-layer decision.** It would become interesting if
+we ever add a bulk-staging path that reads whole met files start to finish.
 
 ## Provenance
 

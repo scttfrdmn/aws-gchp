@@ -1,0 +1,60 @@
+### lith#233 block-0 probe 2026-09-17T17:55:31Z on ip-172-31-39-157  lith=lith 1.1.1
+
+=== part A — cold-prefix ladder on MERRA2.20190112.A3dyn.05x0625.nc4 (fresh cold mount per rung) ===
+RUN_MiB  GETs     IDEAL    EXCESS    MB_S3    FILLS    WALL
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+8        8        2        +6        8.0      0        0.50s
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+16       42       3        +39       248.0    0        0.80s
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+32       48       5        +43       272.0    0        0.62s
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+64       49       9        +40       280.0    0        0.70s
+
+=== part A interpretation aid — FUSE read sizes the kernel actually issued (last rung) ===
+  0K:0 0K:0 0K:0 0K:0 0K:0 1K:513 1K:0 1K:0 1K:0 1K:0 1K:0 1K:0 1K:0 
+
+=== part B — cold FULL sequential read, three object sizes (size-decay claim) ===
+FILE                                       SIZE_MB   GETs    IDEAL   EXCESS   EXCESS_PCT WALL
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+MERRA2.20190104.soil.05x0625.nc4           4.3       5       1       +4       +400.0%   0.40s
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+MERRA2.20190116.A1.05x0625.nc4             292.5     51      37      +14      +37.8%    1.19s
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+awk: warning: escape sequence `\{' treated as plain `{'
+awk: warning: escape sequence `\}' treated as plain `}'
+MERRA2.20190112.A3dyn.05x0625.nc4          1168.4    161     147     +14      +9.5%     1.82s
+
+=== part C — what GCHP itself does, for contrast (from the gate 3c metric dump) ===
+  gate 3c, MERRA2 mount over a full GCHP init:
+    lith_s3_requests_total{get,ok} = 3647   lith_s3_bytes_total = 4105.4 MB
+    => 1125 KB per GET, and lith_fill_runs_total = 0
+  i.e. GCHP's own reads are ~1 MiB-granular for the WHOLE init, not just block 0.
+
+=== SUMMARY ===
+8        8        2        +6        8.0      0        0.50s
+16       42       3        +39       248.0    0        0.80s
+32       48       5        +43       272.0    0        0.62s
+64       49       9        +40       280.0    0        0.70s
+MERRA2.20190104.soil.05x0625.nc4           4.3       5       1       +4       +400.0%   0.40s
+MERRA2.20190116.A1.05x0625.nc4             292.5     51      37      +14      +37.8%    1.19s
+MERRA2.20190112.A3dyn.05x0625.nc4          1168.4    161     147     +14      +9.5%     1.82s
