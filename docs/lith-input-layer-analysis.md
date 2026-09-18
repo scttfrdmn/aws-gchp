@@ -1245,6 +1245,19 @@ the gate passes only if `md5(Restarts/gcchem_internal_checkpoint)` matches.
 `scripts/lith/gate5-fullchem-ab.sbatch` (+ `gate5-fullchem-prep.sh`), lith v1.1.2,
 `c8g.48xlarge`, C24 fullchem, NX=2 NY=24 = 48 ranks, 2019-07-01 → 07-02.
 
+**Version note, because gate 4 of this document demands the lith version be recorded
+with every run: this ran v1.1.2 when v1.1.3 was already ~18 h old** (released
+2026-09-18T04:10Z, job ran 22:10Z). The binary had been pinned earlier in the campaign
+and I did not re-check for a release before spending node time. It does not move the
+numbers, and that is verifiable rather than hopeful: `v1.1.2...v1.1.3` changes exactly
+two non-test files, `internal/nfs/fs.go` (+9) and `internal/nfs/gateway.go` (+1) — the
+#253 gateway distinct-bytes fix. **No blockstore, fetch-policy or prefetcher change**,
+and the fix is gateway-only *because* the FUSE path already called `MarkDistinctRead`
+(which is why the mount arm of the #253 repro reported bytes while the gateway reported
+0). Gate 5 ran five per-node FUSE mounts, so every counter below predates and postdates
+that patch identically. Still: **check for a release before spending node time**, since
+lith is currently cutting one every few hours.
+
 ### Result: PASS
 
 | arm | input | init | to sim end | to completion | `cap_restart` | checkpoint md5 |
