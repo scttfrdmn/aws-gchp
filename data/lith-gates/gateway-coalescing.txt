@@ -1,0 +1,75 @@
+### coalesce probe 2026-09-18T02:02:24Z  lith 1.1.2  P=8/client
+
+=== arm 1: one client ===
+  gateway up
+  list: 217 files, 97360301729 bytes (90.67 GiB)
+  metric names carrying bytes/dedup/cache:
+    lith_cache_misses_total 0
+    lith_distinct_bytes_read 0
+    lith_fill_batch_size_bucket{le="1"} 0
+    lith_fill_batch_size_bucket{le="2"} 0
+    lith_fill_batch_size_bucket{le="4"} 0
+    lith_fill_batch_size_bucket{le="8"} 0
+    lith_fill_batch_size_bucket{le="16"} 0
+    lith_fill_batch_size_bucket{le="32"} 0
+    lith_fill_batch_size_bucket{le="64"} 0
+    lith_fill_batch_size_bucket{le="128"} 0
+    lith_fill_batch_size_bucket{le="256"} 0
+    lith_fill_batch_size_bucket{le="512"} 0
+    lith_fill_batch_size_bucket{le="1024"} 0
+    lith_fill_batch_size_bucket{le="2048"} 0
+    lith_fill_batch_size_bucket{le="+Inf"} 0
+    lith_fill_batch_size_sum 0
+    lith_fill_batch_size_count 0
+    lith_fill_gap_bytes_total 0
+    lith_fill_inflight 0
+    lith_fill_inflight_peak 0
+    lith_fill_partial_total 0
+    lith_fill_runs_total 0
+    lith_format_index_prefetch_bytes_total 0
+    lith_prefetch_evicted_unread_total 0
+    lith_prefetch_issued_total 0
+    lith_prefetch_reset_random_total 0
+    lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 0
+    lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 0
+    lith_prefetch_sem_wait_seconds_sum 0
+    lith_prefetch_sem_wait_seconds_count 0
+    lith_prefetch_uncovered_total 0
+    lith_prefetch_used_total 0
+    lith_prefetch_window_halved_total 0
+    lith_s3_bytes_total 0
+    lith_sibling_prefetch_total 0
+    lith_sibling_prefetch_unread_total 0
+ARM1  wall=156.71s  s3_bytes=97360301729 (97360.3 MB)  gets=13136  ampl=1.000x
+
+=== arm 2: two clients, identical list, concurrent ===
+  gateway up
+  A: 217 files   B: 217 files (same keys, independent client caches)
+ARM2  wall=154.93s  s3_bytes=97367641761 (97367.6 MB)  gets=13143  ampl=1.000x
+
+VERDICT  two-client / one-client = 1.000x   (1.00 = perfect coalescing, 2.00 = none)
+
+### coalesce phase arm 2026-09-18T02:08:55Z  day=20190701  P=8/client
+  gateway up
+  day set: 7 files, 2.93 GiB vs --mem-cache 8GB (fits)
+  gateway up
+PH-one-client          wall=  4.81s  s3_MB=   3143.3  gets=   424  ampl=1.000x  prefetch_used=2948 uncovered=53 evict_unread=0
+  gateway up
+PH-two-in-phase        wall=  5.45s  s3_MB=   3143.3  gets=   424  ampl=1.000x  prefetch_used=2948 uncovered=53 evict_unread=0
+  gateway up
+PH-two-REVERSED        wall=  5.33s  s3_MB=   3143.3  gets=   424  ampl=1.000x  prefetch_used=2948 uncovered=53 evict_unread=0
+
+### coalesce interleave arm 2026-09-18T02:10:34Z  8 MiB even/odd split
+  set: 2.93 GiB  blocks A=191 B=187 (disjoint, union = whole set once)
+IL-two-DISJOINT-8MiB   wall= 17.71s  s3_MB=   3143.3  gets=   679  ampl=1.000x  prefetch_used=2658 uncovered=343

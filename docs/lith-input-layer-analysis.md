@@ -882,6 +882,79 @@ most of the gateway's remaining byte advantage is being left on the table — wh
 is precisely the regime (cross-region, requester-pays, high node counts) where the
 gateway is worth having.
 
+> **That inference was wrong, and measuring it changed what the 1.28× means — see
+> *Gateway dedup is exact* below.** The gateway already single-flights across
+> connections. The residual is the workload's access geometry, not a missing
+> feature.
+
+### Gateway dedup is exact; the 1.28× is workload geometry — measured 2026-09-18
+
+Upstream corrected the single-flight guess (the block store de-dupes concurrent
+fetches keyed by `(key, etag, chunk)`, and one gateway is one block store) and
+offered two alternatives: either 96 ranks genuinely touch a larger distinct set than
+48, or there is a coalescing-window gap. **Both are decidable on the head node for
+$0**, using one trick: point **two NFS clients at one gateway and have them read the
+identical list**. Identical lists fix the distinct set by construction, so any excess
+over a one-client baseline is coalescing alone. (`nosharecache` on the second mount
+is load-bearing — otherwise the Linux client shares one superblock and the second
+reader never reaches the gateway.)
+
+| arm | client bytes | gateway → S3 | GETs | ampl |
+|---|---|---|---|---|
+| MERRA-2 July 2019, 217 files, one client | 90.7 GiB | **97360.3 MB** | 13136 | 1.000× |
+| same list, two clients, lockstep | 2 × 90.7 GiB | **97367.6 MB** (+0.008%) | 13143 | 1.000× |
+| one day, 7 files, 2.93 GiB, one client | 2.93 GiB | **3143.3 MB** | 424 | 1.000× |
+| same day, two clients, in phase | 2 × 2.93 GiB | **3143.3 MB** | 424 | 1.000× |
+| same day, two clients, **file order reversed** | 2 × 2.93 GiB | **3143.3 MB** | 424 | 1.000× |
+| same day, two clients, **disjoint 8 MiB blocks** | 2.93 GiB interleaved | **3143.3 MB** | 679 | 1.000× |
+
+The day-set arms are scoped to 2.93 GiB against `--mem-cache 8GB` on purpose, so
+capacity eviction cannot masquerade as a coalescing failure. Three independent ways
+of breaking alignment — same-range collision, temporal phase divergence, and
+disjoint interleaved sub-file ranges — and the fetch set comes back **byte-identical
+to the MB**. The last arm is the one that matters, because disjoint sub-file ranges
+are the shape pFIO actually produces; it costs more, smaller GETs (424 → 679) and
+more uncovered prefetch (53 → 343), which is lith#229/#233 behaving as
+characterised, but not one duplicate byte.
+
+If dedup is exact, the gateway's fetch set *is* the union of the two nodes' demand,
+and the mount arm measured each node separately — so the overlap is solvable:
+
+```
+node 1 alone         4149.1 MB
+node 2 alone         4128.7 MB
+sum                  8277.8 MB
+gateway (= union)    6443.8 MB
+overlap              1834.0 MB   = 44.3% of a node's set
+unique to each node ~2300    MB
+dedup achieved          1.285x   = sum / union
+```
+
+**The two nodes overlap on less than half of what each fetches** — which is what
+domain decomposition predicts. pFIO gives each rank its own subdomain, ranks on
+different nodes want different byte ranges of the same objects, and per-connection
+readahead rounds each node's ranges up to blocks. There is little duplicate demand
+*to* remove, so 1.28× is near the geometric ceiling at two nodes rather than a
+half-realised 2×.
+
+**Consequence for how a shared gateway should be pitched, ours included:** dedup ≈
+Σ(per-node demand) / union(demand), a property of the *workload's* access geometry,
+not of lith. "One gateway fetches the working set once" is true for N readers that
+each want the whole set, and false for MPI subdomain readers, where the saving is
+bounded by the *shared* fraction (the global fields every rank needs). So the
+gateway's byte case for GCHP is real but small, and it does not improve with node
+count the way 1/N framing suggests.
+
+Two caveats on the arithmetic, which is inference, not measurement: it assumes each
+node's gateway-side demand equals its mount-side fetch set (readahead is
+per-connection and a gateway's budget is shared, so they need not be identical —
+settling it needs `distinct_bytes_read` *and* `s3_bytes` scraped from the gateway,
+which the TOPOLOGY probe never captured); and both coalescing clients ran on one
+host over loopback, so cross-host dedup is assumed rather than shown.
+
+Harnesses: `scripts/lith/coalesce-probe.sh`, `coalesce-phase.sh`,
+`coalesce-interleave.sh`. Raw: `data/lith-gates/gateway-coalescing.txt`.
+
 ### One unexplained observation, n=1
 
 `mount-r1` init was **34.72 s** here against **41.43 s** and **41.88 s** on v1.1.1
