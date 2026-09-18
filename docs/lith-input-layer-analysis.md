@@ -783,7 +783,15 @@ with single-host `dd` and explicitly could not reproduce a real MPI client, so t
 | 96 | 304 / 1920 (15.8%) | **0 / 1920** |
 | 128 | 542 / 2560 (21.2%) | **0 / 2560** |
 
-Zero failures across 7360 reads and 51298 GETATTRs.
+Zero failures across 7360 reads and 51298 GETATTRs. Wall time per rung is
+unchanged (0.64 s vs 0.60 s at C=48), so v1.1.1's failing reads were failing
+*fast* and the ladder timings were never a proxy for correctness.
+
+(The `gw_threads`/`gw_fds` columns are blank in this artifact: the head node still
+had the pre-fix copy of the probe with the hardcoded `pgrep -f 'lith-1.1.1 serve'`
+pattern, so the pid resolution returned empty again. Diagnostic columns only — the
+failure counts are unaffected. The `ss`-based fix is in the repo copy and is
+unvalidated by a run.)
 
 **The new per-op counters (lith#248) also settle the question raised on #244:**
 

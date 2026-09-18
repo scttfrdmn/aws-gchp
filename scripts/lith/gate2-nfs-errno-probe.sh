@@ -71,6 +71,9 @@ ss -ltn | grep -q ":${NPORT} " || { bad "gateway not listening"; tail -5 "${GATE
 # string in the pattern silently returned empty once LITHVER became a variable,
 # which zeroed the thread/fd columns for a whole run — same class of bug as the
 # pgrep -fc miscount in gate 2. The socket owner is unambiguous by construction.
+# NOT YET VALIDATED BY A RUN: the 1.1.2 artifact in data/lith-gates/ was produced
+# by the pre-fix copy that was already on the head node, so its gw_threads/gw_fds
+# columns are blank. The failure counts, which are the payload, are unaffected.
 GWPID=$(sudo ss -ltnp "sport = :${NPORT}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1)
 ok "gateway listening on :${NPORT} (pid ${GWPID:-unknown})"
 
