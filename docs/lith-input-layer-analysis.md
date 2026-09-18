@@ -907,6 +907,8 @@ reader never reaches the gateway.)
 | same day, two clients, in phase | 2 × 2.93 GiB | **3143.3 MB** | 424 | 1.000× |
 | same day, two clients, **file order reversed** | 2 × 2.93 GiB | **3143.3 MB** | 424 | 1.000× |
 | same day, two clients, **disjoint 8 MiB blocks** | 2.93 GiB interleaved | **3143.3 MB** | 679 | 1.000× |
+| one 287.8 MiB file, **disjoint 64 KiB extents**, one client | 301.7 MB | **301.7 MB** | — | 1.000× |
+| same file, two clients, **disjoint 64 KiB extents** | 301.9 MB | **301.7 MB** | — | 1.000× |
 
 The day-set arms are scoped to 2.93 GiB against `--mem-cache 8GB` on purpose, so
 capacity eviction cannot masquerade as a coalescing failure. Three independent ways
@@ -916,6 +918,14 @@ to the MB**. The last arm is the one that matters, because disjoint sub-file ran
 are the shape pFIO actually produces; it costs more, smaller GETs (424 → 679) and
 more uncovered prefetch (53 → 343), which is lith#229/#233 behaving as
 characterised, but not one duplicate byte.
+
+The last two rows close the sub-chunk case upstream raised on lith#250: two clients
+reading **alternate 64 KiB extents inside shared 1 MiB chunks** — the granularity
+where a chunk-keyed cache could plausibly fetch the same chunk twice for two
+different sub-ranges — still pull the object exactly once (301.7 MB = the file), and
+the two-client arm finishes *faster* (1.66 s vs 2.75 s) because more concurrency
+drives the same single fetch set. Dedup is by chunk, and the chunk is the fetch unit,
+so sub-chunk disjointness never reaches S3 twice.
 
 If dedup is exact, the gateway's fetch set *is* the union of the two nodes' demand,
 and the mount arm measured each node separately — so the overlap is solvable:
@@ -948,12 +958,29 @@ count the way 1/N framing suggests.
 Two caveats on the arithmetic, which is inference, not measurement: it assumes each
 node's gateway-side demand equals its mount-side fetch set (readahead is
 per-connection and a gateway's budget is shared, so they need not be identical —
-settling it needs `distinct_bytes_read` *and* `s3_bytes` scraped from the gateway,
-which the TOPOLOGY probe never captured); and both coalescing clients ran on one
-host over loopback, so cross-host dedup is assumed rather than shown.
+settling it needs `distinct_bytes_read` *and* `s3_bytes` scraped from the gateway —
+see immediately below, that is not currently possible); and both coalescing clients
+ran on one host over loopback, so cross-host dedup is assumed rather than shown.
+
+**`lith_distinct_bytes_read` is not wired into the `serve nfs` path**, which is why
+the arithmetic above has to stay inference. Same object, same `dd … bs=4M` to EOF,
+one path apart:
+
+| path | `distinct_bytes_read` | `s3_bytes_total` | `cache_misses_total` |
+|---|---|---|---|
+| `serve nfs` (gateway, read over NFS) | **0** | 301740437 | 8 |
+| `mount` (FUSE) | 301793280 | 301740437 | 43 |
+
+It is exported in gateway mode and never advances, so scraping it there returns a
+plausible-looking zero rather than an error — the shape that misleads, because
+`s3_bytes / distinct_bytes` computes as an amplification of *zero* for exactly the
+question it would be used to answer. Reported upstream on lith#250; until it lands,
+gateway-side amplification is only obtainable by differencing separate per-node mount
+runs, which is what we did.
 
 Harnesses: `scripts/lith/coalesce-probe.sh`, `coalesce-phase.sh`,
-`coalesce-interleave.sh`. Raw: `data/lith-gates/gateway-coalescing.txt`.
+`coalesce-interleave.sh`, `coalesce-extent.sh`. Raw:
+`data/lith-gates/gateway-coalescing.txt`.
 
 ### One unexplained observation, n=1
 
@@ -970,8 +997,9 @@ means anything.
 gateway is broken — now purely because it is one less moving part.** Both
 topologies complete 96-rank GCHP and neither is meaningfully faster. The gateway
 becomes the better choice when bytes are metered (cross-region, requester-pays) or
-at node counts where 1.28× duplication is real money, and that case would
-strengthen if in-flight coalescing closes the 1.57×.
+at node counts where 1.28× duplication is real money. That case will not strengthen
+with a lith fix: dedup is already exact, so 1.28× is the workload's ceiling at two
+nodes, not a half-realised 2×.
 
 ### Harness bugs worth remembering
 

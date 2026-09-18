@@ -73,3 +73,21 @@ PH-two-REVERSED        wall=  5.33s  s3_MB=   3143.3  gets=   424  ampl=1.000x  
 ### coalesce interleave arm 2026-09-18T02:10:34Z  8 MiB even/odd split
   set: 2.93 GiB  blocks A=191 B=187 (disjoint, union = whole set once)
 IL-two-DISJOINT-8MiB   wall= 17.71s  s3_MB=   3143.3  gets=   679  ampl=1.000x  prefetch_used=2658 uncovered=343
+
+### coalesce EXTENT arm 2026-09-18T02:15:29Z  64 KiB extents inside 1 MiB chunks
+  file: MERRA2.20190701.A1.05x0625.nc4  287.8 MiB  extents=4605 (A=2303 B=2302, disjoint)
+EX-one-client-all        wall=  2.75s  nfs_read=   301.7 MB  distinct=     0.0 MB  s3=   301.7 MB  s3/distinct=0.000x  cache_miss=8
+EX-two-DISJOINT-64K      wall=  1.66s  nfs_read=   301.9 MB  distinct=     0.0 MB  s3=   301.7 MB  s3/distinct=0.000x  cache_miss=8
+
+### distinct_bytes_read path check 2026-09-18T02:2xZ  same object, same whole-file read
+# lith#250 asks for lith_s3_bytes_total / lith_distinct_bytes_read as the
+# within-run amplification. The counter is not populated on the serve-nfs path.
+path A: serve nfs (gateway, NFS client dd bs=4M to EOF)
+  lith_cache_misses_total    8
+  lith_distinct_bytes_read   0                 <-- never advances
+  lith_nfs_read_bytes_total  3.01740437e+08
+  lith_s3_bytes_total        3.01740437e+08
+path B: FUSE mount (same file, same dd)
+  lith_cache_misses_total    43
+  lith_distinct_bytes_read   3.0179328e+08     <-- populated
+  lith_s3_bytes_total        3.01740437e+08
