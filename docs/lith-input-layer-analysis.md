@@ -1303,8 +1303,13 @@ That reframes gate 3b's finding rather than contradicting it: 3b predicted HEMCO
 the regime where lith would look worst, and at fullchem's family count that
 prediction lands — as **bytes**, not as wall time. In-region S3→EC2 bytes are free
 and 11827 GETs is $0.005, so this costs us nothing today; it matters as the one
-concrete read-pattern improvement left on the table, and it is worth filing upstream
-with these counters.
+concrete read-pattern improvement left on the table. **Filed upstream as
+[lith#256](https://github.com/scttfrdmn/lith/issues/256)** with the per-mount counters,
+and with the one confound named rather than buried: this mount ran `--mem-cache 8GB`
+against a 3.7 GB distinct set but *9.1 GB actually fetched*, so prefetch-induced
+eviction could be inflating the figure. That is a hypothesis, not a measurement — the
+run cannot separate it from genuine uncovered prefetch, and the arm that would (raise
+`--mem-cache` above total fetched bytes) is ~7 minutes of one node.
 
 ### Five harness traps, all of which cost real node time
 
