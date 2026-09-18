@@ -1162,11 +1162,33 @@ absent from `/input`. They are **present in `s3://gcgrid`**:
 `AutoImportPolicy: NONE`. The aliases landed in the bucket on **2026-09-12**. **An
 FSx S3-linked volume is a point-in-time snapshot; lith reads live S3.** Those objects
 are permanently invisible on this Lustre volume without re-creating it or enabling
-AutoImport, and they are visible through lith today.
+AutoImport.
+
+**Measured through lith, not assumed (2026-09-18, head node, $0).** A fresh index
+over the same prefix — built at test time, because a stale index would hide new
+objects exactly the way a stale FSx does — and a 4-byte header read on each file,
+since appearing in a listing is not the same as being readable:
+
+| file | FSx `/input` | lith | size | header |
+|---|---|---|---|---|
+| `gmi.clim.IPMN…` | absent | **present** | 99698098 | HDF5 magic |
+| `gmi.clim.NPMN…` | absent | **present** | 99698098 | HDF5 magic |
+| `gmi.clim.RIPA…` | absent | **present** | 98272423 | HDF5 magic |
+| `gmi.clim.RIPB…` | absent | **present** | 98272423 | HDF5 magic |
+| `gmi.clim.RIPD…` | absent | **present** | 98272423 | HDF5 magic |
+| `gmi.clim.PMN…` (base) | present | present | 99698098 | HDF5 magic |
+| `gmi.clim.RIP…` (base) | present | present | 98272423 | HDF5 magic |
+
+Each alias matches its base file's size to the byte, consistent with the S3-side
+copies the recorded fix called for.
 
 This inverts the recorded GMI trap: the `GMI_OVL` overlay hack exists to work around
 FSx-from-S3 not carrying the aliases, and adopting lith **deletes** that workaround
-rather than porting it. (14.7.1 fullchem uses `v2015-02`, confirmed from the run
+rather than porting it. It also sharpens the freshness axis from a nice-to-have into
+the deciding constraint for this run directory: fullchem references all five, so
+against this `/input` it **cannot run at all** without building the overlay, and
+through lith it runs with no workaround. TransportTracers — everything else in this
+analysis — never touches GMI, which is why the gate-3 and gate-2 runs never hit it. (14.7.1 fullchem uses `v2015-02`, confirmed from the run
 directory, so the separate `v2022-11` missing-NPMN hazard does not apply here.) The
 other 10 unresolved entries — APEI, DICE_Africa ×5, FINNv25, HTAPv3 ×2, SOA/NVOC —
 are absent from gcgrid itself, so they are common-mode and say nothing about either

@@ -1,0 +1,38 @@
+### GMI alias freshness: FSx snapshot vs lith live S3   2026-09-18, head node, $0
+#
+# The 5 GMI alias objects (IPMN/NPMN -> PMN, RIPA/RIPB/RIPD -> RIP) landed in
+# s3://gcgrid/HEMCO/GMI/v2015-02/ on 2026-09-12. The standing /input FSx
+# (fs-0804c4d8e01897d21) was created 2026-06-28 with AutoImportPolicy: NONE.
+# GCHP fullchem references all 5 via HEMCO_Config.rc; TransportTracers does not.
+
+live S3 (aws s3 ls s3://gcgrid/HEMCO/GMI/v2015-02/):
+  2026-09-12  99698098  gmi.clim.IPMN.geos5.2x25.nc
+  2026-09-12  99698098  gmi.clim.NPMN.geos5.2x25.nc
+  2026-09-12  98272423  gmi.clim.RIPA.geos5.2x25.nc
+  2026-09-12  98272423  gmi.clim.RIPB.geos5.2x25.nc
+  2026-09-12  98272423  gmi.clim.RIPD.geos5.2x25.nc
+
+FSx /input/HEMCO/GMI/v2015-02/:
+  IPMN   ABSENT
+  NPMN   ABSENT
+  RIPA   ABSENT
+  RIPB   ABSENT
+  RIPD   ABSENT
+
+lith FUSE mount of the same prefix (fresh index built at test time):
+  IPMN   PRESENT    99698098 B  magic=HDF
+  NPMN   PRESENT    99698098 B  magic=HDF
+  RIPA   PRESENT    98272423 B  magic=HDF
+  RIPB   PRESENT    98272423 B  magic=HDF
+  RIPD   PRESENT    98272423 B  magic=HDF
+  PMN    PRESENT    99698098 B  magic=HDF   (base file, matches IPMN/NPMN size)
+  RIP    PRESENT    98272423 B  magic=HDF   (base file, matches RIPA/RIPB/RIPD size)
+
+Not just listed -- read: 4-byte header read on each returns the HDF5 magic, and the
+alias sizes match their base files exactly, consistent with being S3-side copies.
+
+CONSEQUENCE: fullchem cannot run against this /input FSx at all without an overlay
+(copy the 5 objects somewhere writable and repoint HcoDir, since the mount is
+read-only). Through lith it runs with no workaround. The freshness axis is therefore
+not a nice-to-have -- for this run directory it is the difference between "runs" and
+"aborts at ExtData init".
