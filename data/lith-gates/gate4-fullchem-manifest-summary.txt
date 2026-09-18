@@ -1,0 +1,59 @@
+run dir      : /scratch/gchp_lith_fullchem
+start date   : 20190701  (window 20190701..20190702)
+ExtData tpls : 231
+HEMCO   tpls : 322   (extensions off: ['100', '104', '107', '108', '125', '126', '130', '131'])
+objects      : 485
+total bytes  : 32409726478 (30.2 GiB)
+missing      : 29
+families     : 57
+
+top 15 objects by size:
+      1161.4 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190701.A3dyn.05x0625.nc4
+      1157.5 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190702.A3dyn.05x0625.nc4
+       770.9 MiB  /input/HEMCO/GT_Chlorine/v2024-05/GT_Chlorine_01_01_2014_V1.0.0.nc
+       675.9 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190701.I3.05x0625.nc4
+       675.3 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190702.I3.05x0625.nc4
+       404.2 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190701.A3cld.05x0625.nc4
+       401.5 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190702.A3cld.05x0625.nc4
+       380.0 MiB  /input/HEMCO/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
+       361.9 MiB  /input/HEMCO/SOILNOX/v2014-07/soilNOx.fert_res.generic.05x05.time_corrected_for_GCHP.nc
+       287.8 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190701.A1.05x0625.nc4
+       287.5 MiB  /input/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190702.A1.05x0625.nc4
+       283.4 MiB  /input/HEMCO/CEDS/v2024-06/2019/CEDS_NH3_0.1x0.1_2019.nc
+       283.0 MiB  /input/HEMCO/GFAS/v2018-09/2019/GFAS_201907.nc
+       282.3 MiB  /input/HEMCO/CEDS/v2024-06/2019/CEDS_TOLU_0.1x0.1_2019.nc
+       282.3 MiB  /input/HEMCO/CEDS/v2024-06/2019/CEDS_ALK4_hexanes_0.1x0.1_2019.nc
+
+top 15 families by bytes:
+     11437.3 MiB   117 obj  HEMCO/GMI
+      5979.6 MiB    13 obj  GEOS_0.5x0.625
+      5396.2 MiB    40 obj  HEMCO/CEDS
+      3189.5 MiB    56 obj  HEMCO/EDGARv43
+      1157.3 MiB    28 obj  HEMCO/FINNv25
+       770.9 MiB     1 obj  HEMCO/GT_Chlorine
+       387.9 MiB     2 obj  HEMCO/OCEAN_O3_DRYDEP
+       366.8 MiB     4 obj  HEMCO/SOILNOX
+       366.7 MiB    88 obj  HEMCO/RCP
+       285.6 MiB    21 obj  HEMCO/NEI2016
+       283.0 MiB     1 obj  HEMCO/GFAS
+       271.6 MiB     1 obj  HEMCO/NEI2005
+       107.6 MiB     1 obj  HEMCO/Yuan_XLAI
+       107.2 MiB     2 obj  HEMCO/OFFLINE_BIOVOC
+       103.6 MiB     2 obj  HEMCO/NH3
+
+unresolved (29), first 15:
+  [extdata] ./HcoDir/GMI/v2015-02/gmi.clim.RIPB.geos5.2x25.nc
+  [extdata] ./HcoDir/GMI/v2015-02/gmi.clim.NPMN.geos5.2x25.nc
+  [extdata] ./HcoDir/GMI/v2015-02/gmi.clim.RIPA.geos5.2x25.nc
+  [extdata] ./HcoDir/SOA/v2014-07/NVOC.geos.1x1.nc
+  [extdata] ./HcoDir/GMI/v2015-02/gmi.clim.RIPD.geos5.2x25.nc
+  [extdata] ./HcoDir/GMI/v2015-02/gmi.clim.IPMN.geos5.2x25.nc
+  [hemco] $ROOT/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
+  [hemco] $ROOT/FINNv25/v2025-06/2019/emissions-finnv2.5modvrs_NO_bb_surface_daily_20190101-20191231_0.1x0.1.nc
+  [hemco] $ROOT/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
+  [hemco] $ROOT/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
+  [hemco] $ROOT/DICE_Africa/v2016-10/DICE-Africa-kerosene-use-2013-v01-4Oct2016.nc
+  [hemco] $ROOT/APEI/v2016-11/APEI.0.1x0.1.nc
+  [hemco] $ROOT/HTAPv3/v2022-12/2019/HTAPv3_BC_0.1x0.1_2019.nc
+  [hemco] $ROOT/HTAPv3/v2022-12/2019/HTAPv3_NO_0.1x0.1_2019.nc
+  [hemco] $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc

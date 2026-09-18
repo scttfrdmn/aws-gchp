@@ -78,12 +78,27 @@ the v2.15-or-mount-fails version pin, the Lustre-ports security group, AZ pinnin
 and pre-hydration itself). For a fleet of two-hour clusters, 33 minutes is a third
 of the cluster's life.
 
-**The remaining real unknown is working-set scale, not speed.** Every number above
-is C24 TransportTracers. C180 fullchem touches 48 of 50 gcgrid input families
-against TT's handful, so the per-node cold fetch is far larger; whether the 1.73×
-cold advantage grows, holds, or inverts there is untested. That is the measurement
-worth buying next, and it is the one thing that could still change this
-recommendation.
+**Working-set scale was the last real unknown, and it has now been measured: the
+cold advantage grows.** The table above is C24 TransportTracers. Against a fullchem
+working set derived from an official run directory — **30.2 GiB, 485 objects, 57
+families**, 7.4× TT — lith reads the whole set in 49.8 s to FSx's 113.8 s, and that
+**≥2.29×** is a floor because FSx was ~57% pre-hydrated. On the fully-cold C180
+restart (13.1 GB, the *only* resolution-dependent input) it is **4.92×**. The reason
+is structural, not incidental: FSx hydrates from S3 at ~120 MB/s regardless of
+concurrency, measured twice independently, so the bigger the cold working set the
+worse it does (*Gate 4*).
+
+Gate 4 also turned up an argument no measurement had reached before: **an FSx
+S3-linked volume is a point-in-time snapshot, and lith reads live S3.** The five GMI
+alias objects this project has a recorded workaround for exist in `s3://gcgrid`
+(2026-09-12) but are permanently invisible on the `/input` volume created 2026-06-28
+with `AutoImportPolicy: NONE`. lith serves them today, which deletes the `GMI_OVL`
+overlay hack rather than porting it.
+
+What remains untested is a fullchem *simulation* through lith — correctness at
+fullchem's read pattern, not throughput. The recommendation is to fold the lith mount
+into the C180 fullchem run already scheduled in the scaling campaign rather than buy
+a run for it.
 
 ## What lith is
 
@@ -368,6 +383,15 @@ works on EBS. Low upside, new variable.
    campaign is publication-bound; an input-layer change must not silently
    confound comparisons with existing numbers, and the lith version must be
    recorded with every run.
+5. ~~**Working-set scale.**~~ **MEASURED 2026-09-18, head node only, no spend — see
+   *Working-set scale* below. The cold advantage grows: 1.73× (C24 TT) → ≥2.29×
+   (30.2 GiB fullchem manifest, a floor because FSx was ~57% pre-hydrated) → 4.92×
+   (fully-cold C180 restart).** The planned C24→C90→C180 ladder turned out to be
+   unnecessary rather than merely slow: `grep -icE "c24|c48|c90|c180" ExtData.rc`
+   returns **0**, so every resolution reads the same input bytes and only the restart
+   file scales. Mechanism (7.4×) dominates resolution (~1.4×). Also found: the FSx
+   S3-linked mirror is a point-in-time snapshot and cannot see objects added to
+   gcgrid after its creation, which lith can.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -900,6 +924,168 @@ a diagnostic that lies rather than fails:
 And `ssh host 'cmd &'` never returns even with all three fds redirected; use
 `ssh -f -n` with a `timeout` guard. `lith mount --daemon` self-detaches, but
 `lith serve nfs` has no `--daemon`, which is what made the difference.
+
+## Working-set scale — does the cold advantage survive fullchem? Measured 2026-09-18
+
+> Harness files are named `gate4-*`; numbered gate 4 in the list above is the
+> unrelated A/B control. This is the working-set-scale gate, listed as item 5.
+
+This document's Summary named one remaining unknown: every number in it was C24
+TransportTracers (~4.1 GB, a handful of input families), and it said the 1.73× cold
+advantage "grows, holds, or inverts" at fullchem scale was untested and "the one
+thing that could still change this recommendation." **It grows.** All of gate 4 ran
+on the standing head node: no compute nodes, no MPI, no spend.
+
+### First, the premise: there is no ladder to climb
+
+The plan was C24 → C90 → C180. That plan was based on a wrong assumption, and
+checking it cost one `grep`:
+
+```
+$ grep -icE "c24|c48|c90|c180" ExtData.rc
+0
+```
+
+**GCHP's inputs are cubed-sphere-resolution-independent.** MAPL/ExtData regrids met
+and emissions online from their native lat-lon grids, so `createRunDir.sh` has no
+resolution prompt at all — `CS_RES` is set afterwards in `setCommonRunSettings.sh`.
+The *only* resolution-dependent input byte is the restart file:
+
+| restart (fullchem, 20190701) | size |
+|---|---|
+| c24 | 710 MB |
+| c48 | 1.30 GB |
+| c90 | 5.45 GB |
+| **c180** | **13.1 GB** |
+
+So the two axes are not comparable in size, and only one of them needed a
+measurement:
+
+- **mechanism** TT → fullchem: ~4.1 GB → **30.2 GiB**, ~**7.4×**
+- **resolution** C24 → C180: + 12.4 GiB of restart, ~**+40%**
+
+A C90 rung would have read *identical* input bytes to C24 for all 57 families and
+differed only in a single file whose whole size curve was already available from
+`s3 ls`. One fullchem run directory therefore serves every resolution, and the right
+move was to jump — not out of impatience, but because the intermediate rung carries
+no information.
+
+### The manifest: derived from an official run directory, and labelled INFERRED
+
+Per CLAUDE.md, no hand-rolled run directory: `scripts/lith/mk-fullchem-rundir.expect`
+drives GCHP's own `createRunDir.sh` (fullchem, MERRA-2 **0.5x0.625** — the same met
+option the existing TT run dir used, so the comparison varies the mechanism and not
+the met resolution). `scripts/lith/gate4-fullchem-manifest.py` then parses
+`ExtData.rc` + `HEMCO_Config.rc`:
+
+```
+ExtData tpls : 231
+HEMCO   tpls : 322   (extensions off: 100 104 107 108 125 126 130 131)
+objects      : 485
+total bytes  : 32409726478 (30.2 GiB)
+families     : 57
+unresolved   : 29
+```
+
+This is an **INFERRED** manifest and an **upper bound** on files: HEMCO decides at
+runtime which entries it actually opens, and my `$YYYY` fallback rule ("nearest year
+present on disk") is mine, not HEMCO's. A MEASURED list would come from `HEMCO.log`
+of a real run, which costs a compute node. Neither caveat can bias the layer
+comparison, because **the same manifest is read through both layers** — manifest
+error is common-mode. Sizes came from `stat()` on the FSx mount, which carries S3
+metadata without hydrating content: zero bytes, zero GETs.
+
+Largest families are `HEMCO/GMI` (11.4 GiB, 117 obj), `GEOS_0.5x0.625` (6.0 GiB,
+13 obj), `HEMCO/CEDS` (5.4 GiB, 40), `HEMCO/EDGARv43` (3.1 GiB, 56).
+
+### Results
+
+Whole-file sequential reads, 8 concurrent readers, page cache dropped between arms.
+lith ran **first** deliberately: the FSx cold arm is **one-shot by physics** —
+reading a `released` file hydrates it permanently and there is no un-hydrate — so
+the repeatable arm shakes out harness bugs before the single-use one is spent.
+
+| | prior C24 TT | **fullchem manifest** | **C180 restart** |
+|---|---|---|---|
+| working set | ~4.1 GB, few families | 30.2 GiB, 485 obj, 57 families | 13.1 GB, 1 file |
+| lith cold | — | **49.75 s / 651.5 MB/s** (8066 GETs, ampl **1.000×**) | **23.53 s / 556.9 MB/s** (1577 GETs = 8.3 MB/GET) |
+| lith cold, repeat | — | **48.13 s / 673.4 MB/s** (8073 GETs) | — |
+| FSx cold | — | 113.80 s / 284.8 MB/s (**~57% pre-warm**) | 115.73 s / 113.2 MB/s (`released`, verifiably cold) |
+| **lith advantage** | **1.73×** (init) | **≥ 2.29×** (floor) | **4.92×** |
+
+lith reproduces to 3.3% (49.75 s vs 48.13 s, same bytes to the 0.1 MB) — worth
+having, since every other arm in this gate is n=1.
+
+Fetch amplification is **1.000×** on the manifest: whole-file sequential reads
+fetch exactly the working set, no waste. (Gate 3c's 1.31× was GCHP's *hyperslab*
+pattern, which is a different question.)
+
+### The FSx arm was not fully cold, so 2.29× is a floor, not a measurement
+
+`lfs hsm_state` on a 60-file sample before the arm: 24 `released` (cold), 36
+`archived` without `released` (already hydrated by earlier work). The `df` delta
+across the arm — 86 G → 99 G — says only **~13 GiB of the 30.2 GiB came from S3**;
+the other ~17 GiB was served off Lustre disk. **FSx got a 57% head start and still
+lost by 2.29×.**
+
+I sampled 60 of 485 files before spending the one shot, so the full pre-state is now
+unrecoverable. Reporting 2.29× as a floor is the honest form.
+
+Decomposing it anyway (EXTRAPOLATED, flagged): ~13 GiB from S3 in ~113.8 s is an
+FSx hydration rate of **~120 MB/s**. That figure is independently corroborated by
+the restart arm, where a verifiably-`released` file hydrated at **113.2 MB/s**. At
+that rate a fully-cold FSx would have needed ~260 s for the manifest, putting the
+true advantage near **5×** — which is exactly what the fully-cold restart arm
+measured (4.92×). Two independent arms converging on the same FSx ceiling is the
+strongest thing in this gate.
+
+**lith's numbers are floors too.** 651–673 MB/s is 5.2–5.4 Gbps on a `c7g.4xlarge`
+whose baseline is 7.5 Gbps, so lith was running at ~72% of the instance's network
+allowance. On a compute-class node the gap would likely be wider, not narrower.
+
+### A new argument that no measurement had surfaced: the FSx mirror is stale by construction
+
+The manifest's 29 unresolved entries include the five GMI aliases this project has
+a recorded trap for (`IPMN`, `NPMN`, `RIPA`, `RIPB`, `RIPD`, ~99 MB each). They are
+absent from `/input`. They are **present in `s3://gcgrid`**:
+
+```
+2026-09-12 10:44:38   99698098 HEMCO/GMI/v2015-02/gmi.clim.IPMN.geos5.2x25.nc
+2026-09-12 10:44:39   99698098 HEMCO/GMI/v2015-02/gmi.clim.NPMN.geos5.2x25.nc
+2026-09-12 10:44:40   98272423 HEMCO/GMI/v2015-02/gmi.clim.RIPA.geos5.2x25.nc
+2026-09-12 10:44:40   98272423 HEMCO/GMI/v2015-02/gmi.clim.RIPB.geos5.2x25.nc
+2026-09-12 10:44:41   98272423 HEMCO/GMI/v2015-02/gmi.clim.RIPD.geos5.2x25.nc
+```
+
+`/input` is `fs-0804c4d8e01897d21`, ImportPath `s3://gcgrid`, created **2026-06-28**,
+`AutoImportPolicy: NONE`. The aliases landed in the bucket on **2026-09-12**. **An
+FSx S3-linked volume is a point-in-time snapshot; lith reads live S3.** Those objects
+are permanently invisible on this Lustre volume without re-creating it or enabling
+AutoImport, and they are visible through lith today.
+
+This inverts the recorded GMI trap: the `GMI_OVL` overlay hack exists to work around
+FSx-from-S3 not carrying the aliases, and adopting lith **deletes** that workaround
+rather than porting it. (14.7.1 fullchem uses `v2015-02`, confirmed from the run
+directory, so the separate `v2022-11` missing-NPMN hazard does not apply here.) The
+other 10 unresolved entries — APEI, DICE_Africa ×5, FINNv25, HTAPv3 ×2, SOA/NVOC —
+are absent from gcgrid itself, so they are common-mode and say nothing about either
+layer.
+
+### Verdict
+
+**lith's cold advantage grows with working-set scale: 1.73× at C24 TT → ≥2.29× on
+the 30.2 GiB fullchem manifest → 4.92× on the fully-cold C180 restart.** The one
+thing that could have changed the recommendation instead reinforced it, and it did so
+for a structural reason rather than a lucky benchmark: FSx hydration is rate-limited
+at ~120 MB/s regardless of concurrency, so the larger the cold working set, the worse
+it does. Fullchem at C180 is the largest cold working set this workload has.
+
+**Still not measured:** an actual fullchem *simulation* through lith. Gate 3c proved
+correctness for TT at 48 and 96 ranks; nothing here re-proves it for fullchem's
+different read pattern. The recommendation is **not** to buy a C180 fullchem run for
+lith — it is to mount lith as `/input` in the C180 fullchem run already scheduled in
+the scaling campaign, where the marginal cost is zero. If an earlier correctness
+signal is wanted, C24 fullchem on one node is cheap.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
