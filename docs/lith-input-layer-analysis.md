@@ -95,10 +95,15 @@ alias objects this project has a recorded workaround for exist in `s3://gcgrid`
 with `AutoImportPolicy: NONE`. lith serves them today, which deletes the `GMI_OVL`
 overlay hack rather than porting it.
 
-What remains untested is a fullchem *simulation* through lith — correctness at
-fullchem's read pattern, not throughput. The recommendation is to fold the lith mount
-into the C180 fullchem run already scheduled in the scaling campaign rather than buy
-a run for it.
+**The last open question — does fullchem's read pattern get *correct bytes* through
+lith — is now answered, and the answer is yes, to the bit.** C24 fullchem, 48 ranks,
+one simulated day, the same run directory pointed first at lith and then at FSx:
+`md5(gcchem_internal_checkpoint)` is **`f3dd15b2191bbce63dadcbfc100196a6` on both
+arms** (*Gate 5*). A completion would have proved nothing — a FUSE layer returning
+subtly wrong bytes still writes a file — so the gate was defined on byte-identity
+from the start. Fullchem's per-family byte behaviour differs sharply from TT's, and
+that is where the remaining engineering interest is: **HEMCO is the amplifier at
+2.46×**, against 1.21× for met and 1.04× for the restart.
 
 ## What lith is
 
@@ -392,6 +397,15 @@ works on EBS. Low upside, new variable.
    file scales. Mechanism (7.4×) dominates resolution (~1.4×). Also found: the FSx
    S3-linked mirror is a point-in-time snapshot and cannot see objects added to
    gcgrid after its creation, which lith can.
+6. ~~**fullchem correctness.**~~ **MEASURED 2026-09-18 — PASS, see *Gate 5* below.**
+   C24 fullchem, 48 ranks, 1 simulated day, one run directory pointed at lith and then
+   at FSx: `md5(gcchem_internal_checkpoint)` identical
+   (`f3dd15b2191bbce63dadcbfc100196a6`), 144/144 timesteps both arms, zero read errors.
+   The gate was deliberately defined on byte-identity rather than completion. New
+   finding: **HEMCO is fullchem's read amplifier at 2.46×** (met 1.21×, restart 1.04×,
+   overall 1.79×), driven by a 783/4750 prefetch hit rate on small scattered emissions
+   hyperslabs. Remaining: fullchem at C180 and fullchem multi-node, both folded into
+   the campaign run at zero marginal cost.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -1203,12 +1217,137 @@ for a structural reason rather than a lucky benchmark: FSx hydration is rate-lim
 at ~120 MB/s regardless of concurrency, so the larger the cold working set, the worse
 it does. Fullchem at C180 is the largest cold working set this workload has.
 
-**Still not measured:** an actual fullchem *simulation* through lith. Gate 3c proved
-correctness for TT at 48 and 96 ranks; nothing here re-proves it for fullchem's
-different read pattern. The recommendation is **not** to buy a C180 fullchem run for
-lith — it is to mount lith as `/input` in the C180 fullchem run already scheduled in
-the scaling campaign, where the marginal cost is zero. If an earlier correctness
-signal is wanted, C24 fullchem on one node is cheap.
+**Still not measured *here*:** an actual fullchem *simulation* through lith. Gate 3c
+proved correctness for TT at 48 and 96 ranks; nothing in this section re-proves it for
+fullchem's different read pattern. The recommendation is **not** to buy a C180 fullchem
+run for lith — it is to mount lith as `/input` in the C180 fullchem run already
+scheduled in the scaling campaign, where the marginal cost is zero. If an earlier
+correctness signal is wanted, C24 fullchem on one node is cheap.
+
+> **Taken up immediately, because it was cheap: see *Gate 5* below.** C24 fullchem on
+> one node cost ~25 minutes of one `c8g.48xlarge` and returned a byte-identical
+> checkpoint. The C180 recommendation is unchanged — fold it into the campaign run —
+> but it is now a scale confirmation rather than the first correctness evidence.
+
+## Gate 5 — fullchem correctness through lith, decided by checkpoint MD5 (2026-09-18)
+
+Everything before this gate ran **TransportTracers**. TT never touches GMI, never
+loads a chemistry mechanism, and reads a far narrower emissions set, so none of it
+speaks to fullchem's read pattern. This gate closes that.
+
+**The test is a byte-identical checkpoint, not a completion.** "It ran and looked
+plausible" is not a correctness result: a FUSE layer that returned subtly wrong bytes
+would still produce a file, and the model would still march 144 timesteps. So both
+arms run the **same run directory** — same binary, same config, same restart, same
+48-rank layout, same 1 simulated day — differing only in where input comes from, and
+the gate passes only if `md5(Restarts/gcchem_internal_checkpoint)` matches.
+
+`scripts/lith/gate5-fullchem-ab.sbatch` (+ `gate5-fullchem-prep.sh`), lith v1.1.2,
+`c8g.48xlarge`, C24 fullchem, NX=2 NY=24 = 48 ranks, 2019-07-01 → 07-02.
+
+### Result: PASS
+
+| arm | input | init | to sim end | to completion | `cap_restart` | checkpoint md5 |
+|---|---|---|---|---|---|---|
+| **lith** | live `s3://gcgrid`, 5 mounts | 188.98 s | 375.98 s | 397.2 s | `20190702` | `f3dd15b2…96a6` |
+| **fsx** | `/input` + `GMI_OVL` overlay | 81.05 s | 254.05 s | 274.9 s | `20190702` | `f3dd15b2…96a6` |
+
+**`f3dd15b2191bbce63dadcbfc100196a6` on both arms.** 144/144 timesteps each. Zero
+read errors, zero fallbacks. Fullchem's chemistry is bit-reproducible over lith.
+
+This is the first fullchem GCHP simulation run with its entire input tree on object
+storage, and it is the first arm where lith's advantage is **not** a performance claim
+at all — it is that the FSx arm **cannot run without a workaround lith does not need**.
+Building the `GMI_OVL` overlay was a prerequisite for the control arm — a 3-level
+symlink farm, **226 symlinks + 5 real files, 494.3 MB of duplicated GMI objects**,
+which themselves had to be copied *through lith* because they exist nowhere on Lustre.
+The lith arm read the same five aliases straight from live gcgrid with no overlay at
+all. (Counts verified on the head node after the run, not from the script's own echo.)
+
+### The timings are recorded, not claimed
+
+The 189 s vs 81 s init gap is **not** a cold-vs-cold comparison and must not be read as
+one: this gate did not control FSx HSM residency (no `lfs hsm_release`, no
+`hsm_restore`), the lith arm mounted fresh with an empty cache every job, and the FSx
+met tree had been read by earlier work. Gate 3c and Gate 4 are where the controlled
+temperature comparisons live. What *is* meaningful here is that **sim-only wall is a
+dead heat**: 187.0 s (lith) vs 173.0 s (FSx), 1.08×. The whole difference sits in
+init, which is where every previous gate found it too.
+
+### Where fullchem's bytes actually go — HEMCO, not met
+
+Per-mount, over the whole lith run:
+
+| mount | from S3 | distinct | ampl | GETs | prefetch used/issued | uncovered |
+|---|---|---|---|---|---|---|
+| MERRA-2 2019/07 | 3936.6 MB | 3254.3 MB | **1.21×** | 3550 | 2355/2951 | 3138 |
+| **HEMCO** | **9086.9 MB** | **3698.2 MB** | **2.46×** | 8089 | **783/4750** | 7260 |
+| restart | 796.7 MB | 767.3 MB | 1.04× | 109 | 716/744 | 16 |
+| CHEM_INPUTS | 4.4 MB | 5.6 MB | — | 78 | 0/2 | 76 |
+| MERRA-2 2015/01 (CN) | 0.8 MB | 0.9 MB | — | 1 | 0/0 | 1 |
+| **total** | **13825.4 MB** | **7726.2 MB** | **1.79×** | 11827 | | |
+
+(The two sub-1.0 rows are chunk-granularity artifacts — `distinct_bytes_read` rounds
+up to the 1 MiB chunk while `s3_bytes_total` is the actual transfer — and are too
+small to move the total.)
+
+**HEMCO is where lith's read amplification lives in fullchem, and its prefetcher is
+the reason.** HEMCO moves 2.3× the met mount's bytes from S3 while wanting a
+*smaller* distinct set, and its prefetch hit rate is **783 used of 4750 issued with
+7260 uncovered** — against met's 2355/2951. Emissions files are small (~13 MB) and
+read as scattered hyperslabs across dozens of families per timestep, so the
+read-ahead window is repeatedly established and then abandoned. Met, which is large
+and read in bigger contiguous runs, prefetches well.
+
+That reframes gate 3b's finding rather than contradicting it: 3b predicted HEMCO was
+the regime where lith would look worst, and at fullchem's family count that
+prediction lands — as **bytes**, not as wall time. In-region S3→EC2 bytes are free
+and 11827 GETs is $0.005, so this costs us nothing today; it matters as the one
+concrete read-pattern improvement left on the table, and it is worth filing upstream
+with these counters.
+
+### Five harness traps, all of which cost real node time
+
+Four jobs failed before job 14 passed, for reasons worth recording — none of them
+lith's, all of them harness or GCHP-config:
+
+1. **`lith mount --daemon` daemons survive `scancel`.** Daemonizing detaches from the
+   Slurm cgroup, so the next job silently inherits stale mounts. Job 13's lith arm
+   got "Permission denied" from `mkdir` on live mountpoints, five "daemon failed to
+   start", then **counted the five stale mounts as success** and ran GCHP against dead
+   daemons — dead in 10 s. Fix: unmount + `pkill` before mounting, and verify each
+   daemon *answers on its metrics port* rather than counting `mount` entries.
+2. **The harness manufactured a scientific claim out of its own breakage.** With the
+   lith md5 the literal string `"n/a"`, the verdict logic printed **"FAIL —
+   checkpoints DIFFER"**. A non-completion was reported as a correctness failure. Fix:
+   blank `"n/a"` before comparing and report INCONCLUSIVE. A harness must not be able
+   to produce a result it did not measure.
+3. **`TOTAL_CORES` is a third independent knob**, not derived from `NUM_NODES` ×
+   `NUM_CORES_PER_NODE`. Job 11 died silently because it was still 96.
+4. **Never discard the GCHP setup scripts' output.** Job 11's cause —
+   `ERROR: TOTAL_CORES must equal to NUM_NODES times NUM_CORES_PER_NODE` — was
+   printed correctly by `setCommonRunSettings.sh` and thrown away by
+   `>/dev/null 2>&1`. The official tooling had diagnosed it; the harness hid it.
+5. **`Run_Duration` is `"YYYYMMDD HHmmSS"`.** The run directory default
+   `"00000100 000000"` is **one month**, not one day. Job 12 ran a projected 1:29:36
+   per arm against a 1:30 wall limit. (It did establish, before being cancelled, that
+   fullchem runs through lith at all: 254 timesteps, 1.75 sim-days, 148 GB high-water,
+   zero read errors.)
+
+Job 10 additionally proved the entry-point preflight earns its keep: `/input-lith` is
+**node-local**, the `mkdir` had been moved into head-node prep, and all five daemons
+failed on a missing mountpoint — caught *before* `mpirun`, so no model time burned.
+
+Total gate cost: ~25 min of one `c8g.48xlarge` across five submissions.
+
+### Verdict
+
+**Gate 5 passes on its own terms.** fullchem is bit-identical over lith at 48 ranks,
+so the input-layer recommendation now rests on correctness evidence for **both**
+mechanisms rather than TT alone. The two things still not measured are fullchem at
+**C180** and fullchem **multi-node** — and the standing recommendation covers both at
+zero marginal cost: mount lith as `/input` in the campaign's scheduled C180 fullchem
+run and compare checkpoints there.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 

@@ -4,6 +4,13 @@
 # checkpoint against an FSx-served run of the same run directory.
 #
 # All of this runs on the head node so no compute-node time is spent on setup.
+#
+# PROVENANCE: these steps were applied to /scratch/gchp_lith_fullchem interactively as
+# the gate was debugged, not by invoking this file, so this is the recorded form rather
+# than the literal thing that ran. Every assertion in it was verified against the live
+# run directory afterwards: TOTAL_CORES=48 / NUM_NODES=1 / NUM_CORES_PER_NODE=48,
+# Run_Duration="00000001 000000", Require_Species_in_Restart=0, and an overlay of 226
+# symlinks + 5 real files (494277923 bytes). Re-running it from scratch is untested.
 set -u
 RD=/scratch/gchp_lith_fullchem
 GATES=/scratch/lith-gates
@@ -21,9 +28,16 @@ echo "=== 2. run settings: 1 node, and the fullchem restart-species fix ==="
 # Require_Species_in_Restart=1 makes 14.7.1 fullchem ABORT on gcgrid restarts, which
 # are missing species the current mechanism expects (SPC_ACO3 and friends). This is a
 # recorded, previously diagnosed trap, not a guess.
+# TOTAL_CORES is a THIRD knob and is NOT derived from the other two: leaving it at
+# 96 after dropping to one node makes setCommonRunSettings.sh refuse the config
+# ("ERROR: TOTAL_CORES must equal NUM_NODES times NUM_CORES_PER_NODE"). Cost job 11.
 sed -i 's/^NUM_NODES=2$/NUM_NODES=1/' $RD/setCommonRunSettings.sh
+sed -i 's/^TOTAL_CORES=.*/TOTAL_CORES=48/' $RD/setCommonRunSettings.sh
+# Run_Duration is "YYYYMMDD HHmmSS": the default 00000100 is one MONTH. One sim-day is
+# just as decisive for a byte-identity gate and ~30x cheaper.
+sed -i 's/^Run_Duration=.*/Run_Duration="00000001 000000"/' $RD/setCommonRunSettings.sh
 sed -i 's/^Require_Species_in_Restart=1$/Require_Species_in_Restart=0/' $RD/setCommonRunSettings.sh
-grep -nE '^NUM_NODES=|^NUM_CORES_PER_NODE=|^Require_Species_in_Restart=|^Run_Duration=' $RD/setCommonRunSettings.sh | sed 's/^/  /'
+grep -nE '^TOTAL_CORES=|^NUM_NODES=|^NUM_CORES_PER_NODE=|^Require_Species_in_Restart=|^Run_Duration=' $RD/setCommonRunSettings.sh | sed 's/^/  /'
 
 echo "=== 3. GMI overlay for the FSx arm ==="
 # /input cannot serve the 5 GMI aliases fullchem needs (FSx snapshot predates them),

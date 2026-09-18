@@ -56,7 +56,17 @@ OVL=/scratch/hemco-ovl              # FSx arm's HEMCO, prebuilt with the 5 GMI a
 LITH=${GATES}/lith-1.1.2
 RANKS=48
 START=20190701                      # cap_restart's start date; the watchdog keys off it
+# Run_Duration in setCommonRunSettings.sh is "YYYYMMDD HHmmSS", so the run directory's
+# default "00000100 000000" is ONE MONTH, not one day. Job 12 ran fullchem happily for
+# 254 timesteps and then projected 1.5 h per arm -- two arms could not fit the 1:30
+# limit. Set to "00000001 000000". A 1-day checkpoint is exactly as decisive for
+# byte-identity and ~30x cheaper.
+EXPECT_SGMT="00000001 000000"
 RESULTS=${GATES}/gate5-results.txt
+# Either arm can be run alone. The per-arm checkpoint md5 is persisted to
+# gate5-md5-<arm>.txt, so a lith-only rerun still gets a verdict against the FSx
+# control instead of paying for it twice.
+ARMS=${ARMS:-lith,fsx}
 
 exec > >(tee -a "$RESULTS") 2>&1
 say()   { echo; echo "=== $* ==="; }
@@ -71,7 +81,12 @@ echo "/dev/shm: $(df -h /dev/shm | awk 'NR==2{print $2" size, "$4" avail"}')"
 # first KPP call = tmpfs exhaustion). C24 has 56x fewer cells so the requirement is
 # far smaller, but both values are REPORTED here so that if this job dies at the
 # first chemistry step the cause is already in the log instead of needing a rerun.
-echo "domains_stack_size: $(grep -E '^ *domains_stack_size' "$RD/GCHP.rc" 2>/dev/null | awk '{print $2}')"
+# No domains_stack_size key exists in this run directory: the recorded C180 fix ADDS
+# one, it is not a default. Left absent deliberately -- C24 has 56x fewer cells than
+# the case that needed it, and CLAUDE.md's rule is not to change configuration we do
+# not need to. If this job dies at the first KPP call with SIGBUS, that key is the
+# first thing to add.
+echo "domains_stack_size: $(awk '/^ *domains_stack_size/{print $2; f=1} END{if(!f) print "absent (GCHP default)"}' "$RD/GCHP.rc")"
 NIC=$(case "$ITYPE" in m9g.48xlarge) echo 100;; c8g.48xlarge) echo 50;; *) echo 50;; esac)
 echo "lith: $("$LITH" version 2>&1 | head -1)   --nic-gbps ${NIC}"
 
@@ -82,7 +97,12 @@ say "preflight"
 fail=0
 [[ -x "$RD/gchp" ]] || { echo "  FAIL no executable $RD/gchp"; fail=1; }
 grep -q '^NUM_NODES=1$' "$RD/setCommonRunSettings.sh" || { echo "  FAIL NUM_NODES != 1"; fail=1; }
+# TOTAL_CORES is a THIRD independent knob, not derived from the other two. Job 11
+# died because it still said 96 after NUM_NODES went 2 -> 1.
+grep -q "^TOTAL_CORES=${RANKS}\$" "$RD/setCommonRunSettings.sh" || { echo "  FAIL TOTAL_CORES != ${RANKS} (must equal NUM_NODES x NUM_CORES_PER_NODE)"; fail=1; }
 grep -q '^Require_Species_in_Restart=0$' "$RD/setCommonRunSettings.sh" || { echo "  FAIL Require_Species_in_Restart != 0 (fullchem aborts on gcgrid restarts)"; fail=1; }
+grep -q "^Run_Duration=\"${EXPECT_SGMT}\"\$" "$RD/setCommonRunSettings.sh" \
+  || { echo "  FAIL Run_Duration != ${EXPECT_SGMT} (\"YYYYMMDD HHmmSS\"; 00000100 is a MONTH)"; fail=1; }
 for a in IPMN NPMN RIPA RIPB RIPD; do
   [[ -f "$OVL/GMI/v2015-02/gmi.clim.$a.geos5.2x25.nc" ]] || { echo "  FAIL overlay missing $a"; fail=1; }
 done
@@ -95,7 +115,39 @@ echo "  all preflight checks passed"
 # ---------------------------------------------------------------- input layers
 PORTS="9110:merra2-2019-07 9111:merra2-2015 9112:hemco 9113:chem-inputs 9114:restarts"
 
+clean_stale_lith() {
+  # `lith mount --daemon` detaches, so the daemons SURVIVE scancel and survive the job
+  # that created them: daemonizing escapes the Slurm cgroup. Job 13 inherited job 12's
+  # five mounts, could not create its own ("Permission denied" from mkdir/chown on live
+  # FUSE mountpoints, then "daemon failed to start"), counted the stale mounts as
+  # success, and ran GCHP against dead daemons -- it died in 10 s. Always start from a
+  # known-clean state.
+  for m in /input-lith/GEOS_0.5x0.625/MERRA2/2019/07 /input-lith/GEOS_0.5x0.625/MERRA2/2015/01 \
+           /input-lith/HEMCO /input-lith/CHEM_INPUTS /input-lith/GEOSCHEM_RESTARTS; do
+    fusermount3 -u "$m" >/dev/null 2>&1
+  done
+  pkill -f "lith-1.1.2 mount" >/dev/null 2>&1
+  sleep 3
+  local left; left=$(mount | grep -c fuse.lith)
+  echo "  stale fuse.lith mounts after cleanup: ${left}"
+  if (( left )); then
+    # Do not paper over this: a leftover mount means the next arm's reads go somewhere
+    # other than where the log says they do.
+    mount | grep fuse.lith | sed 's/^/    /'
+    return 1
+  fi
+}
+
 mount_lith() {
+  # The mountpoints MUST be created here, on the node that runs the job. /input-lith
+  # is node-local (unlike /scratch and /input, which are FSx), so directories made
+  # during head-node prep do not exist here -- job 10 died exactly this way:
+  # "fusermount3: failed to access mountpoint /input-lith/CHEM_INPUTS".
+  for d in GEOS_0.5x0.625/MERRA2/2019/07 GEOS_0.5x0.625/MERRA2/2015/01 \
+           HEMCO CHEM_INPUTS GEOSCHEM_RESTARTS; do
+    sudo mkdir -p "/input-lith/${d}"
+  done
+  sudo chown -R "$(id -u):$(id -g)" /input-lith
   # Prefix-scoped mounts, one index each, mirroring gate 3c. MERRA2 is mounted at the
   # 2019/07 leaf (the simulation month) and MetDir points at the MERRA2 parent, so
   # ExtData's MetDir/%y4/%m2/... resolves through the mountpoint.
@@ -124,7 +176,18 @@ mount_lith() {
     --index-file "${GATES}/idx/restarts.lithidx" --no-sign-request --nic-gbps $NIC \
     --mem-cache 8GB --metrics ":9114" --daemon
   sleep 6
-  echo "  fuse.lith mounts: $(mount | grep -c fuse.lith)"
+  local n; n=$(mount | grep -c fuse.lith)
+  echo "  fuse.lith mounts: ${n}"
+  # Counting mount entries is NOT sufficient evidence that OUR daemons are serving
+  # them -- that is precisely how job 13 fooled itself. Prove each daemon we just
+  # started is alive by asking its own metrics endpoint.
+  local alive=0 pp port
+  for pp in $PORTS; do
+    port=${pp%%:*}
+    curl -s --max-time 4 "http://localhost:${port}/metrics" | grep -q '^lith_' && alive=$((alive+1))
+  done
+  echo "  daemons answering on their metrics ports: ${alive}/5"
+  (( n == 5 && alive == 5 )) || { echo "  MOUNTS NOT HEALTHY — refusing to run GCHP against them"; return 1; }
 }
 
 umount_lith() {
@@ -192,9 +255,19 @@ gchp_run() {  # gchp_run LABEL
   reset_rundir
   source /sw/gchp-env.sh              # exports OPAL_PREFIX and PMIX_PREFIX; do not override
   ulimit -s unlimited 2>/dev/null
-  source setCommonRunSettings.sh >/dev/null 2>&1
-  source setRestartLink.sh
-  source checkRunSettings.sh >/dev/null 2>&1
+  # Do NOT discard these scripts' output. Job 11 died here with nothing in the log
+  # because `>/dev/null 2>&1` swallowed setCommonRunSettings.sh's own diagnostic
+  # ("ERROR: TOTAL_CORES must equal NUM_NODES times NUM_CORES_PER_NODE") -- the
+  # official tooling said exactly what was wrong and the harness hid it. Capture and
+  # surface instead.
+  local setup="${GATES}/gate5-${label}-setup.log"
+  source setCommonRunSettings.sh > "$setup" 2>&1
+  source setRestartLink.sh       >> "$setup" 2>&1
+  source checkRunSettings.sh     >> "$setup" 2>&1
+  if grep -qiE "^ *ERROR|must equal" "$setup"; then
+    echo "  GCHP SETUP REJECTED THE CONFIGURATION:"; grep -iE "ERROR|must equal" "$setup" | sed 's/^/    /'
+    printf 'RESULT %-6s SETUP-REJECTED\n' "$label"; return 1
+  fi
   echo "  layout: NX=$(awk '/^NX:/{print $2}' GCHP.rc) NY=$(awk '/^NY:/{print $2}' GCHP.rc) ranks=${RANKS}"
   # Re-read the layer AFTER sourcing the GCHP setup scripts, in case any of them
   # rewrite the run directory. This line, not the one in point_at, is the proof of
@@ -253,16 +326,31 @@ metrics_dump() {
 
 # ---------------------------------------------------------------- ARM 1: lith
 say "ARM 1 — fullchem C24 through lith (live s3://gcgrid)"
-mount_lith
-point_at lith || { echo "ABORT: lith entry points unresolved"; umount_lith; exit 1; }
-gchp_run lith
-metrics_dump lith
-umount_lith
+if [[ ",${ARMS}," == *,lith,* ]]; then
+  clean_stale_lith || { echo "ABORT: could not reach a clean mount state"; exit 1; }
+  if mount_lith && point_at lith; then
+    gchp_run lith
+    metrics_dump lith
+  else
+    echo "ABORT: lith layer not usable — NOT running GCHP (a run against stale or dead"
+    echo "       daemons produces a failure that looks like a correctness result)"
+  fi
+  umount_lith
+else
+  echo "  skipped (ARMS=${ARMS})"
+fi
 
 # ---------------------------------------------------------------- ARM 2: FSx control
 say "ARM 2 — same run dir through FSx /input + GMI overlay"
-point_at fsx || { echo "ABORT: fsx entry points unresolved"; exit 1; }
-gchp_run fsx
+if [[ ",${ARMS}," == *,fsx,* ]]; then
+  # Stale lith mounts would also poison this arm: /input-lith paths are gone from the
+  # run dir's symlinks, but a dead FUSE mount left behind can wedge later cleanup.
+  clean_stale_lith >/dev/null 2>&1
+  point_at fsx || { echo "ABORT: fsx entry points unresolved"; exit 1; }
+  gchp_run fsx
+else
+  echo "  skipped (ARMS=${ARMS}) — reusing stored md5 from an earlier run"
+fi
 
 # ---------------------------------------------------------------- the gate
 say "GATE 5 VERDICT"
@@ -270,7 +358,12 @@ L=$(cat "${GATES}/gate5-md5-lith.txt" 2>/dev/null)
 F=$(cat "${GATES}/gate5-md5-fsx.txt" 2>/dev/null)
 echo "  lith checkpoint md5: ${L:-NONE}"
 echo "  fsx  checkpoint md5: ${F:-NONE}"
-if [[ -n "$L" && "$L" == "$F" && "$L" != "n/a" ]]; then
+# "n/a" is what a non-completing arm writes. Job 13 reported "checkpoints DIFFER" --
+# a correctness FAILURE -- when the truth was that the lith arm never ran. A harness
+# must not be able to manufacture a scientific claim out of its own breakage.
+[[ "$L" == "n/a" ]] && L=""
+[[ "$F" == "n/a" ]] && F=""
+if [[ -n "$L" && "$L" == "$F" ]]; then
   echo "  PASS — fullchem checkpoint is BYTE-IDENTICAL through lith and FSx."
 elif [[ -n "$L" && -n "$F" && "$L" != "$F" ]]; then
   # A mismatch is a real finding, not a harness failure, and must not be smoothed

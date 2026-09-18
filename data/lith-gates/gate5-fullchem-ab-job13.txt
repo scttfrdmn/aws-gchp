@@ -1,0 +1,95 @@
+
+=== node facts 2026-09-18T21:59:13Z ===
+instance: c8g.48xlarge  host: compute-dy-nodes-2  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+domains_stack_size: absent (GCHP default)
+lith: lith 1.1.2   --nic-gbps 50
+
+=== preflight ===
+  all preflight checks passed
+
+=== ARM 1 — fullchem C24 through lith (live s3://gcgrid) ===
+mkdir: cannot stat ‘/input-lith/GEOS_0.5x0.625/MERRA2/2019/07’: Permission denied
+mkdir: cannot stat ‘/input-lith/GEOS_0.5x0.625/MERRA2/2015/01’: Permission denied
+mkdir: cannot stat ‘/input-lith/HEMCO’: Permission denied
+mkdir: cannot stat ‘/input-lith/CHEM_INPUTS’: Permission denied
+mkdir: cannot stat ‘/input-lith/GEOSCHEM_RESTARTS’: Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/07': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+chown: cannot access '/input-lith/HEMCO': Permission denied
+chown: cannot access '/input-lith/CHEM_INPUTS': Permission denied
+chown: cannot access '/input-lith/GEOSCHEM_RESTARTS': Permission denied
+Error: daemon failed to start (see /tmp/lith-1000-mount.log): 
+Error: daemon failed to start (see /tmp/lith-1000-mount.log): 
+Error: daemon failed to start (see /tmp/lith-1000-mount.log): 
+Error: daemon failed to start (see /tmp/lith-1000-mount.log): 
+Error: daemon failed to start (see /tmp/lith-1000-mount.log): 
+  fuse.lith mounts: 5
+  HEMCO ROOT -> /input-lith/HEMCO
+  MetDir  -> /input-lith/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /input-lith/HEMCO
+  ChemDir -> /input-lith/CHEM_INPUTS
+  restart -> /input-lith/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN lith ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /input-lith/HEMCO
+  --- last 25 log lines (failure) ---
+      6.01       object: 401,name: WetDepNitrogen
+      6.01              type: Field
+      6.01  pe=00000 FAIL at line=01633    MAPL_Generic.F90                         <unknown error>
+      6.01  pe=00000 FAIL at line=01130    MAPL_Generic.F90                         <status=-1>
+      6.01  pe=00000 FAIL at line=01321    Chem_GridCompMod.F90                     <status=-1>
+      6.01  pe=00000 FAIL at line=01862    MAPL_Generic.F90                         <status=-1>
+      6.01  pe=00000 FAIL at line=01288    MAPL_Generic.F90                         <status=-1>
+      6.01  pe=00000 FAIL at line=01123    MAPL_Generic.F90                         <status=-1>
+      6.01  pe=00000 FAIL at line=00322    GCHP_GridCompMod.F90                     <status=-1>
+      6.01  pe=00000 FAIL at line=01862    MAPL_Generic.F90                         <status=-1>
+      6.01  pe=00000 FAIL at line=00578    MAPL_CapGridComp.F90                     <status=-1>
+      6.01  pe=00000 FAIL at line=00865    MAPL_CapGridComp.F90                     <status=-1>
+      6.01  pe=00000 FAIL at line=00350    MAPL_Cap.F90                             <status=-1>
+      6.01  pe=00000 FAIL at line=00259    MAPL_Cap.F90                             <status=-1>
+      6.01  pe=00000 FAIL at line=00193    MAPL_Cap.F90                             <status=-1>
+      6.01  pe=00000 FAIL at line=00170    MAPL_Cap.F90                             <status=-1>
+      6.01  pe=00000 FAIL at line=00029    GCHPctm.F90                              <status=-1>
+      6.01  --------------------------------------------------------------------------
+      6.01  MPI_ABORT was invoked on rank 0 in communicator MPI_COMM_WORLD
+      6.01  with errorcode -1.
+      6.01  
+      6.01  NOTE: invoking MPI_ABORT causes Open MPI to kill all MPI processes.
+      6.01  You may or may not see output from other processes, depending on
+      6.01  exactly when Open MPI kills them.
+      6.01  --------------------------------------------------------------------------
+RESULT lith   init=NAs sim_end=NAs to_completion=10.0s cap_restart->20190701 md5=n/a FAILED
+
+=== lith metrics after lith ===
+-- merra2-2019-07 (:9110)
+-- merra2-2015 (:9111)
+-- hemco (:9112)
+-- chem-inputs (:9113)
+-- restarts (:9114)
+
+=== ARM 2 — same run dir through FSx /input + GMI overlay ===
+  HEMCO ROOT -> /scratch/hemco-ovl
+  MetDir  -> /input/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /scratch/hemco-ovl
+  ChemDir -> /input/CHEM_INPUTS
+  restart -> /input/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN fsx ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /scratch/hemco-ovl  MetDir -> /input/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /scratch/hemco-ovl
+RESULT fsx    init=81.05s sim_end=254.05s to_completion=274.9s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+=== GATE 5 VERDICT ===
+  lith checkpoint md5: n/a
+  fsx  checkpoint md5: f3dd15b2191bbce63dadcbfc100196a6
+  FAIL — checkpoints DIFFER. Both kept at /scratch/lith-gates/gate5-ckpt-*.nc4 for diffing.
+RESULT lith   init=NAs sim_end=NAs to_completion=10.0s cap_restart->20190701 md5=n/a FAILED
+RESULT fsx    init=81.05s sim_end=254.05s to_completion=274.9s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
