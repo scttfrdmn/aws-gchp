@@ -1,0 +1,65 @@
+### errno probe 2026-09-18T00:12:09Z on ip-172-31-39-157
+
+=== start gateway ===
+  ok   gateway listening on :20494 (pid )
+  mount opts: nolock,ro,noac,actimeo=0
+  ok   mounted
+
+=== concurrency ladder with errno capture ===
+ERRNO C=32   reads=640   fail=0     (  0.0%)  1.81s  gw_threads=?    gw_fds=0   
+      client rpc before: calls=96491 retrans=0 authrefresh=96665
+      client rpc after:  calls=101588 retrans=0 authrefresh=101765
+ERRNO C=48   reads=960   fail=0     (  0.0%)  0.64s  gw_threads=?    gw_fds=0   
+      client rpc before: calls=101588 retrans=0 authrefresh=101765
+      client rpc after:  calls=109225 retrans=0 authrefresh=109414
+ERRNO C=64   reads=1280  fail=0     (  0.0%)  0.88s  gw_threads=?    gw_fds=0   
+      client rpc before: calls=109225 retrans=0 authrefresh=109414
+      client rpc after:  calls=119409 retrans=0 authrefresh=119612
+ERRNO C=96   reads=1920  fail=0     (  0.0%)  1.29s  gw_threads=?    gw_fds=0   
+      client rpc before: calls=119409 retrans=0 authrefresh=119612
+      client rpc after:  calls=134679 retrans=0 authrefresh=134893
+ERRNO C=128  reads=2560  fail=0     (  0.0%)  1.73s  gw_threads=?    gw_fds=0   
+      client rpc before: calls=134679 retrans=0 authrefresh=134893
+      client rpc after:  calls=155059 retrans=0 authrefresh=155298
+
+=== gateway metrics ===
+lith_nfs_clients 1
+lith_nfs_ops_total{op="access"} 5
+lith_nfs_ops_total{op="fsinfo"} 2
+lith_nfs_ops_total{op="getattr"} 51298
+lith_nfs_ops_total{op="lookup"} 2
+lith_nfs_ops_total{op="null"} 1
+lith_nfs_ops_total{op="pathconf"} 1
+lith_nfs_ops_total{op="read"} 7360
+lith_nfs_ops_total{op="unparsed"} 3
+lith_nfs_read_bytes_total 7.71751936e+09
+lith_nfs_seq_states 1
+lith_s3_bytes_total 3.8736962e+07
+
+=== gateway log — server side of the story ===
+{"time":"2026-09-18T00:12:11.24344673Z","level":"INFO","msg":"lith NFSv3 gateway","listen":":20494","bucket":"gcgrid","prefix":"GEOSCHEM_RESTARTS","keys":547,"root_id":"c67bd9c2de856e61","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=20494,mountport=20494,nolock <host>:/ /mnt
+
+=== kernel ring — client side complaints (nfs: server ... not responding etc) ===
+[Thu Sep 17 04:50:57 2026] systemd[1]: Reached target rpcbind.target - RPC Port Mapper.
+[Thu Sep 17 04:50:57 2026] systemd[1]: Mounting proc-fs-nfsd.mount - NFSD configuration filesystem...
+[Thu Sep 17 04:50:57 2026] systemd[1]: auth-rpcgss-module.service - Kernel Module supporting RPCSEC_GSS was skipped because of an unmet condition check (ConditionPathExists=/etc/krb5.keytab).
+[Thu Sep 17 04:50:57 2026] systemd[1]: Starting nfs-convert.service - Preprocess NFS configuration convertion...
+[Thu Sep 17 04:50:57 2026] RPC: Registered named UNIX socket transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered udp transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered tcp transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered tcp-with-tls transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[Thu Sep 17 04:50:57 2026] systemd[1]: nfs-convert.service: Deactivated successfully.
+[Thu Sep 17 04:50:57 2026] systemd[1]: Finished nfs-convert.service - Preprocess NFS configuration convertion.
+[Thu Sep 17 04:51:01 2026] audit: type=1130 audit(1789620661.460:229): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=nfs-mountd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[Thu Sep 17 04:51:01 2026] audit: type=1130 audit(1789620661.460:230): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=rpc-statd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[Thu Sep 17 04:51:01 2026] NFSD: Using nfsdcld client tracking operations.
+[Thu Sep 17 04:51:01 2026] NFSD: no clients to reclaim, skipping NFSv4 grace period (net f0000000)
+
+=== ERRNO SUMMARY ===
+ERRNO C=32   reads=640   fail=0     (  0.0%)  1.81s  gw_threads=?    gw_fds=0   
+ERRNO C=48   reads=960   fail=0     (  0.0%)  0.64s  gw_threads=?    gw_fds=0   
+ERRNO C=64   reads=1280  fail=0     (  0.0%)  0.88s  gw_threads=?    gw_fds=0   
+ERRNO C=96   reads=1920  fail=0     (  0.0%)  1.29s  gw_threads=?    gw_fds=0   
+ERRNO C=128  reads=2560  fail=0     (  0.0%)  1.73s  gw_threads=?    gw_fds=0   

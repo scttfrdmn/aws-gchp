@@ -63,6 +63,14 @@ The byte advantage over a whole init is **1.43×**, not the 9.3× a single hyper
 suggested, and in-region S3→EC2 bytes are free, so that column decides nothing
 either way.
 
+**Topology: per-node FUSE mounts, but the choice is now a preference rather than a
+constraint.** On lith v1.1.1 one shared `lith serve nfs` gateway could not complete
+a 96-rank init at all. v1.1.2 fixes that, and the race that was never run is a
+**dead heat** (mounts 34.72 s init / 72.72 s to sim end; gateway 35.20 s / 69.20 s,
+both 144/144). Mounts stay the default for having fewer moving parts; the gateway
+earns its place only where bytes are metered, where it saves a measured **1.28×**
+(*Gate 2, part two*).
+
 **The decisive terms:** lith removes ~$168/month per retired `/input` volume, takes
 time-to-first-run from ~33 min of FSx create+import to a ~4 s mount, and deletes
 five separately-recorded deployment traps (the create+import WaitCondition timeout,
@@ -316,15 +324,17 @@ works on EBS. Low upside, new variable.
    corrected upstream (lith#210 comment); (c) `num_readers` is now a *tuning knob
    for the lith experiment* — raising it toward `NY` spreads metadata opens across
    ranks, which is the natural A/B against a single-reader baseline.
-2. ~~**Per-node mount vs `lith serve nfs`.**~~ **MEASURED 2026-09-17 — results in
-   *Gate 2 results* below. Per-node mounts win, but not for the predicted reason,
-   and the prediction below was wrong twice over.** The shared gateway does not
-   lose a performance race; it **cannot run GCHP at all** (ESTALE under concurrent
-   GETATTR, reproduced standalone). And the "aggregate bandwidth grows with
-   readers" premise never engaged: measurement showed reads are *not* centralised
-   to begin with, so per-node mounts fetch the whole working set **once per node**
-   rather than sharing it — a byte argument *for* a gateway, opposite to the guess
-   recorded here.
+2. ~~**Per-node mount vs `lith serve nfs`.**~~ **MEASURED 2026-09-17, then RE-MEASURED
+   on lith v1.1.2 2026-09-18 — see *Gate 2 results* and *Gate 2, part two* below.
+   Per-node mounts are still the recommendation, but every reason given here for it
+   turned out to be wrong.** On v1.1.1 the gateway could not run GCHP at all
+   (ESTALE under concurrent GETATTR, reproduced standalone, root-caused upstream to
+   `go-nfs-client`); **v1.1.2 fixes that and the gateway now completes 96-rank GCHP,
+   in a dead heat with per-node mounts.** The "aggregate bandwidth grows with
+   readers" premise never engaged either: reads are *not* centralised, so per-node
+   mounts fetch the working set once per node — a byte argument *for* a gateway,
+   opposite to the guess recorded here, though the measured saving is only **1.28×**
+   rather than the ~2× that topology implies.
 
    Original framing, kept for provenance: Expect per-node mounts to win for
    48–192-rank nodes, for the same reason the S3-wide handoff beat shared Lustre
@@ -588,7 +598,12 @@ in us-east-1a, 96 MPI ranks at 48 per node, GCHP 14.7.1 C24 TransportTracers,
 puts C24's ceiling at 216 cores, so no new run directory was needed and
 `AutoUpdate_NXNY=ON` derived it. Harness `scripts/lith/gate2-mount-vs-nfs.sbatch`.
 
-### The headline: the shared gateway cannot run GCHP
+### The headline: the shared gateway cannot run GCHP — *on v1.1.1*
+
+> **Superseded for v1.1.2.** Everything in this section is a true record of lith
+> v1.1.1. The gateway failure was root-caused upstream to `go-nfs-client` and fixed;
+> see *Gate 2, part two* below, where the same harness on v1.1.2 runs the gateway to
+> 144/144 and the race is a dead heat.
 
 | arm | topology | `NUM_READERS` | init | to sim end | steps |
 |---|---|---|---|---|---|
@@ -713,11 +728,21 @@ Per-node `lith_s3_bytes_total`, `mount-r1`:
 
 Both nodes independently fetch **the entire ~4.1 GB working set** — reads are *not*
 centralised at stock settings, and per-node mounts therefore move ~8.3 GB of S3
-traffic for a 3.3 GB distinct working set. On byte volume that is an argument
-**for** a shared gateway, the opposite of what this gate predicted. Two reasons it
-does not change the recommendation:
+traffic. On byte volume that is an argument **for** a shared gateway, the opposite of
+what this gate predicted.
 
-- The gateway is unavailable anyway until the ESTALE defect is fixed.
+> **Correction (2026-09-18).** The original text here said "~8.3 GB for a 3.3 GB
+> distinct working set", implying the gateway would roughly halve S3 bytes. That
+> 3328 MB was `distinct_bytes_read` at **48 ranks on one node** (gate 3c) — a
+> per-node logical measure, not the 2-node distinct set, so it should not have been
+> used as one. Directly measured on v1.1.2, one gateway serving both nodes fetches
+> **6443.8 MB against the mounts' 8277.8 MB: a 1.28× saving, not ~2×.** See *Gate 2,
+> part two*.
+
+Two reasons it does not change the recommendation:
+
+- The gateway is unavailable anyway until the ESTALE defect is fixed. *(No longer
+  true as of v1.1.2.)*
 - The duplication is economically ~free: in-region S3 → EC2 transfer costs nothing,
   and the request cost is ~3800 GETs per node per run, i.e. **fractions of a cent**.
   It duplicates bytes that were never billed.
@@ -726,7 +751,7 @@ It would start to matter at high node counts on a metered path (cross-region, or
 requester-pays bucket), which is the condition under which the gateway is worth
 revisiting.
 
-### Verdict
+### Verdict (v1.1.1 — superseded, see *Gate 2, part two*)
 
 **Use per-node lith FUSE mounts. Do not use `lith serve nfs` for GCHP.** Not
 because it is slower — that race was never run — but because it cannot complete an
@@ -739,12 +764,109 @@ as lith#244 with the standalone repro and the threshold table. Both are answered
 #244 is root-caused to `go-nfs`, and lith#245 ships the two asks made here
 (categorized STALE logging, and a documented concurrency ceiling).
 
-**Work is parked here pending upstream.** Open on lith's side: PR #245 (in
-review), #244 (blocked on a `go-nfs` fix that has no tag to bump to), and #233
-(our confirmation posted, no response yet). Resume item once #245 lands: re-run
-`scripts/lith/gate2-nfs-errno-probe.sh` against it — the STALE log line now names
-the category and prints the handle, which would confirm the READDIRPLUS framing
-hypothesis from our side. That is a ~90-second head-node run and costs nothing.
+## Gate 2, part two — lith v1.1.2 fixes it, and the race finally ran (2026-09-18)
+
+v1.1.2 carries the `go-nfs-client` `ReadOpaque` short-read fix. Upstream verified it
+with single-host `dd` and explicitly could not reproduce a real MPI client, so the
+96-rank answer was only available here.
+
+### The head-node control: clean sweep
+
+`LITHVER=1.1.2 scripts/lith/gate2-nfs-errno-probe.sh`, same ladder, same
+`noac,actimeo=0`:
+
+| concurrent readers | v1.1.1 | **v1.1.2** |
+|---|---|---|
+| 32 | 0 / 640 | 0 / 640 |
+| 48 | 63 / 960 (6.6%) | **0 / 960** |
+| 64 | 221 / 1280 (17.3%) | **0 / 1280** |
+| 96 | 304 / 1920 (15.8%) | **0 / 1920** |
+| 128 | 542 / 2560 (21.2%) | **0 / 2560** |
+
+Zero failures across 7360 reads and 51298 GETATTRs.
+
+**The new per-op counters (lith#248) also settle the question raised on #244:**
+
+```
+lith_nfs_ops_total{op="getattr"} 51298     lith_nfs_ops_total{op="lookup"} 2
+lith_nfs_ops_total{op="read"}     7360     lith_nfs_ops_total{op="access"} 5
+lith_nfs_ops_total{op="unparsed"}     3     (no readdir/readdirplus counter at all)
+```
+
+**READDIRPLUS was served zero times and LOOKUP twice**, against 51298 GETATTRs — so
+the multi-entry-framing hypothesis could not have been the carrier in this repro,
+and the per-request `ReadOpaque` short read that upstream actually found is the
+shape the data supported. Worth noting `unparsed = 3` is nonzero: that counter is
+the canary for go-nfs changing its trace format, and it sits at a low constant
+rather than zero.
+
+### The headline: one shared gateway now runs 96-rank GCHP to completion
+
+Job 9, two `c8g.48xlarge`, 96 ranks at 48/node, C24 TransportTracers, lith v1.1.2,
+both arms in the **same job** on the **same nodes** — which is the only honest way
+to run a race that previously never started.
+
+| arm | init | to sim end | wall | steps | |
+|---|---|---|---|---|---|
+| `mount-r1` — per-node FUSE, 5 daemons × 2 nodes | 34.72 s | 72.72 s | 73.8 s | 144/144 | ✅ |
+| `nfs-r1` — **one shared `lith serve nfs`** | 35.20 s | **69.20 s** | 70.7 s | 144/144 | ✅ |
+
+On v1.1.1 the `nfs-r1` arm aborted 4 s in. **Zero STALE anywhere** — the only lines
+in all five gateway logs are two benign `No handler for 100227.0` NFS_ACL probes
+each, now routed through lith's slog as JSON (the lith#248 bonus, visible working).
+
+**Gate 2's original prediction is refuted on performance as well as on premise.**
+The prediction was that per-node mounts would win at 48–192 ranks because
+"aggregate bandwidth grows with readers, no shared lock." The measured race is a
+dead heat: the gateway is 0.48 s slower to init and 3.52 s *faster* to sim end.
+There is no meaningful difference at this scale.
+
+### Correction: the gateway's byte win is 1.28×, not ~2×
+
+This is a correction to what this document and lith#210 both claim, and it matters
+because upstream re-prioritised #244 partly on the strength of my number.
+
+| arm | fetched from S3 |
+|---|---|
+| `mount-r1` node 1 | 4149.1 MB |
+| `mount-r1` node 2 | 4128.7 MB |
+| `mount-r1` **total** | **8277.8 MB** |
+| `nfs-r1` single gateway | **6443.8 MB** |
+
+The gateway saves **22.2% of bytes (1.28×)** — not the ~2× that "both nodes fetch
+the whole working set" implies. Where the earlier "8.3 GB for 3.3 GB distinct"
+framing went wrong: 3328 MB was `distinct_bytes_read` measured at **48 ranks on one
+node** (gate 3c), and using it as the 2-node distinct set conflated a per-node
+logical measure with a cluster-wide one. The gateway measurement is the better
+instrument, and it says duplication is 1.28×.
+
+Note the gateway fetched **1.57×** what a single node fetches alone (4105.4 MB at
+gate 3c), when perfect dedup would be ~1.0×. Cache pressure does not explain it:
+the bulk MERRA-2 daemon ran `--mem-cache 32GB` against a ~3.3 GB working set.
+**Inference, flagged as such:** with 96 ranks initialising in a burst, both nodes
+request the same ranges near-simultaneously, so absent in-flight request
+coalescing (single-flight) each collision becomes its own S3 GET. If that is right,
+most of the gateway's remaining byte advantage is being left on the table — which
+is precisely the regime (cross-region, requester-pays, high node counts) where the
+gateway is worth having.
+
+### One unexplained observation, n=1
+
+`mount-r1` init was **34.72 s** here against **41.43 s** and **41.88 s** on v1.1.1
+in two earlier jobs that agreed to ~1 s. That is well outside prior
+reproducibility. v1.1.2 contains nothing that obviously touches the FUSE path, so
+this may be between-job variation (different physical hosts, S3 weather) rather
+than a lith improvement. **Not claimed as a win** — it needs a repeat before it
+means anything.
+
+### Revised verdict
+
+**Per-node FUSE mounts remain the recommendation, but no longer because the
+gateway is broken — now purely because it is one less moving part.** Both
+topologies complete 96-rank GCHP and neither is meaningfully faster. The gateway
+becomes the better choice when bytes are metered (cross-region, requester-pays) or
+at node counts where 1.28× duplication is real money, and that case would
+strengthen if in-flight coalescing closes the 1.57×.
 
 ### Harness bugs worth remembering
 

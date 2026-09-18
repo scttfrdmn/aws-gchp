@@ -66,13 +66,24 @@ nic_for() {
   esac
 }
 NIC=0   # set in preflight once the instance type is known
-LITH=${GATES}/lith-1.1.1
-RESULTS=${GATES}/gate2-results.txt
+# Version-selectable: LITHVER=1.1.2 is the run that matters now. The nfs arms
+# ABORTED GCHP at 4 s on 1.1.1 (lith#244, ESTALE on GETATTR at >=48 concurrent
+# readers); 1.1.2 carries the go-nfs-client ReadOpaque short-read fix. Upstream
+# verified it with single-host `dd` and cannot reproduce a real MPI client, so
+# whether a 96-rank init survives one shared gateway is only answerable here.
+LITHVER=${LITHVER:-1.1.1}
+LITH=${GATES}/lith-${LITHVER}
+RESULTS=${GATES}/gate2-results-${LITHVER}.txt
 
 # Arms are selectable so a rerun after a harness bug does not re-buy arms that
 # already have agreeing numbers. fsx-r1/mount-r1/mount-r24 were each measured in
 # two separate jobs and reproduced to ~1 s, so re-running them is pure cost.
-# Set e.g. ARMS=nfs-r1,nfs-r24 via `sbatch --export=ALL,ARMS=...`.
+# NOTE `--export` takes a COMMA-SEPARATED LIST, so `--export=ALL,ARMS=a,b` sets
+# ARMS=a and then treats `b` as its own variable name. That silently cost arm 5 in
+# job 8. Quote it as a single item: --export=ALL,"ARMS=a,b".
+# For the 1.1.2 re-run, mount-r1 IS re-bought on purpose: the mount-vs-gateway
+# race never actually ran (the gateway aborted), and a same-job pair under
+# identical node/temperature conditions is the only honest way to run it.
 ARMS=${ARMS:-fsx-r1,mount-r1,nfs-r1,mount-r24,nfs-r24}
 want() { [[ ",${ARMS}," == *",$1,"* ]]; }
 

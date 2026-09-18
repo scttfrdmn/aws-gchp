@@ -28,14 +28,18 @@
 set -o pipefail
 
 GATES=/scratch/lith-gates
-LITH=${GATES}/lith-1.1.1
+# Version-selectable so the same probe can A/B a fix: LITHVER=1.1.2 ./probe.sh.
+# 1.1.1 is the version that failed ~15% (lith#244); 1.1.2 carries the
+# go-nfs-client ReadOpaque short-read fix, so it is the control/treatment pair.
+LITHVER=${LITHVER:-1.1.1}
+LITH=${GATES}/lith-${LITHVER}
 PREFIX=GEOSCHEM_RESTARTS
 IDX=${GATES}/idx/restarts.lithidx
 REL=GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4
 NPORT=20494
 GPORT=9214
 NFSMNT=/mnt/lith-nfs
-OUT=${GATES}/nfs-errno-probe-results.txt
+OUT=${GATES}/nfs-errno-probe-${LITHVER}.txt
 NBLK=36
 READS=20
 
@@ -47,7 +51,11 @@ echo "### errno probe $(date -u +%FT%TZ) on $(hostname)"
 
 cleanup() {
   sudo umount -f "$NFSMNT" 2>/dev/null || sudo umount -l "$NFSMNT" 2>/dev/null
-  pkill -f '[l]ith-1.1.1' 2>/dev/null
+  # Kill by version so a 1.1.1 gateway left over from a control run cannot be
+  # mistaken for the 1.1.2 one under test (or vice versa). Bracket defeats
+  # self-matching; the launcher's own cmdline is not an issue here because this
+  # runs in the probe process, not over ssh.
+  pkill -f "[l]ith-${LITHVER}" 2>/dev/null
   sleep 2
 }
 cleanup
@@ -59,8 +67,12 @@ setsid nohup ${LITH} serve nfs "s3://gcgrid/${PREFIX}" --index-file "$IDX" \
    > "${GATES}/nfs-errno-serve.log" 2>&1 < /dev/null &
 sleep 8
 ss -ltn | grep -q ":${NPORT} " || { bad "gateway not listening"; tail -5 "${GATES}/nfs-errno-serve.log"; exit 1; }
-GWPID=$(pgrep -f '[l]ith-1.1.1 serve' | head -1)
-ok "gateway listening on :${NPORT} (pid ${GWPID})"
+# Resolve the pid from the LISTENING SOCKET, not from a pattern match. A version
+# string in the pattern silently returned empty once LITHVER became a variable,
+# which zeroed the thread/fd columns for a whole run — same class of bug as the
+# pgrep -fc miscount in gate 2. The socket owner is unambiguous by construction.
+GWPID=$(sudo ss -ltnp "sport = :${NPORT}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1)
+ok "gateway listening on :${NPORT} (pid ${GWPID:-unknown})"
 
 sudo mkdir -p "$NFSMNT"
 # MOPTS is overridable so the run can be repeated with PLAIN mount options. That
@@ -122,8 +134,13 @@ for C in 32 48 64 96 128; do
 done
 
 say "gateway metrics"
+# head -20 was too tight once lith#248 split lith_nfs_ops_total into true NFS
+# procedures (getattr/lookup/access/read/readdir/readdirplus/fsstat/fsinfo/
+# pathconf/commit/readlink/unparsed) — that alone is 12 lines. Sorted so the
+# op breakdown reads in one glance; `unparsed` nonzero would mean go-nfs changed
+# its trace format and the counter is no longer trustworthy.
 curl -s --max-time 5 "http://localhost:${GPORT}/metrics" \
-  | grep -E '^lith_(nfs|s3_bytes_total|error|fallback)' | head -20
+  | grep -E '^lith_(nfs|s3_bytes_total|error|fallback)' | sort | head -40
 
 say "gateway log — server side of the story"
 grep -viE "No handler for 100227" "${GATES}/nfs-errno-serve.log" | tail -20
