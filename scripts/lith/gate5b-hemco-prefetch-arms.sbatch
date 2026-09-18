@@ -131,6 +131,15 @@ clean_stale_lith() {
   done
   pkill -f "lith-1.1.[0-9] mount" >/dev/null 2>&1
   sleep 3
+  # Second pass with a lazy unmount for anything still attached: a mount whose daemon
+  # we just killed can linger as a stale entry that no longer serves reads, which is
+  # the worst of both worlds.
+  local m
+  for m in /input-lith/GEOS_0.5x0.625/MERRA2/2019/07 /input-lith/GEOS_0.5x0.625/MERRA2/2015/01 \
+           /input-lith/HEMCO /input-lith/CHEM_INPUTS /input-lith/GEOSCHEM_RESTARTS; do
+    mountpoint -q "$m" && fusermount3 -uz "$m" >/dev/null 2>&1
+  done
+  sleep 2
   local left; left=$(mount | grep -c fuse.lith)
   echo "  stale fuse.lith mounts after cleanup: ${left}"
   if (( left )); then
@@ -198,9 +207,19 @@ mount_lith() {
 }
 
 umount_lith() {
+  # A plain `fusermount3 -u` is not enough between arms. Arm B left /input-lith/HEMCO
+  # mounted -- the busiest mount, and the last one the 48 dying ranks had open -- so
+  # arm C's clean-state guard correctly refused to run and the arm was lost. Retry,
+  # then fall back to a LAZY unmount (-uz), which detaches the mountpoint even while a
+  # reference is still held and lets the daemon exit on its own.
+  local m i
   for m in /input-lith/GEOS_0.5x0.625/MERRA2/2019/07 /input-lith/GEOS_0.5x0.625/MERRA2/2015/01 \
            /input-lith/HEMCO /input-lith/CHEM_INPUTS /input-lith/GEOSCHEM_RESTARTS; do
-    fusermount3 -u "$m" >/dev/null 2>&1
+    for i in 1 2 3; do
+      mountpoint -q "$m" || break
+      fusermount3 -u "$m" >/dev/null 2>&1 || { sleep 2; fusermount3 -uz "$m" >/dev/null 2>&1; }
+      sleep 1
+    done
   done
 }
 
