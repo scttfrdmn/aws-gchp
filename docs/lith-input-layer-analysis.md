@@ -105,13 +105,16 @@ from the start. Fullchem's per-family byte behaviour differs sharply from TT's, 
 that is where the remaining engineering interest is: **HEMCO is the amplifier at
 2.46×**, against 1.21× for met and 1.04× for the restart.
 
-*Gate 5b* then took that apart with a three-arm test on the HEMCO mount, and both
+*Gate 5b* then took that apart with a five-arm test on the HEMCO mount, and both
 candidate mechanisms lost. It is not `parts-max` (my hypothesis: flat) and not
-principally the readahead window (upstream's: −12.4%, against a floor of 1.33×). It is
-**prefetch precision** — 13–16% of issued prefetch is used on HEMCO versus 80% on met
-in the same process, and unread prefetch is 77% of every wasted byte. Sim wall was
-identical in all three arms, so this is a bytes-and-cost finding with no performance
-consequence in-region.
+principally the readahead window (upstream's). It is **prefetch precision**: shrinking
+the window 4× cuts the *volume* of bad prefetch almost linearly (4086 → 2044 MB) and
+leaves the hit rate untouched at **13–16%**, against 80% on the met mount in the same
+process. Because lith builds one prefetcher per `Open`, every one of ~2400–4600 decisions
+is made cold. **Window tuning bottoms out at 1.895× and ~2.0 GB of the waste is
+unreachable by any flag**, so the remaining prize needs cross-handle state, not
+configuration. Sim wall was 186–187 s in all five arms — a bytes-and-cost finding with no
+in-region performance consequence.
 
 ## What lith is
 
@@ -419,9 +422,15 @@ works on EBS. Low upside, new variable.
    v1.1.3, checkpoint MD5 gated in every arm and identical in every arm. Neither
    candidate mechanism survived: `--parts-max 0` is flat (2.420× vs 2.438×) and
    `--max-readahead 4` gets only to 2.135× against a 1.33× demand-read floor. The
-   mechanism is **prefetch precision** — 13–16% used/issued on HEMCO vs 80% on met, 77%
-   of all wasted bytes are unread prefetch, and `prefetch_window_halved_total` is 0 on
-   every mount in every arm. Reported to lith#256; sim wall unchanged across arms.
+   mechanism is **prefetch precision** — 13–16% used/issued on HEMCO vs 80% on met, and
+   the rate is *invariant* to a 4× window reduction while the volume scales with it.
+   Arms D/E (added after upstream corrected my units: `--max-readahead` is in 8 MiB
+   blocks, so arm C capped at 32 MiB, not 4 MiB) reach **1.895×** at the minimum 1-block
+   window with all three whole-file paths disabled, which bounds the flag-reachable
+   saving and leaves **~2.0 GB requiring cross-handle state**. `--small-file` is a third
+   whole-file path `--parts-max 0` does not disable, worth a measured 114.2 MB against a
+   180.2 MB ceiling predicted from the manifest. Reported to lith#256; sim wall 186–187 s
+   in all five arms.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -1316,9 +1325,11 @@ Per-mount, over the whole lith run:
 | MERRA-2 2015/01 (CN) | 0.8 MB | 0.9 MB | — | 1 | 0/0 | 1 |
 | **total** | **13825.4 MB** | **7726.2 MB** | **1.79×** | 11827 | | |
 
-(The two sub-1.0 rows are chunk-granularity artifacts — `distinct_bytes_read` rounds
-up to the 1 MiB chunk while `s3_bytes_total` is the actual transfer — and are too
-small to move the total.)
+(The two sub-1.0 rows are granularity artifacts — `distinct_bytes_read` rounds up to
+the **64 KiB extent** while `s3_bytes_total` is the actual transfer — and are too small
+to move the total. I first wrote "1 MiB chunk" here; the rounding is 64 KiB, verified
+exactly on two objects: 4565478 → 70 × 65536 = 4587520, and 301740437 → 4605 × 65536
+= 301793280, both matching what lith reported.)
 
 **HEMCO is where lith's read amplification lives in fullchem, and its prefetcher is
 the reason.** HEMCO moves 2.3× the met mount's bytes from S3 while wanting a
@@ -1394,6 +1405,10 @@ run and compare checkpoints there.
 
 ## Gate 5b — *which* mechanism whole-fetches HEMCO? Both hypotheses lose (2026-09-18)
 
+*Five arms, three submissions. A–C answered "not parts-max, and the window is only a
+contributor"; D–E, added after upstream corrected my units, bound how much of the waste
+is reachable by configuration at all. The answer is: 2.0 GB of it is not.*
+
 Gate 5 left one live question and upstream answered it with a source reading on
 [lith#256](https://github.com/scttfrdmn/lith/issues/256): on a ~13 MB file the #229
 coverage gate cannot discriminate, because a rank's own subdomain reads tile a span
@@ -1417,11 +1432,13 @@ something it wasn't supposed to. Every arm's checkpoint MD5 is compared to gate 
 banked `f3dd15b2…96a6`, because a fetch-policy flag that changes the bytes the model
 reads is a far bigger finding than the amplification question.
 
-| arm | HEMCO flags | S3 MB | ampl | waste MB | unread prefetch | = MB | % of waste | residual MB | used/issued | kB/GET | init s | sim s |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| A | *defaults* | 9015.2 | **2.438×** | 5317.0 | 3897 | 4086.3 | 76.9% | 1230.7 | 16.1% | 1101.7 | 180.81 | 187.0 |
-| B | `--parts-max 0` | 8951.4 | **2.420×** | 5252.3 | 3841 | 4027.6 | 76.7% | 1224.8 | 16.3% | 1085.3 | 181.91 | 187.0 |
-| C | `--parts-max 0 --max-readahead 4` | 7897.1 | **2.135×** | 4197.6 | 2840 | 2978.0 | 70.9% | 1219.7 | 13.0% | 863.0 | 188.58 | 186.0 |
+| arm | HEMCO flags | window | S3 MB | ampl | waste | unread pf | = MB | residual | floor | used/iss | GETs | init s | sim s | met |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| A | *defaults* | NIC-derived | 9015.2 | **2.438×** | 5317.0 | 3897 | 4086.3 | 1230.7 | 1.333× | 16.1% | 8183 | 180.81 | 187.0 | 1.210× |
+| B | `--parts-max 0` | NIC-derived | 8951.4 | **2.420×** | 5252.3 | 3841 | 4027.6 | 1224.8 | 1.331× | 16.3% | 8248 | 181.91 | 187.0 | 1.210× |
+| C | `+--max-readahead 4` | **32 MiB** | 7897.1 | **2.135×** | 4197.6 | 2840 | 2978.0 | 1219.7 | 1.330× | 13.0% | 9151 | 188.58 | 186.0 | 1.210× |
+| D | `+--max-readahead 1` | **8 MiB** | 7122.3 | **1.925×** | 3422.7 | 2092 | 2193.6 | 1229.1 | 1.332× | 13.3% | 9246 | 189.45 | 187.0 | 1.210× |
+| E | `D + --small-file 0` | 8 MiB | 7008.1 | **1.895×** | 3309.6 | 1949 | 2043.7 | 1265.9 | 1.342× | 13.8% | 9259 | 181.93 | 187.0 | 1.211× |
 
 All three arms: `md5(gcchem_internal_checkpoint)` = `f3dd15b2191bbce63dadcbfc100196a6`,
 equal to gate 5's v1.1.2 value. No fetch-policy flag perturbs the model's bytes. Arm A
@@ -1438,54 +1455,128 @@ landing within 0.2% is what licenses reading the HEMCO deltas as caused by the f
 vs 3698.2 MB, which independently confirms a deterministic demand set across arms).
 Whatever parts-max resolves to on a 13 MB file, it is not what fetches the extra 5.3 GB.
 
-### Upstream's is a contributor, not the mechanism
+### Upstream's is a contributor, not the mechanism — and the sub-file rung proves it
 
-Capping the window does move it, and moves it by exactly the predicted route:
-**99.1% of arm C's −1118 MB is accounted for by the fall in unread prefetch blocks**
-(3897 → 2840 = −1108 MB at 1 MiB/block). The established window is real and spends
-real bytes.
+Capping the window does move it, by exactly the predicted route: **99.1% of arm C's
+−1118 MB is accounted for by the fall in unread prefetch blocks** (3897 → 2840 = −1108
+MB at 1 MiB/chunk; upstream confirmed `prefetch_issued_total` is recorded per 1 MiB
+chunk despite its help text saying "blocks", so this arithmetic is right and their help
+text was wrong). The established window is real and spends real bytes.
 
-But it does not collapse, and the floor explains why. Strip *all* unread prefetch and
-the arms land at **1.333× / 1.330×**, so 2.135× is still most of the way up from the
-floor. Capping the window recovered only a quarter of the prefetch waste (4086 → 2978
-MB). Window size scales the cost of each bad decision; it does not reduce the number of
-bad decisions. **The mechanism is prefetch precision, not prefetch size** — which is
-the branch of the pre-registered decision rule I failed to write down, and a better
-answer than either hypothesis it was meant to choose between.
+**But arm C was mislabelled, by me.** `--max-readahead` is *"max sequential readahead
+window **in blocks**"* and `--block-size` defaults to **8MiB** — verified directly
+against `lith mount --help`, not merely accepted — so `--max-readahead 4` = **32 MiB**,
+still ~2.5× a 13 MB file, and not the "4 MiB « 13 MB" this document first claimed. Arm C
+never tested a sub-file window. Arm **D** (`--max-readahead 1` = 8 MiB) is the real
+sub-file rung, and arm **E** adds `--small-file 0` to close the third whole-file path.
+
+The two rungs give the decomposition the gate was actually for:
+
+```
+unread prefetch:   4086 -> 4028 -> 2978 -> 2194 -> 2044 MB     (window 4x smaller, C->D)
+hit rate:         16.1% -> 16.3% -> 13.0% -> 13.3% -> 13.8%    (unchanged)
+```
+
+**Shrinking the window 4× cuts the volume of bad prefetch almost linearly and does not
+improve the hit rate at all.** That is the cleanest available confirmation of upstream's
+mechanism — the prefetcher is constructed inside the file-handle literal
+(`fuse/fs.go:562`), so there is one fresh prefetcher per `Open` which dies at close, and
+every one of ~2400–4600 decisions is therefore made **cold**, with no memory of the
+~4000 that just came back unread. Precision is a property of the decision process and is
+independent of how big each bet is. Window size only sizes the loss.
+
+So of arm A's 5317 MB of waste:
+
+- **2042 MB size-scaled** — recoverable by window tuning alone (4086 → 2044 MB).
+- **2044 MB decision-scaled** — unread prefetch *surviving at the minimum 1-block window
+  with all three whole-file paths disabled*. There is no flag below this.
+- **1231 MB demand floor** — see below.
+
+**Window tuning bottoms out at 1.895×**, and the ~2.0 GB between there and the demand
+floor is **unreachable by any flag combination.** Arm E is also the experimental proof
+that a *per-handle* governor cannot work: the window is already at its minimum and 86% of
+prefetch is still unread, so there is no second chance inside a handle to adapt on. The
+state has to outlive the handle — per-mount, or keyed by directory/family — which is
+upstream's own correction to the governor shape I proposed, and it matches
+`prefetch_window_halved_total` being **0 in all five arms** (`prefetch.go:404` needs an
+intra-handle *seek*, which HEMCO's open-read-close never provides).
 
 ### The number to act on
 
-`prefetch_used/issued` on HEMCO is **13–16%**. On the met mount — same process, same
-job, same flags, same 1 MiB chunking — it is **80%**. Unread prefetch is **77% of every
-wasted byte** on HEMCO in all three arms. Two counters say this is addressable rather
-than inherent:
+`prefetch_used/issued` on HEMCO is **13–16% in every arm**. On the met mount — same
+process, same job, same 1 MiB chunking, untouched in all five arms and reading **1.210×
+five times** — it is **80%**. That control is what licenses reading the HEMCO deltas as
+caused by the flags.
 
-- **`lith_prefetch_window_halved_total` is 0 on every mount in every arm.** A backoff
-  path exists and never fires once on the worst-behaving mount in the job.
-- **`lith_prefetch_reset_random_total` is 332/306/308 on HEMCO vs 113 on met** — the
-  random detector fires ~3× more often on HEMCO and 4646 prefetches still go out behind
-  it. Detection works; suppression doesn't follow from it.
+`lith_prefetch_reset_random_total` is 306–332 on HEMCO vs 113 on met, so the random
+detector fires ~3× more often on the bad mount and thousands of prefetches still go out
+behind it: detection works, suppression doesn't follow from it. Upstream's explanation
+covers this too — that state is per-handle, so the detection dies with the file that
+earned it.
 
-A per-handle precision governor would recover ~4.1 GB of the 5.3 GB and take HEMCO to
-≈1.33×, overall run amplification from 1.79× to ≈1.4×. That is a guess at the shape of
-a fix from outside the code, offered to upstream as such.
+### The issue's own framing was wrong: HEMCO is not where its bytes are
 
-### `--max-readahead 4` is not a workaround — don't recommend it
+Both sides of #256 reasoned from "~13 MB emissions files", including the issue title.
+From the fullchem manifest (471 HEMCO objects, whole-object sizes):
 
-Arm C fetched **12.4% fewer bytes and took 4.3% longer to initialize** (180.81 →
-188.58 s), because GETs rose 8183 → 9151 and bytes-per-GET fell 1102 → 863. It trades
-free in-region bytes for paid round trips. Sim wall was flat at 186–187 s across all
-three arms: **the model never noticed any of this.** That is the honest frame for the
-whole of gate 5b — it is a cost and egress finding, not a performance one, and it would
-only become a bill cross-region or on requester-pays.
+| size band | files | bytes |
+|---|---|---|
+| ≤4 MiB (`--small-file`) | 134 (28.5%) | 180.2 MB (0.7%) |
+| 4–8 MiB (< 1 block) | 72 (15.3%) | 410.0 MB (1.6%) |
+| 8–32 MiB (≤ arm C window) | 63 (13.4%) | 1113.8 MB (4.3%) |
+| **> 32 MiB** | **202 (42.9%)** | **24435.5 MB (93.5%)** |
 
-### A 1.33× demand-read floor, separable from the prefetch question
+Against a 3698 MB distinct read, files ≤8 MiB hold only 590 MB *in total*, so **at most
+16% of the distinct bytes can come from sub-block files — ≥84% comes from files larger
+than one block and ≥54% from files larger than arm C's entire window.** "Many small
+files" describes 44% of the file *count* and ~2% of the bytes.
 
-The non-prefetch residual is **1230.7 / 1224.8 / 1219.7 MB — constant to 0.9% across
-three different fetch policies.** That is 1 MiB chunk granularity serving sub-MiB
-hyperslabs (`cache_misses` 7073–7980, `read_straddle` ~3060, `fill_runs` 0 throughout:
-GCHP never establishes sequential, consistent with the lith#233 section below). It is
-smaller, structural, and not worth touching until the 4 GB above it is gone.
+This relocates the mechanism rather than weakening it: the expensive handles are
+100 MB–1 GB files where a handle has *hundreds* of blocks to be right about and still
+isn't, because GCHP reads a scattered hyperslab that tiles enough to establish and then
+jumps. It explains why arm C helped at all (it capped the window on the 202 large
+members, where the bytes live) and why D helped more. It is also the better news for a
+cross-handle governor, which would have large, repeatedly opened files to learn on.
+
+### `--small-file 0` is a real third path, and it is small — 114.2 MB
+
+`--parts-max 0` does **not** disable `--small-file` (default 4MiB): it is a separate flag
+with its own threshold, so arms B–D were all still whole-fetching 134 objects on first
+read. Predicted ceiling from the manifest **before** running arm E: 180.2 MB. Measured:
+**114.2 MB**. The bound held. It also zeroes `sibling_prefetch_total` (54 → 0), so
+`--small-file` is what drives sibling prefetch.
+
+### Retracting my own latency argument against `--max-readahead`
+
+This document and #256 both said not to ship `--max-readahead 4` partly because arm C
+initialized 4.3% slower on 968 extra GETs. **At n=5 that does not hold:** arm E has the
+*most* GETs of any arm (9259) and the third-*lowest* init (181.93 s). Init spans
+180.8–189.5 s with no clean ordering by GET count, so ±4% is run-to-run scatter and I
+over-read a single pair. The bytes conclusion is unaffected. A readahead cap still
+shouldn't be a default — but because it's a workaround for a classification bug, not
+because it costs latency.
+
+**Sim wall was 186–187 s in all five arms.** Whatever happens here, the model does not
+notice. That is the honest frame for the whole of gate 5b: a cost and egress finding,
+which would only become a bill cross-region or on requester-pays.
+
+### The 1.33× demand floor is probably *not* separable
+
+The non-prefetch residual is **1230.7 / 1224.8 / 1219.7 / 1229.1 / 1265.9 MB — constant
+to ±2% across five different fetch policies**, which is the strongest number in the gate.
+It is 1 MiB chunk granularity serving sub-MiB hyperslabs (`cache_misses` 7073–8304,
+`read_straddle` ~3070, `fill_runs` 0 throughout: GCHP never establishes sequential,
+consistent with the lith#233 section below). It ticks up only in arm E, where
+`--small-file 0` correctly converts 134 whole-fetches into demand reads.
+
+I had banked it as a separate, later problem. Upstream's reading says otherwise, and my
+data is consistent with it: the byte-exact demand lane is gated on the handle being
+confirmed Random (`fuse/fs.go:740`), so a **spuriously established** handle is *denied*
+byte-exact reads and pays whole 1 MiB chunks for sub-MiB hyperslabs. That is exactly a
+quantity no flag in these five arms touches, which is why it is invariant. If they're
+right, spurious establishment costs twice and the target is not 1.33× but **~1.0×** —
+so the measured prize on the mount carrying ~65% of a fullchem run's fetched bytes is
+**1.895× → ~1.0–1.34×, none of it reachable by configuration.**
 
 ### The guard that cost an arm, and why it stays
 
@@ -1508,7 +1599,8 @@ follows `clean_stale_lith`'s `pkill` (a mount whose daemon you just killed linge
 an entry that no longer serves reads, and is indistinguishable from a healthy one in
 `mount` output). Job 16 came up 0 stale mounts, 5/5 daemons answering.
 
-Gate 5b cost ~24 min of one `c8g.48xlarge` across two submissions. `ARMLIST=` runs any
+Gate 5b cost ~40 min of one `c8g.48xlarge` across three submissions (A+B, C, then
+D+E). `ARMLIST=` runs any
 subset of arms against the banked checkpoint, so a fourth rung — a hit-rate-gated lith
 build, say — is one submission and ~7 minutes.
 

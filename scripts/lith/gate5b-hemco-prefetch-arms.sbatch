@@ -30,7 +30,22 @@
 #
 #   A  defaults                            baseline on v1.1.3
 #   B  --parts-max 0                       kills whole-file-on-first-read
-#   C  --parts-max 0 --max-readahead 4     + caps the established window to 4 MiB << 13 MB
+#   C  --parts-max 0 --max-readahead 4     + caps the established window (see CORRECTION)
+#   D  --parts-max 0 --max-readahead 1     the GENUINELY sub-file window: 1 x 8 MiB < 13 MB
+#   E  D + --small-file 0                  kills the THIRD whole-file path (see below)
+#
+# CORRECTION to arm C, from upstream and verified against `lith mount --help`:
+# --max-readahead is "max sequential readahead window IN BLOCKS" and --block-size
+# defaults to 8MiB, so --max-readahead 4 = 32 MiB -- still ~2.5x a 13 MB file, NOT the
+# "4 MiB << 13 MB" the first version of this header claimed. Arm C therefore never
+# tested a sub-file window at all, and whatever it saved came from HEMCO's LARGER
+# members. Arm D (1 block = 8 MiB) is the real sub-file rung.
+#
+# THE THIRD WHOLE-FILE PATH, which neither of us named: --small-file defaults to 4MiB
+# and fetches files at or below that size whole on first read. `--parts-max 0` does not
+# disable it -- it is a separate flag with its own threshold -- so on every arm so far,
+# every HEMCO file <=4 MiB was whole-fetched regardless of establishment, window or
+# parts-max. Arm E sets --small-file 0 to find out what that path is worth.
 #
 #   B collapses            -> parts-max is the mechanism
 #   B flat, C collapses    -> the established window is, as upstream argued
@@ -373,15 +388,19 @@ hemco_ampl() {  # hemco_ampl LABEL
 # Banked from gate 5 (job 13 fsx arm / job 14 lith arm, both v1.1.2). Every arm below
 # must reproduce it.
 BASE_MD5=f3dd15b2191bbce63dadcbfc100196a6
-ARMLIST=${ARMLIST:-A,B,C}
+ARMLIST=${ARMLIST:-A,B,C,D,E}
 SUMMARY=${GATES}/gate5b-summary.txt
 : > "$SUMMARY"
 
-arm_flags() {  # arm_flags A|B|C
+arm_flags() {  # arm_flags A|B|C|D|E
   case "$1" in
     A) echo "" ;;
     B) echo "--parts-max 0" ;;
+    # --max-readahead is in BLOCKS and --block-size defaults to 8MiB, so 4 = 32 MiB
+    # (> the 13 MB files) and 1 = 8 MiB (< them). C is therefore NOT a sub-file arm; D is.
     C) echo "--parts-max 0 --max-readahead 4" ;;
+    D) echo "--parts-max 0 --max-readahead 1" ;;
+    E) echo "--parts-max 0 --max-readahead 1 --small-file 0" ;;
     *) return 1 ;;
   esac
 }
