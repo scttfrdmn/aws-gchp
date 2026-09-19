@@ -1,0 +1,120 @@
+################ PART A -- lith#265: --pf-trace on a live mount
+=== ARM a1-flag env='-' extra='--pf-trace /scratch/lith-gates/gate5g/a1-flag.csv' ===
+scatter requested_bytes 8388608
+a1-flag lith_distinct_bytes_read 8.454144e+06
+a1-flag lith_fill_bytes_total{kind="demand"} 2.4051712e+07
+a1-flag lith_prefetch_issued_total 0
+a1-flag lith_prefetch_used_total 0
+a1-flag lith_s3_bytes_total 2.4051712e+07
+  FILE a1-flag.csv rows=129 hdr=# lith prefetch trace; block_size=8388608 max_readahead=223 
+=== ARM a2-env env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/a2-env.csv' extra='-' ===
+a2-env MOUNT-NOT-UP (expected for a bad trace path?) exit-status:
+a2-env exit=1
+a2-env LOG Error: accepts 2 arg(s), received 3
+  FILE a2-env.csv ABSENT
+=== ARM a3-both env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/a3-env-loser.csv' extra='--pf-trace /scratch/lith-gates/gate5g/a3-flag-winner.csv' ===
+scatter requested_bytes 8388608
+a3-both lith_distinct_bytes_read 8.454144e+06
+a3-both lith_fill_bytes_total{kind="demand"} 2.4051712e+07
+a3-both lith_prefetch_issued_total 0
+a3-both lith_prefetch_used_total 0
+a3-both lith_s3_bytes_total 2.4051712e+07
+  FILE a3-flag-winner.csv rows=129 hdr=# lith prefetch trace; block_size=8388608 max_readahead=223 
+  FILE a3-env-loser.csv ABSENT
+=== ARM a4-badpath env='-' extra='--pf-trace /nonexistent-dir-gate5g/x.csv' ===
+scatter requested_bytes 8388608
+a4-badpath lith_distinct_bytes_read 8.454144e+06
+a4-badpath lith_fill_bytes_total{kind="demand"} 2.4051712e+07
+a4-badpath lith_prefetch_issued_total 0
+a4-badpath lith_prefetch_used_total 0
+a4-badpath lith_s3_bytes_total 2.4051712e+07
+a4-badpath LOG {"time":"2026-09-19T22:04:48.318214798Z","level":"ERROR","msg":"prefetch trace disabled: cannot create file","path":"/nonexistent-dir-gate5g/x.csv","err":"open /nonexistent-dir-gate5g/x.csv: no such file or directory"}
+  a4 LOG {"time":"2026-09-19T22:04:48.318214798Z","level":"ERROR","msg":"prefetch trace disabled: cannot create file","path":"/nonexistent-dir-gate5g/x.csv","err":"open /nonexistent-dir-gate5g/x.csv: no such file or directory"}
+
+diff a1(flag) vs a2(env) traces, ignoring pid column:
+
+################ PART B -- PR #267 vs gate 5f's factorization (prediction 17 / 16711680)
+-- replay /scratch/lith-gates/gate5g/a1-flag.csv
+  == one (/scratch/lith-gates/gate5g/a1-flag.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 128 (window=128 parts=0 footer=0)  handles: 1
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 17 pre-decision small reads, 15.9 MiB wasted
+  
+  == pre-registered verdict (#256)
+     AUC: needs two labelled traces (e.g. hemco=a.csv met=b.csv)
+     Spearman rho of each first-k-read feature against byte follow-through:
+       mean_abs_gap_blocks     one=n/a
+       max_abs_gap_blocks      one=n/a
+       frac_large_gap          one=n/a
+       mean_read_kib           one=n/a
+       frac_monotonic          one=n/a
+       frac_straddle           one=n/a
+  
+     best |rho| = 0.000 ((none)); threshold 0.5
+     VERDICT: inconclusive — supply two labelled traces for the AUC half of the rule.
+  
+  per-handle scores written to /scratch/lith-gates/gate5g/a1-flag.handles.csv
+  per-handle CSV:
+  label,fh,rows,dispatched_bytes,used_bytes,byte_follow_through,replay_mismatches,mean_abs_gap_blocks,max_abs_gap_blocks,frac_large_gap,mean_read_kib,frac_monotonic,frac_straddle,cold_small_reads,cold_small_read_waste_bytes
+  one,1,128,0,0,NaN,0,0.757812,0.867188,0.000000,72.000,1.000000,0.000000,17,16646144
+-- replay /scratch/lith-gates/gate256b/b2-align-gapauto.trace.csv
+  == one (/scratch/lith-gates/gate256b/b2-align-gapauto.trace.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 128 (window=128 parts=0 footer=0)  handles: 1
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 17 pre-decision small reads, 15.9 MiB wasted
+  
+  == pre-registered verdict (#256)
+     AUC: needs two labelled traces (e.g. hemco=a.csv met=b.csv)
+     Spearman rho of each first-k-read feature against byte follow-through:
+       mean_abs_gap_blocks     one=n/a
+       max_abs_gap_blocks      one=n/a
+       frac_large_gap          one=n/a
+       mean_read_kib           one=n/a
+       frac_monotonic          one=n/a
+       frac_straddle           one=n/a
+  
+     best |rho| = 0.000 ((none)); threshold 0.5
+     VERDICT: inconclusive — supply two labelled traces for the AUC half of the rule.
+  
+  per-handle scores written to /scratch/lith-gates/gate256b/b2-align-gapauto.trace.handles.csv
+  per-handle CSV:
+  label,fh,rows,dispatched_bytes,used_bytes,byte_follow_through,replay_mismatches,mean_abs_gap_blocks,max_abs_gap_blocks,frac_large_gap,mean_read_kib,frac_monotonic,frac_straddle,cold_small_reads,cold_small_read_waste_bytes
+  one,1,128,0,0,NaN,0,0.757812,0.867188,0.000000,72.000,1.000000,0.000000,17,16646144
+
+-- adversarial: header stripped (scorer must refuse, not guess)
+  /scratch/lith-gates/gate5g/noheader.csv: no `# lith prefetch trace; block_size=...` header: this trace predates the replayable format (#262) and cannot be replayed faithfully
+  exit=0
+
+################ PART C -- scorer end-to-end on real traces, two labelled arms
+=== ARM c1-stream env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c1-stream.csv' extra='-' ===
+c1-stream MOUNT-NOT-UP (expected for a bad trace path?) exit-status:
+c1-stream exit=1
+c1-stream LOG Error: accepts 2 arg(s), received 3
+  FILE c1-stream.csv ABSENT
+=== ARM c2-scatter env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c2-scatter.csv' extra='-' ===
+c2-scatter MOUNT-NOT-UP (expected for a bad trace path?) exit-status:
+c2-scatter exit=1
+c2-scatter LOG Error: accepts 2 arg(s), received 3
+  FILE c2-scatter.csv ABSENT
+=== ARM c3-stream env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c3-stream.csv' extra='-' ===
+c3-stream MOUNT-NOT-UP (expected for a bad trace path?) exit-status:
+c3-stream exit=1
+c3-stream LOG Error: accepts 2 arg(s), received 3
+  FILE c3-stream.csv ABSENT
+=== ARM c4-scatter env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c4-scatter.csv' extra='-' ===
+c4-scatter MOUNT-NOT-UP (expected for a bad trace path?) exit-status:
+c4-scatter exit=1
+c4-scatter LOG Error: accepts 2 arg(s), received 3
+  FILE c4-scatter.csv ABSENT
+
+-- replay arm pair 1 (stream vs scatter)
+  /scratch/lith-gates/gate5g/c1-stream.csv: open /scratch/lith-gates/gate5g/c1-stream.csv: no such file or directory
+-- replay arm pair 2
+  /scratch/lith-gates/gate5g/c3-stream.csv: open /scratch/lith-gates/gate5g/c3-stream.csv: no such file or directory
+-- all four arms together (train/test split available)
+  /scratch/lith-gates/gate5g/c1-stream.csv: open /scratch/lith-gates/gate5g/c1-stream.csv: no such file or directory
+################ DONE

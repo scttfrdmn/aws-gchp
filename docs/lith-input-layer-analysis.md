@@ -166,6 +166,20 @@ client-side and the gateway fetched the object exactly once, to the byte, from t
 GETs** — lith#250's coalescing-gap hypothesis is refuted with a measured upper bound of
 zero. Filed on the way: lith#264, `--pf-trace` accepted, documented, and silently ignored.
 
+*Gate 5g* then spends nothing testing the instrument that will answer the remaining
+question, before buying the run that feeds it. The scorer's cold-tax counter **reproduces
+the 17 exactly** by a different route and corrects our MiB figure (a kernel-merged 128 KiB
+first read: 15.875, not 15.94) — but its follow-through denominator reports **1117
+dispatched blocks where the mount's own counter says 91**, 9.37 GB against a 111.8 MB
+object fetched once, because fidelity compares `Observe`'s output to a trace column that
+also came from `Observe`. Two orders of magnitude, and it would have made prefetch look
+worthless on both mounts. The AUC half of the pre-registered rule is decidable by arm
+order (measured 0.500 on one population sampled twice) and vanishes when an arm dispatches
+no prefetch — the HEMCO case — and the tool declared SEPARATION from ρ = −1.000 over five
+handles with four ties. lith#265 is verified on live mounts in the same gate, including the
+arm proving #263's loud-on-create-failure was unreachable while the flag was unwired. **The
+capture is held until the denominator lands** — the scorer was the cheap half to fix.
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -530,6 +544,22 @@ works on EBS. Low upside, new variable.
    specific worry. Hypothesis 2 is refuted with a measured upper bound of zero bytes;
    hypothesis 1 (96-vs-48-rank distinct-set growth) is the answer, and the 1.28× gateway
    saving's assumption is now supported rather than merely unverified.
+12. **Is the offline scorer that will answer question 10 trustworthy?** **MEASURED
+   2026-09-19 — see *Gate 5g* below. It reproduces the cold-tax count exactly, and its
+   follow-through denominator is 12× too large.** `lith-pfreplay` (lith PR #267) returns
+   `cold_small_reads = 17` on the banked b2 trace — the same 17 the `fill_bytes{demand}`
+   factorization gave, by a different route — and corrects the MiB figure (one of the 17
+   reads was 128 KiB, kernel-merged, so 15.875 MiB not 15.94). But on a real trace it
+   reports **1117 dispatched blocks where the mount's own `lith_prefetch_issued_total`
+   says 91**, and 9.37 GB of dispatched bytes against an object of 111.8 MB fetched
+   exactly once, because `max_readahead = 223` blocks are dispatched wholesale and ~94% of
+   the denominator lies past EOF. Fidelity prints OK because it compares `Observe`'s output
+   against a trace column that also came from `Observe`. Plus: the AUC half of the
+   pre-registered rule is computed on `labels[0]` vs `labels[1]` only (so the four traces
+   the train/test split requires can pair HEMCO against HEMCO, measured AUC 0.500), it
+   vanishes entirely when one arm dispatches no prefetch — which is the HEMCO case — and
+   the tool declared SEPARATION from ρ = −1.000 over five handles with four ties on both
+   axes. Reported on lith#267; **the capture is held until the denominator lands.**
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -2212,6 +2242,95 @@ field in `cmd_mount.go` and never placed in the `fuse.Config` literal at `:392-4
 new loud-on-failure `ERROR` cannot fire. No file, no warning, exit 0. `LITH_PF_TRACE` still
 works and is what every run here used. It is #262's own failure mode one level up: the
 documented spelling yields silence.
+
+## Gate 5g — drive the scorer before buying the capture (2026-09-19)
+
+**$0.** Head node only, `pr/267` = `3625ee1` and `origin/main` `f75d737`. Upstream shipped
+the offline scorer *before* our traces exist, deliberately, so neither side can tune it —
+which also makes it the single point of failure for a capture that costs a 35-minute
+48-rank job. Ground truth was already banked: gate 5f's b2 trace, whose cold-start tax came
+from a unique integer factorization rather than from a replay.
+
+### lith#265 verified — the documented spelling works, and #263's safety net was unreachable
+
+| arm | how tracing was requested | result |
+|---|---|---|
+| a1 | `--pf-trace <path>` | file created, 128 rows + header |
+| a2 | `LITH_PF_TRACE=<path>` (control) | file created, 128 rows |
+| a3 | both set | flag file only; env path not created |
+| a4 | `--pf-trace /nonexistent-dir/x.csv` | `level=ERROR "prefetch trace disabled: cannot create file"` |
+
+a1 vs a2 diff identically modulo the `pid` column. a4 is the arm worth keeping: while
+`PFTracePath` was always `""`, #263's loud-on-create-failure **could never fire through the
+documented interface** — the feature added to prevent silent traces was itself unreachable.
+Tracing does not perturb bytes (`s3_bytes = 24,051,712` in all traced arms, the untraced b2
+figure). Ask filed: the mount *continues* after that ERROR, so a typo'd path on a capture
+bills a full job and produces nothing; create-failure should be fatal at mount time.
+
+### The scorer reproduces the 17 — and corrects our MiB
+
+`cold_small_reads = 17` on a fresh trace and on the banked b2 trace, fidelity OK on both.
+The waste figure differs from ours by exactly one 64 KiB extent, and the trace says why:
+the handle's **first read is 131,072 B** (kernel-merged), so the true waste is
+`16 × (1 MiB − 64 KiB) + 1 × (1 MiB − 128 KiB) = 16,646,144 = 15.875 MiB`, not 15.94 MiB.
+The count stands; our rounding of one read was 0.4% high. A pure-64 KiB handle does report
+exactly 16,711,680 — twelve for twelve in the part-C arms.
+
+### Four defects, one of which would have voided the verdict
+
+Two labelled arms × two replicates, 12 handles each, prefetch on, one real HEMCO object:
+
+| arm | pattern | per-handle |
+|---|---|---|
+| stream (met surrogate) | 192 × 128 KiB contiguous | 24–65 cold reads, 22.0–56.9 MiB "waste" |
+| scatter (HEMCO surrogate) | 48 × 64 KiB, 7 MiB apart | 17 cold reads, 16,711,680 B, **0 blocks dispatched** |
+
+1. **Fidelity says OK while the dispatch total is 12× the mount's own counter.** Scorer:
+   1117 blocks / 9,370,075,136 B dispatched over 5 handles, follow-through median 0.000.
+   Mount, same run: `lith_prefetch_issued_total 91`, `s3_bytes_total 111,810,271` = the
+   whole object, once. The object is 13.33 blocks long; `max_readahead = 223` is dispatched
+   wholesale, so ~94% of the denominator is past EOF. The check compares `len(Observe(...))`
+   against a trace column that also came from `Observe` — it validates the trace against
+   itself, while the post-clamp truth is already exported. Bound from the counters instead:
+   distinct 59,899,904 / `fill_bytes{whole}` 95,033,055 ≤ **63%** against the scorer's
+   **0.45%**. Every follow-through number on both mounts would have come out ≈ 0, reading
+   as "prefetch never pays off".
+2. **AUC is computed on `labels[0]` vs `labels[1]` only, silently.** The rule needs ≥ 4
+   traces; ordered `hemcoA hemcoB metA metB` it compares HEMCO against HEMCO. Measured:
+   `AUC(sA vs sB) = 0.500 (n=5 vs 5)` — exactly right for one population sampled twice, and
+   fed to a rule that reads AUC < 0.7 as evidence of *no separation*.
+3. **The AUC line vanishes when one arm dispatches no prefetch — the HEMCO case.** All
+   scatter handles are NaN (large gaps hold the detector in `Random`), so the label is
+   empty, no AUC prints at all, and the verdict falls through to Spearman. HEMCO's real
+   `prefetch_issued` is near zero by the same mechanism, so **the rule's no-separation
+   branch may be unreachable on the data it was written for.**
+4. **SEPARATION declared where nothing separates.** `best |rho| = 1.000 (frac_large_gap)`
+   from five non-NaN handles: follow-through `(0.004514, 0, 0, 0, 0)`, feature
+   `(0.000, 0.125, 0.125, 0.125, 0.125)` — four ties on both axes, one effective degree of
+   freedom, taken as the max over 6 features × 4 labels with no out-of-sample gate. The
+   `<- holds on both arms` annotation fires for two replicates of the *same* workload.
+
+Plus two that change what our own prediction is scored against: `waste = chunk − read_len`
+never nets out later coverage by the same handle (the streaming arm reports 259.9 MiB of
+waste for chunks it reads whole — met is the streaming mount), and `state_before == cold`
+counts re-entries into cold, not only the pre-decision phase. Both inflate. And the header
+is self-describing for the *window* decision but not the *granularity* one:
+`byteExactThreshold` is absent, so the cold-tax number depends on a flag the analyst must
+set right.
+
+Interpretive, not a bug: per-handle follow-through is what we agreed to score, but the cache
+is **global** — under 48 ranks, bytes prefetched for handle A that handle B reads still save
+a fetch, so the per-handle number is a lower bound on prefetch's value.
+
+**Probe caveat.** The 12 stream handles read overlapping spans of one object, so the page
+cache absorbed most reads (fh1 recorded 193 rows, the other eleven 24 each). This gate
+demonstrates the *instrument's* behaviour on real traces; it is not evidence about GCHP's
+handles.
+
+**What it buys.** The capture is still the deliverable and still costs a job. Doing this
+first means that job won't be spent producing a verdict that was void before the data
+landed: defect 1 alone dilutes every number by ~12×, and 2 and 3 let arm order decide.
+Artifacts: `data/lith-gates/gate5g-*`. Reported on lith#267, #264 and #256.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 

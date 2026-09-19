@@ -1,0 +1,133 @@
+################ PART C -- scorer end-to-end on real traces, two labelled arms
+=== ARM c1-stream env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c1-stream.csv' extra='-' ===
+stream handles 12
+c1-stream lith_distinct_bytes_read 5.9899904e+07
+c1-stream lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+c1-stream lith_fill_bytes_total{kind="whole"} 9.5033055e+07
+c1-stream lith_prefetch_issued_total 91
+c1-stream lith_prefetch_used_total 42
+c1-stream lith_s3_bytes_total 1.11810271e+08
+  FILE c1-stream.csv rows=458 hdr=# lith prefetch trace; block_size=8388608 max_readahead=223 
+=== ARM c2-scatter env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c2-scatter.csv' extra='-' ===
+scatter handles 12
+c2-scatter lith_distinct_bytes_read 3.7748736e+07
+c2-scatter lith_fill_bytes_total{kind="demand"} 5.9447007e+07
+c2-scatter lith_prefetch_issued_total 0
+c2-scatter lith_prefetch_used_total 0
+c2-scatter lith_s3_bytes_total 5.9447007e+07
+  FILE c2-scatter.csv rows=577 hdr=# lith prefetch trace; block_size=8388608 max_readahead=223 
+=== ARM c3-stream env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c3-stream.csv' extra='-' ===
+stream handles 12
+c3-stream lith_distinct_bytes_read 5.9899904e+07
+c3-stream lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+c3-stream lith_fill_bytes_total{kind="whole"} 9.5033055e+07
+c3-stream lith_prefetch_issued_total 91
+c3-stream lith_prefetch_used_total 42
+c3-stream lith_s3_bytes_total 1.11810271e+08
+  FILE c3-stream.csv rows=458 hdr=# lith prefetch trace; block_size=8388608 max_readahead=223 
+=== ARM c4-scatter env='LITH_PF_TRACE=/scratch/lith-gates/gate5g/c4-scatter.csv' extra='-' ===
+scatter handles 12
+c4-scatter lith_distinct_bytes_read 3.7748736e+07
+c4-scatter lith_fill_bytes_total{kind="demand"} 5.9447007e+07
+c4-scatter lith_prefetch_issued_total 0
+c4-scatter lith_prefetch_used_total 0
+c4-scatter lith_s3_bytes_total 5.9447007e+07
+  FILE c4-scatter.csv rows=577 hdr=# lith prefetch trace; block_size=8388608 max_readahead=223 
+
+-- replay arm pair 1 (stream vs scatter)
+  == stream (/scratch/lith-gates/gate5g/c1-stream.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 457 (window=457 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through over 5 prefetching handles: median 0.000  mean 0.001  p10 0.000  p90 0.005
+     cold-start granularity tax (#256 floor): 297 pre-decision small reads, 259.9 MiB wasted
+  == scatter (/scratch/lith-gates/gate5g/c2-scatter.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 576 (window=576 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 204 pre-decision small reads, 191.2 MiB wasted
+  
+  == pre-registered verdict (#256)
+     Spearman rho of each first-k-read feature against byte follow-through:
+       mean_abs_gap_blocks     stream=-0.707  scatter=n/a
+       max_abs_gap_blocks      stream=-0.707  scatter=n/a
+       frac_large_gap          stream=-1.000  scatter=n/a
+       mean_read_kib           stream=n/a  scatter=n/a
+       frac_monotonic          stream=n/a  scatter=n/a
+       frac_straddle           stream=n/a  scatter=n/a
+  
+     best |rho| = 1.000 (frac_large_gap); threshold 0.5
+     VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+              Validate it out-of-sample (fit one arm, test another) before designing a policy on it.
+  
+  per-handle scores written to /scratch/lith-gates/gate5g/pair1.handles.csv
+-- replay arm pair 2
+  == stream (/scratch/lith-gates/gate5g/c3-stream.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 457 (window=457 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through over 5 prefetching handles: median 0.000  mean 0.001  p10 0.000  p90 0.005
+     cold-start granularity tax (#256 floor): 297 pre-decision small reads, 259.9 MiB wasted
+  == scatter (/scratch/lith-gates/gate5g/c4-scatter.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 576 (window=576 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 204 pre-decision small reads, 191.2 MiB wasted
+  
+  == pre-registered verdict (#256)
+     Spearman rho of each first-k-read feature against byte follow-through:
+       mean_abs_gap_blocks     stream=-0.707  scatter=n/a
+       max_abs_gap_blocks      stream=-0.707  scatter=n/a
+       frac_large_gap          stream=-1.000  scatter=n/a
+       mean_read_kib           stream=n/a  scatter=n/a
+       frac_monotonic          stream=n/a  scatter=n/a
+       frac_straddle           stream=n/a  scatter=n/a
+  
+     best |rho| = 1.000 (frac_large_gap); threshold 0.5
+     VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+              Validate it out-of-sample (fit one arm, test another) before designing a policy on it.
+  
+  per-handle scores written to /scratch/lith-gates/gate5g/pair2.handles.csv
+-- all four arms together (train/test split available)
+  == streamA (/scratch/lith-gates/gate5g/c1-stream.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 457 (window=457 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through over 5 prefetching handles: median 0.000  mean 0.001  p10 0.000  p90 0.005
+     cold-start granularity tax (#256 floor): 297 pre-decision small reads, 259.9 MiB wasted
+  == scatterA (/scratch/lith-gates/gate5g/c2-scatter.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 576 (window=576 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 204 pre-decision small reads, 191.2 MiB wasted
+  == streamB (/scratch/lith-gates/gate5g/c3-stream.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 457 (window=457 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through over 5 prefetching handles: median 0.000  mean 0.001  p10 0.000  p90 0.005
+     cold-start granularity tax (#256 floor): 297 pre-decision small reads, 259.9 MiB wasted
+  == scatterB (/scratch/lith-gates/gate5g/c4-scatter.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 576 (window=576 parts=0 footer=0)  handles: 12
+     replay fidelity: OK — replayed dispatch counts match the live mount on every handle
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 204 pre-decision small reads, 191.2 MiB wasted
+  
+  == pre-registered verdict (#256)
+     Spearman rho of each first-k-read feature against byte follow-through:
+       mean_abs_gap_blocks     streamA=-0.707  scatterA=n/a  streamB=-0.707  scatterB=n/a   <- holds on both arms
+       max_abs_gap_blocks      streamA=-0.707  scatterA=n/a  streamB=-0.707  scatterB=n/a   <- holds on both arms
+       frac_large_gap          streamA=-1.000  scatterA=n/a  streamB=-1.000  scatterB=n/a   <- holds on both arms
+       mean_read_kib           streamA=n/a  scatterA=n/a  streamB=n/a  scatterB=n/a
+       frac_monotonic          streamA=n/a  scatterA=n/a  streamB=n/a  scatterB=n/a
+       frac_straddle           streamA=n/a  scatterA=n/a  streamB=n/a  scatterB=n/a
+  
+     best |rho| = 1.000 (frac_large_gap); threshold 0.5
+     VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+              Validate it out-of-sample (fit one arm, test another) before designing a policy on it.
+  
+  per-handle scores written to /scratch/lith-gates/gate5g/all4.handles.csv
+################ DONE
