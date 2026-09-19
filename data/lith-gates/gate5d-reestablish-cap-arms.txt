@@ -1,0 +1,228 @@
+GATE 5d — lith PR #260 `--readahead-reestablish-max N`: does capping RE-ESTABLISHMENT
+fix HEMCO's prefetch precision? And what do the new counters say the defect actually is?
+===============================================================================
+Date:      2026-09-19 (job 20, single submission, four arms)
+Cluster:   gchp-lith-ab, us-east-1, compute-dy-nodes-1 = c8g.48xlarge (192 c / 371 GiB)
+Model:     GCHP 14.7.1 C24 fullchem, 48 ranks (NX=2 NY=24), 2019-07-01 -> 07-02,
+           /scratch/gchp_lith_fullchem, ONE run directory re-pointed per arm
+Layer:     five prefix-scoped lith FUSE mounts over s3://gcgrid, --nic-gbps 50
+Control:   md5(Restarts/gcchem_internal_checkpoint) vs gate 5's banked
+           f3dd15b2191bbce63dadcbfc100196a6, in EVERY arm
+Harness:   scripts/lith/gate5b-hemco-prefetch-arms.sbatch (arms H0/H/I/J)
+
+WHY THIS GATE EXISTS
+--------------------
+Gate 5b: HEMCO's 2.44x amplification is a PRECISION defect, not a size one (4x smaller
+window -> linearly less bad prefetch, same hit rate). Gate 5c: upstream's first fix
+(#259, evidence-ratio) cut prefetch volume 45% but cut USED 53%, so the hit rate went
+DOWN -- a volume cap, not a precision fix, and upstream merged it described as such.
+
+PR #260 is hypothesis 4, and upstream's premise for it was explicit: HEMCO's handles
+"oscillate" -- they establish, lose establishment, re-establish, over and over, and each
+re-establishment commits another window that the subsequent reads do not use. The cited
+evidence was `lith_prefetch_reset_random_total` = 307-332 per run on the HEMCO mount:
+"the detector notices every time and then forgets, ~320 times per run." `--readahead-
+reestablish-max N` stops re-establishing after a handle has lost establishment N times:
+contiguous progress is still recognized, reads are still served, but nothing further is
+committed.
+
+Upstream asked for N=2 on HEMCO, optionally N=4, and pre-registered both the predictions
+and the kill condition (below).
+
+THE ARMS
+--------
+  H0  PR #260 build, flag UNSET, HEMCO           -- binary control, must reproduce A/F0
+  H   PR #260, HEMCO --readahead-reestablish-max 2  -- upstream's requested rung
+  I   PR #260, HEMCO --readahead-reestablish-max 4  -- sensitivity to N
+  J   PR #260, MET   --readahead-reestablish-max 2, HEMCO at defaults
+      -- mine, not requested: the complement. Upstream named a risk ("a multi-pass reader
+         that legitimately re-anchors could be capped out"). Met IS that reader (80% hit
+         rate). Arm J tests the risk directly AND -- as it turned out -- is the arm that
+         produced the finding.
+
+In H0/H/I the other four mounts keep gate 5's flags and the released v1.1.3 binary, so
+they are in-run controls. In J the met mount moves to the PR binary and HEMCO becomes the
+control. Note the consequence: met's new labelled counters are only observable in arm J,
+because v1.1.3 does not export them.
+
+Binary provenance:
+  head node (c7g.4xlarge, aarch64), go1.27.1 linux-arm64
+  git fetch origin +refs/pull/260/head, HEAD = 1dea9e4a52e36d7662e706c4d517d72e3b73d0a7
+  "feat(#256): re-establishment cap -- gate whether to bet, not how much"
+  base main = 41322f4 (i.e. #259 already merged in), ldflags-stamped
+    `lith pr260-reestablish-cap`
+  preflight asserts the PR binary HAS --readahead-reestablish-max and the v1.1.3 control
+  does NOT, so an arm cannot silently run as a duplicate of a default
+
+RESULTS
+-------
+arm  mount capped   N   HEMCO s3 MB  ampl    used/issued   hit%   GETs   init s
+H0   none (control) -      8891.1   2.405    747/4533     16.5%   8296   180.14
+H    HEMCO          2      9063.7   2.451    827/4763     17.4%   7971   176.96
+I    HEMCO          4      9091.7   2.459    809/4779     16.9%   8028   177.19
+J    MET            2      9102.7   2.461    865/4838     17.9%   7964   175.79
+
+New #260 counters (recorded once per handle at Release, fuse/fs.go:1021):
+arm  mount   deestablished_total   reestablish_suppressed_total   size class
+H0   HEMCO           10                      (no series)          100% >64MiB
+H    HEMCO           17                      (no series = 0)      100% >64MiB
+I    HEMCO           12                      (no series = 0)      100% >64MiB
+J    HEMCO           15                      (no series)          100% >64MiB
+J    MET             51                          16               100% >64MiB
+
+Correctness and controls, all four arms:
+  md5 = f3dd15b2191bbce63dadcbfc100196a6  IDENTICAL in H0, H, I and J
+  met ampl 1.211x / 1.209x / 1.210x / 1.210x   (A-G: 1.209-1.210x seven times)
+  met hit rate 79.7% / 79.8% / 79.7% / 79.7%   (used/issued 2351/2948, 2352/2948,
+                                                2348/2946, 2347/2943)
+  init 180.14 / 176.96 / 177.19 / 175.79 s     (A-G span 178.80 - 189.45 s)
+  to completion 385.1 / 383.2 / 383.3 / 381.3 s
+  cap_restart advanced to 20190702 in all four; 0 read errors; 0 fallbacks
+
+UPSTREAM'S PREDICTIONS, ON THE RECORD IN #256, AGAINST WHAT HAPPENED
+--------------------------------------------------------------------
+  `deestablished_total` ~300+ .................. MISSED by 20-30x: 10-17 on HEMCO
+  concentrated in the >64MiB size class ....... HELD, exactly: 100% of 10/17/12/15,
+                                                against a pre-registered 34.8% null
+  `reestablish_suppressed_total` nonzero in
+    the same class ............................ FAILED on HEMCO: zero in every arm
+                                                (HELD on met in arm J: 16)
+  HEMCO amplification 1.5-1.9x ................ MISSED: 2.451x at N=2, 2.459x at N=4
+  used/issued "rises -- the one that matters" .. FAILED: 16.5% -> 17.4%, inside scatter
+  met unchanged, no multi-pass regression ..... HELD: 1.210x, 79.7%, even in arm J where
+                                                the cap fired on met 16 times
+  checkpoint md5 .............................. HELD: identical
+
+Upstream's own kill condition, quoted: "Same rule as last time: if amplification improves
+but the hit rate doesn't, this is only another way of buying less prefetch and I withdraw
+it." Amplification did not improve either. The cap has essentially nothing to act on on
+HEMCO.
+
+WHY: `reset_random` IS NOT `deEstablished`, AND THE PREMISE RESTED ON THE WRONG ONE
+----------------------------------------------------------------------------------
+From internal/prefetch/prefetch.go in the PR's own tree:
+
+  func (p *Prefetcher) deEstablish() {
+      if p.established {          // :235-240
+          p.deEstablished++
+      }
+      p.established = false
+  }
+
+versus the two `resetRandom++` sites:
+
+  if p.covMin > 0 && cov < p.covMin {   // :505-512, coverage gate
+      if p.state != Random { p.resetRandom++ }
+      ...
+      p.deEstablish()
+  }
+  // second unexplained jump                // :522-532
+  p.state = Random; p.deEstablish(); ...; p.resetRandom++
+
+`resetRandom` counts collapses to the Random STATE. `deEstablished` counts only losses of
+an ESTABLISHMENT that existed. On HEMCO those differ by 20-30x: ~320 state collapses,
+10-17 establishment losses. The premise -- "the detector notices ~320 times per run and
+then forgets" -- read the first number as if it were the second. The oscillation #260
+gates happens about 3-5% as often as the signal cited for it, which is why a cap at N=2
+or N=4 never triggers (zero suppressions) and amplification lands on top of three
+independent defaults measurements.
+
+THE FINDING (and it is a positive one): THE DEFECT IS AT COMMITMENT, NOT RE-COMMITMENT
+--------------------------------------------------------------------------------------
+Put the two new counters next to the volume they have to explain. HEMCO issues ~4500-4800
+1 MiB prefetch chunks per run and loses establishment 10-17 times. Prefetch is only
+committed from an established handle, so those thousands of committed chunks are NOT the
+product of repeated re-establishment. They come from handles that establish ONCE -- pass
+the #229 coverage test legitimately -- and then keep growing and committing windows that
+their subsequent reads never use, all the way to close, without ever tripping a
+de-establishment at all.
+
+That relocates the defect precisely, and it is consistent with every earlier arm:
+  - #259 bounds the window at establishment AND growth: it moved volume 45%.
+  - #260 gates RE-establishment: it moved nothing, because re-establishment is rare here.
+  - 5b: window SIZE is irrelevant to the hit rate; 5c: within-handle accrued evidence is
+    uncorrelated (slightly anti-correlated) with whether a prefetch gets used.
+So the live target is the decision an ALREADY-ESTABLISHED handle makes to commit the next
+window, and the discriminator cannot come from that handle's own history -- 5c measured
+that history and it does not carry the signal. It has to come from state that outlives the
+handle (per-mount / per-directory-family), which is what gate 5b concluded and what #260
+was explicitly designed to avoid needing.
+
+AND THE INVERSION: OSCILLATION IS A MARKER OF THE HEALTHY MOUNT, NOT THE SICK ONE
+---------------------------------------------------------------------------------
+                      reset_random   deestablished   share   hit rate   ampl
+  HEMCO (2.4x, sick)      321             10          3%      16.5%    2.405x
+  MET   (1.21x, healthy)  113             51         45%      79.7%    1.210x
+
+Met loses establishment 3-5x MORE often than HEMCO, in absolute count and as a fraction of
+its Random collapses -- and met is the mount whose prefetch works. Met's handles sweep a
+met field, re-anchor, and sweep again; that re-anchoring is exactly the behaviour #260
+suppresses, and it is productive. So de-establishment frequency does not separate the good
+reader from the bad one here; it points the wrong way. Arm J is the direct measurement:
+the cap fired 16 times on met and met's amplification and hit rate did not budge (1.210x,
+79.7%, used/issued 2347/2943 vs the control's 2351/2948) -- so the multi-pass regression
+upstream worried about did not materialize at N=2 on this workload, but only because met's
+prefetch is already so accurate that 16 refused windows are lost in the noise. On a
+sweep-heavy mount with a lower baseline the same 16 refusals would be a real cost, and
+nothing in this gate says they wouldn't be.
+
+WASTE DECOMPOSITION — THE DEMAND FLOOR NOW SURVIVES TWELVE POLICIES
+-------------------------------------------------------------------
+waste = s3_bytes - distinct_bytes ; unread prefetch = (issued - used) x 1 MiB ;
+residual = waste - unread prefetch
+
+arm    s3 MB    ampl   waste MB  unread MB  residual MB
+ A    9015.2   2.438     5317.0     4086.3       1230.7
+ B    8951.4   2.420     5252.3     4027.6       1224.7
+ C    7897.1   2.135     4197.6     2978.0       1219.6
+ D    7122.3   1.925     3423.3     2193.6       1229.1
+ E    7008.1   1.895     3309.1     2043.7       1265.9
+F0    8970.9   2.425     5272.1     4043.3       1228.8
+ F    7231.8   1.956     3534.1     2307.9       1226.2
+ G    8159.9   2.206     4460.3     3234.9       1225.4
+H0    8891.1   2.405     5194.2     3969.9       1224.3
+ H    9063.7   2.451     5365.9     4127.2       1238.7
+ I    9091.7   2.459     5394.2     4162.8       1231.4
+ J    9102.7   2.461     5404.0     4166.0       1238.0
+
+1219.6 - 1265.9 MB across TWELVE fetch policies spanning 1.895x to 2.461x -- a 3.8% total
+span, 1.2% across the four arms here. Three mechanisms of entirely different kinds
+(window size, whole-file paths, evidence gate, re-establishment cap) leave it untouched.
+~1.23 GB of HEMCO's traffic is demand reads paying a whole 1 MiB chunk for a sub-MiB
+hyperslab and no fetch policy reaches it. HEMCO straddle count corroborates, constant to
+0.5%: 3074 / 3074 / 3087 / 3077 (A-G: 3033-3066).
+
+A BY-PRODUCT WORTH BANKING: THE METRIC'S OWN SCATTER, n=6
+---------------------------------------------------------
+H and I are behaviourally defaults (zero suppressions), and H0, F0, A and J's HEMCO are
+literal defaults, so this gate hands over six independent measurements of the same
+configuration on the same box:
+
+  2.438  2.425  2.405  2.451  2.459  2.461
+  mean 2.440, sd 0.022, CV 0.89%, range +-1.1%, 2-sigma band 2.396 - 2.483
+
+So the amplification metric is good to about +-1%, and retroactively: 5b's arm B (2.420 vs
+A's 2.438, called "flat") IS flat, inside 1 sigma; C/D/E/F/G (2.135 / 1.925 / 1.895 /
+1.956 / 2.206) are all far outside 2 sigma and were real; and H's 2.451 and I's 2.459,
+which sit slightly ABOVE the control, are inside the band -- the cap is inert, not harmful.
+Having the null distribution makes every prior verdict in 5b/5c falsifiable instead of
+eyeballed. It came free from running the binary control in every gate.
+
+COUNTER PAPERCUT (reported on #260)
+-----------------------------------
+`PrefetchReEstablish` only adds to the registry when the value is > 0, so a zero-valued
+labelled counter emits NO SERIES AT ALL. "Zero suppressions" therefore has to be inferred
+from the absence of a line, which is indistinguishable in a scrape from "the binary does
+not have the feature", "the label value differs", and "the mount was never opened". In
+this gate that ambiguity was resolvable only because arm J proved the same binary DOES emit
+the series when it fires. Emit labelled counters at zero once a mount has served a read.
+
+PROVENANCE / COST
+-----------------
+One submission, four GCHP runs, ~35 min of one c8g.48xlarge. Cluster returned to idle with
+0 stale fuse.lith mounts. Head-node PR build: $0. `ARMLIST=H0,H,I,J sbatch --export=ALL`
+(NOT `--export=ALL,ARMLIST=...`; see gate 5c's submission trap).
+
+Raw log: data/lith-gates/gate5d-arms-job20.log (cluster:
+/scratch/lith-gates/gate5b-20.log, per-arm gate5b-{H0,H,I,J}.log, checkpoints
+gate5b-ckpt-{H0,H,I,J}.nc4).

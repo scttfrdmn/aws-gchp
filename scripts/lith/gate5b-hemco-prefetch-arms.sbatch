@@ -88,6 +88,53 @@
 # hit rate is the mechanism, and a fall in amplification with a FLAT hit rate would mean
 # #259 is just another volume cap wearing a new name.
 #
+# ---------------------------------------------------------------------------------
+# GATE 5d — ARMS H0/H/I/J: cap the OSCILLATION instead of the window (lith PR #260)
+#
+# 5c's answer was that #259 is a volume cap: it cut issued 45% and used 53%, so the hit
+# rate FELL (16.7% -> 14.3%). #259 merged on that framing. PR #260 is hypothesis 4, and
+# it acts on the one signal that has been constant through all eight arms:
+# prefetch_reset_random_total is 307-332 on HEMCO in EVERY arm against 113 on met. The
+# detector notices the jump ~320 times a run and then forgets, because a history of
+# failed predictions costs nothing.
+#
+#   --readahead-reestablish-max N   after a handle has lost establishment N times, stop
+#                                   re-establishing it: contiguous progress is still
+#                                   recognized, reads still served, nothing more committed
+#
+#   H0  PR #260 binary, flag unset                 must reproduce A/F0
+#   H   --readahead-reestablish-max 2   (HEMCO)     upstream's requested rung
+#   I   --readahead-reestablish-max 4   (HEMCO)     is the allowance a knob or a threshold?
+#   J   --readahead-reestablish-max 2   (MET)       upstream's own named RISK, measured
+#
+# ARM J IS THE ONE UPSTREAM DID NOT ASK FOR AND SHOULD HAVE. They named the risk
+# themselves: a legitimate MULTI-PASS reader -- one that reads a file in several separate
+# sequential sweeps -- does de-establish between sweeps and would be capped, losing
+# readahead it should have had. met is exactly that reader (80% hit rate, 1.210x, and
+# still 113 de-establishments), so capping HEMCO leaves the risk untested: in arms H and
+# I, met is uncapped and therefore cannot show it. Arm J caps MET and leaves HEMCO at
+# defaults, which inverts the control -- HEMCO becomes the thing that must not move -- and
+# turns "if it moves at all, the cap is catching something it shouldn't" into a
+# measurement instead of a hope. Upstream offered this as an ALTERNATIVE first rung; it is
+# cheaper to run it as a FOURTH arm than to choose.
+#
+# H0 EARNS ITS PLACE TWICE. #259 is now merged, so main -- and therefore this PR's
+# binary -- is a different binary again (merge-base 41322f4 = the #259 merge). H0 both
+# re-proves inertness on the new release line and, because cap 0 still COUNTS
+# oscillation as a diagnostic, hands back the unsuppressed deestablished_total histogram
+# that arms H/I/J are measured against.
+#
+# PRE-REGISTERED, BEFORE THE ARMS RAN, from the gate-4 manifest at #260's own size_class
+# boundaries -- 471 HEMCO objects:
+#     <=4MiB    134 files (28.5%)    180.2 MB ( 0.7%)
+#     4-16MiB   100 files (21.2%)    788.9 MB ( 3.0%)
+#     16-64MiB   73 files (15.5%)   2542.9 MB ( 9.7%)
+#     >64MiB    164 files (34.8%)  22627.4 MB (86.6%)
+# Upstream predicts deestablished_total ~300+ CONCENTRATED in >64MiB. The null to beat is
+# NOT zero: if de-establishment were uniform per open, >64MiB would take ~34.8% of the
+# count on file mix alone. "Concentrated" therefore has to mean materially more than 35%,
+# and that threshold is fixed here in advance so it cannot be adjusted afterwards.
+#
 # HYPOTHESIS 2 (prefetch-induced eviction) IS ALREADY EXCLUDED and is not an arm here:
 # the HEMCO mount ran --mem-cache 32GB against 9.1 GB ever fetched, so there was never
 # capacity pressure. I had reported 8GB to upstream; that was my misreading of my own
@@ -116,6 +163,10 @@ LITH=${GATES}/lith-1.1.3   # v1.1.3, sha256-verified against the release checksu
 # 85b8102, whose merge-base with origin/main is 24b151f (i.e. the PR is main + 1 commit),
 # stamped so `lith version` says pr259-evidence-gate rather than "dev".
 LITH_PR259=${GATES}/lith-pr259
+# Arms H0/H/I/J: PR #260 (--readahead-reestablish-max), built the same way from
+# refs/pull/260/head = 1dea9e4, merge-base 41322f4 = main AFTER #259 merged, so this
+# binary carries both experimental knobs and H0 re-proves inertness on the new line.
+LITH_PR260=${GATES}/lith-pr260
 RANKS=48
 START=20190701                      # cap_restart's start date; the watchdog keys off it
 # Run_Duration in setCommonRunSettings.sh is "YYYYMMDD HHmmSS", so the run directory's
@@ -195,6 +246,21 @@ if [[ ",${ARMLIST}," == *,F* || ",${ARMLIST}," == *,G* ]]; then
     && { echo "  FAIL control binary $LITH also has the flag"; fail=1; } \
     || echo "  control binary $LITH does not know the flag (as expected)"
 fi
+if [[ ",${ARMLIST}," == *,H* || ",${ARMLIST}," == *,I, || ",${ARMLIST}," == *,J, ]]; then
+  if [[ ! -x "$LITH_PR260" ]]; then
+    echo "  FAIL $LITH_PR260 missing (arms H0/H/I/J need the PR #260 build)"; fail=1
+  elif ! "$LITH_PR260" mount --help 2>&1 | grep -q -- --readahead-reestablish-max; then
+    echo "  FAIL $LITH_PR260 has no --readahead-reestablish-max — wrong commit built"; fail=1
+  else
+    echo "  PR260 build: $("$LITH_PR260" version 2>&1 | head -1) / $("$LITH_PR260" version 2>&1 | sed -n 2p)"
+    echo "  PR260 sha256: $(sha256sum "$LITH_PR260" | awk '{print $1}')"
+    # #259 is merged, so its flag must ALSO be present here; if it is not, the build is
+    # off an older base and H0 is not testing the release line it claims to.
+    "$LITH_PR260" mount --help 2>&1 | grep -q -- --readahead-evidence-ratio \
+      && echo "  PR260 also carries merged #259's flag (base is post-#259, as expected)" \
+      || { echo "  FAIL PR260 lacks --readahead-evidence-ratio — base predates the #259 merge"; fail=1; }
+  fi
+fi
 (( fail )) && { echo "PREFLIGHT FAILED — not spending node time"; exit 1; }
 echo "  all preflight checks passed"
 
@@ -258,9 +324,14 @@ mount_lith() {
   # --mem-cache is bounded on every mount. The default is 25% of system memory PER
   # DAEMON, so five mounts would default to capping 125% of the box; GCHP wants that
   # memory for the model.
-  "$LITH" mount s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07 /input-lith/GEOS_0.5x0.625/MERRA2/2019/07 \
+  # The met mount is the in-run CONTROL in every arm except J, where it is the subject:
+  # $MET_EXTRA/$MET_LITH are empty everywhere else, so the command is byte-identical to
+  # gate 5's. Arm J exists because upstream named a risk -- a legitimate multi-pass
+  # reader being capped -- that no HEMCO arm can show.
+  echo "  MET arm flags:   [${MET_EXTRA:-<gate-5 defaults>}]  binary: $(basename "${MET_LITH:-$LITH}")"
+  "${MET_LITH:-$LITH}" mount s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07 /input-lith/GEOS_0.5x0.625/MERRA2/2019/07 \
     --index-file "${GATES}/idx/merra2-201907.lithidx" --no-sign-request --nic-gbps $NIC \
-    --mem-cache 24GB --metrics ":9110" --daemon
+    --mem-cache 24GB --metrics ":9110" ${MET_EXTRA} --daemon
   "$LITH" mount s3://gcgrid/GEOS_0.5x0.625/MERRA2/2015/01 /input-lith/GEOS_0.5x0.625/MERRA2/2015/01 \
     --index-file "${GATES}/idx/merra2-2015.lithidx" --no-sign-request --nic-gbps $NIC \
     --mem-cache 4GB --metrics ":9111" --daemon
@@ -480,6 +551,38 @@ met_ampl() {  # met_ampl LABEL
     "$(awk -v u="${used:-0}" -v i="${iss:-0}" 'BEGIN{print (i>0)?100*u/i:0}')"
 }
 
+# PR #260's labelled counters are the discriminator upstream pre-registered, so they are
+# reported per size class rather than left in the raw dump. sizeClass (fuse/fs.go:961)
+# buckets at 4 / 16 / 64 MiB. Both counters are recorded once per handle at Release.
+#
+# The reason to print the SHARE and not just the count: upstream predicts de-establishment
+# is concentrated in >64MiB, but 34.8% of HEMCO's 471 objects are already >64MiB, so
+# 34.8% is the null, not 0%. Printing the share against that null is what makes the
+# prediction falsifiable, and a suppression share that lands on the SMALL classes is
+# upstream's own stated kill condition for the mechanism.
+size_class_dump() {  # size_class_dump LABEL
+  local pp port name
+  for pp in 9112:hemco 9110:met; do
+    port=${pp%%:*}; name=${pp##*:}
+    curl -s --max-time 5 "http://localhost:${port}/metrics" \
+      | awk -v arm="$1" -v mount="$name" '
+        /^lith_prefetch_deestablished_total\{/ || /^lith_prefetch_reestablish_suppressed_total\{/ ||
+        /^lith_prefetch_evidence_clamped_total\{/ || /^lith_prefetch_evidence_withheld_blocks_total\{/ {
+          m=$1; sub(/\{.*/,"",m); sub(/^lith_prefetch_/,"",m); sub(/_total$/,"",m)
+          cls=$1; sub(/^.*size_class="/,"",cls); sub(/".*$/,"",cls)
+          v[m"|"cls]=$2; tot[m]+=$2; seen[m]=1
+        }
+        END{
+          for (m in seen) {
+            for (k in v) { split(k,p,"|"); if (p[1]!=m) continue
+              printf "CLASS %-4s %-5s %-24s %-9s %10.0f  %5.1f%% of %.0f\n",
+                arm, mount, m, p[2], v[k], (tot[m]>0)?100*v[k]/tot[m]:0, tot[m] }
+          }
+          if (!length(seen)) printf "CLASS %-4s %-5s (no labelled #259/#260 counters exported)\n", arm, mount
+        }' | sort -k3,3 -k4,4
+  done
+}
+
 # ---------------------------------------------------------------- the three arms
 # Banked from gate 5 (job 13 fsx arm / job 14 lith arm, both v1.1.2). Every arm below
 # must reproduce it.
@@ -487,7 +590,7 @@ BASE_MD5=f3dd15b2191bbce63dadcbfc100196a6
 SUMMARY=${GATES}/gate5b-summary.txt
 : > "$SUMMARY"
 
-arm_flags() {  # arm_flags A|B|C|D|E|F0|F|G
+arm_flags() {  # HEMCO mount flags for this arm
   case "$1" in
     A) echo "" ;;
     B) echo "--parts-max 0" ;;
@@ -502,22 +605,45 @@ arm_flags() {  # arm_flags A|B|C|D|E|F0|F|G
     F0) echo "" ;;
     F)  echo "--readahead-evidence-ratio 8" ;;
     G)  echo "--readahead-evidence-ratio 32" ;;
+    # H0 = arm A's configuration on the #260 binary. H/I cap HEMCO. J caps MET instead
+    # and deliberately leaves HEMCO at defaults, so HEMCO becomes the arm's control.
+    H0) echo "" ;;
+    H)  echo "--readahead-reestablish-max 2" ;;
+    I)  echo "--readahead-reestablish-max 4" ;;
+    J)  echo "" ;;
     *) return 1 ;;
+  esac
+}
+
+arm_met_flags() {  # MET mount flags -- empty in every arm but J, so met stays a control
+  case "$1" in
+    J) echo "--readahead-reestablish-max 2" ;;
+    *) echo "" ;;
   esac
 }
 
 arm_binary() {  # which lith serves the HEMCO mount for this arm
   case "$1" in
-    F0|F|G) echo "$LITH_PR259" ;;
-    *)      echo "$LITH" ;;
+    F0|F|G)    echo "$LITH_PR259" ;;
+    H0|H|I|J)  echo "$LITH_PR260" ;;
+    *)         echo "$LITH" ;;
+  esac
+}
+
+arm_met_binary() {  # which lith serves the MET mount; the release EXCEPT in arm J, where
+  case "$1" in     # the met mount is the subject and needs the flag
+    J) echo "$LITH_PR260" ;;
+    *) echo "$LITH" ;;
   esac
 }
 
 for arm in ${ARMLIST//,/ }; do
   HEMCO_EXTRA=$(arm_flags "$arm") || { echo "unknown arm $arm"; continue; }
   HEMCO_LITH=$(arm_binary "$arm")
-  say "ARM ${arm} — HEMCO mount flags: [${HEMCO_EXTRA:-<defaults>}] binary: $(basename "$HEMCO_LITH")"
-  export HEMCO_EXTRA HEMCO_LITH
+  MET_EXTRA=$(arm_met_flags "$arm")
+  MET_LITH=$(arm_met_binary "$arm")
+  say "ARM ${arm} — HEMCO [${HEMCO_EXTRA:-<defaults>}] on $(basename "$HEMCO_LITH") | MET [${MET_EXTRA:-<control>}] on $(basename "$MET_LITH")"
+  export HEMCO_EXTRA HEMCO_LITH MET_EXTRA MET_LITH
   # A dead or inherited daemon serves nothing and looks like a mechanism result, so the
   # clean/verify/abort chain from gate 5 is kept exactly as-is on every arm.
   if clean_stale_lith && mount_lith && point_at lith; then
@@ -525,6 +651,7 @@ for arm in ${ARMLIST//,/ }; do
     metrics_dump "$arm"
     hemco_ampl "$arm" | tee -a "$SUMMARY"
     met_ampl   "$arm" | tee -a "$SUMMARY"
+    size_class_dump "$arm" | tee -a "$SUMMARY"
   else
     echo "ABORT ARM ${arm}: lith layer not usable — NOT running GCHP (a run against"
     echo "      stale or dead daemons produces a failure that looks like a result)"
