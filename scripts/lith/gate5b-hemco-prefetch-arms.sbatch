@@ -51,6 +51,43 @@
 #   B flat, C collapses    -> the established window is, as upstream argued
 #   both flat              -> neither; look at demand-read straddle (3062 on HEMCO)
 #
+# ---------------------------------------------------------------------------------
+# GATE 5c — ARMS F0/F/G: does bounding the window BY EVIDENCE fix the PRECISION?
+#
+# A-E answered a different question than they were asked. Shrinking the window 4x
+# (C 32 MiB -> D 8 MiB) cut bad-prefetch VOLUME almost linearly (4086 -> 2044 MB) and
+# left the HIT RATE untouched (13.0% -> 13.3%, against met's 80%). So size is not the
+# defect; PRECISION is, and ~2.0 GB of A's 5317 MB waste survives the MINIMUM window
+# with all three whole-file paths disabled. That residue needs state that outlives a
+# handle, because lith constructs one prefetcher per Open (fuse/fs.go:562) and every one
+# of ~2400-4600 decisions is therefore made cold.
+#
+# lith PR #259 is upstream's answer: --readahead-evidence-ratio k bounds a committed
+# window to k x the bytes the handle has actually read, applied at establishment, at
+# window growth AND at re-establishment. It does not need cross-handle memory, because
+# the evidence a handle has accrued IS its own history. Off by default.
+#
+#   F0 PR binary, flag UNSET               must reproduce arm A
+#   F  PR binary, --readahead-evidence-ratio 8    upstream's requested rung
+#   G  PR binary, --readahead-evidence-ratio 32   sensitivity to k
+#
+# F0 IS NOT CEREMONY. The PR sits on main (merge-base = 24b151f), which is v1.1.3 plus
+# #257 and #258 -- and #258 touched internal/fuse/fs.go. Without F0, a moved number in F
+# cannot be attributed to the flag rather than to the 14 commits' worth of binary it
+# arrived in. F0 also proves "off by default" is actually inert, which is the claim the
+# PR makes in its own title.
+#
+# Everything else in F0/F/G is arm A's configuration: --parts-max, --small-file and
+# --max-readahead are all left at their defaults, on upstream's instruction, because the
+# gate is meant to REPLACE window tuning rather than stack on top of it. And the four
+# control mounts keep running the RELEASED v1.1.3 binary, so met's 1.210x stays
+# comparable to arms A-E instead of moving for two reasons at once.
+#
+# The assertion order is upstream's, not mine: (1) does used/issued move off 13%?
+# (2) does met stay at 1.210x? (3) checkpoint md5. Amplification is the headline but the
+# hit rate is the mechanism, and a fall in amplification with a FLAT hit rate would mean
+# #259 is just another volume cap wearing a new name.
+#
 # HYPOTHESIS 2 (prefetch-induced eviction) IS ALREADY EXCLUDED and is not an arm here:
 # the HEMCO mount ran --mem-cache 32GB against 9.1 GB ever fetched, so there was never
 # capacity pressure. I had reported 8GB to upstream; that was my misreading of my own
@@ -74,6 +111,11 @@ GATES=/scratch/lith-gates
 RD=/scratch/gchp_lith_fullchem
 OVL=/scratch/hemco-ovl              # FSx arm's HEMCO, prebuilt with the 5 GMI aliases
 LITH=${GATES}/lith-1.1.3   # v1.1.3, sha256-verified against the release checksums.txt
+# Arms F0/F/G serve the HEMCO mount from a local build of PR #259 while the four control
+# mounts stay on the release above. Built on the head node from refs/pull/259/head =
+# 85b8102, whose merge-base with origin/main is 24b151f (i.e. the PR is main + 1 commit),
+# stamped so `lith version` says pr259-evidence-gate rather than "dev".
+LITH_PR259=${GATES}/lith-pr259
 RANKS=48
 START=20190701                      # cap_restart's start date; the watchdog keys off it
 # Run_Duration in setCommonRunSettings.sh is "YYYYMMDD HHmmSS", so the run directory's
@@ -83,6 +125,15 @@ START=20190701                      # cap_restart's start date; the watchdog key
 # byte-identity and ~30x cheaper.
 EXPECT_SGMT="00000001 000000"
 RESULTS=${GATES}/gate5b-results.txt
+# Declared BEFORE preflight so preflight can check only what the requested arms need
+# (the PR binary is not required to rerun A-E, and A-E are not required to run F).
+ARMLIST=${ARMLIST:-A,B,C,D,E}
+# SUBMIT AS `ARMLIST=F,G sbatch --export=ALL <this>`, NEVER as
+# `sbatch --export=ALL,ARMLIST=F0,F,G`: sbatch splits --export on COMMAS, so that form
+# sets ARMLIST=F0 and then tries to export two variables named F and G. Job 18 ran arm
+# F0 alone, reported a clean verdict for it, and silently dropped the two arms the job
+# existed to run -- the harness was right, the submission was wrong, and nothing in the
+# log said so.
 # Any subset of arms can be run alone: ARMLIST=B sbatch ... . Each arm's checkpoint md5
 # is persisted to gate5b-md5-<arm>.txt, so a partial rerun still gets a verdict against
 # gate 5's banked control instead of paying for it again.
@@ -127,6 +178,23 @@ grep -q "^Run_Duration=\"${EXPECT_SGMT}\"\$" "$RD/setCommonRunSettings.sh" \
 for i in merra2-201907 merra2-2015 hemco cheminp restarts; do
   [[ -s "$GATES/idx/$i.lithidx" ]] || { echo "  FAIL missing index $i"; fail=1; }
 done
+# Only demand the PR build if an arm actually asks for it, and demand that it really
+# carries the flag: a stale or wrongly-built binary would silently run arm A three times
+# and the amplification numbers would look like a refutation of #259.
+if [[ ",${ARMLIST}," == *,F* || ",${ARMLIST}," == *,G* ]]; then
+  if [[ ! -x "$LITH_PR259" ]]; then
+    echo "  FAIL $LITH_PR259 missing (arms F0/F/G need the PR #259 build)"; fail=1
+  elif ! "$LITH_PR259" mount --help 2>&1 | grep -q -- --readahead-evidence-ratio; then
+    echo "  FAIL $LITH_PR259 has no --readahead-evidence-ratio — wrong commit built"; fail=1
+  else
+    echo "  PR build: $("$LITH_PR259" version 2>&1 | head -1) / $("$LITH_PR259" version 2>&1 | sed -n 2p)"
+    echo "  PR build sha256: $(sha256sum "$LITH_PR259" | awk '{print $1}')"
+  fi
+  # The control binary must NOT understand the flag, or the arms are not separated.
+  "$LITH" mount --help 2>&1 | grep -q -- --readahead-evidence-ratio \
+    && { echo "  FAIL control binary $LITH also has the flag"; fail=1; } \
+    || echo "  control binary $LITH does not know the flag (as expected)"
+fi
 (( fail )) && { echo "PREFLIGHT FAILED — not spending node time"; exit 1; }
 echo "  all preflight checks passed"
 
@@ -144,7 +212,10 @@ clean_stale_lith() {
            /input-lith/HEMCO /input-lith/CHEM_INPUTS /input-lith/GEOSCHEM_RESTARTS; do
     fusermount3 -u "$m" >/dev/null 2>&1
   done
-  pkill -f "lith-1.1.[0-9] mount" >/dev/null 2>&1
+  # Pattern must cover the PR build too (lith-pr259), not just the release: a pkill that
+  # misses the binary the previous arm mounted leaves a live daemon holding the HEMCO
+  # mountpoint, which is exactly how arm C was lost.
+  pkill -f "lith-[0-9a-z.]+ mount" >/dev/null 2>&1
   sleep 3
   # Second pass with a lazy unmount for anything still attached: a mount whose daemon
   # we just killed can linger as a stale entry that no longer serves reads, which is
@@ -196,8 +267,12 @@ mount_lith() {
   # THE ONLY LINE THAT DIFFERS BETWEEN ARMS. $HEMCO_EXTRA is unquoted on purpose so
   # that an empty value adds no argument at all (arm A must be byte-identical in
   # configuration to gate 5 apart from the lith version).
+  # ...and, from arm F0 on, the only mount whose BINARY differs: HEMCO can be served by
+  # the PR #259 build while the four controls stay on the release, so met's 1.210x
+  # remains comparable to arms A-E rather than moving for two reasons at once.
   echo "  HEMCO arm flags: [${HEMCO_EXTRA:-<defaults>}]"
-  "$LITH" mount s3://gcgrid/HEMCO /input-lith/HEMCO \
+  echo "  HEMCO binary:    ${HEMCO_LITH:-$LITH} ($("${HEMCO_LITH:-$LITH}" version 2>&1 | head -1))"
+  "${HEMCO_LITH:-$LITH}" mount s3://gcgrid/HEMCO /input-lith/HEMCO \
     --index-file "${GATES}/idx/hemco.lithidx" --no-sign-request --nic-gbps $NIC \
     --mem-cache 32GB --metrics ":9112" ${HEMCO_EXTRA} --daemon
   "$LITH" mount s3://gcgrid/CHEM_INPUTS /input-lith/CHEM_INPUTS \
@@ -379,20 +454,40 @@ hemco_ampl() {  # hemco_ampl LABEL
   iss=$( awk '/^lith_prefetch_issued_total /{print $2}'   <<<"$m")
   used=$(awk '/^lith_prefetch_used_total /{print $2}'     <<<"$m")
   unc=$( awk '/^lith_prefetch_uncovered_total /{print $2}'<<<"$m")
-  printf 'HEMCO %-4s s3=%.1fMB distinct=%.1fMB ampl=%.3fx prefetch_used=%s/%s uncovered=%s\n' \
+  # used/issued is printed as a RATE, not just a pair, because from arm F on it is the
+  # primary assertion: A-E showed a 4x window cut moves the volume and leaves the rate
+  # at 13%, so a fall in amplification with a flat rate means #259 is another volume cap
+  # rather than the precision fix it claims to be.
+  printf 'HEMCO %-4s s3=%.1fMB distinct=%.1fMB ampl=%.3fx prefetch_used=%s/%s (%.1f%%) uncovered=%s\n' \
     "$1" "$(awk -v x="$s3" 'BEGIN{print x/1e6}')" "$(awk -v x="$d" 'BEGIN{print x/1e6}')" \
-    "$(awk -v a="$s3" -v b="$d" 'BEGIN{print (b>0)?a/b:0}')" "${used:-NA}" "${iss:-NA}" "${unc:-NA}"
+    "$(awk -v a="$s3" -v b="$d" 'BEGIN{print (b>0)?a/b:0}')" "${used:-NA}" "${iss:-NA}" \
+    "$(awk -v u="${used:-0}" -v i="${iss:-0}" 'BEGIN{print (i>0)?100*u/i:0}')" "${unc:-NA}"
+}
+
+# The in-run control, asserted explicitly instead of left to be eyeballed in the metrics
+# dump: the met mount read 1.210x in all five of arms A-E on the SAME binary and flags,
+# so any movement here means the arm changed something it was not supposed to.
+met_ampl() {  # met_ampl LABEL
+  local m; m=$(curl -s --max-time 5 http://localhost:9110/metrics)
+  local s3 d iss used
+  s3=$(  awk '/^lith_s3_bytes_total /{print $2}'        <<<"$m")
+  d=$(   awk '/^lith_distinct_bytes_read /{print $2}'   <<<"$m")
+  iss=$( awk '/^lith_prefetch_issued_total /{print $2}' <<<"$m")
+  used=$(awk '/^lith_prefetch_used_total /{print $2}'   <<<"$m")
+  printf 'MET   %-4s s3=%.1fMB distinct=%.1fMB ampl=%.3fx prefetch_used=%s/%s (%.1f%%)  [control: expect 1.210x]\n' \
+    "$1" "$(awk -v x="$s3" 'BEGIN{print x/1e6}')" "$(awk -v x="$d" 'BEGIN{print x/1e6}')" \
+    "$(awk -v a="$s3" -v b="$d" 'BEGIN{print (b>0)?a/b:0}')" "${used:-NA}" "${iss:-NA}" \
+    "$(awk -v u="${used:-0}" -v i="${iss:-0}" 'BEGIN{print (i>0)?100*u/i:0}')"
 }
 
 # ---------------------------------------------------------------- the three arms
 # Banked from gate 5 (job 13 fsx arm / job 14 lith arm, both v1.1.2). Every arm below
 # must reproduce it.
 BASE_MD5=f3dd15b2191bbce63dadcbfc100196a6
-ARMLIST=${ARMLIST:-A,B,C,D,E}
 SUMMARY=${GATES}/gate5b-summary.txt
 : > "$SUMMARY"
 
-arm_flags() {  # arm_flags A|B|C|D|E
+arm_flags() {  # arm_flags A|B|C|D|E|F0|F|G
   case "$1" in
     A) echo "" ;;
     B) echo "--parts-max 0" ;;
@@ -401,20 +496,35 @@ arm_flags() {  # arm_flags A|B|C|D|E
     C) echo "--parts-max 0 --max-readahead 4" ;;
     D) echo "--parts-max 0 --max-readahead 1" ;;
     E) echo "--parts-max 0 --max-readahead 1 --small-file 0" ;;
+    # F0/F/G deliberately carry NO window/parts/small-file flags: #259 is meant to
+    # replace window tuning, so stacking D's or E's caps underneath it would make a fall
+    # in amplification unattributable. F0 is arm A's configuration on the PR binary.
+    F0) echo "" ;;
+    F)  echo "--readahead-evidence-ratio 8" ;;
+    G)  echo "--readahead-evidence-ratio 32" ;;
     *) return 1 ;;
+  esac
+}
+
+arm_binary() {  # which lith serves the HEMCO mount for this arm
+  case "$1" in
+    F0|F|G) echo "$LITH_PR259" ;;
+    *)      echo "$LITH" ;;
   esac
 }
 
 for arm in ${ARMLIST//,/ }; do
   HEMCO_EXTRA=$(arm_flags "$arm") || { echo "unknown arm $arm"; continue; }
-  say "ARM ${arm} — HEMCO mount flags: [${HEMCO_EXTRA:-<defaults>}]"
-  export HEMCO_EXTRA
+  HEMCO_LITH=$(arm_binary "$arm")
+  say "ARM ${arm} — HEMCO mount flags: [${HEMCO_EXTRA:-<defaults>}] binary: $(basename "$HEMCO_LITH")"
+  export HEMCO_EXTRA HEMCO_LITH
   # A dead or inherited daemon serves nothing and looks like a mechanism result, so the
   # clean/verify/abort chain from gate 5 is kept exactly as-is on every arm.
   if clean_stale_lith && mount_lith && point_at lith; then
     gchp_run "$arm"
     metrics_dump "$arm"
     hemco_ampl "$arm" | tee -a "$SUMMARY"
+    met_ampl   "$arm" | tee -a "$SUMMARY"
   else
     echo "ABORT ARM ${arm}: lith layer not usable — NOT running GCHP (a run against"
     echo "      stale or dead daemons produces a failure that looks like a result)"

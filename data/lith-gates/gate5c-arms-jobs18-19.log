@@ -1,0 +1,400 @@
+
+=== node facts 2026-09-19T03:47:16Z ===
+instance: c8g.48xlarge  host: compute-dy-nodes-1  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+domains_stack_size: absent (GCHP default)
+lith: lith 1.1.3   --nic-gbps 50
+
+=== preflight ===
+  PR build: lith pr259-evidence-gate / commit: 85b8102
+  PR build sha256: c697f98636d791bd5a8abb7454f0e3c0fc95998aadd3daf7eb733a64aa00cf1e
+  control binary /scratch/lith-gates/lith-1.1.3 does not know the flag (as expected)
+  all preflight checks passed
+
+=== ARM F0 — HEMCO mount flags: [<defaults>] binary: lith-pr259 ===
+  stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 16742); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16860); logs: /tmp/lith-1000-mount.log
+  HEMCO arm flags: [<defaults>]
+  HEMCO binary:    /scratch/lith-gates/lith-pr259 (lith pr259-evidence-gate)
+lith mounted in the background (pid 17033); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17147); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17263); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  HEMCO ROOT -> /input-lith/HEMCO
+  MetDir  -> /input-lith/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /input-lith/HEMCO
+  ChemDir -> /input-lith/CHEM_INPUTS
+  restart -> /input-lith/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN F0 ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /input-lith/HEMCO
+RESULT F0     init=178.80s sim_end=364.80s to_completion=385.1s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+=== lith metrics after F0 ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3149
+   lith_distinct_bytes_read 3.25451776e+09
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2951
+   lith_prefetch_reset_random_total 112
+   lith_prefetch_sem_wait_seconds_sum 0.00022590899999999997
+   lith_prefetch_sem_wait_seconds_count 403
+   lith_prefetch_uncovered_total 3192
+   lith_prefetch_used_total 2354
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 2899
+   lith_s3_bytes_total 3.936408581e+09
+   lith_s3_requests_total{op="get",status="ok"} 3603
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 1
+   lith_distinct_bytes_read 851968
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_sum 0
+   lith_prefetch_sem_wait_seconds_count 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+-- hemco (:9112)
+   lith_cache_misses_total 7053
+   lith_distinct_bytes_read 3.698786304e+09
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 4631
+   lith_prefetch_reset_random_total 316
+   lith_prefetch_sem_wait_seconds_sum 0.0003919719999999999
+   lith_prefetch_sem_wait_seconds_count 786
+   lith_prefetch_uncovered_total 7368
+   lith_prefetch_used_total 775
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 3066
+   lith_s3_bytes_total 8.97091945e+09
+   lith_s3_requests_total{op="get",status="ok"} 8166
+   lith_sibling_prefetch_total 57
+   lith_sibling_prefetch_unread_total 0
+-- chem-inputs (:9113)
+   lith_cache_misses_total 77
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_sum 1.1690000000000002e-06
+   lith_prefetch_sem_wait_seconds_count 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+   lith_sibling_prefetch_total 2
+   lith_sibling_prefetch_unread_total 0
+-- restarts (:9114)
+   lith_cache_misses_total 27
+   lith_distinct_bytes_read 7.67295488e+08
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_reset_random_total 2
+   lith_prefetch_sem_wait_seconds_sum 6.319799999999999e-05
+   lith_prefetch_sem_wait_seconds_count 93
+   lith_prefetch_uncovered_total 22
+   lith_prefetch_used_total 716
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 723
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 115
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+HEMCO F0   s3=8970.9MB distinct=3698.8MB ampl=2.425x prefetch_used=775/4631 (16.7%) uncovered=7368
+MET   F0   s3=3936.4MB distinct=3254.5MB ampl=1.210x prefetch_used=2354/2951 (79.8%)  [control: expect 1.210x]
+
+=== GATE 5b — HEMCO amplification by arm ===
+HEMCO F0   s3=8970.9MB distinct=3698.8MB ampl=2.425x prefetch_used=775/4631 (16.7%) uncovered=7368
+MET   F0   s3=3936.4MB distinct=3254.5MB ampl=1.210x prefetch_used=2354/2951 (79.8%)  [control: expect 1.210x]
+
+=== correctness: every arm must reproduce gate 5's checkpoint ===
+  banked (gate 5, v1.1.2): f3dd15b2191bbce63dadcbfc100196a6
+  F0  f3dd15b2191bbce63dadcbfc100196a6  IDENTICAL
+RESULT A      init=180.81s sim_end=367.81s to_completion=387.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT B      init=181.91s sim_end=368.91s to_completion=389.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT C      init=188.58s sim_end=374.58s to_completion=395.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT D      init=189.45s sim_end=376.45s to_completion=397.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT E      init=181.93s sim_end=368.93s to_completion=391.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT F0     init=178.80s sim_end=364.80s to_completion=385.1s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+################ JOB 19 (arms F, G) ################
+
+
+=== node facts 2026-09-19T03:58:08Z ===
+instance: c8g.48xlarge  host: compute-dy-nodes-1  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+domains_stack_size: absent (GCHP default)
+lith: lith 1.1.3   --nic-gbps 50
+
+=== preflight ===
+  PR build: lith pr259-evidence-gate / commit: 85b8102
+  PR build sha256: c697f98636d791bd5a8abb7454f0e3c0fc95998aadd3daf7eb733a64aa00cf1e
+  control binary /scratch/lith-gates/lith-1.1.3 does not know the flag (as expected)
+  all preflight checks passed
+
+=== ARM F — HEMCO mount flags: [--readahead-evidence-ratio 8] binary: lith-pr259 ===
+  stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 24074); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 24190); logs: /tmp/lith-1000-mount.log
+  HEMCO arm flags: [--readahead-evidence-ratio 8]
+  HEMCO binary:    /scratch/lith-gates/lith-pr259 (lith pr259-evidence-gate)
+lith mounted in the background (pid 24363); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 24479); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 24595); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  HEMCO ROOT -> /input-lith/HEMCO
+  MetDir  -> /input-lith/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /input-lith/HEMCO
+  ChemDir -> /input-lith/CHEM_INPUTS
+  restart -> /input-lith/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN F ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /input-lith/HEMCO
+RESULT F      init=183.39s sim_end=369.39s to_completion=391.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+=== lith metrics after F ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3111
+   lith_distinct_bytes_read 3.254386688e+09
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2938
+   lith_prefetch_reset_random_total 112
+   lith_prefetch_sem_wait_seconds_sum 0.00023751899999999978
+   lith_prefetch_sem_wait_seconds_count 402
+   lith_prefetch_uncovered_total 3145
+   lith_prefetch_used_total 2342
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 2790
+   lith_s3_bytes_total 3.936015365e+09
+   lith_s3_requests_total{op="get",status="ok"} 3554
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 1
+   lith_distinct_bytes_read 851968
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_sum 0
+   lith_prefetch_sem_wait_seconds_count 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+-- hemco (:9112)
+   lith_cache_misses_total 8131
+   lith_distinct_bytes_read 3.697737728e+09
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2567
+   lith_prefetch_reset_random_total 307
+   lith_prefetch_sem_wait_seconds_sum 0.0002051079999999999
+   lith_prefetch_sem_wait_seconds_count 484
+   lith_prefetch_uncovered_total 8748
+   lith_prefetch_used_total 366
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 3062
+   lith_s3_bytes_total 7.231823906e+09
+   lith_s3_requests_total{op="get",status="ok"} 9237
+   lith_sibling_prefetch_total 56
+   lith_sibling_prefetch_unread_total 0
+-- chem-inputs (:9113)
+   lith_cache_misses_total 76
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_sum 1.704e-06
+   lith_prefetch_sem_wait_seconds_count 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+   lith_sibling_prefetch_total 2
+   lith_sibling_prefetch_unread_total 0
+-- restarts (:9114)
+   lith_cache_misses_total 31
+   lith_distinct_bytes_read 7.67229952e+08
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_reset_random_total 2
+   lith_prefetch_sem_wait_seconds_sum 4.7128000000000014e-05
+   lith_prefetch_sem_wait_seconds_count 93
+   lith_prefetch_uncovered_total 22
+   lith_prefetch_used_total 716
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 723
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 115
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+HEMCO F    s3=7231.8MB distinct=3697.7MB ampl=1.956x prefetch_used=366/2567 (14.3%) uncovered=8748
+MET   F    s3=3936.0MB distinct=3254.4MB ampl=1.209x prefetch_used=2342/2938 (79.7%)  [control: expect 1.210x]
+
+=== ARM G — HEMCO mount flags: [--readahead-evidence-ratio 32] binary: lith-pr259 ===
+  stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 30994); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 31111); logs: /tmp/lith-1000-mount.log
+  HEMCO arm flags: [--readahead-evidence-ratio 32]
+  HEMCO binary:    /scratch/lith-gates/lith-pr259 (lith pr259-evidence-gate)
+lith mounted in the background (pid 31283); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 31398); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 31514); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  HEMCO ROOT -> /input-lith/HEMCO
+  MetDir  -> /input-lith/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /input-lith/HEMCO
+  ChemDir -> /input-lith/CHEM_INPUTS
+  restart -> /input-lith/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN G ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /input-lith/HEMCO
+RESULT G      init=186.13s sim_end=372.13s to_completion=393.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+=== lith metrics after G ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3141
+   lith_distinct_bytes_read 3.254386688e+09
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2935
+   lith_prefetch_reset_random_total 111
+   lith_prefetch_sem_wait_seconds_sum 0.00023907200000000003
+   lith_prefetch_sem_wait_seconds_count 401
+   lith_prefetch_uncovered_total 3180
+   lith_prefetch_used_total 2338
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 2833
+   lith_s3_bytes_total 3.937588229e+09
+   lith_s3_requests_total{op="get",status="ok"} 3588
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 1
+   lith_distinct_bytes_read 851968
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_sum 0
+   lith_prefetch_sem_wait_seconds_count 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+-- hemco (:9112)
+   lith_cache_misses_total 7748
+   lith_distinct_bytes_read 3.699638272e+09
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 3633
+   lith_prefetch_reset_random_total 321
+   lith_prefetch_sem_wait_seconds_sum 0.000283297
+   lith_prefetch_sem_wait_seconds_count 659
+   lith_prefetch_uncovered_total 8156
+   lith_prefetch_used_total 548
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 3033
+   lith_s3_bytes_total 8.159914276e+09
+   lith_s3_requests_total{op="get",status="ok"} 8827
+   lith_sibling_prefetch_total 57
+   lith_sibling_prefetch_unread_total 0
+-- chem-inputs (:9113)
+   lith_cache_misses_total 79
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_sum 1.598e-06
+   lith_prefetch_sem_wait_seconds_count 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+   lith_sibling_prefetch_total 2
+   lith_sibling_prefetch_unread_total 0
+-- restarts (:9114)
+   lith_cache_misses_total 25
+   lith_distinct_bytes_read 7.67295488e+08
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_reset_random_total 2
+   lith_prefetch_sem_wait_seconds_sum 5.348299999999999e-05
+   lith_prefetch_sem_wait_seconds_count 93
+   lith_prefetch_uncovered_total 16
+   lith_prefetch_used_total 716
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 663
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 109
+   lith_sibling_prefetch_total 0
+   lith_sibling_prefetch_unread_total 0
+HEMCO G    s3=8159.9MB distinct=3699.6MB ampl=2.206x prefetch_used=548/3633 (15.1%) uncovered=8156
+MET   G    s3=3937.6MB distinct=3254.4MB ampl=1.210x prefetch_used=2338/2935 (79.7%)  [control: expect 1.210x]
+
+=== GATE 5b — HEMCO amplification by arm ===
+HEMCO F    s3=7231.8MB distinct=3697.7MB ampl=1.956x prefetch_used=366/2567 (14.3%) uncovered=8748
+MET   F    s3=3936.0MB distinct=3254.4MB ampl=1.209x prefetch_used=2342/2938 (79.7%)  [control: expect 1.210x]
+HEMCO G    s3=8159.9MB distinct=3699.6MB ampl=2.206x prefetch_used=548/3633 (15.1%) uncovered=8156
+MET   G    s3=3937.6MB distinct=3254.4MB ampl=1.210x prefetch_used=2338/2935 (79.7%)  [control: expect 1.210x]
+
+=== correctness: every arm must reproduce gate 5's checkpoint ===
+  banked (gate 5, v1.1.2): f3dd15b2191bbce63dadcbfc100196a6
+  F   f3dd15b2191bbce63dadcbfc100196a6  IDENTICAL
+  G   f3dd15b2191bbce63dadcbfc100196a6  IDENTICAL
+RESULT C      init=188.58s sim_end=374.58s to_completion=395.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT D      init=189.45s sim_end=376.45s to_completion=397.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT E      init=181.93s sim_end=368.93s to_completion=391.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT F0     init=178.80s sim_end=364.80s to_completion=385.1s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT F      init=183.39s sim_end=369.39s to_completion=391.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+RESULT G      init=186.13s sim_end=372.13s to_completion=393.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED

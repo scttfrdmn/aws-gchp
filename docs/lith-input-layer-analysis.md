@@ -116,6 +116,20 @@ unreachable by any flag**, so the remaining prize needs cross-handle state, not
 configuration. Sim wall was 186–187 s in all five arms — a bytes-and-cost finding with no
 in-region performance consequence.
 
+*Gate 5c* then measured upstream's proposed fix — lith PR #259's
+`--readahead-evidence-ratio k`, which bounds a committed window to `k ×` the bytes a
+handle has actually read — on the same workload, and it **confirms 5b's conclusion rather
+than escaping it**. At `k=8` amplification falls to **1.956×**, but prefetch `issued`
+fell 45% while `used` fell **53%**, so the hit rate went **16.7% → 14.3%**: *down*. By
+upstream's own stated criterion ("does `used/issued` move? — that's the one that
+matters") the answer is no. What the gate actually achieves is the static minimum
+window's saving *without* the static pin (`--max-readahead 1` = 1.925×,
+`--readahead-evidence-ratio 8` = 1.956×, 1.5% apart), which is worth shipping as
+ergonomics but is not a precision fix. The non-prefetch residual is now **1219.6–1265.9
+MB across eight fetch policies** spanning 1.895×–2.438× — the strongest number in either
+gate, and the reason ~1.23 GB of HEMCO's traffic is known not to be a prefetch problem at
+all.
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -431,6 +445,17 @@ works on EBS. Low upside, new variable.
    whole-file path `--parts-max 0` does not disable, worth a measured 114.2 MB against a
    180.2 MB ceiling predicted from the manifest. Reported to lith#256; sim wall 186–187 s
    in all five arms.
+8. **Does upstream's proposed fix (lith PR #259) recover the precision?** **MEASURED
+   2026-09-19 — see *Gate 5c* below. No.** Three more arms on the HEMCO mount, served by
+   a head-node build of PR #259 while the four control mounts stayed on released v1.1.3:
+   flag unset reproduces arm A (2.425× vs 2.438×, so off-by-default is inert),
+   `--readahead-evidence-ratio 8` reaches **1.956×** and `32` reaches 2.206×. But
+   `issued` fell 45% while `used` fell 53%, so the hit rate went **16.7% → 14.3%** —
+   evidence accrued by a handle is uncorrelated with whether its prefetch gets used. The
+   knob is the static minimum window's saving without the static pin, which is worth
+   shipping, and is not a precision fix. Checkpoint MD5 identical in all three arms; met
+   control 1.209–1.210×. The demand-read residual is now constant across **eight** fetch
+   policies.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -1603,6 +1628,186 @@ Gate 5b cost ~40 min of one `c8g.48xlarge` across three submissions (A+B, C, the
 D+E). `ARMLIST=` runs any
 subset of arms against the banked checkpoint, so a fourth rung — a hit-rate-gated lith
 build, say — is one submission and ~7 minutes.
+
+## Gate 5c — upstream's fix measured: PR #259 caps volume, not imprecision (2026-09-19)
+
+Gate 5b ended with a specific ask of upstream and a specific prediction from them. They
+shipped **PR #259**, `--readahead-evidence-ratio k`, which bounds a committed readahead
+window to `k ×` the bytes a handle has actually read — applied at establishment, at
+window growth, *and* at re-establishment (because within-handle suppression isn't sticky:
+coverage recovers over the trailing 16-read ring). It is off by default, deliberately,
+since the narrow early window is exactly what lith#56's jump-to-full-window was added to
+avoid. Then they asked for one arm, and predicted its outcome on the record.
+
+That is the ideal shape for a gate: a mechanism, a knob, and a falsifiable prediction
+made before the measurement. This section is the measurement.
+
+### The arms, and why there are three rather than one
+
+`scripts/lith/gate5b-hemco-prefetch-arms.sbatch`, extended. The HEMCO mount is served by
+a head-node build of PR head `85b8102` (go1.27.1 linux-arm64, ldflags-stamped
+`lith pr259-evidence-gate`, sha256 `c697f986…00cf1e`, the PR's own
+`internal/prefetch/evidence_test.go` passing). **The four control mounts stay on released
+v1.1.3**, so met's 1.210× remains comparable to arms A–E instead of moving for two
+reasons at once. Preflight asserts the PR binary *has* the flag and the control binary
+does *not*, so an arm cannot silently run as a duplicate of A.
+
+| arm | HEMCO flags | binary |
+|---|---|---|
+| F0 | defaults (flag unset) | pr259 |
+| F | `--readahead-evidence-ratio 8` | pr259 |
+| G | `--readahead-evidence-ratio 32` | pr259 |
+
+F0 is not ceremony. PR head `85b8102`'s merge-base with `origin/main` is `24b151f`, i.e.
+the PR is main + 1 commit and main is v1.1.3 + #257 + #258 — and **#258 touched
+`internal/fuse/fs.go`**. Without F0, a moved number in F could not be attributed to the
+flag rather than to the 14 commits' worth of binary it arrived in. F0 also tests the claim
+in the PR's own title, that the feature is off by default.
+
+F0/F/G carry no `--parts-max`, `--small-file` or `--max-readahead` flags, on upstream's
+instruction: the gate is meant to *replace* window tuning, not stack on it. Stacking D's
+or E's caps underneath would have made any fall in amplification unattributable.
+
+### Results
+
+| arm | HEMCO flags | binary | s3 MB | ampl | used/issued | hit% |
+|---|---|---|---|---|---|---|
+| A | defaults | v1.1.3 | 9015.2 | 2.438× | 749/4646 | 16.1% |
+| B | `--parts-max 0` | v1.1.3 | 8951.4 | 2.420× | 750/4591 | 16.3% |
+| C | `+--max-readahead 4` (32 MiB) | v1.1.3 | 7897.1 | 2.135× | 424/3264 | 13.0% |
+| D | `+--max-readahead 1` (8 MiB) | v1.1.3 | 7122.3 | 1.925× | — | 13.3% |
+| E | D + `--small-file 0` | v1.1.3 | 7008.1 | 1.895× | — | 13.8% |
+| **F0** | defaults | **pr259** | 8970.9 | **2.425×** | 775/4631 | 16.7% |
+| **F** | `--readahead-evidence-ratio 8` | **pr259** | 7231.8 | **1.956×** | 366/2567 | **14.3%** |
+| **G** | `--readahead-evidence-ratio 32` | **pr259** | 8159.9 | **2.206×** | 548/3633 | 15.1% |
+
+Controls, all three arms: `md5(gcchem_internal_checkpoint)` =
+**`f3dd15b2191bbce63dadcbfc100196a6`**, identical to gate 5's banked value; met mount
+**1.210× / 1.209× / 1.210×** at 79.7–79.8% hit rate; `cap_restart` advanced to 20190702;
+zero read errors, zero fallbacks. Init 178.80 / 183.39 / 186.13 s against arms A–E's
+180.81–189.45 s scatter — F0 is the *fastest* init of all eight arms, which is worth
+noting only because it is noise.
+
+**F0 reproduces A to 0.5%**, so off-by-default is genuinely inert and everything below is
+the flag rather than the branch.
+
+### Upstream's predictions, scored
+
+| prediction | outcome |
+|---|---|
+| HEMCO amplification 1.4–1.8× | **missed (high)**: 1.956× at `k=8` |
+| `used/issued` up materially — *"that's the one that matters"* | **failed**: 16.7% → 14.3%, it went *down* |
+| met unchanged at 1.210× | **held**: 1.209× |
+| init within noise of A | **held**: 183.39 s vs A's 180.81 s |
+| checkpoint MD5 | **held**: identical in all three |
+
+### The mechanism: used fell *faster* than issued
+
+The gate cut prefetch `issued` by **45%** (4631 → 2567) and cut `used` by **53%**
+(775 → 366). Because used fell faster, the hit rate fell rather than rose. That is the
+whole finding, and it is a stronger statement than "the fix didn't work": **accrued
+evidence is uncorrelated with whether a prefetch gets used, and if anything is slightly
+anti-correlated** — the handles that accumulate the most evidence are the ones reading
+HEMCO's *large* files, whose scattered hyperslabs are precisely what the prefetcher cannot
+predict. Gate 5b's 471-object histogram already relocated the bug there (≥84% of distinct
+bytes come from files larger than one block); 5c is the confirmation from the other
+direction.
+
+`k` orders correctly, so the knob does what its help text says — this is not a
+non-functional flag:
+
+| `k` | issued | ampl |
+|---|---|---|
+| 8 | 2567 | 1.956× |
+| 32 | 3633 | 2.206× |
+| off | 4631 | 2.425× |
+
+### What it *is* worth: the static floor without the static pin
+
+```
+D  --max-readahead 1  (a hard 8 MiB pin)     7122.3 MB   1.925×
+F  --readahead-evidence-ratio 8              7231.8 MB   1.956×
+```
+
+Same floor, 1.5% apart. #259 reaches the minimum static window's saving **without**
+pinning readahead for well-behaved readers: a sequential copy still earns the full window
+once it has consumed `max-readahead × block-size / k`. As an ergonomics and safety
+improvement over telling users to set `--max-readahead 1` globally — which would wreck
+`cp`, `tar` and staging on the same mount — that is real, and the recommendation upstream
+is to ship it. The one request made on the PR is that its CHANGELOG **not** describe it as
+answering #256's precision question, because these numbers say it does not.
+
+### The demand floor now survives a sixth policy — and a second *kind* of mechanism
+
+`waste = s3 − distinct`; `unread = (issued − used) × 1 MiB`; `residual = waste − unread`.
+
+| arm | s3 MB | ampl | waste MB | unread MB | **residual MB** |
+|---|---|---|---|---|---|
+| A | 9015.2 | 2.438× | 5317.0 | 4086.3 | **1230.7** |
+| B | 8951.4 | 2.420× | 5252.3 | 4027.6 | **1224.7** |
+| C | 7897.1 | 2.135× | 4197.6 | 2978.0 | **1219.6** |
+| D | 7122.3 | 1.925× | 3423.3 | 2193.6 | **1229.1** |
+| E | 7008.1 | 1.895× | 3309.1 | 2043.7 | **1265.9** |
+| F0 | 8970.9 | 2.425× | 5272.1 | 4043.3 | **1228.8** |
+| F | 7231.8 | 1.956× | 3534.1 | 2307.9 | **1226.2** |
+| G | 8159.9 | 2.206× | 4460.3 | 3234.9 | **1225.4** |
+
+**1219.6–1265.9 MB across eight fetch policies spanning 1.895×–2.438×**, and
+1225.4–1228.8 MB across these three — a 0.3% span. Gate 5b established that constancy
+across window and whole-file knobs; 5c extends it to a mechanism of an entirely different
+kind, which is about as much evidence as this workload can produce that **~1.23 GB of
+HEMCO's traffic is not a prefetch problem at all**.
+
+Its fingerprint is stable too, and every one of these is a counter that *would* have moved
+if the arms were touching it:
+
+| counter | A | F0 | F | G |
+|---|---|---|---|---|
+| `read_straddle_total` | 3055 | 3066 | 3062 | 3033 |
+| `prefetch_reset_random_total` | 332 | 316 | 307 | 321 |
+| `prefetch_window_halved_total` | 0 | 0 | 0 | 0 |
+| `fill_runs_total` | 0 | 0 | 0 | 0 |
+| `prefetch_evicted_unread_total` | 0 | 0 | 0 | 0 |
+
+That ~3060-read straddling population is the same one `internal/fuse/fs.go:740`
+(`if sequential && h.pf.state() == prefetch.Random`) denies byte-exact reads to when a
+handle is *spuriously* established. So the reading from 5b stands: the floor should move
+when classification is fixed, and the target is **~1.0×**, not ~1.9×.
+
+GETs rise as the gate tightens — same bytes wanted, smaller fetches: F0 8166, G 8827,
+F 9237 (A 8183 … E 9259). At in-region rates that is ~$0.004 per run and in-region bytes
+are free, so 5c is the same shape of finding as 5b: **cost and egress, with no performance
+consequence.** Sim-only wall is 186–187 s in all eight arms.
+
+### What is still unresolved, and the one thing that would have helped
+
+**Nothing in the observable metrics distinguishes a window the gate refused from a window
+it never wanted**, because the PR adds no counter for a clamped or denied commitment — the
+only evidence of the gate acting is that `issued` fell, and everything else here is
+inference from it. In particular the question "is the gate firing on the large files or
+the small ones?" is not answerable from the current scrape, and it is the question that
+would say whether an evidence bound could be *made* precise. A
+`lith_prefetch_evidence_clamped_total`, ideally with clamped bytes, was requested on the
+PR.
+
+The precision defect itself is untouched and still needs what 5b concluded: state that
+outlives a handle (per-mount or per-directory-family), plus revisiting the `fs.go:740`
+gate so a misclassified handle is not punished twice.
+
+Gate 5c cost ~31 min of one `c8g.48xlarge` across two submissions (F0, then F+G); the
+head-node Go install and PR build were $0. Artifact:
+`data/lith-gates/gate5c-evidence-gate-arms.txt`.
+
+### A submission trap, not a harness bug
+
+`sbatch --export=ALL,ARMLIST=F0,F,G` **does not do what it looks like**: sbatch splits
+`--export` on commas, so `ARMLIST` was set to `F0` and sbatch then tried to export two
+variables named `F` and `G`. Job 18 ran arm F0 alone, printed a completely correct
+verdict for it, and silently dropped the two arms the job existed to run. Nothing in the
+log was wrong — the submission was. The correct form, now recorded in the harness header,
+is `ARMLIST=F,G sbatch --export=ALL <script>`. This is the mirror image of gate 5b's
+stale-mount lesson: there, the harness refused to produce a number it hadn't earned; here
+it produced a true number for the wrong question, which is harder to notice.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
