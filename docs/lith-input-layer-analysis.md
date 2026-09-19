@@ -147,6 +147,25 @@ metric's null distribution — **2.440× ± 0.022 (CV 0.89%)** — which retroac
 earlier verdict falsifiable rather than eyeballed. The demand-read residual now holds at
 **1219.6–1265.9 MB across twelve policies**.
 
+*Gate 5f* spends nothing and answers both threads upstream was waiting on. The
+**~1.23 GB residual has a mechanism**, and it is not the branch this analysis had been
+pointing at: `GetRange` is already extent-aware, so straddles are innocent, and the floor
+is the in-chunk branch at `fs.go:778-786`, where byte-exact fetching is granted **only** in
+`Random` — a `cold` handle, one the detector has not classified at all, is fetched as if it
+were streaming. Measured on one handle: **17 reads served at 1 MiB apiece for 64 KiB each**
+while the trace shows a 7.27 MB gap on every one of them (`fill_bytes{demand}` factors
+uniquely as `17 × 16 extents + 95 × 1 extent`), invariant to alignment, to
+`--coalesce-gap`, and to a 50× change in `--nic-gbps` — which is exactly why no fetch
+policy ever moved it. Met's residual, computed here for the first time, is **1.7–1.8% of
+distinct against HEMCO's 33%**. A second finding re-units the whole campaign:
+**`used/issued` is a chunk-touch rate, not a byte rate** — 89% reported against ≤25.1%
+byte follow-through on the same reader — so the 79.7%-vs-16.5% gap quoted throughout
+*understates* the real difference, and the pre-registered scoring rule for the offline
+replay scores bytes. On the gateway side, **48 concurrent `O_DIRECT` readers moved 5.37 GB
+client-side and the gateway fetched the object exactly once, to the byte, from the same 21
+GETs** — lith#250's coalescing-gap hypothesis is refuted with a measured upper bound of
+zero. Filed on the way: lith#264, `--pf-trace` accepted, documented, and silently ignored.
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -488,6 +507,29 @@ works on EBS. Low upside, new variable.
    harm (1.210×, 79.7%). Checkpoint MD5 identical in all four arms; residual now constant
    across **twelve** policies; six defaults-equivalent arms give the metric's own scatter at
    **±1%**.
+10. **What *is* the ~1.23 GB residual, then?** **MEASURED 2026-09-19 — see *Gate 5f*
+   below. A per-handle cold-start tax, and it is not in the branch I had been pointing
+   at.** `GetRange` (the straddle path) is already extent-aware, so straddles are
+   innocent; the floor is the in-chunk branch at `fs.go:778-786`, where byte-exactness is
+   granted **only** in `Random` — so a `cold` handle, one the detector has not classified
+   at all, is fetched whole-chunk. Measured on one handle: **17 reads served at 1 MiB for
+   64 KiB each** while the trace shows a 7.27 MB gap on every one of them, and
+   `fill_bytes{demand}` factors uniquely as `17 × 16 extents + 95 × 1 extent`. Invariant
+   to 64 KiB alignment, to `--coalesce-gap`, and to a 50× change in `--nic-gbps` — the
+   signature of the floor that held across twelve fetch policies. Bridge: 1224.3 MB ÷
+   (1 MiB − 64 KiB) = **1245 pre-decision small reads**, falsifiable for free from a real
+   `fh`-grouped trace. Second finding: `used/issued` is a **chunk-touch** rate — 89%
+   reported against ≤25.1% byte follow-through on the same reader — so the met-vs-HEMCO
+   gap quoted all campaign understates the real one. Reported to lith#256; the blocker
+   found on the way (`--pf-trace` silently ignored) is lith#264.
+11. **Does the shared gateway re-fetch bytes under concurrency (lith#250)?** **MEASURED
+   2026-09-19 — see *Gate 5f* below. No, at K=48.** Five arms, one gateway, O_DIRECT
+   readers so the NFS client cache cannot dedupe on lith's behalf: client-side bytes span
+   1× → 48× (5.37 GB) and `s3_bytes` stays at **111,810,271 — the object size exactly, in
+   every arm, from the same 21 GETs**, including the staggered-arrival shape that was the
+   specific worry. Hypothesis 2 is refuted with a measured upper bound of zero bytes;
+   hypothesis 1 (96-vs-48-rank distinct-set growth) is the answer, and the 1.28× gateway
+   saving's assumption is now supported rather than merely unverified.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -2042,6 +2084,134 @@ hypothesis 5 costs a replay rather than a run — and "nothing in recorded reads
 them" becomes a documented-limitation answer reached for free.
 
 Artifact: `data/lith-gates/gate5e-pr261-verify-and-trace-probe.txt`. No cluster spend.
+
+## Gate 5f — the floor is a cold-start tax, and the gateway never re-fetches (2026-09-19)
+
+Both of the threads upstream was waiting on had stalled on the same excuse — "the number
+needs a cluster job" — and neither did. `$0`, head node only, `main` at `c317522`
+(v1.1.3 + #259 + #261 + #263), real `s3://gcgrid` objects, ~600 MB of in-region GETs.
+Artifact: `data/lith-gates/gate5f-floor-mechanism-and-gateway-concurrency.txt`.
+
+### Part A (lith#250) — 48 concurrent readers, zero re-fetch
+
+Re-fetch is a property *inside* one gateway (one gateway is one block store no matter how
+many clients face it), so concurrency on one box tests it. One `serve nfs` daemon, one
+local NFSv3 client, fresh daemon per arm, and every reader on **`O_DIRECT`** so the client
+page cache cannot dedupe on lith's behalf — stricter than two nodes, which have two
+independent client caches.
+
+| arm | K | pattern | `nfs_read_bytes` | `s3_bytes` | GETs |
+|---|---|---|---|---|---|
+| solo | 1 | whole file | 111,810,271 | **111,810,271** | 21 |
+| k8-same | 8 | identical whole file, simultaneous | 894,482,168 | **111,810,271** | 21 |
+| k8-jitter | 8 | identical, starts staggered 0–400 ms | 894,482,168 | **111,810,271** | 21 |
+| k8-stripe | 8 | disjoint 1 MiB stripes | 111,810,271 | **111,810,271** | 21 |
+| k48-same | 48 | identical whole file, simultaneous | 5,366,893,008 | **111,810,271** | 21 |
+
+Client-side bytes span 1× → 48×; S3 bytes do not move by a single byte. **Measured upper
+bound on the coalescing-gap hypothesis: zero bytes**, including the staggered-arrival
+shape that was the specific worry. Untested on one box: two clients with independent page
+caches, and arrival spread wider than 400 ms — neither changes the block store.
+
+Trap for anyone repeating it: without `O_DIRECT` the probe is meaningless, because the NFS
+client serves readers 2..K from its own page cache and the gateway never sees them.
+
+### Part B (lith#256) — the floor: a `cold` handle is fetched as if it were streaming
+
+First, a correction to the pointer this branch has carried since gate 5b: **the straddle
+branch is not the floor.** `BlockStore.GetRange` is extent-aware per chunk (#118), so a
+straddling sub-MiB read is byte-exact and HEMCO's constant 3074 straddles are innocent.
+
+The floor is the in-chunk branch, `fs.go:778-786`:
+
+```go
+sequential := h.footerKind == footer.FormatNone || h.footerStream   // TRUE for every plain handle
+if sequential && h.pf.state() == prefetch.Random {
+    if t := f.byteExactThreshold(); t > 0 && end-off <= t { sequential = false }
+}
+chunk, err := f.store.Chunk(f.ctx, h.key, ci, h.size, lo, hi, sequential)
+```
+
+and in `Chunk`: `if sequential { want = maskForLen(chunkLenOf(ci, objSize)) }` — the whole
+1 MiB chunk. Byte-exactness is granted **only** in `Random`, so a `cold` handle — one the
+detector has not classified at all — pays whole chunks.
+
+128 × 64 KiB reads, each 7 MiB past the last, 64 KiB-aligned, `--prefetch-budget 1MB` so
+readahead cannot confound. The #263 trace:
+
+```
+rows 1-16    cold -> cold      gap = 7,274,496 on every read
+row  17      cold -> random
+rows 18-128  random -> random
+```
+
+`lith_fill_bytes_total{kind="demand"} = 24,051,712` = 367 × 64 KiB over 112 fills, which
+factors **uniquely** as `17 × 16 extents + 95 × 1 extent` — and 17 is exactly the number
+of reads the trace shows in `cold`. So the first 17 reads each paid **1 MiB for 64 KiB**
+while the detector was looking at a 7.27 MB gap every time: **15.94 MiB of waste on one
+handle** against 1.06 MiB requested in that phase.
+
+| arm | alignment | flags | distinct | `s3_bytes` | straddles |
+|---|---|---|---|---|---|
+| b1 | misaligned | defaults | 16,777,216 | 30,277,632 | 15 |
+| b2 | 64 KiB-aligned | defaults | 8,454,144 | **24,051,712** | 0 |
+| b3 | 64 KiB-aligned | `--coalesce-gap 1B` | 8,454,144 | **24,051,712** | 0 |
+| b4 | misaligned | `--coalesce-gap 1B` | 16,777,216 | 30,277,632 | 15 |
+| b5 | 64 KiB-aligned | `--coalesce-gap 1B --nic-gbps 1` | 8,454,144 | **24,051,712** | 0 |
+
+Byte-identical across the coalesce gap and across a 50× change in claimed NIC bandwidth;
+misalignment doubles the extents a read touches (numerator *and* denominator) and leaves
+the cold-phase tax untouched. **Nothing a fetch-policy flag reaches** — which is precisely
+why the residual held at 1219.6–1265.9 MB across twelve policies spanning 1.895–2.461×:
+the granularity commitment is bounded by no evidence, window, or ratio, it is decided by a
+state the handle has not reached yet. Same defect as gate 5d's, one level over —
+"sequential until proven random" where the honest posture is "unknown until proven
+sequential".
+
+Bridge, pre-registered as falsifiable: 1224.3 MB ÷ (1 MiB − 64 KiB) = **1245
+pre-decision small reads** across all HEMCO handles in the 48-rank run; at ≤17 per handle
+that needs ≥73 handles, which a 471-object working set re-opened per timestep under 48
+ranks clears easily. From a real trace: group by `fh`, count `path=window` rows with
+`len ≤ byteExactThreshold` and `state_before=cold`, multiply by (chunk length − extents
+covered). **Prediction 1.0–1.4 GB; below 0.5 GB and the mechanism is wrong.**
+
+Met's residual, computed here for the first time, is what rules out an inherent
+granularity cost: **55.6–59.9 MB (1.7–1.8% of distinct) against HEMCO's 1224–1239 MB
+(33%)**, on the same four arms of the same run.
+
+### Part C (lith#256) — `used/issued` is a chunk-touch rate, and it has been steering us
+
+Same object, same scattered pattern, readahead left on:
+
+```
+lith_prefetch_issued_total            91
+lith_prefetch_used_total              81    -> 89.0% "hit rate"
+lith_fill_bytes_total{kind="whole"}   95,033,055
+lith_fill_bytes_total{kind="demand"}  12,320,768
+lith_distinct_bytes_read              23,855,104
+```
+
+Granting *every* distinct byte to the readahead path, its bytes were read to at most
+**25.1%**; netting out what the demand fills must have served, ~12%. Against **89%**
+reported — a 1 MiB chunk counts as "used" when a 64 KiB read touches it. On met the two
+nearly coincide (a sweep reads its chunks whole), so the **79.7% vs 16.5% gap quoted all
+campaign understates the real difference**, and every arm scored "the hit rate didn't
+move" was scored on the friendlier of the two numbers.
+
+Hence the scoring rule for the replay scorer, pre-registered in writing before either side
+has data (upstream writes the scorer, we capture the traces): score **bytes** — for each
+dispatched block, the fraction of its bytes the same `fh` reads before close; separation
+exists iff a feature from a handle's first k ≤ 8 reads predicts per-handle byte
+follow-through at Spearman |ρ| ≥ 0.5 fit on one arm and tested on another; no separation
+iff best |ρ| < 0.5 **and** met-vs-HEMCO distributions overlap at rank-sum AUC < 0.7.
+
+Blocker found on the way and filed as **lith#264**: `--pf-trace <path>` is accepted,
+documented in `docs/knobs.md`, and **silently ignored** — the flag is bound to a struct
+field in `cmd_mount.go` and never placed in the `fuse.Config` literal at `:392-405`, so
+`fs.go:288` sees `""`, falls through to the env var, and because the path is empty #263's
+new loud-on-failure `ERROR` cannot fire. No file, no warning, exit 0. `LITH_PF_TRACE` still
+works and is what every run here used. It is #262's own failure mode one level up: the
+documented spelling yields silence.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 

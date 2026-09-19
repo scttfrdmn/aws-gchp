@@ -1,0 +1,70 @@
+=== ARM R mode=scatter extra='' ===
+requested_bytes 8388608
+R lith_cache_misses_total 97
+R lith_distinct_bytes_read 1.6777216e+07
+R lith_prefetch_deestablished_total{size_class=">64MiB"} 0
+R lith_prefetch_issued_total 0
+R lith_prefetch_used_total 0
+R lith_read_straddle_total 15
+R lith_s3_bytes_total 3.0277632e+07
+--- R trace: rows by (path,state_before,state_after) ---
+R      16 window,cold,cold
+R       1 window,cold,random
+R     111 window,random,random
+--- R trace: header ---
+R # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=4194304 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+R fh,pid,key,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+=== ARM S mode=estab extra='' ===
+requested_bytes 16777216
+S lith_cache_misses_total 26
+S lith_distinct_bytes_read 2.3855104e+07
+S lith_prefetch_deestablished_total{size_class=">64MiB"} 1
+S lith_prefetch_issued_total 91
+S lith_prefetch_used_total 81
+S lith_read_straddle_total 14
+S lith_s3_bytes_total 1.07353823e+08
+--- S trace: rows by (path,state_before,state_after) ---
+S      76 window,cold,cold
+S       1 window,cold,random
+S       1 window,cold,sequential
+S     102 window,random,random
+S       1 window,sequential,cold
+S       1 window,sequential,sequential
+--- S trace: header ---
+S # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=4194304 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+S fh,pid,key,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+=== ARM Rnopf mode=scatter extra='--prefetch-budget 1MB' ===
+requested_bytes 8388608
+Rnopf lith_cache_misses_total 97
+Rnopf lith_distinct_bytes_read 1.6777216e+07
+Rnopf lith_prefetch_deestablished_total{size_class=">64MiB"} 0
+Rnopf lith_prefetch_issued_total 0
+Rnopf lith_prefetch_used_total 0
+Rnopf lith_read_straddle_total 15
+Rnopf lith_s3_bytes_total 3.0277632e+07
+--- Rnopf trace: rows by (path,state_before,state_after) ---
+Rnopf      16 window,cold,cold
+Rnopf       1 window,cold,random
+Rnopf     111 window,random,random
+--- Rnopf trace: header ---
+Rnopf # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=4194304 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+Rnopf fh,pid,key,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+=== ARM Snopf mode=estab extra='--prefetch-budget 1MB' ===
+requested_bytes 16777216
+Snopf lith_cache_misses_total 89
+Snopf lith_distinct_bytes_read 2.3855104e+07
+Snopf lith_prefetch_deestablished_total{size_class=">64MiB"} 1
+Snopf lith_prefetch_issued_total 16
+Snopf lith_prefetch_used_total 16
+Snopf lith_read_straddle_total 14
+Snopf lith_s3_bytes_total 4.9086464e+07
+--- Snopf trace: rows by (path,state_before,state_after) ---
+Snopf      76 window,cold,cold
+Snopf       1 window,cold,random
+Snopf       1 window,cold,sequential
+Snopf     102 window,random,random
+Snopf       1 window,sequential,cold
+Snopf       1 window,sequential,sequential
+--- Snopf trace: header ---
+Snopf # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=4194304 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+Snopf fh,pid,key,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
