@@ -1,0 +1,123 @@
+GATE 5e — PR #261 verification and the LITH_PF_TRACE probe ($0, head node only)
+===============================================================================
+Date:    2026-09-19
+Where:   gchp-lith-ab head node, c7g.4xlarge (aarch64), go1.27.1 arm64
+Spend:   $0 — no compute node, no GCHP run. Real s3://gcgrid reads (in-region, free
+         bytes; a few hundred GETs).
+Builds:  /scratch/lith-gates/lith-pr261 from refs/pull/261/head = e8d41ed
+         (base main = 41322f4, i.e. #259 merged, #260 closed unmerged)
+
+WHY
+---
+After gate 5d, upstream closed #260 (withdrawn) and opened #261, which keeps the
+`deEstablished` counter that refuted it and fixes the zero-series papercut I reported.
+Two things needed checking before endorsing it, and both are free:
+
+  1. does the zero-emit fix actually work on a live mount, not just in a unit test?
+  2. do MY measured numbers (HEMCO 10-17, met 51) transfer to #261's counter? The
+     CHANGELOG, the Prometheus Help string and the field comment all now cite them as
+     properties of this counter, and the PR describes itself as replacing "three bare
+     `established = false` assignments". One extra counting site would silently
+     invalidate the documented inversion while looking like a pure refactor.
+
+1. ZERO-EMIT FIX: VERIFIED END-TO-END
+-------------------------------------
+Same object both arms (HEMCO/OFFLINE_DUST/v2019-01/0.25x0.3125/2014/01/
+dust_emissions_025.20140101.nc, 2 572 196 B), same flags (--nic-gbps 7.5, --mem-cache
+2GB, no fetch-policy flags), read sequentially to EOF with dd — so zero clamps and zero
+de-establishments, the exact case that emitted nothing before.
+
+  binary                             labelled series present after a real read
+  lith-pr260 (early return on <=0)   0   (only the UNLABELLED
+                                         lith_prefetch_evidence_withheld_blocks_total 0)
+  lith-pr261 (touch child at zero)   2   lith_prefetch_deestablished_total{
+                                           size_class="<=4MiB"} 0
+                                         lith_prefetch_evidence_clamped_total{
+                                           size_class="<=4MiB"} 0
+
+The unlabelled sibling being present at zero in BOTH arms is what made the trap
+invisible: the metric's own neighbour behaved correctly.
+
+`go test -race` green on ./internal/prefetch/ ./internal/metrics/ ./internal/fuse/ and
+on the full suite.
+
+2. COUNTING SEMANTICS: THE NUMBERS DO TRANSFER
+----------------------------------------------
+Bare `p.established = false` sites and which tree counts them:
+
+  origin/main   :323 (Open)  :401  :454  :465          -- none counted (no deEstablish)
+  pr260         :371 (Open) bare; :449, :514, :525 -> deEstablish();
+                :461 bare (inside the suppression block, correctly not a de-establishment)
+  pr261         :353 (Open) bare; :431, :484, :495 -> deEstablish()
+
+pr260's three counting sites and pr261's three are the SAME three events:
+  - a contiguous read whose trailing coverage fails (main :401 / pr260 :449 / pr261 :431)
+  - the #229 coverage gate on a scattered landing (:454 / :514 / :484)
+  - a second unexplained jump with no progress between (:465 / :525 / :495)
+`Open()` stays uncounted in both (established is false there anyway).
+
+=> gate 5d's HEMCO 10/17/12/15 and met's 51 are properties of the counter as #261 will
+merge it, and the CHANGELOG citation is sound. Invariant worth guarding: if
+`deEstablished` ever grows a fourth call site, the numbers in the Help string go wrong
+silently -- and that text is now what tells an operator a HIGH value is a GOOD sign.
+
+3. THE OFFLINE INSTRUMENT ALREADY EXISTS: LITH_PF_TRACE
+-------------------------------------------------------
+Upstream's stated next step is offline: find what predicts prefetch follow-through from
+a recorded read trace, rather than buying a GCHP run per hypothesis (four hypotheses so
+far, ~35 min of a c8g.48xlarge each). `LITH_PF_TRACE=<path>` does most of that already
+and is present in v1.1.3, main and the PR (internal/fuse/fs.go:283, tracePF :294,
+called :785). One CSV row per read:
+
+  key,off,len,blk,gap,state_before,state_after,peak_window
+
+Probe on a real 106 MiB HEMCO object (AEIC/v2015-01/AEIC.nc), three single-handle
+patterns driven by os.pread on one fd (so each pattern is ONE handle, unlike dd):
+
+  pattern                          rows  transitions recorded                deestab
+  contiguous 24 MiB                 193  cold->sequential                      0
+  40 x 1 MiB at 2.5 MiB stride      270  cold->seq, seq->cold, cold->seq       1
+  6 x (6 MiB run + 37 MiB jump)     113  cold->random, random->sequential      1
+
+So the detector's decisions are observable and the counter agrees with the trace.
+(Probe caveat, stated because it limits what the numbers mean: after the first phase the
+106 MiB object was cache-resident -- issued stayed at 91 while used grew 9 -> 69 -> 74 --
+so this demonstrates the INSTRUMENT, it does not measure HEMCO's real pattern.)
+
+Three gaps, filed as lith#262:
+  (1) NO HANDLE DISCRIMINATOR. Rows carry `key`, not a handle. Three sequential handles
+      on one object gave 576 rows under one key with nothing to separate them; under the
+      real workload 48 ranks funnel through one daemon and ExtData re-opens the same
+      files every timestep, so it is dozens interleaved. Since the prefetcher is per
+      `Open` (fs.go:562), the trace cannot be grouped by the thing that decides. An `fh`
+      column fixes it; `pid` would also let a multi-rank trace split by rank.
+  (2) READS SILENTLY OMITTED. fs.go:772 skips the prefetcher -- and therefore the trace
+      -- while a whole-file parts fetch is in flight, and for footer-family handles.
+      Defensible for the prefetcher, but it makes the trace a BIASED SAMPLE with no
+      marker: on HEMCO, `parts-max auto` resolves to 64 MiB at --nic-gbps 50 and 202 of
+      471 manifest objects are >32 MiB, so the omitted reads are a large non-random
+      share of the bytes.
+  (3) NO DISPATCH/WINDOW RECORD. Follow-through must be re-derived by replaying rows
+      through prefetch.Prefetcher and scoring dispatched blocks against each handle's
+      FUTURE reads. Replay is the right design (policy-independent trace, evaluate any
+      candidate offline) but it needs the mount config in force (a header line) to
+      construct the same prefetcher, and a `window`/dispatch-count column to validate
+      the replay's fidelity before trusting its verdict on a new policy.
+  Minor: undocumented outside a struct comment; os.Create silently truncates and
+  silently no-ops on error (a typo'd path = an empty trace and a successful-looking
+  run); unbounded and serialized under one mutex, so leaving it on in production adds a
+  global lock to every read.
+
+WHAT THIS BUYS
+--------------
+With (1) and (2), the real 48-rank C24 fullchem trace can be captured at ZERO marginal
+cost on an already-scheduled job, for the pathological mount (HEMCO, 16.5% hit, 2.405x)
+and the healthy control (met, 79.7%, 1.210x) in the SAME process -- which is the
+comparison the follow-through question needs. Then hypothesis 5 costs a replay instead
+of a cluster run, and if nothing in recorded reads separates met's handles from HEMCO's,
+that is the documented-limitation answer reached for free.
+
+REPORTED
+--------
+lith#262 (new issue, the three gaps), PR #261 review comment (verification + the
+counting-semantics check), lith#256 pointer comment.

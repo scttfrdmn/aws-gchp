@@ -1996,6 +1996,53 @@ Gate 5d cost one submission, four GCHP runs, ~35 min of one `c8g.48xlarge`; the 
 $0. Artifacts: `data/lith-gates/gate5d-reestablish-cap-arms.txt`,
 `data/lith-gates/gate5d-arms-job20.log`.
 
+### Aftermath, all of it free: #260 withdrawn, #261 verified, and the instrument for the next question already exists
+
+Upstream closed #260 and opened **#261**, which withdraws the cap, keeps the
+`deEstablished` counter that refuted it, and fixes the zero-series papercut. Two things
+were worth checking before endorsing it, both $0 on the head node.
+
+**The zero-emit fix works end to end.** Same real HEMCO object, same flags, read
+sequentially to EOF so there are no clamps and no de-establishments — the exact case that
+emitted nothing before: the #260 build produces **0** labelled series, the #261 build
+produces **2 at value 0**. The unlabelled sibling
+(`lith_prefetch_evidence_withheld_blocks_total 0`) was present in *both*, which is what
+made the trap invisible in the first place — the metric's own neighbour behaved correctly.
+`go test -race` green on the full suite (aarch64).
+
+**Gate 5d's numbers do transfer to the merged counter**, which mattered because the
+CHANGELOG, the Prometheus `Help` string and the field comment all now cite HEMCO's 10 and
+met's 51 as properties of it, and the PR describes itself as replacing "three bare
+`established = false` assignments". `main` has four bare sites (`:323` in `Open`, `:401`,
+`:454`, `:465`); #260 counted `:449`/`:514`/`:525`; #261 counts `:431`/`:484`/`:495` — the
+same three events (contiguous-read coverage failure, #229 scattered landing, second
+unexplained jump), with `Open` uncounted in both. A fourth call site would silently
+falsify the `Help` text, which is now what tells an operator that a *high* value is a good
+sign.
+
+**And the instrument upstream's next step needs is already in the tree, undocumented.**
+Their plan is to establish offline what predicts follow-through, from a recorded read
+trace, instead of buying a ~35-minute cluster job per hypothesis. `LITH_PF_TRACE=<path>`
+(`internal/fuse/fs.go:283`, `tracePF` at `:294`, called at `:785`) has shipped since before
+v1.1.3 and writes one row per read: `key,off,len,blk,gap,state_before,state_after,peak_window`.
+Probed on a real 106 MiB HEMCO object with three single-handle patterns via `os.pread`, it
+records exactly the decisions at issue — a 40 × 1 MiB stride walk gives `cold → sequential`,
+`sequential → cold`, `cold → sequential` and a matching `deestablished` increment.
+
+Three gaps stop it from answering the question, filed as **lith#262**: rows carry `key` and
+no handle discriminator (three handles on one object gave 576 unseparable rows, and under
+48 ranks through one daemon it is dozens interleaved — fatal when the prefetcher is
+per-`Open`); `fs.go:772` skips the prefetcher, and therefore the trace, while a whole-file
+parts fetch is in flight, so on this mount the trace is a **biased sample with no marker**
+(`parts-max auto` = 64 MiB at `--nic-gbps 50`, and 202 of 471 manifest objects are >32 MiB);
+and there is no window/dispatch record to validate an offline replay against. With the first
+two, the real 48-rank trace for the pathological mount *and* the healthy control can be
+captured in the same process at zero marginal cost on an already-scheduled job, after which
+hypothesis 5 costs a replay rather than a run — and "nothing in recorded reads separates
+them" becomes a documented-limitation answer reached for free.
+
+Artifact: `data/lith-gates/gate5e-pr261-verify-and-trace-probe.txt`. No cluster spend.
+
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
 Head node only, no cluster spend. `scripts/lith/gate233-block0-probe.sh`, lith
