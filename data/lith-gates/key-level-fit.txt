@@ -1,0 +1,94 @@
+THE #256 RULE AT THE KEY LEVEL — pre-registration
+==================================================
+2026-09-20. $0: offline, on capture 2's four banked traces. No cluster run.
+Written and committed BEFORE the scorer existed. Results append below, under RESULTS.
+
+WHY THIS CUT
+
+  The shared-cache replay found that 84-85% of all redeemed prefetch bytes are read by a
+  DIFFERENT handle than the one that fetched them. If follow-through is not a property of
+  the handle, then a predictor of it — if one exists — is a property of the OBJECT's access
+  pattern across all its readers. Upstream (lith#256) accepted the shared unit as #274 and
+  asked for exactly this cut, plus one thing more:
+
+    "the same features scored against the COLD-START waste rather than follow-through. If a
+     key-level feature predicts which objects pay the ~121x entry fee, that is directly the
+     eligibility signal an object-scoped hint would key on."
+
+  So there are two targets, and the second is the one that matters: the floor is the
+  confirmed half (P5, ~1.23 GB, now agreed by live counters across twelve policies and by
+  the offline replay to within 8%), and an object-scoped granularity hint is the only fix
+  direction still standing after twelve fetch-policy flags failed to move it.
+
+THE UNIT AND THE ROW
+
+  One row per (label, arm, key). 204 keys on HEMCO, 12 on met. Targets and cold waste come
+  from globalScore's shared-cache accounting, attributed per key instead of per handle — the
+  same dedup, the same EOF clamp, the same first-run-cold rule, no second definition.
+
+  FULL features use all of a key's reads. EARLY features use only the key's first k=8 reads
+  in mount-wide `seq` order. The distinction is the whole point of actionability: a hint has
+  to be decided from what is known when the object is first touched, not from the run's
+  history. A FULL-feature correlation is description; an EARLY-feature correlation is a
+  candidate policy.
+
+TARGETS
+
+  T1  follow_through          usedBytes / dispatchedBytes for the key (shared unit)
+  T2  cold_waste_bytes        the key's deduped first-run cold net waste (raw bytes)
+  T3  cold_waste_per_distinct T2 / distinct bytes read on the key — the key-level analogue
+                              of the mount-level headline (HEMCO 33% vs met 1.8%)
+
+  T2 is scale-dependent by construction (a bigger object can waste more), so T3 is the
+  binding target. Registered now so T2's rho cannot be quoted as the finding later.
+
+FEATURES (both FULL and EARLY/first-8)
+
+  readers, reads, reads_per_reader, mean_read_kib, frac_small (len <= byte-exact threshold
+  AND < chunk, i.e. the cold tax's own eligibility test), distinct_frac (union bytes read /
+  object size), span_frac, overlap_frac (1 - union / sum of per-reader distinct: 0 = readers
+  partition the object, ->1 = they replicate each other), frac_monotonic_mount,
+  mean_abs_gap_blocks_mount, interleave (fraction of consecutive reads on the key that come
+  from a different handle), frac_straddle.
+
+  overlap_frac and interleave are the two that cannot exist at the handle level. They are
+  the reason to do this at all.
+
+PREDICTIONS, with falsifiers
+
+  K1  T1: distinct_frac is the best FULL predictor, rho >= +0.5 on both HEMCO arms.
+      Falsifier: |rho| < 0.3.
+  K2  T2: readers gives |rho| >= 0.5 — expected and near-mechanical (more readers, more cold
+      entries). Declared in advance as NOT a finding; it is a sanity check on the plumbing.
+  K3  T3: frac_small is the best predictor, rho >= +0.5 on both HEMCO arms.
+      Falsifier: |rho| < 0.3, which would mean there is no key-level eligibility signal on
+      the target that matters — a negative result, and still worth posting.
+  K4  actionability: the best EARLY |rho| on T3 is >= 0.7x the best FULL |rho| on T3.
+      Falsifier: < 0.5x, which says the first 8 reads of an object do not reveal whether it
+      will pay the tax, and an object-scoped hint would need a static rule (path family,
+      size class) rather than an online one.
+  K5  concentration: the top 10% of HEMCO keys hold >= 50% of HEMCO's cold waste.
+      Falsifier: < 30%. This one matters independently of every rho: if the floor is
+      concentrated, a mediocre predictor plus a small hint budget still recovers most of it.
+  K6  recovery-at-budget: ranking keys by the best EARLY feature and hinting the top 10% of
+      keys recovers >= 50% of what the ORACLE ranking (rank by actual waste) recovers at the
+      same budget. Falsifier: < 25%. This is K3/K4 restated in the units of the fix, and it
+      is the number an implementer would actually want.
+  K7  met: n=12 keys. Below any usable n on both minDistinct and --min-n. Met's rho values
+      are reported as a control but MUST NOT be counted toward a verdict, and met's failure
+      to fit is not evidence of anything. Registered so it cannot be cherry-picked either
+      way after the fact.
+
+  Cross-arm rule, as upstream's: a feature counts only if both arms agree in sign and both
+  clear the threshold, and upstream's own `degenerate` gate (>= minDistinct distinct values
+  on both axes) applies unchanged.
+
+WHAT THIS CANNOT SETTLE, KNOWN IN ADVANCE
+
+  - No eviction, inherited from the shared-cache pass: an upper bound on redemption, tight
+    on these traces (3.0/3.4 GiB distinct vs 24/32 GB cache) and unsafe in general.
+  - A key-level correlation is not a mechanism. Even K3+K4+K6 all passing would license a
+    HINT experiment, not a claim about what lith should do by default.
+  - The traces are one workload (GCHP 14.7.1 C24 fullchem, 48 ranks) on two mounts. The
+    arms are re-runs of the same workload, so cross-arm agreement tests reproducibility,
+    NOT generalisation to other readers.
