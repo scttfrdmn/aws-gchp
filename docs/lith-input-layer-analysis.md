@@ -292,6 +292,35 @@ per-handle, free mount-wide. What strengthens instead is the between-*mount* sep
 has nothing to govern on. Prerequisite nobody had noticed in three gates of using the format: the
 scorer **never parsed the `key` column**, unused since #262.
 
+**The key-level fit** (2026-09-20, $0) takes the obvious consequence — if 84–85% of the payoff
+belongs to another handle, the predictor is a property of the *object* — and upstream asked for it
+plus one thing more: the same features scored against the **cold-start waste**, because that is the
+confirmed half. Both answers land, and the second one closes the eligibility question the fix
+direction turned on. On the tax, the predictor is **coverage**: `distinct_frac` ρ **−0.689/−0.707**
+on HEMCO, both arms, same sign — and it survives the shared-denominator objection by permutation
+null (2,000 shuffles; null mean **+0.172**, 95% [+0.036, +0.303], p < 0.0005), because ρ(D,W)=+0.55
+means the shared term induces a *positive* correlation the finding is achieved against. So the
+objects that pay the ~121× entry fee are the ones their readers touch **sparsely** — not the ones
+with many readers (+0.35), out-of-order reads (+0.29), or interleaved readers (−0.33). That forces a
+correction on this campaign's own story: **HEMCO is not "the mount with small scattered reads."**
+`frac_small` is a constant **1.000** on all 216 objects of *both* mounts, median read size is
+**104 KiB (HEMCO) vs 122 KiB (met)**, and both read their objects end-to-end in span — the whole
+difference is coverage, **0.161 vs 0.647**. Every earlier description of that contrast in read-size
+terms was reading the wrong column. The byte-level mechanism, verified against the raw traces
+independently of the scorer: `overlap_frac` is **exactly 0 on all 216 objects** — readers partition
+each object byte for byte, zero redundant reading — while **47.2%** of HEMCO's touched 1 MiB chunks
+are touched by more than one handle (met 20.0%). The waste is granularity and nothing else. What an
+implementer gets, though, is **less than the ρ suggests**: the floor is diffuse (K5 falsified — top
+10% of objects hold **21.8%**, not ≥50%; 58 of 204 hold half), the top 10% *largest* objects hold
+18.7% of the waste against **31.9% of the bytes** so size-ranking recovers less than its own byte
+share, and every rule that catches the floor fires on **70–80% of the working set**
+(`coverage < 0.25` → 96.1% of the floor from 142 of 204 objects). **An object-scoped allow-list is
+not the fix**; gate 5f's "unknown until proven sequential" stands unchanged and unnarrowed. Also
+settled in passing: upstream's report that #274's conditional-`Open()` brought the cold waste closer
+to live was a **unit confusion** — 1257.3 MiB *is* 1318.4 MB, this run reproduces it bit-identically
+on their tree, and the fix moved that number by **zero**. What it did fix is **fidelity**: the
+10/6,229 and 9/6,248 diverging handles are gone, all four traces now replay clean.
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -761,6 +790,35 @@ works on EBS. Low upside, new variable.
    population** — per-handle ρ survives on exactly the handles the shared pass scores
    (**+0.609/+0.634**) while shared ρ on those same handles is **+0.167/+0.184**. Prerequisite
    nobody had noticed: the scorer never parsed the `key` column, unused since #262.
+
+18. **If follow-through belongs to the object, does an object-level feature predict who pays the
+   cold tax — i.e. is there an eligibility signal a granularity hint could key on?** **ANSWERED
+   2026-09-20, $0 (same banked traces, upstream's own #274 tree) — see *The key-level fit* below.
+   YES, the signal exists and reproduces; NO, it does not license the hint.** One row per object
+   (204 HEMCO, 12 met), targets taken from the shared-cache accounting itself so the dedup, EOF
+   clamp and first-run-cold rule cannot drift between units (per-key sums reproduce the mount
+   totals exactly). On the binding target — cold waste per byte actually read — the predictor is
+   **coverage**: `distinct_frac` ρ **−0.689 / −0.707**, both HEMCO arms, and it survives the
+   shared-denominator objection by permutation null (2,000 shuffles, W shuffled with D and S left
+   attached: null mean **+0.172**, 95% [+0.036, +0.303], p < 0.0005) — the artifact runs the *other
+   way*, because ρ(D,W) = +0.55. So the objects that pay the ~121× entry fee are the **sparsely
+   covered** ones, not the many-reader (+0.35), out-of-order (+0.29) or interleaved (−0.33) ones.
+   Two corrections fall out. **This campaign's own story was wrong about read size**: `frac_small`
+   is a constant **1.000** on all 216 objects of *both* mounts, mean read **104 KiB (HEMCO) vs
+   122 KiB (met)**, `span_frac` 1.000 both — HEMCO is not the small-scattered-reads mount, it is
+   the **low-coverage** mount (**0.161 vs 0.647**). And the mechanism is granularity alone:
+   `overlap_frac` is **exactly 0 on all 216 objects** (readers partition each object byte for byte)
+   while **47.2%** of HEMCO's touched 1 MiB chunks are shared (met 20.0%). But the implementer's
+   answer is negative: the floor is **diffuse** (top 10% of objects = **21.8%**, not ≥50%; 58 of
+   204 hold half), roughly size-proportional — the 10% largest hold 18.7% of the waste against
+   **31.9% of the bytes**, so size-ranking recovers less than its own byte share — and every rule
+   that catches the floor fires on **70–81%** of the working set (`coverage<0.25` → 96.1% of the
+   floor on 142/204 objects, and on 6 of met's 12 too). **An object-scoped allow-list is not the
+   fix**; gate 5f's "unknown until proven sequential" stands unnarrowed. Also: upstream's
+   attribution of a closer cold-waste estimate to #274's conditional-`Open()` was a **MiB/MB
+   mixup** (1257.3 MiB *is* 1318.4 MB; reproduced bit-identically on their tree) — the fix moved
+   that number by **zero**, but it did fix **fidelity**, retiring the 10/6,229 + 9/6,248 diverging
+   handles carried over from the capture.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -3181,12 +3239,217 @@ the accounting side. A per-handle governor has nothing to govern on.
   on a trace whose distinct bytes approach the cache size.
 - The residual 10/6,229 and 9/6,248 HEMCO fidelity mismatches are untouched and still
   unlocalised — upstream has the ask (per-`fh` divergence output, `--only-fh`).
+  *Retired 2026-09-20:* #274's conditional-`Open()` fixed them; all four traces now replay
+  with zero mismatches.
 - **The next free question, not yet asked:** fit the #256 rule at the **key** level. If
   follow-through is a property of the object rather than the handle — which 84%
   cross-handle redemption implies — then the predictor, if one exists, is a feature of a
   key's access pattern across all its readers, and the tool computes no per-key features yet.
+  *Asked and answered below — upstream asked for the same cut, plus the cold-tax target.*
 - Offered upstream on #256 as a patch, not a claim. The accounting is their code; if they
   reject the unit, the numbers above go with it.
+
+## The key-level fit — coverage, not concurrency (2026-09-20)
+
+$0. Offline, on capture 2's four banked traces, on **upstream's own PR #274 tree** (`b3d78d8`, the
+shared-cache patch as they merged it). Pre-registered in `data/lith-gates/key-level-fit.txt` and
+committed as `f82a3ef` **before the scorer existed**.
+
+Upstream took the shared unit as #274 and asked for exactly the cut the previous section had named
+as the next free question, plus one thing more:
+
+> That's the right next cut and it follows from your 84–85% cross-handle redemption: if
+> follow-through belongs to the object, the predictor is a property of a key's access pattern across
+> all its readers. […] One thing I'd ask for in the same run: the same features scored against the
+> **cold-start** waste rather than follow-through. […] If a key-level feature predicts which objects
+> pay the ~121× entry fee, that is directly the eligibility signal an object-scoped hint would key
+> on — the fix direction you identified and the only one still standing.
+
+That second target is the one that matters. The floor is the **confirmed** half (~1.23 GB, agreed by
+live counters across twelve policies and by the offline replay to within 8%), and after twelve
+fetch-policy flags failed to move it, an object-scoped granularity hint is the only direction left.
+
+### First, a correction to upstream's #274 note
+
+Upstream reported the replay's cold waste as *"1,257.3 and 1,259.4 MiB here, closer to the live
+1,224–1,239 MB than your 1,318/1,321 — the difference is #274's conditional-`Open()` fix."*
+
+**1257.3 MiB *is* 1318.4 MB.** 1259.4 MiB is 1320.6 MB. Same two numbers, different units — and
+this run, on their tree, reproduces them bit-identically. The live figures are decimal MB (the
+twelve-policy table's first column is `lith_s3_bytes_total`/1e6: `8.891096602e+09` → 8891.1), so the
+honest comparison is the banked one: 1318.4 MB replay vs 1224.3 MB measured = **7.7% high**.
+
+So #274's conditional-`Open()` moved the cold-waste estimate by **zero**. What it *did* fix is
+**fidelity**: HEMCO's 10/6,229 and 9/6,248 diverging handles are gone, all four traces replay with
+zero mismatches, and the key-level pass reports 0 objects with a diverged reader. That is the real
+improvement and it is the one worth crediting — it also retires an open item from the section above.
+
+### The unit, and why the plumbing was checked first
+
+One row per `(label, arm, key)` — 204 objects on HEMCO, 12 on met. Targets come out of
+`globalScore`'s own loops (a fourth return value: per-key aggregates), not from a second
+implementation, so the dedup, the EOF clamp and the first-run-cold rule **cannot drift between
+units**. Summed over keys the pass reproduces the mount totals exactly: HEMCO 4822.8 MiB dispatched
+/ 607.4 used / 0.126 follow-through / 1257.3 MiB cold net waste; met 3185.3 / 2362.6 / 0.742 / 48.7.
+The last three gates each found a defect in an instrument before finding anything about lith, so
+this check came before any fit.
+
+Three targets, registered in advance: **T1** `follow_through` = used/dispatched; **T2**
+`cold_waste_bytes` (raw, scale-dependent by construction and declared *not* the finding); **T3**
+`cold_waste_per_distinct` = W/D, the key-level analogue of the mount headline (HEMCO 33% vs met
+1.8%) and the binding target. Features computed **FULL** (all of a key's reads) and **EARLY**
+(first k=8 in mount-wide `seq` order), because a granularity hint has to be decided from what is
+known when the object is first touched: a FULL correlation is description, an EARLY one is a
+candidate policy. `overlap_frac` and `interleave` cannot exist at the handle level at all — they are
+the reason to do this.
+
+### The answer: coverage
+
+On T3, both HEMCO arms:
+
+| feature (FULL) | hemco/a | hemco/b | counts? |
+|---|---|---|---|
+| `distinct_frac` | **−0.689** | **−0.707** | **YES** — both arms, same sign |
+| `interleave` | −0.328 | −0.328 | no |
+| `readers` | +0.349 | +0.288 | no |
+| `mean_abs_gap_blocks` | +0.295 | +0.295 | no |
+| `reads_per_reader` | +0.088 | +0.107 | no |
+
+`distinct_frac` shares a term with the target (T3 = W/D, feature = D/S), so the sign could in
+principle be induced. Permutation null, 2,000 shuffles of W per arm with D and S left attached to
+their objects (`scripts/lith/keylevel-artifact-null.py`):
+
+```
+null mean +0.172, 95% [+0.036, +0.303], p(null <= observed) < 0.0005 on both arms
+```
+
+**The artifact runs the other way.** Because ρ(D, W) = +0.55, the shared denominator induces a
+*positive* correlation, and the observed −0.689 is achieved against it. The artifact-free version of
+the same claim, ρ(`distinct_frac`, raw W), is −0.469/−0.476 — just under the bar, which is precisely
+why the null test is what licenses quoting the normalised figure rather than the raw one.
+
+So the objects that pay the entry fee are the ones their readers touch **sparsely**. Not the ones
+with many readers, not the ones read out of order, not the ones whose readers interleave.
+
+### The correction this forces on this campaign's own story
+
+Per-class medians of the FULL features:
+
+| feature | met | HEMCO | |
+|---|---|---|---|
+| `frac_small` | 1.000 | 1.000 | identical — and *constant* on every object |
+| `mean_read_kib` | 122.0 | 103.8 | essentially the same read size |
+| `span_frac` | 1.000 | 1.000 | both read end-to-end in span |
+| `distinct_frac` | **0.647** | **0.161** | ← the difference |
+| `readers` | 52 | 33 | |
+| `interleave` | 0.494 | 0.787 | |
+
+**HEMCO is not "the mount that does small scattered reads."** Met's reads are the same size and just
+as sub-chunk, and both mounts touch their objects beginning to end. HEMCO is the mount with **low
+coverage**: it reads 16% of each object where met reads 65%. Met's many small reads eventually pay
+for the chunks they fetch; HEMCO's never do. Every earlier description of this contrast in read-size
+terms was reading the wrong column.
+
+That also explains the sequential detector's behaviour with no appeal to interleaving at all:
+HEMCO's access is monotone (`frac_monotonic` 0.741) across the object's full span, so "sequential"
+is the *correct* classification and prefetch fires — it is just that 93% of what it fetches is never
+read, because the reader is walking a **sparse hyperslab**.
+
+And the byte-level mechanism, verified independently of the scorer against the raw traces:
+`overlap_frac` is **exactly 0 on all 216 objects of both mounts** — readers partition each object
+byte for byte, zero redundant reading anywhere — while **47.2%** of HEMCO's touched 1 MiB chunks are
+touched by more than one handle (met 20.0%). The waste is not duplicated reads. It is granularity,
+and nothing else.
+
+### What an implementer gets, which is less than the ρ suggests
+
+Recovery at budget: rank objects, hint the top N%, sum the waste those objects actually carry. The
+oracle ranks by the waste itself.
+
+| budget | oracle | EARLY `distinct_frac` | `obj_size`\* (post-hoc) |
+|---|---|---|---|
+| top 5% | 12.5% | 7.6–8.1% (0.60–0.64) | 9.8–10.1% (0.78–0.81) |
+| top 10% | 21.8% | 15.6–16.5% (0.72–0.76) | 19.5–19.7% (0.90) |
+| top 25% | 45.1% | 37.4–40.5% (0.83–0.90) | 37.9–38.0% (0.84) |
+
+`obj_size` is the most actionable candidate of all — the mount knows it at `open()`, before a single
+read — and recovers 0.90 of the oracle at a 10% budget. But the oracle itself is weak, and worse:
+**the top 10% largest HEMCO objects hold 18.7% of the waste and 31.9% of the bytes.** Size-ranking
+recovers *less* than its own byte share. It looks good only against a ceiling that is itself low.
+
+Stated as implementable rules, on HEMCO:
+
+| rule | objects hinted | share of the floor caught |
+|---|---|---|
+| `coverage < 0.25` | 142 / 204 (70%) | 96.1% |
+| `coverage < 0.50` | 151 / 204 (74%) | 99.6% |
+| `size > 32 MiB` | 145 / 204 (71%) | 97.9% |
+| `size > 8 MiB` | 165 / 204 (81%) | 100.0% |
+
+Any rule that catches the floor fires on ~70–80% of the working set. And it is not self-limiting to
+the pathological mount: `coverage < 0.25` fires on **6 of met's 12 objects** too (94.7% of met's
+much smaller floor).
+
+**Conclusion, and it is the same one from the other direction: an object-scoped allow-list is not
+the fix.** A predictor of the tax exists at the key level, it reproduces across arms, it survives a
+null — and it still does not license a small hint set, because what it predicts is a property of
+essentially the whole HEMCO working set. The fix direction gate 5f named stands unchanged and
+unnarrowed: make the granularity commitment conditional on evidence ("unknown until proven
+sequential") rather than attaching hints to objects.
+
+### What does change for #256
+
+**The rule was being fit at the wrong level.** At the handle level in the shared unit the best
+feature was `frac_monotonic` at +0.441 (PARTIAL, nothing qualifying). At the key level, on the same
+traces, the same code and the same fidelity filter, two features qualify on two arms each:
+`reads_per_reader` (+0.615/+0.627) on follow-through and `distinct_frac` (−0.689/−0.707) on the cold
+tax.
+
+With the caveat that matters for T1: `reads_per_reader` is partly definitional — an object nobody
+reads again cannot redeem a fetch — and its EARLY version is +0.098/+0.166. So on **follow-through
+there is still no actionable predictor**, the same answer as before but now with a reason: the payoff
+is not predictable from anything visible when the decision is made. On the **cold tax** there is
+one, at 0.59 of full strength from the first eight reads.
+
+### The pre-registered scorecard
+
+| | prediction | outcome |
+|---|---|---|
+| K1 | T1 / `distinct_frac` ≥ +0.5 | **FAILED as stated** — +0.449/+0.419: above the 0.3 falsifier, below the bar |
+| K2 | T2 / `readers` ≥ 0.5 | **PASSED** +0.639/+0.607 — and declared in advance as plumbing, not a finding |
+| K3 | T3 / `frac_small` ≥ +0.5 | **FAILED**, and the reason is the finding: `frac_small` is a *constant* 1.000 on all 216 objects. It cannot predict within a class because it does not vary |
+| K4 | EARLY/FULL ≥ 0.7 on T3 | **FAILED at 0.59** (0.417/0.707), above the 0.5 falsifier |
+| K5 | top 10% hold ≥ 50% of the floor | **FALSIFIED** — 21.8%/21.9%, below the 30% falsifier. The floor is diffuse |
+| K6 | EARLY ranking ≥ 0.5 of oracle | **PASSED** — 0.72–0.76 at 10%, 0.83–0.90 at 25%; heavily qualified above |
+| K7 | met may not vote | **Honoured** — met's ρ reaches 0.949 on T3 and is excluded from every verdict; n=12 |
+
+Two of seven passed as stated. **Every pre-registered feature guess was wrong; the pre-registered
+method found the answer anyway** — which is the argument for writing the falsifiers down rather than
+the predictions.
+
+### What this does not settle
+
+- **No eviction**, inherited: an upper bound on redemption, tight on these traces (3.0/3.4 GiB
+  distinct vs 24/32 GB cache) and unsafe in general. An LRU is still the prerequisite.
+- `chunk_overlap`, `readers_per_chunk` and `obj_size` are **post-hoc** — invented after seeing the
+  first run's output, marked with `*` in the tool, and barred from qualifying a feature or setting
+  the best |ρ| the verdict is read off. They are hypotheses for another workload.
+- One workload, two mounts, two arms of the same run. Cross-arm agreement is **reproducibility, not
+  generalisation**.
+- A latent bug of my own, fixed in passing and changing no number here: the first draft filtered the
+  FULL and EARLY fits with a **shared** NaN mask, which would have silently changed the FULL
+  population to match EARLY's. It bit nothing on these traces because the degenerate EARLY features
+  are constant rather than NaN — but it is the population-vs-unit confound from the shared-cache
+  flip, one level down, and it would have bitten eventually.
+- A key-level correlation is not a mechanism. Even K3+K4+K6 all passing would have licensed a
+  **hint experiment**, not a claim about what lith should do by default.
+
+Artifacts: `patches/lith/pfreplay-keys.go` (the pass), `patches/lith/pfreplay-keys-wire.py` (17
+additive edits, each asserted to match exactly once), `patches/lith/pfreplay-key-level.patch` (the
+offerable patch, 814 insertions), `scripts/lith/keylevel-artifact-null.py`,
+`data/lith-gates/key-level-fit.txt` (pre-registration + results),
+`data/lith-gates/key-level-fit.log`, `data/lith-gates/key-level-artifact-null.txt`,
+`data/lith-gates/key-level-scores.csv.gz` (one row per object).
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 

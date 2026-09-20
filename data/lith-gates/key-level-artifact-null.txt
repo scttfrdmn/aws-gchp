@@ -1,0 +1,31 @@
+permutation null, 2000 shuffles per arm, seed 20260920
+W = cold_waste_bytes, D = distinct_bytes, S = obj_size
+
+hemco/a  n=204 objects
+   rho(distinct_frac, W/D)  observed -0.689
+     NULL (W shuffled):     mean +0.172   95% [+0.036, +0.303]   p(null <= obs) = 0.0000
+   artifact-free versions (no shared term):
+     rho(distinct_frac, W) = -0.469       rho(S, W) = +0.678
+     rho(S, W/D)           = +0.277       rho(D, W) = +0.551
+
+hemco/b  n=204 objects
+   rho(distinct_frac, W/D)  observed -0.707
+     NULL (W shuffled):     mean +0.173   95% [+0.040, +0.303]   p(null <= obs) = 0.0000
+   artifact-free versions (no shared term):
+     rho(distinct_frac, W) = -0.476       rho(S, W) = +0.681
+     rho(S, W/D)           = +0.287       rho(D, W) = +0.546
+
+met/a  n=12 objects
+   rho(distinct_frac, W/D)  observed -0.920
+     NULL (W shuffled):     mean -0.259   95% [-0.761, +0.326]   p(null <= obs) = 0.0010
+   artifact-free versions (no shared term):
+     rho(distinct_frac, W) = -0.949       rho(S, W) = -0.139
+     rho(S, W/D)           = -0.217       rho(D, W) = -0.854
+
+met/b  n=12 objects
+   rho(distinct_frac, W/D)  observed -0.913
+     NULL (W shuffled):     mean -0.272   95% [-0.766, +0.308]   p(null <= obs) = 0.0020
+   artifact-free versions (no shared term):
+     rho(distinct_frac, W) = -0.935       rho(S, W) = -0.139
+     rho(S, W/D)           = -0.217       rho(D, W) = -0.854
+

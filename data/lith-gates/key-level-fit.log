@@ -1,0 +1,247 @@
+== class=met arm=a (capture2/met-a.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 25604 (window=25604 parts=0 footer=0)  handles: 596
+   state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 13403.9 MiB of dispatch DECISIONS against 5978.9 MiB of distinct objects (2.24x; >1x is normal)
+   ** 2 of 143 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 141 prefetching handles: median 0.000  mean 0.078  p10 0.000  p90 0.268
+   cold-start granularity tax (#256 floor): 6065 first-run pre-decision small reads (+727 cold re-entries, excluded)
+     NET waste 653.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 1328.1 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 401, suppressed as already resident 1289  => 4.21x dedup
+     dispatched 3185.3 MiB shared vs 13403.9 MiB per-handle;  followed through 2362.6 MiB vs 1256.1 MiB
+     byte follow-through 0.742 shared vs 0.094 per-handle
+     of the redeemed bytes, 84.3% were read by a DIFFERENT handle than the one that fetched them
+     keys 12, read by more than one handle 12;  dispatches clamped past EOF 139
+     cold tax, shared: 6065 first-run small reads, 5087 suppressed as already resident
+       NET waste 48.7 MiB shared vs 653.6 MiB per-handle  (13.43x)   [gross 874.5 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 2939 chunks:
+       shared 3185 chunks -> 1.08x    per-handle 13403 chunks -> 4.56x
+   KEY level: 12 objects, 11 scoreable for follow-through, 0 with a diverged reader
+     dispatched 3185.3 MiB  followed through 2362.6 MiB (0.742)   cold net waste 48.7 MiB of 3100.1 MiB distinct (1.6%)
+     cold-waste concentration: top 1% of keys hold 52.4%, top 10% hold 65.1%, top 25% hold 75.1%;
+       1 of 12 objects (8.3%) hold half of it
+== class=met arm=b (capture2/met-b.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 25576 (window=25576 parts=0 footer=0)  handles: 605
+   state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 13308.2 MiB of dispatch DECISIONS against 5978.9 MiB of distinct objects (2.23x; >1x is normal)
+   ** 2 of 144 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 142 prefetching handles: median 0.000  mean 0.078  p10 0.000  p90 0.271
+   cold-start granularity tax (#256 floor): 5880 first-run pre-decision small reads (+627 cold re-entries, excluded)
+     NET waste 666.4 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 1322.8 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 401, suppressed as already resident 1278  => 4.18x dedup
+     dispatched 3185.3 MiB shared vs 13308.2 MiB per-handle;  followed through 2366.5 MiB vs 1241.0 MiB
+     byte follow-through 0.743 shared vs 0.093 per-handle
+     of the redeemed bytes, 85.4% were read by a DIFFERENT handle than the one that fetched them
+     keys 12, read by more than one handle 12;  dispatches clamped past EOF 151
+     cold tax, shared: 5880 first-run small reads, 4917 suppressed as already resident
+       NET waste 49.8 MiB shared vs 666.4 MiB per-handle  (13.38x)   [gross 862.1 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 2942 chunks:
+       shared 3185 chunks -> 1.08x    per-handle 13308 chunks -> 4.52x
+   KEY level: 12 objects, 11 scoreable for follow-through, 0 with a diverged reader
+     dispatched 3185.3 MiB  followed through 2366.5 MiB (0.743)   cold net waste 49.8 MiB of 3099.7 MiB distinct (1.6%)
+     cold-waste concentration: top 1% of keys hold 53.5%, top 10% hold 65.6%, top 25% hold 75.2%;
+       1 of 12 objects (8.3%) hold half of it
+== class=hemco arm=a (capture2/hemco-a.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 33916 (window=33769 parts=147 footer=0)  handles: 6229
+   state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 7066.1 MiB of dispatch DECISIONS against 18678.6 MiB of distinct objects (0.38x; >1x is normal)
+   ** 6 of 173 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 167 prefetching handles: median 0.000  mean 0.025  p10 0.000  p90 0.079
+   cold-start granularity tax (#256 floor): 24801 first-run pre-decision small reads (+358 cold re-entries, excluded)
+     NET waste 8403.1 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 10011.2 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 618, suppressed as already resident 289  => 1.47x dedup
+     dispatched 4822.8 MiB shared vs 7066.1 MiB per-handle;  followed through 607.4 MiB vs 121.5 MiB
+     byte follow-through 0.126 shared vs 0.017 per-handle
+     of the redeemed bytes, 85.5% were read by a DIFFERENT handle than the one that fetched them
+     keys 204, read by more than one handle 193;  dispatches clamped past EOF 515
+     cold tax, shared: 24801 first-run small reads, 20610 suppressed as already resident
+       NET waste 1257.3 MiB shared vs 8403.1 MiB per-handle  (6.68x)   [gross 3766.6 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 4632 chunks:
+       shared 4822 chunks -> 1.04x    per-handle 7074 chunks -> 1.53x
+   KEY level: 204 objects, 80 scoreable for follow-through, 0 with a diverged reader
+     dispatched 4822.8 MiB  followed through 607.4 MiB (0.126)   cold net waste 1257.3 MiB of 3415.2 MiB distinct (36.8%)
+     cold-waste concentration: top 1% of keys hold 4.0%, top 10% hold 21.8%, top 25% hold 45.1%;
+       58 of 204 objects (28.4%) hold half of it
+== class=hemco arm=b (capture2/hemco-b.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 33610 (window=33471 parts=139 footer=0)  handles: 6248
+   state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 7041.9 MiB of dispatch DECISIONS against 18678.6 MiB of distinct objects (0.38x; >1x is normal)
+   ** 6 of 173 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 167 prefetching handles: median 0.000  mean 0.025  p10 0.000  p90 0.068
+   cold-start granularity tax (#256 floor): 24578 first-run pre-decision small reads (+309 cold re-entries, excluded)
+     NET waste 8513.2 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 10100.1 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 628, suppressed as already resident 276  => 1.44x dedup
+     dispatched 4901.8 MiB shared vs 7041.9 MiB per-handle;  followed through 614.7 MiB vs 118.3 MiB
+     byte follow-through 0.125 shared vs 0.017 per-handle
+     of the redeemed bytes, 85.4% were read by a DIFFERENT handle than the one that fetched them
+     keys 204, read by more than one handle 192;  dispatches clamped past EOF 547
+     cold tax, shared: 24578 first-run small reads, 20407 suppressed as already resident
+       NET waste 1259.4 MiB shared vs 8513.2 MiB per-handle  (6.76x)   [gross 3749.4 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 4700 chunks:
+       shared 4901 chunks -> 1.04x    per-handle 7049 chunks -> 1.50x
+   KEY level: 204 objects, 78 scoreable for follow-through, 0 with a diverged reader
+     dispatched 4901.8 MiB  followed through 614.7 MiB (0.125)   cold net waste 1259.4 MiB of 3418.1 MiB distinct (36.8%)
+     cold-waste concentration: top 1% of keys hold 4.0%, top 10% hold 21.9%, top 25% hold 45.2%;
+       58 of 204 objects (28.4%) hold half of it
+
+   decomposition of the replay-vs-mount gap:
+     replay decisions      52104 chunks (pre-EOF-clamp)   -> 1.00x the mount's, 1.28x of which is past EOF
+     replay fetchable      40820 chunks                   -> 0.78x  <- window/input inflation
+     mount decided         52104 chunks (its own column)
+
+== pre-registered verdict (#256)
+   AUC(met vs hemco) on byte follow-through = 0.651  (n=283 vs 334)
+     (note: the 0.7 bar is undemanding — a uniform shift of one unit clears it at 0.719)
+   Spearman rho per class/arm (train on one arm, test on another — the agreed rule).
+     A value only counts toward the verdict when its arm has >= 8 scored handles AND >= 4
+     distinct values on BOTH axes: n=3 with a two-way tie is monotone by construction, not a finding.
+     mean_abs_gap_blocks     met/a=+0.635  met/b=+0.634  hemco/a=+0.271  hemco/b=+0.266   <- |rho|>=0.5 on 2+ QUALIFYING arms
+     max_abs_gap_blocks      met/a=+0.624  met/b=+0.627  hemco/a=+0.235  hemco/b=+0.254   <- |rho|>=0.5 on 2+ QUALIFYING arms
+     frac_large_gap          met/a=+0.221  met/b=+0.198  hemco/a=+0.061  hemco/b=+0.064
+     mean_read_kib           met/a=+0.084  met/b=+0.110  hemco/a=-0.150  hemco/b=-0.122
+     frac_monotonic          met/a=-0.017[feature has 3 distinct]  met/b=+0.031[feature has 3 distinct]  hemco/a=+0.039  hemco/b=+0.069
+     frac_straddle           met/a=-0.034  met/b=-0.033  hemco/a=+0.023  hemco/b=-0.056
+
+   best |rho| = 0.635 (mean_abs_gap_blocks); threshold 0.5
+   VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+            Validate it out-of-sample (fit one arm, test another) before designing a policy on it.
+
+per-handle scores written to /scratch/lith-gates/keys-handles.csv
+
+########## the same handles scored against a SHARED cache (see global.go) ##########
+   byte follow-through over 402 prefetching handles: median 0.089  mean 0.268  p10 0.000  p90 1.000
+
+== pre-registered verdict (#256)
+   AUC(met vs hemco) on byte follow-through = 0.777  (n=126 vs 276)
+     (note: the 0.7 bar is undemanding — a uniform shift of one unit clears it at 0.719)
+   Spearman rho per class/arm (train on one arm, test on another — the agreed rule).
+     A value only counts toward the verdict when its arm has >= 8 scored handles AND >= 4
+     distinct values on BOTH axes: n=3 with a two-way tie is monotone by construction, not a finding.
+     mean_abs_gap_blocks     met/a=+0.167  met/b=+0.184  hemco/a=+0.122  hemco/b=+0.116
+     max_abs_gap_blocks      met/a=+0.236  met/b=+0.260  hemco/a=+0.070  hemco/b=+0.104
+     frac_large_gap          met/a=-0.383  met/b=-0.411  hemco/a=-0.003  hemco/b=-0.158
+     mean_read_kib           met/a=+0.214  met/b=+0.288  hemco/a=+0.221  hemco/b=+0.252
+     frac_monotonic          met/a=+0.376[feature has 3 distinct]  met/b=+0.554[feature has 3 distinct]  hemco/a=+0.441  hemco/b=+0.382
+     frac_straddle           met/a=-0.246[feature has 3 distinct]  met/b=-0.215[feature has 3 distinct]  hemco/a=+0.117  hemco/b=-0.038
+
+   best |rho| = 0.441 (frac_monotonic); threshold 0.5
+   VERDICT: PARTIAL — no single early feature predicts follow-through (|rho| < 0.5), but the
+            per-label distributions do separate (AUC 0.777 >= 0.7): the difference is real and
+            observable somewhere, just not in these features.
+
+shared-cache scores written to /scratch/lith-gates/keys-handles.global.csv
+
+########## the rule at the KEY level, against two targets (see keys.go) ##########
+
+== KEY-LEVEL verdict (#256 at the object level)
+   objects per arm:  hemco/a=204  hemco/b=204  met/a=12  met/b=12   (--min-n=8, minDistinct=4 apply to OBJECTS here, not handles)
+   per-class medians of the FULL features (what the within-class rho cannot show):
+     readers                 met=52.000  hemco=33.000
+     reads_per_reader        met=28.857  hemco=4.469
+     mean_read_kib           met=122.014  hemco=103.814
+     frac_small              met=1.000  hemco=1.000
+     distinct_frac           met=0.647  hemco=0.161
+     span_frac               met=1.000  hemco=1.000
+     overlap_frac            met=0.000  hemco=0.000
+     frac_monotonic          met=0.783  hemco=0.741
+     mean_abs_gap_blocks     met=6.909  hemco=0.442
+     interleave              met=0.494  hemco=0.787
+     frac_straddle           met=0.117  hemco=0.093
+     chunk_overlap*          met=0.149  hemco=0.375
+     readers_per_chunk*      met=1.364  hemco=2.600
+     obj_size*               met=401.517  hemco=93.425
+
+   -- target: follow_through
+      AUC(met vs hemco) = 0.723  (n=22 vs 158)
+      feature                FULL (all reads)             EARLY (first 8 reads of the key)
+      readers                 hemco/a=+0.352 hemco/b=+0.357 met/a=+0.581 met/b=+0.616  hemco/a=+0.098 hemco/b=+0.166 met/a=-0.010 met/b=+0.060[feature has 2 distinct] <-FULL
+      reads_per_reader        hemco/a=+0.615 hemco/b=+0.627 met/a=+0.890 met/b=+0.853  hemco/a=-0.098 hemco/b=-0.166 met/a=+0.010 met/b=-0.060[feature has 2 distinct] <-FULL
+      mean_read_kib           hemco/a=+0.458 hemco/b=+0.416 met/a=+0.275 met/b=+0.550  hemco/a=+0.149 hemco/b=+0.255 met/a=-0.441 met/b=-0.221
+      frac_small              hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)  hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)
+      distinct_frac           hemco/a=+0.449 hemco/b=+0.419 met/a=+0.784 met/b=+0.817  hemco/a=-0.272 hemco/b=-0.181 met/a=-0.532 met/b=-0.312 <-FULL
+      span_frac               hemco/a=-0.027 hemco/b=-0.015 met/a=+0.654 met/b=+0.654  hemco/a=-0.267 hemco/b=-0.188 met/a=-0.532 met/b=-0.349 <-FULL
+      overlap_frac            hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)
+      frac_monotonic          hemco/a=-0.363 hemco/b=-0.360 met/a=-0.477 met/b=-0.596  hemco/a=+0.250 hemco/b=+0.214 met/a=-0.386[feature has 3 distinct] met/b=-0.231[feature has 3 distinct]
+      mean_abs_gap_blocks     hemco/a=+0.476 hemco/b=+0.461 met/a=+0.587 met/b=+0.532  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0) <-FULL
+      interleave              hemco/a=+0.174 hemco/b=+0.162 met/a=-0.064 met/b=+0.119  hemco/a=+0.137 hemco/b=+0.177[feature has 3 distinct] met/a=-0.376[feature has 2 distinct] met/b=-0.101[feature has 2 distinct]
+      frac_straddle           hemco/a=+0.401 hemco/b=+0.401 met/a=-0.092 met/b=+0.018  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)
+      chunk_overlap*          hemco/a=-0.261 hemco/b=-0.218 met/a=+0.138 met/b=+0.165  hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)
+      readers_per_chunk*      hemco/a=-0.440 hemco/b=-0.476 met/a=-0.661 met/b=-0.642  hemco/a=+0.098 hemco/b=+0.166 met/a=-0.010 met/b=+0.060[feature has 2 distinct]
+      obj_size*               hemco/a=+0.409 hemco/b=+0.389 met/a=+0.404 met/b=+0.294  hemco/a=+0.409 hemco/b=+0.389 met/a=+0.404 met/b=+0.294
+      best |rho|: FULL 0.890 (reads_per_reader)   EARLY 0.532 (distinct_frac)   EARLY/FULL = 0.60
+
+   -- target: cold_waste_bytes   [NOT COUNTED: scale-dependent by construction (a larger object can waste more); reported, NOT counted]
+      AUC(met vs hemco) = 0.699  (n=24 vs 408)
+      feature                FULL (all reads)             EARLY (first 8 reads of the key)
+      readers                 hemco/a=+0.639 hemco/b=+0.607 met/a=-0.468 met/b=-0.413  hemco/a=+0.223 hemco/b=+0.274 met/a=+0.211 met/b=+0.156[feature has 2 distinct] <-FULL
+      reads_per_reader        hemco/a=+0.534 hemco/b=+0.557 met/a=-0.765 met/b=-0.797  hemco/a=+0.208 hemco/b=+0.102 met/a=-0.211 met/b=-0.156[feature has 2 distinct] <-FULL
+      mean_read_kib           hemco/a=+0.168 hemco/b=+0.284 met/a=-0.456 met/b=-0.602  hemco/a=+0.091 hemco/b=+0.214 met/a=+0.184 met/b=+0.052
+      frac_small              hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)  hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)
+      distinct_frac           hemco/a=-0.469 hemco/b=-0.476 met/a=-0.949 met/b=-0.935  hemco/a=-0.674 hemco/b=-0.719 met/a=+0.434 met/b=+0.235 <-FULL <-EARLY
+      span_frac               hemco/a=+0.125 hemco/b=+0.134 met/a=-0.672 met/b=-0.672  hemco/a=-0.675 hemco/b=-0.718 met/a=+0.434 met/b=+0.295 <-FULL <-EARLY
+      overlap_frac            hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)
+      frac_monotonic          hemco/a=-0.519 hemco/b=-0.443 met/a=+0.363 met/b=+0.413  hemco/a=+0.020 hemco/b=+0.025 met/a=+0.617[feature has 3 distinct] met/b=+0.139[feature has 3 distinct]
+      mean_abs_gap_blocks     hemco/a=+0.704 hemco/b=+0.681 met/a=-0.523 met/b=-0.523  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0) <-FULL
+      interleave              hemco/a=-0.316 hemco/b=-0.331 met/a=+0.000 met/b=-0.039  hemco/a=-0.066 hemco/b=-0.052 met/a=+0.528[feature has 2 distinct] met/b=+0.356[feature has 2 distinct]
+      frac_straddle           hemco/a=+0.609 hemco/b=+0.562 met/a=-0.071 met/b=-0.114  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0) <-FULL
+      chunk_overlap*          hemco/a=-0.498 hemco/b=-0.484 met/a=-0.128 met/b=-0.128  hemco/a=+0.316[feature has 2 distinct] hemco/b=+0.331[feature has 2 distinct] met/a=const(1) met/b=const(1)
+      readers_per_chunk*      hemco/a=-0.458 hemco/b=-0.410 met/a=+0.541 met/b=+0.534  hemco/a=+0.223 hemco/b=+0.274 met/a=+0.211 met/b=+0.156[feature has 2 distinct]
+      obj_size*               hemco/a=+0.678 hemco/b=+0.681 met/a=-0.139 met/b=-0.139  hemco/a=+0.678 hemco/b=+0.681 met/a=-0.139 met/b=-0.139
+      best |rho|: FULL 0.949 (distinct_frac)   EARLY 0.719 (distinct_frac)   EARLY/FULL = 0.76
+
+   -- target: cold_waste_per_distinct   (the key-level analogue of the mount headline (HEMCO 33% vs met 1.8%))
+      AUC(met vs hemco) = 0.726  (n=24 vs 408)
+      feature                FULL (all reads)             EARLY (first 8 reads of the key)
+      readers                 hemco/a=+0.349 hemco/b=+0.288 met/a=-0.436 met/b=-0.391  hemco/a=+0.189 hemco/b=+0.210 met/a=+0.272 met/b=+0.156[feature has 2 distinct]
+      reads_per_reader        hemco/a=+0.088 hemco/b=+0.107 met/a=-0.829 met/b=-0.868  hemco/a=+0.243 hemco/b=+0.173 met/a=-0.272 met/b=-0.156[feature has 2 distinct] <-FULL
+      mean_read_kib           hemco/a=-0.260 hemco/b=-0.093 met/a=-0.498 met/b=-0.637  hemco/a=-0.018 hemco/b=+0.165 met/a=+0.230 met/b=+0.102
+      frac_small              hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)  hemco/a=const(1) hemco/b=const(1) met/a=const(1) met/b=const(1)
+      distinct_frac           hemco/a=-0.689 hemco/b=-0.707 met/a=-0.920 met/b=-0.913  hemco/a=-0.386 hemco/b=-0.417 met/a=+0.534 met/b=+0.320 <-FULL
+      span_frac               hemco/a=-0.021 hemco/b=-0.023 met/a=-0.753 met/b=-0.753  hemco/a=-0.388 hemco/b=-0.414 met/a=+0.534 met/b=+0.395 <-FULL
+      overlap_frac            hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)
+      frac_monotonic          hemco/a=-0.221 hemco/b=-0.149 met/a=+0.292 met/b=+0.370  hemco/a=-0.137 hemco/b=-0.106 met/a=+0.617[feature has 3 distinct] met/b=+0.182[feature has 3 distinct]
+      mean_abs_gap_blocks     hemco/a=+0.295 hemco/b=+0.295 met/a=-0.559 met/b=-0.566  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0) <-FULL
+      interleave              hemco/a=-0.328 hemco/b=-0.328 met/a=+0.100 met/b=+0.039  hemco/a=-0.143 hemco/b=-0.132 met/a=+0.528[feature has 2 distinct] met/b=+0.356[feature has 2 distinct]
+      frac_straddle           hemco/a=+0.311 hemco/b=+0.253 met/a=-0.114 met/b=-0.149  hemco/a=const(0) hemco/b=const(0) met/a=const(0) met/b=const(0)
+      chunk_overlap*          hemco/a=-0.159 hemco/b=-0.152 met/a=-0.064 met/b=-0.064  hemco/a=+0.316[feature has 2 distinct] hemco/b=+0.331[feature has 2 distinct] met/a=const(1) met/b=const(1)
+      readers_per_chunk*      hemco/a=-0.030 hemco/b=+0.004 met/a=+0.641 met/b=+0.626  hemco/a=+0.189 hemco/b=+0.210 met/a=+0.272 met/b=+0.156[feature has 2 distinct]
+      obj_size*               hemco/a=+0.277 hemco/b=+0.287 met/a=-0.217 met/b=-0.217  hemco/a=+0.277 hemco/b=+0.287 met/a=-0.217 met/b=-0.217
+      best |rho|: FULL 0.920 (distinct_frac)   EARLY 0.534 (distinct_frac)   EARLY/FULL = 0.58
+
+   -- recovery at budget: rank objects by an EARLY feature, hint the top N%, sum their
+      ACTUAL cold waste. ORACLE ranks by the waste itself (the ceiling). Random = the budget.
+      hemco/a (n=204 objects, 1257.3 MiB of waste)
+        top    5%: oracle  12.5%   readers 8.0% (0.64 of oracle)   mean_read_kib 7.2% (0.57 of oracle)   distinct_frac 7.6% (0.60 of oracle)   span_frac 7.6% (0.60 of oracle)   interleave 7.4% (0.59 of oracle)   readers_per_chunk* 8.0% (0.64 of oracle)   obj_size* 9.8% (0.78 of oracle)
+        top   10%: oracle  21.8%   readers 12.8% (0.59 of oracle)   reads_per_reader 11.9% (0.55 of oracle)   distinct_frac 15.6% (0.72 of oracle)   span_frac 15.6% (0.72 of oracle)   frac_monotonic 14.3% (0.66 of oracle)   interleave 11.6% (0.53 of oracle)   readers_per_chunk* 12.8% (0.59 of oracle)   obj_size* 19.5% (0.90 of oracle)
+        top   25%: oracle  45.1%   readers 32.0% (0.71 of oracle)   reads_per_reader 29.4% (0.65 of oracle)   mean_read_kib 26.3% (0.58 of oracle)   frac_small 25.1% (0.56 of oracle)   distinct_frac 37.4% (0.83 of oracle)   span_frac 37.4% (0.83 of oracle)   overlap_frac 25.1% (0.56 of oracle)   frac_monotonic 32.2% (0.71 of oracle)   mean_abs_gap_blocks 28.3% (0.63 of oracle)   interleave 29.1% (0.64 of oracle)   frac_straddle 25.1% (0.56 of oracle)   chunk_overlap* 28.3% (0.63 of oracle)   readers_per_chunk* 32.0% (0.71 of oracle)   obj_size* 37.9% (0.84 of oracle)
+      hemco/b (n=204 objects, 1259.4 MiB of waste)
+        top    5%: oracle  12.5%   readers 7.4% (0.59 of oracle)   mean_read_kib 7.1% (0.57 of oracle)   distinct_frac 8.1% (0.64 of oracle)   span_frac 8.1% (0.64 of oracle)   frac_monotonic 7.5% (0.60 of oracle)   readers_per_chunk* 7.4% (0.59 of oracle)   obj_size* 10.1% (0.81 of oracle)
+        top   10%: oracle  21.9%   readers 14.9% (0.68 of oracle)   reads_per_reader 12.2% (0.56 of oracle)   mean_read_kib 13.6% (0.62 of oracle)   distinct_frac 16.5% (0.76 of oracle)   span_frac 16.5% (0.76 of oracle)   frac_monotonic 15.7% (0.72 of oracle)   interleave 13.5% (0.62 of oracle)   readers_per_chunk* 14.9% (0.68 of oracle)   obj_size* 19.7% (0.90 of oracle)
+        top   25%: oracle  45.2%   readers 34.5% (0.76 of oracle)   reads_per_reader 30.2% (0.67 of oracle)   mean_read_kib 32.0% (0.71 of oracle)   frac_small 25.2% (0.56 of oracle)   distinct_frac 40.4% (0.89 of oracle)   span_frac 40.5% (0.90 of oracle)   overlap_frac 25.2% (0.56 of oracle)   frac_monotonic 35.3% (0.78 of oracle)   mean_abs_gap_blocks 29.1% (0.64 of oracle)   interleave 32.5% (0.72 of oracle)   frac_straddle 25.2% (0.56 of oracle)   chunk_overlap* 29.1% (0.64 of oracle)   readers_per_chunk* 34.5% (0.76 of oracle)   obj_size* 38.0% (0.84 of oracle)
+      met/a (n=12 objects, 48.7 MiB of waste)
+        top    5%: oracle  52.4%
+        top   10%: oracle  65.1%
+        top   25%: oracle  75.1%   readers 54.5% (0.73 of oracle)   reads_per_reader 54.5% (0.73 of oracle)   mean_read_kib 52.4% (0.70 of oracle)   frac_monotonic 55.7% (0.74 of oracle)   readers_per_chunk* 54.5% (0.73 of oracle)
+      met/b (n=12 objects, 49.8 MiB of waste)
+        top    5%: oracle  53.5%
+        top   10%: oracle  65.6%
+        top   25%: oracle  75.2%
+      (features listed only when they reach >= 0.50 of the oracle at that budget; the better of
+       the feature's two orderings is used, since a predictor may point either way.)
+
+per-key scores written to /scratch/lith-gates/keys.csv
