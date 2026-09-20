@@ -1,0 +1,141 @@
+=== ARM met-a mode=stream handles=6 ===
+stream handles 6
+met-a lith_distinct_bytes_read 4.2074112e+07
+met-a lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+met-a lith_fill_bytes_total{kind="whole"} 9.5033055e+07
+met-a lith_prefetch_issued_total 91
+met-a lith_prefetch_used_total 25
+met-a lith_s3_bytes_total 1.11810271e+08
+  rows=321  header: # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 s
+  columns: fh,pid,key,size,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+=== ARM met-b mode=stream handles=6 ===
+stream handles 6
+met-b lith_distinct_bytes_read 4.2074112e+07
+met-b lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+met-b lith_fill_bytes_total{kind="whole"} 9.5033055e+07
+met-b lith_prefetch_issued_total 91
+met-b lith_prefetch_used_total 25
+met-b lith_s3_bytes_total 1.11810271e+08
+  rows=321  header: # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 s
+  columns: fh,pid,key,size,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+=== ARM hemco-a mode=scatter handles=6 ===
+scatter handles 6
+hemco-a lith_distinct_bytes_read 1.8874368e+07
+hemco-a lith_fill_bytes_total{kind="demand"} 3.1064064e+07
+hemco-a lith_prefetch_issued_total 0
+hemco-a lith_prefetch_used_total 0
+hemco-a lith_s3_bytes_total 3.1064064e+07
+  rows=288  header: # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 s
+  columns: fh,pid,key,size,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+=== ARM hemco-b mode=scatter handles=6 ===
+scatter handles 6
+hemco-b lith_distinct_bytes_read 1.8874368e+07
+hemco-b lith_fill_bytes_total{kind="demand"} 3.1064064e+07
+hemco-b lith_prefetch_issued_total 0
+hemco-b lith_prefetch_used_total 0
+hemco-b lith_s3_bytes_total 3.1064064e+07
+  rows=288  header: # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 s
+  columns: fh,pid,key,size,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window
+
+summed lith_prefetch_issued_total across the four arms: 0
+
+################ 1. class/arm pairing -- AUC must compare met vs hemco, not arm a vs arm b
+  == class=met arm=a (/scratch/lith-gates/gate5h/met-a.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 321 (window=321 parts=0 footer=0)  handles: 6
+     state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+       (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+     denominator sanity: 215.9 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (2.02x; >1x is normal)
+     byte follow-through over 3 prefetching handles: median 0.000  mean 0.052  p10 0.000  p90 0.156
+     cold-start granularity tax (#256 floor): 145 first-run pre-decision small reads (+0 cold re-entries, excluded)
+       NET waste 5.0 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 21.0 MiB]
+  == class=met arm=b (/scratch/lith-gates/gate5h/met-b.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 321 (window=321 parts=0 footer=0)  handles: 6
+     state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+       (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+     denominator sanity: 215.9 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (2.02x; >1x is normal)
+     byte follow-through over 3 prefetching handles: median 0.000  mean 0.052  p10 0.000  p90 0.156
+     cold-start granularity tax (#256 floor): 145 first-run pre-decision small reads (+0 cold re-entries, excluded)
+       NET waste 5.0 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 21.0 MiB]
+  == class=hemco arm=a (/scratch/lith-gates/gate5h/hemco-a.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 288 (window=288 parts=0 footer=0)  handles: 6
+     state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+       (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+     denominator sanity: 0.0 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (0.00x; >1x is normal)
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 102 first-run pre-decision small reads (+0 cold re-entries, excluded)
+       NET waste 95.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 95.6 MiB]
+  == class=hemco arm=b (/scratch/lith-gates/gate5h/hemco-b.csv)
+     config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+     rows: 288 (window=288 parts=0 footer=0)  handles: 6
+     state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+       (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+     denominator sanity: 0.0 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (0.00x; >1x is normal)
+     byte follow-through: no handle dispatched any prefetch
+     cold-start granularity tax (#256 floor): 102 first-run pre-decision small reads (+0 cold re-entries, excluded)
+       NET waste 95.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 95.6 MiB]
+  
+  == pre-registered verdict (#256)
+     ** class "hemco" has NO handles that dispatched prefetch: the AUC half of the rule cannot be
+        evaluated for it, and "no separation" must NOT be concluded from its absence. **
+     Spearman rho per class/arm (train on one arm, test on another — the agreed rule):
+       mean_abs_gap_blocks     met/a=-0.866  met/b=-0.866  hemco=(no prefetching handles)   <- |rho|>=0.5 on 2+ arms (survives out-of-sample)
+       max_abs_gap_blocks      met/a=-0.866  met/b=-0.866  hemco=(no prefetching handles)   <- |rho|>=0.5 on 2+ arms (survives out-of-sample)
+       frac_large_gap          met/a=-1.000  met/b=-1.000  hemco=(no prefetching handles)   <- |rho|>=0.5 on 2+ arms (survives out-of-sample)
+       mean_read_kib           met/a=n/a  met/b=n/a  hemco=(no prefetching handles)
+       frac_monotonic          met/a=n/a  met/b=n/a  hemco=(no prefetching handles)
+       frac_straddle           met/a=n/a  met/b=n/a  hemco=(no prefetching handles)
+  
+     best |rho| = 1.000 (frac_large_gap); threshold 0.5
+     VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+              Validate it out-of-sample (fit one arm, test another) before designing a policy on it.
+  
+  per-handle scores written to /scratch/lith-gates/gate5h/all.handles.csv
+
+################ 2. the order that used to decide the verdict (met,met,hemco,hemco as labels[0..3])
+     ** class "hemco" has NO handles that dispatched prefetch: the AUC half of the rule cannot be
+     best |rho| = 1.000 (frac_large_gap); threshold 0.5
+     VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+
+size: 'a.out': No such file
+################ 3. reproduce the size-column claim: strip , rescore
+stripped hemco-a.nosize.csv
+stripped hemco-b.nosize.csv
+stripped met-a.nosize.csv
+stripped met-b.nosize.csv
+-- met WITH size:
+       denominator sanity: 215.9 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (2.02x; >1x is normal)
+       byte follow-through over 3 prefetching handles: median 0.000  mean 0.052  p10 0.000  p90 0.156
+         NET waste 5.0 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 21.0 MiB]
+       denominator sanity: 215.9 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (2.02x; >1x is normal)
+       byte follow-through over 3 prefetching handles: median 0.000  mean 0.052  p10 0.000  p90 0.156
+         NET waste 5.0 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 21.0 MiB]
+       VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+-- met WITHOUT size (simulates a pre-#267 capture):
+       ** no `size` column: object sizes ESTIMATED from each handle's highest read offset.
+       denominator sanity: 14.1 MiB of dispatch DECISIONS against 210.8 MiB of distinct objects (0.07x; >1x is normal)
+       byte follow-through over 1 prefetching handles: median 1.000  mean 1.000  p10 1.000  p90 1.000
+         NET waste 0.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 16.6 MiB]
+       ** no `size` column: object sizes ESTIMATED from each handle's highest read offset.
+       denominator sanity: 14.1 MiB of dispatch DECISIONS against 210.8 MiB of distinct objects (0.07x; >1x is normal)
+       byte follow-through over 1 prefetching handles: median 1.000  mean 1.000  p10 1.000  p90 1.000
+         NET waste 0.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 16.6 MiB]
+-- hemco WITH size:
+       denominator sanity: 0.0 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (0.00x; >1x is normal)
+       byte follow-through: no handle dispatched any prefetch
+         NET waste 95.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 95.6 MiB]
+       denominator sanity: 0.0 MiB of dispatch DECISIONS against 106.6 MiB of distinct objects (0.00x; >1x is normal)
+       byte follow-through: no handle dispatched any prefetch
+         NET waste 95.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 95.6 MiB]
+-- hemco WITHOUT size (simulates a pre-#267 capture):
+       ** no `size` column: object sizes ESTIMATED from each handle's highest read offset.
+       denominator sanity: 0.0 MiB of dispatch DECISIONS against 633.0 MiB of distinct objects (0.00x; >1x is normal)
+       byte follow-through: no handle dispatched any prefetch
+         NET waste 92.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 92.6 MiB]
+       ** no `size` column: object sizes ESTIMATED from each handle's highest read offset.
+       denominator sanity: 0.0 MiB of dispatch DECISIONS against 633.0 MiB of distinct objects (0.00x; >1x is normal)
+       byte follow-through: no handle dispatched any prefetch
+         NET waste 92.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 92.6 MiB]
+################ DONE

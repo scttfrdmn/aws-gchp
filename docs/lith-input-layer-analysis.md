@@ -180,6 +180,24 @@ handles with four ties. lith#265 is verified on live mounts in the same gate, in
 arm proving #263's loud-on-create-failure was unreachable while the flag was unwired. **The
 capture is held until the denominator lands** — the scorer was the cheap half to fix.
 
+*Gate 5h* verifies the landed fix, still at $0, on four live-mount arms in the shape the
+pre-registered rule requires. The clamp holds: **215 replayed chunk-decisions against the
+mount's own 182**, down from 12.3× over, with `obj_size` correct on every handle. The
+residual 2.0–2.4× is not a bug but the **per-handle ceiling, now measured** — many handles
+decide to prefetch blocks the global cache fetches once — so per-handle follow-through is a
+lower bound by a factor ≥ 2, and larger under 48 ranks. The net cold tax **separates the two
+mounts**: ~0% of the streaming handle's waste is genuine against **100% on every one of
+twelve scatter handles, net == gross == 16,711,680 B twelve for twelve**, which closes the
+open worry that the pre-registered 1.0–1.4 GB floor would be scored against the wrong
+quantity. Arm order can no longer decide the verdict, and a class with zero prefetching
+handles is now refused loudly instead of dropped. Stripping the new `size` column back out
+reproduces upstream's inflation claim and goes further: follow-through **0.052 → 1.000**,
+and the prefetching-handle population **drops 3 → 1** because the handles whose prefetch was
+most wasteful estimate away entirely, while the sanity ratio inverts to a reassuring 0.07×.
+One ask is still open — SEPARATION is declared from ρ = −1.000 over **three handles with a
+two-way tie on both axes**, where the winning feature is a restatement of which handle read
+enough rows to be scored. **The capture is now worth buying.**
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -560,6 +578,25 @@ works on EBS. Low upside, new variable.
    vanishes entirely when one arm dispatches no prefetch — which is the HEMCO case — and
    the tool declared SEPARATION from ρ = −1.000 over five handles with four ties on both
    axes. Reported on lith#267; **the capture is held until the denominator lands.**
+13. **Did the scorer's fix land, and is the capture now worth buying?** **MEASURED
+   2026-09-19 — see *Gate 5h* below. Yes: the denominator is within 18% of the mount's own
+   counter, and the residual is the per-handle ceiling rather than a bug.** On `c922cc7`
+   the replay reports **215 chunk-decisions against a live `lith_prefetch_issued_total` of
+   182** (was 1117 vs 91) with `obj_size` correct on all 24 handles. The remaining 2.0–2.4×
+   is the same fact as the 2.02× denominator-sanity ratio: many handles decide to prefetch
+   overlapping blocks that the global cache fetches once, so **per-handle byte
+   follow-through is a lower bound by a factor ≥ 2**, and more under 48 ranks —
+   `byte_follow_through_global` is load-bearing, not cosmetic. The net cold tax separates
+   the mounts: **met 5.0 net of 21.0 MiB gross (24% genuine), HEMCO 95.6 of 95.6 (100%),
+   net == gross == 16,711,680 B on twelve scatter handles for twelve** — so the
+   pre-registered 1.0–1.4 GB floor is scored on the quantity it named. Arm order no longer
+   decides the verdict, and a zero-prefetch class is now refused loudly. Stripping `size`
+   back out reproduces upstream's inflation claim and extends it: mean follow-through
+   **0.052 → 1.000**, the prefetching population **drops 3 → 1** (the most wasteful handles
+   estimate away), and the sanity ratio inverts to a reassuring **0.07×** while
+   "distinct objects" inflates to 6× the object (one estimate per handle). Still open:
+   SEPARATION from ρ = −1.000 over **three handles with a two-way tie on both axes**, the
+   winning feature confounded with which handle read enough rows to be scored at all.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -2331,6 +2368,135 @@ handles.
 first means that job won't be spent producing a verdict that was void before the data
 landed: defect 1 alone dilutes every number by ~12×, and 2 and 3 let arm order decide.
 Artifacts: `data/lith-gates/gate5g-*`. Reported on lith#267, #264 and #256.
+
+## Gate 5h — the fix landed; verify it before spending (2026-09-19)
+
+**Cost: $0.** Head node only, ~500 MB of in-region GETs. Binaries built from `pr/267` =
+`c922cc7`, which upstream pushed in response to gate 5g and directed us to build from
+rather than waiting for the merge.
+
+**Design.** Four arms, two classes, two replicates each — the shape the pre-registered
+train-on-one-arm / test-on-another rule actually requires, which gate 5g could only
+approximate. All against the same real object, `s3://gcgrid/HEMCO/AEIC/v2015-01/AEIC.nc`
+(111,810,271 B). `met-a`/`met-b` are the streaming surrogate (6 handles × 240 × 128 KiB
+contiguous); `hemco-a`/`hemco-b` are the scatter surrogate (6 handles × 48 × 64 KiB, 7 MiB
+apart, **stopping early** — the shape whose object size cannot be inferred from its own
+reads, which is the case the new `size` column exists for). Every trace carries it:
+`fh,pid,key,size,off,len,blk,gap,path,state_before,state_after,window,dispatched,peak_window`.
+
+**1. The clamp works: 12.3× over becomes 1.18×.**
+
+```
+denominator sanity: 215.9 MiB of dispatch DECISIONS against 106.6 MiB of distinct
+                    objects (2.02x; >1x is normal)
+vs live lith_prefetch_issued_total: replay 215 chunk-decisions, mount 182 chunks fetched
+```
+
+Against gate 5g's 1117 blocks / 9.37 GB where the mount said 91. Units line up: 215.9 MiB
+of decisions ÷ 1 MiB `chunkSize` = 215, and `issued_total` counts 1 MiB chunks. `obj_size`
+is the true 111,810,271 on all 24 handles.
+
+*Plumbing ask:* `-issued` is one scalar compared **per trace**. `met-a` alone with
+`-issued 91` compares the same 215 against 91 (2.36×); all four compare 215 against the
+182 summed over four mounts. For a one-mount capture with N trace files it should compare
+the summed replay, or take `-issued` per trace.
+
+**2. The residual 2.0–2.4× is the per-handle ceiling, measured.** The 2.02× sanity ratio
+and the 2.36× single-arm vs-live figure are the same fact: several handles *decide* to
+prefetch overlapping blocks and the global cache fetches each once, which a per-handle
+replay cannot dedupe. So gate 5g's caveat — per-handle follow-through is a lower bound on
+prefetch's value — is now quantified at **≥ 2× on this arm**, and will be larger under 48
+ranks sharing met and HEMCO files. `byte_follow_through_global` alongside the per-handle
+column is load-bearing for interpreting the capture, and `-issued` is what makes the gap
+visible at all.
+
+**3. The net cold tax separates the two mounts — and net == gross on HEMCO.**
+
+| class | NET waste | gross | genuine |
+|---|---|---|---|
+| met | 5.0 MiB | 21.0 MiB | 24% |
+| hemco | 95.6 MiB | 95.6 MiB | **100%** |
+
+Per handle: `met/a` fh1 (241 rows, pure stream) nets **0** of 8,257,536 gross — 0% genuine,
+exactly the fictional waste gate 5g predicted; fh2–6 net 1,048,576 of 2,752,512 (38%); and
+every one of the twelve scatter handles nets **16,711,680 = gross, twelve for twelve**.
+
+Two consequences. First, the **#256 floor is genuine waste, not an accounting artifact** —
+on HEMCO-shaped handles the netting changes nothing, so the pre-registered 1.0–1.4 GB
+prediction and its < 0.5 GB falsifier are scored on the quantity they named. That was the
+open worry in the #256 comment and it is closed. Second, 16,711,680 B is reproduced
+exactly; gate 5f's b2 handle reported 16,646,144 only because the kernel merged its *first*
+read to 128 KiB. Both are right for their handle. The netting also does interpretive work:
+it takes one number that looked like waste on both mounts and shows it is ~0% genuine on
+the streaming reader and 100% on the scattered one — the per-handle version of gate 5f's
+met-1.8%-vs-HEMCO-33% residual split.
+
+**4. Arm order can no longer decide the verdict.** Passing `met/a= met/b= hemco/a= hemco/b=`
+— the exact ordering that used to make the AUC compare met against met, measured 0.500 —
+now groups by class prefix and yields output identical to any other ordering. And the
+silent drop when one class dispatches nothing is fixed loudly, firing on exactly the
+population it was written for (hemco's twelve handles are all NaN; 7 MiB gaps keep the
+detector in `Random`):
+
+```
+** class "hemco" has NO handles that dispatched prefetch: the AUC half of the rule cannot
+   be evaluated for it, and "no separation" must NOT be concluded from its absence. **
+```
+
+**5. Still open: SEPARATION on one effective degree of freedom.** The minimum-n and
+tie-mass guards asked for in gate 5g are not in `c922cc7`. The verdict still reads
+`best |rho| = 1.000 (frac_large_gap)` → `VERDICT: SEPARATION`, and the data behind it is
+`met/a`'s three non-NaN handles:
+
+| fh | byte_follow_through | frac_large_gap |
+|---|---|---|
+| 1 | 0.155852 | 0.000 |
+| 2 | 0.000000 | 0.125 |
+| 6 | 0.000000 | 0.125 |
+
+n = 3, a two-way tie on **both** axes, one handle differing — perfectly monotone by
+construction. Worse, the winning feature is confounded with eligibility: fh1 is the only
+handle that read enough rows (241 vs 16) to be scored, and `frac_large_gap = 0` restates
+that. The AUC half correctly cannot run, so the verdict rests entirely on this. The
+out-of-sample annotation is now right per the rule, but replicating a degenerate fit on a
+replicate of the same workload adds no degree of freedom.
+
+**6. The `size` column's value, reproduced independently — and worse than upstream
+measured.** Upstream reported a size-less capture would score 1.000 where the truth is
+0.407. Stripping the column out of these traces and rescoring the identical reads:
+
+| | prefetching handles | follow-through (median/mean) | denominator sanity |
+|---|---|---|---|
+| met **with** `size` | 3 | 0.000 / 0.052 | 215.9 MiB vs 106.6 MiB (2.02×) |
+| met **without** | 1 | 1.000 / 1.000 | 14.1 MiB vs 210.8 MiB (0.07×) |
+
+Same direction, larger. Two things upstream did not state. **(a) The population is biased,
+not only the ratio** — the count drops 3 → 1 because two handles that genuinely dispatched
+are estimated to have so small an object that all their dispatches clamp away and they
+leave the denominator. A size-less capture doesn't merely inflate the score; it silently
+discards the handles whose prefetch was most wasteful. **(b) The sanity line inverts into
+something reassuring** — without `size`, per-handle estimates can't be deduped onto one
+object, so decisions collapse while "distinct objects" inflates (met 106.6 → 210.8 MiB;
+hemco 106.6 → **633.0 MiB = 6 × 105.5**, one estimate per handle), turning 2.02× into
+0.07×: "plenty of headroom" at the moment it is broken. The `ESTIMATED` warning does print,
+so the net exists; the ratio should be suppressed rather than printed. HEMCO's floor is only
+~3% sensitive to the column (92.6 vs 95.6 MiB net) — a scatter handle dispatches nothing
+either way, so the inflation is a streaming-handle effect.
+
+**What it decides.** Buy the capture. The three defects that would have voided its verdict
+are fixed and verified on live mounts, and the cold-tax quantity is now the net one. Carry
+forward: build from `c922cc7` on the compute node (a `main` trace would report ~1.000 and
+drop the wasteful handles), pass `-issued` and read the sanity lines first, and expect the
+per-handle number to understate by ≥ 2×.
+
+**Probe caveat.** Instrument tests on real S3 objects, not evidence about GCHP's handles.
+The met surrogate's six handles read overlapping spans of one object, so the page cache
+absorbed most reads of handles 2–6 (16 rows each vs fh1's 241) — which is why n = 3 rather
+than 6 and why §5's degeneracy is so sharp. HEMCO on the real mount *does* dispatch (gate 5
+measured `prefetch_issued` 4750), so its AUC half should be evaluable there; these
+surrogates are more extreme than reality.
+
+Artifacts: `data/lith-gates/gate5h-*`. Reported on lith#267 and #256.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
