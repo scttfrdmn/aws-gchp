@@ -1,0 +1,164 @@
+GATE 5i ($0) — VERIFYING lith #271 BEFORE FUNDING THE SECOND CAPTURE
+=====================================================================
+2026-09-19/20, head node only (c7g.4xlarge), no cluster spend. lith main = 36e79f0
+(#271 merged); built from PR head 4887d87, whose tree is identical to merged main
+outside CHANGELOG.md, so the binary under test is what shipped.
+Scripts: scripts/lith/gate5i-seq.sh, gate5i-b.sh, gate5i-c.sh, gate5i-check.py.
+
+#271 added the two columns I asked for (`max_window`, `seq`) and made the verdict
+respect the fidelity gate. Upstream set a pre-capture acceptance criterion: "check
+that `seq` is strictly increasing within each fh and that the gap self-consistency
+test now passes at ~0%. If it doesn't, the sequence number is in the wrong place."
+
+Both halves are now measured on live mounts. The first holds. The SECOND CRITERION IS
+NOT A VALID GATE — a trace can be perfectly replayable while failing it — and a third
+thing, not on anyone's list, would have voided the new capture's met mount exactly as
+the first one was voided.
+
+
+0. WHAT #271 REPRODUCES (confirmed, on the banked capture traces)
+-----------------------------------------------------------------
+Ran the new scorer on the four banked traces (old format, -issued 15214):
+  * the missing-column warning fires: "no `max_window` column: the replay runs the
+    STATIC cap where the mount applied a time-varying per-handle budget share"
+  * VERDICT: UNEVALUABLE — after the fidelity filter these classes are below
+    --min-n=8: hemco(n=7).      <- was VERDICT: SEPARATION on c922cc7
+  * the decomposition prints 1212592 / 140695 / 52192 / 15214 -> 2.70x window
+    inflation x 3.43x dedup, matching my arithmetic exactly.
+So the self-contradiction is fixed and the verdict now says what I had to derive by
+hand. Also confirmed by reading the diff: `seq` is allocated inside w.mu, and
+after/window/peak are captured in there too (internal/fuse/prefetch.go observation{}).
+
+
+1. CRITERION 1 HOLDS — AND seq IS LOAD-BEARING, NOT DECORATIVE
+---------------------------------------------------------------
+Probe arms on a live mount (s3://gcgrid/HEMCO/AEIC/v2015-01, AEIC.nc), one handle or
+many, 64 KiB scattered preads:
+
+  arm    reader                                  rows   rows appended OUT of
+                                                        decision order (seq inversions)
+  s1     1 thread,  1 fd,  128 reads              128         0/127    0.00%
+  c64    64 threads, 1 SHARED fd, 4096 reads      1376         5/1375   0.36%
+  h256   256 threads, 256 OWN fds, 32 reads each  1674       183/1673  10.94%
+
+seq is strictly increasing within every fh (by construction — one handle's decisions
+serialize on w.mu). But 0.36%–10.94% of rows are APPENDED out of decision order, so
+the column is doing real work: without it, file order is the wrong order, and at 256
+handles it is wrong for one row in nine.
+
+NOTE the arms that found nothing. The first probe (s1, 128 reads, one handle) produced
+0.00% on every axis and max_window pinned at 223. That was the PROBE being too small
+on both axes it needed to exercise, not #271 being clean: one open handle makes
+perHandleWindow = clamp(budget/1,2,223) = 223 by definition, and 128 uncontended reads
+have nothing to reorder. Scaling to c64/h256 is what made the mechanisms visible.
+
+
+2. CRITERION 2 IS NOT A VALID GATE — gap INCONSISTENCY SURVIVES seq, AND IS BENIGN
+----------------------------------------------------------------------------------
+Upstream expected the gap self-consistency test (gap == off - (prev_off+prev_len) for
+consecutive window rows of one fh) to fall to ~0% once rows could be ordered. It does
+not, and sorting by seq makes it slightly WORSE:
+
+  arm    gap self-inconsistent, FILE order    gap self-inconsistent, SEQ order
+  s1              0/127     0.00%                     0/127     0.00%
+  c64            33/1375    2.40%                    39/1375    2.84%
+  h256            0/1418    0.00%                     0/1418    0.00%
+
+The mechanism is a third race #271 does not touch: `gap` is computed from
+h.lastReadEnd.Load() BEFORE the lock and h.lastReadEnd.Store(end) happens AFTER it, so
+two concurrent reads on one fh can both measure their gap against the same stale
+endpoint. It is a read-modify-write that is not atomic, and it is a property of the
+MOUNT, not of the trace.
+
+Which is why h256 is 0.00% and c64 is 2.40%: h256 has 256 handles but ONE reader per
+handle, so no same-fh race. Same-fh concurrency is necessary and sufficient. The
+capture's met mount showed 1.87% — the c64 shape, 48 ranks reading one file.
+
+CRUCIALLY, THE TRACE IS STILL FAITHFUL. The recorded gap is what Observe actually
+received, so a replay fed the recorded gaps in decision order reproduces the mount
+exactly (section 3). Gap self-consistency therefore measures the mount's lastReadEnd
+race, NOT trace validity, and using it as a capture-acceptance gate would reject a
+correct trace. My own earlier use of it was legitimate — it was the only proxy for row
+order available before `seq` existed — but `seq` now measures ordering directly and
+supersedes it.
+
+(Separate, and a lead rather than a finding: the detector's gap input is racy on a
+contended handle, so ~2.4% of decisions there are classified on another read's
+endpoint. `gap` drives the sequential-vs-random classification, which is the whole of
+#256. Worth a targeted probe, not asserted here.)
+
+
+3. THE DEFECT NEITHER OF US LISTED: THE REPLAY PARSES seq AND NEVER SORTS BY IT
+-------------------------------------------------------------------------------
+cmd/lith-pfreplay/main.go reads the column into row.seq (line ~240) and applies
+max_window per row (line ~323), but scoreTrace groups rows per handle in FILE order
+and replays `for i, r := range hr`. Nothing sorts. So the column added to make the
+trace replayable is not used for the thing it was added for.
+
+Measured, same traces, file order vs a seq-sorted copy:
+
+  arm    file order                          seq-sorted
+  c64    ** MISMATCH on 1/1 handles **       fidelity OK
+  h256   fidelity OK                         fidelity OK
+
+  replay decisions   104 chunks  = 1.08x     96 chunks = 1.00x  (mount decided 96)
+
+So upstream's "a fresh-format trace round-trips at exactly 1.00x" is true only for
+UNCONTENDED handles. On a contended handle the round trip is 1.08x and the handle is
+voided by the fidelity filter — and the fix is one sort, after which fidelity is
+perfect and the round trip is exactly 1.00x.
+
+CONSEQUENCE FOR THE CAPTURE, which is why this is worth $0 now rather than $4 later:
+the met mount is the contended shape (48 ranks, one file, 1.87% inconsistent). Under
+#271 as merged, a fresh met trace would still mismatch, met's handles would still be
+excluded, and the verdict would still be UNEVALUABLE — the same outcome as the first
+capture, for a different reason, at the cost of another job. Filed as lith#272.
+
+
+4. perHandleWindow FLOORS AT 2 IN THE CAPTURE'S REGIME — SO --max-readahead WAS INERT
+-------------------------------------------------------------------------------------
+perHandleWindow() = clamp(budgetBlocks / open_handles, 2, --max-readahead), and
+budgetBlocks = budget_bytes / 8 MiB. Inverting it by holding H handles open at once and
+reading the new max_window column (minimum = the all-open value):
+
+  --mem-cache   H=1    H=8     H=64    H=256      implied budgetBlocks
+  24GB          223    178     22      5          ~1424  (8x178, 64x22, 256x5 -> 1424-1431)
+  32GB          223    223     29      7          ~1880  (64x29, 256x7)
+
+Both ~46% of the cache size. Now apply the capture's own numbers:
+
+  mount   --mem-cache   budgetBlocks   open handles   budget/handles   perHandleWindow
+  met         24GB         ~1424            598           2.38              2
+  HEMCO       32GB         ~1880          6,272           0.30              2  (floor)
+
+AT 48 RANKS BOTH TRACED MOUNTS RAN AT OR AT THE CLAMP FLOOR OF 2 BLOCKS (16 MiB), not
+at 223. --max-readahead was not binding, so no setting of it could have changed
+anything — which is a MECHANISM for gate 5b's central measurement, that hit rate is
+INVARIANT to a 4x window cut (223 -> 56). It could not have been otherwise: the
+binding value was 2 in both arms. The same argument covers every arm of the eight-policy
+sweep that moved only the ceiling.
+
+This reframes the campaign's standing verdict. "Prefetch is imprecise" was measured at
+a window that was never large: at 48 ranks the window is pinned at the floor by BUDGET
+DIVIDED ACROSS ~6,000 HANDLES. The knob that governs HEMCO prefetch in this regime is
+the budget (and the handle count), not --max-readahead. It also compounds with the
+#256 floor mechanism in the same direction: ~121 cold starts per object, each handle
+capped at 2 blocks.
+
+PRE-REGISTERED PREDICTION for the second capture, falsifiable by the very column #271
+added: max_window will be 2 on the HEMCO mount for essentially every row, and 2-3 on
+met with a brief higher tail early in the run while few handles are open. If instead it
+sits near 223, this section is wrong and gate 5b's invariance needs another explanation.
+
+
+5. STATUS
+----------
+#271 verified: both columns present and populated, seq inside the lock, verdict fixed,
+decomposition reproduced. Two things before the capture is worth buying:
+  1. lith#272 — sort rows by seq in the replay (one sort; without it met is voided).
+  2. nothing needed for max_window; it works.
+Upstream's gap-at-0% criterion is retired in favour of the seq-inversion rate, which
+measures ordering directly.
+
+CAPTURE STILL HELD. Cost of this gate: $0. Cost avoided: one 48-rank job that would
+have reproduced the first capture's UNEVALUABLE verdict.
