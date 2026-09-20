@@ -1,0 +1,202 @@
+THE CAPTURE — real GCHP read traces, scored against the pre-registered rule
+===========================================================================
+2026-09-19, cluster gchp-lith-ab, us-east-1a. Jobs 21 (arm c) and 22 (arms a, b) on
+one c8g.48xlarge, 48 ranks, C24 fullchem, 1 simulated day, --nic-gbps 50 — the same
+node type, rank count, run directory and NIC setting as every banked gate-5/5b number.
+Script: /scratch/lith-gates/capture.sbatch (committed reasoning in its header).
+Artifacts: capture-results.txt, capture-all4.handles.csv, capture-traces.tgz,
+capture-subset-scoring.txt.
+
+Arms:
+  a   met + HEMCO served by lith pr/267 = c922cc7, both with --pf-trace
+  b   identical replicate (the out-of-sample arm the rule requires)
+  c   same binary, NO --pf-trace (the perturbation control)
+The other three mounts (2015 CN, CHEM_INPUTS, GEOSCHEM_RESTARTS) stayed on the 1.1.3
+release in every arm, as in gate 5b, so they are in-run controls.
+
+
+1. THE FOUR CONTROL PREDICTIONS ALL HELD
+-----------------------------------------
+P1 CORRECTNESS. All three arms:
+     md5(gcchem_internal_checkpoint) = f3dd15b2191bbce63dadcbfc100196a6
+   the control banked across 12 previous arms. A diagnostic flag did not change one
+   byte the model reads.
+
+P2 c922cc7 IS BEHAVIOUR-NEUTRAL (arm c vs the banked 1.1.3 defaults):
+     HEMCO amplification  2.4539x        banked null 2.440 +/- 0.022 (n=6)   INSIDE
+     HEMCO issued         4761           banked 4533-4838                    INSIDE
+     HEMCO distinct       3.6993 GB      banked 3.697-3.700 GB               INSIDE
+     met distinct         3.254386688e9  exactly a banked arm's value        MATCH
+     met amplification    1.2098x        banked 1.21x                       MATCH
+     met hit rate         2330/2925 = 79.7%   banked 79.7%                   MATCH
+     to_completion        385.2s         banked 381-393s across 14 arms      INSIDE
+   So every deviation in the traced arms is attributable to tracing, not the binary.
+
+P3 TRACING COSTS WALL TIME — FALSIFIED, and I was wrong.
+     arm a 387.2s   arm b 391.2s   arm c 385.2s   => +0.5% and +1.6%
+   `lith mount --help` warns --pf-trace "adds a global lock to every read: for
+   characterization, not production". I predicted a measurable slowdown at 48 ranks and
+   pre-registered the falsifier (within 2% of c). It fired. At 25.7k-33.9k rows over a
+   ~390 s run the mutex is not the bottleneck; the reads are.
+
+P4 TRACING DOES NOT CHANGE THE BYTES FETCHED — CONFIRMED.
+     HEMCO s3_bytes   a 9.0183 GB   b 9.0099 GB   c 9.0777 GB   => -0.65%, -0.75%
+     HEMCO ampl       a 2.4388x     b 2.4356x     c 2.4539x     all inside the n=6 null
+     met ampl         a 1.2102x     b 1.2098x     c 1.2098x
+   Consistently a hair LOWER on the traced arms (the lock marginally delays reads, so a
+   few prefetch decisions don't fire) but inside the metric's own null. The traces
+   therefore describe an untraced run.
+
+Trace volume: met 25,667 / 25,649 rows (3.5 MB); HEMCO 33,871 / 33,656 rows (4.1 MB).
+"Unbounded" never became a problem at this scale.
+
+
+2. THE PRE-REGISTERED RULE CANNOT BE EVALUATED — AND THE REASON IS THE FINDING
+------------------------------------------------------------------------------
+Scored with lith-pfreplay from c922cc7, `-issued` taken per class from the live mounts
+(met 2944, HEMCO 4680).
+
+At face value the tool returns a verdict:
+     mean_abs_gap_blocks   met/a=+0.604  met/b=+0.616   hemco/a=+0.250  hemco/b=+0.199
+     AUC(hemco vs met) = 0.670  (n=334 vs 286)
+     best |rho| = 0.616;  VERDICT: SEPARATION
+
+But the tool ALSO voids its own output, on every arm:
+     state-machine fidelity: ** MISMATCH on 137/598 handles (met) / 178/6272 (hemco) **
+                             — the detector replay is wrong; everything below is void.
+     denominator sanity (met): 52947.0 MiB of decisions against 5978.9 MiB of distinct
+                               objects (8.86x)
+       ** IMPLAUSIBLE: a mount cannot usefully dispatch many times an object's size. **
+     vs live issued (met): replay 52947 chunk-decisions, mount 2944 chunks fetched
+       ** replay is >4x the mount's fetched chunks: too far apart to be dedup alone. **
+
+THE MISMATCH IS CONCENTRATED EXACTLY ON THE HANDLES THAT MATTER:
+
+     class/arm   handles   mismatching   prefetching   prefetching AND faithful
+     hemco/a        6272           178           168            4
+     hemco/b        6279           175           166            3
+     met/a           598           137           143            8
+     met/b           603           137           143            8
+
+96% of met's prefetching handles (135/143) have an unfaithful replay. So the rho = 0.604
+/ 0.616 that produced "SEPARATION" was computed almost entirely on handles whose labels
+the tool itself rejects. Rescoring on only the faithful prefetchers:
+
+     class/arm    n    rho(mean_abs_gap_blocks)   median ft   mean ft
+     hemco/a      4            n/a                  0.000     0.0000
+     hemco/b      3            n/a                  0.000     0.0000
+     met/a        8          -0.412                 0.000     0.0040
+     met/b        8          -0.082                 0.000     0.0040
+     AUC(hemco vs met) on the faithful subset = 0.438  (n=7 vs 16)
+
+The sign flips between arms and |rho| collapses. Formally |rho| < 0.5 and AUC < 0.7,
+which is the letter of NO SEPARATION — but on n=8 and n=3-4 handles, which is precisely
+the minimum-n degeneracy flagged in gate 5g and still unguarded. The honest verdict is
+therefore NOT "no separation":
+
+     VERDICT: UNEVALUABLE at the fidelity the instrument itself requires. The rule as
+     written asks a per-handle question of a workload that has no per-handle locality.
+
+
+3. WHY: GCHP HAS ~50 HANDLES PER OBJECT, SO THE PER-HANDLE MODEL'S ASSUMPTION FAILS
+-----------------------------------------------------------------------------------
+Straight from the traces (arm a):
+
+     met:    25,666 rows   598 handles   **12 distinct keys**
+             mean 49.8 handles per key, max 77
+             keys touched by more than one handle: 12/12 = 100%
+             handles that are the sole reader of every key they touch: **0 / 598**
+
+     hemco:  33,870 rows  6,272 handles   204 distinct keys
+             mean 30.7 handles per key, max 76
+             keys touched by more than one handle: 196/204 = 96%
+             sole readers: 8 / 6,272
+             of the 164 mismatching prefetchers, sole readers: 0
+
+48 MPI ranks open the same twelve MERRA2 files. Not one met handle in the entire run is
+the only reader of its object. A replay that models "one prefetcher per open, scored in
+isolation" is therefore modelling something that does not occur in this workload, and all
+three symptoms above are the same cause:
+
+  (a) FIDELITY. The mount suppresses a dispatch for a block a sibling handle already has
+      in flight or cached, so the recorded `dispatched` is smaller than the replayed
+      Observe() output. This necessarily hits prefetching handles hardest — a handle can
+      only have a dispatch suppressed if it tried to dispatch. Hence 135/143.
+  (b) DENOMINATOR. 143 met handles each decide to prefetch most of a ~400 MB object:
+      51.7 GiB of decisions against 3.94 GB the mount actually fetched, 13.4x. The
+      guard's text says "too far apart to be dedup alone"; on this workload it IS dedup
+      alone, at ~50x sharing.
+  (c) COLD TAX. Per-handle net waste on HEMCO is 8431.0 / 8488.5 MiB, which EXCEEDS the
+      mount's entire waste budget (s3_bytes 9.0183 - distinct 3.6979 = 5.32 GB from all
+      causes combined). Bytes a sibling reads are counted as this handle's waste.
+
+The gate-5h measurement was the first sight of this: 2.0-2.4x over on a synthetic arm with
+6 handles sharing 1 object. At GCHP's real sharing it is 13.4x, and it stops being a
+correction factor and becomes a category error.
+
+
+4. WHAT THE CAPTURE DOES ANSWER — THE FLOOR'S MULTIPLIER
+---------------------------------------------------------
+P5 pre-registered the #256 floor at 1.0-1.4 GB (falsifier < 0.5 GB). The per-handle
+instrument reports HEMCO net 8.43 GB, six times over — but section 3(c) shows that
+quantity is inflated past the mount's total waste, so it does not score the prediction.
+The prediction named a MOUNT-level quantity (`fill_bytes{demand}`), measured directly in
+gates 5c/5f at ~1.23 GB and constant across eight policies. That remains the answer; the
+capture does not refine it.
+
+What the capture adds is the missing MULTIPLIER, which no previous gate could see:
+
+     HEMCO first-run pre-decision cold reads:  24,762 (arm a) / 24,568 (arm b)
+       over 6,272 handles = 3.9 per handle
+       over   204 keys    = ~121 per object
+     met first-run cold reads:                  5,884 / 6,160  over 12 keys
+
+Gate 5f found the mechanism (a per-handle cold-start granularity tax at fs.go:778-786,
+byte-exact only in `Random`, so a `cold` handle is fetched whole-chunk). Gate 5f could
+only show it on ONE handle. The capture shows the mechanism is paid ~121 times per HEMCO
+object, because 30-50 ranks each cold-start independently on the same file. That is the
+floor's structure: not a few pathological handles, but every rank paying the same
+entry fee on the same object.
+
+It also closes gate 5b's open question from the other side. Gate 5b concluded the waste
+"needs cross-handle state" because no per-handle flag could reach it (eight policies, one
+constant floor). The capture shows why that had to be true: the detector's state is
+per-open, the waste is per-open, and there are 30-50 opens per object. No setting of a
+per-open window can see the other 49.
+
+
+5. WHAT UPSTREAM SHOULD DO WITH THE SCORER
+-------------------------------------------
+The instrument behaved correctly and that is why this gate produced a result instead of a
+false one. Its fidelity gate and both new implausibility guards fired on exactly the arms
+that deserved them (met 8.86x flagged, HEMCO 0.94x not flagged), and without them the
+"SEPARATION, rho = 0.616" line would have been reported as the campaign's answer.
+
+To make the rule answerable, the replay has to model the SHARED CACHE, not a lone handle:
+replay all handles of a mount against one simulated cache, suppress a dispatch for a block
+already resident or in flight, and credit a dispatch as used if ANY handle subsequently
+reads it. That is `byte_follow_through_global`, asked for in gate 5g as an interpretive
+nicety; the capture shows it is the only unit in which the question has an answer on this
+workload. The per-handle column remains meaningful as a strict lower bound.
+
+Second, the minimum-n and tie-mass guards still matter: on the faithful subset the tool
+would otherwise have printed a verdict from n = 3.
+
+
+6. STATUS AND COST
+-------------------
+Cost: two jobs on one c8g.48xlarge, ~35 min of node time total (three ~390 s runs plus
+mounts and one wasted mount cycle), well inside the single-job estimate.
+
+Harness bug worth recording: job 21 lost arms a and b to `(( miss )) && { ...; return 1; }`
+as the last statement of mount_lith — with miss=0 the arithmetic is false, so the FUNCTION
+returned 1 and both traced arms were skipped after mounting cleanly and creating their
+traces. The guard added to prevent a silent capture failure became one. Fixed with an
+explicit `return 0`; arm c was unaffected because it skips that block, and it ran, which is
+why the perturbation control exists at all. Resubmitted onto the still-warm node.
+
+Also measured at $0 before the job, and reported to #264: with --daemon, an unwritable
+--pf-trace path still mounts successfully AND the `level=ERROR "prefetch trace disabled"`
+goes to /tmp/lith-<uid>-mount.log, i.e. the one failure mode that costs a full run and
+yields nothing is both non-fatal and invisible in exactly the mode a capture uses. The
+harness therefore proves the trace files exist before launching mpirun.

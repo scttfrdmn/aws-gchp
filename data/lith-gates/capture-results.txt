@@ -1,0 +1,651 @@
+
+=== node facts 2026-09-20T03:41:14Z  job 21  arms a,b,c ===
+instance: c8g.48xlarge  host: compute-dy-nodes-1  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+/scratch:  1.1T avail
+--nic-gbps 50   (banked gate-5/5b numbers were all taken at 50)
+
+=== preflight ===
+  267b sha256: 54ee8d17e826b7472194f644d1f2f6103b5466dc047f43464e9566538bc9eb69
+  267b version: lith dev (unstamped local build of pr/267 = c922cc7)
+  control binary does not know --pf-trace (as expected)
+  all preflight checks passed
+
+=== ARM a ===
+  stale fuse.lith mounts after cleanup: 0
+  met   binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/met-a.csv]
+  hemco binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/hemco-a.csv]
+lith mounted in the background (pid 16589); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16704); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16820); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16935); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17050); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  trace created: /scratch/lith-gates/capture/met-a.csv
+  trace created: /scratch/lith-gates/capture/hemco-a.csv
+  mount stage failed — skipping arm a
+
+=== ARM b ===
+  stale fuse.lith mounts after cleanup: 0
+  met   binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/met-b.csv]
+  hemco binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/hemco-b.csv]
+lith mounted in the background (pid 17271); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17386); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17503); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17618); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 17732); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  trace created: /scratch/lith-gates/capture/met-b.csv
+  trace created: /scratch/lith-gates/capture/hemco-b.csv
+  mount stage failed — skipping arm b
+
+=== ARM c ===
+  stale fuse.lith mounts after cleanup: 0
+  met   binary: lith-267b  trace: [none]
+  hemco binary: lith-267b  trace: [none]
+lith mounted in the background (pid 18083); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 18198); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 18314); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 18428); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 18544); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2   HcoDir -> /input-lith/HEMCO
+  HEMCO ROOT -> /input-lith/HEMCO
+  entry points resolve OK
+
+=== RUN c ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  HEMCO ROOT -> /input-lith/HEMCO
+RESULT c    init=178.80s sim_end=363.80s to_completion=385.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 md5-OK SUCCEEDED
+
+=== lith metrics after arm c ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3161
+   lith_distinct_bytes_read 3.254386688e+09
+   lith_fill_bytes_total{kind="demand"} 8.7749835e+08
+   lith_fill_bytes_total{kind="whole"} 3.059565591e+09
+   lith_fill_runs_total 0
+   lith_prefetch_deestablished_total{size_class=">64MiB"} 51
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_evidence_clamped_total{size_class=">64MiB"} 0
+   lith_prefetch_evidence_withheld_blocks_total 0
+   lith_prefetch_issued_total 2925
+   lith_prefetch_reset_random_total 110
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 380
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 401
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 401
+   lith_prefetch_sem_wait_seconds_sum 0.00020994300000000028
+   lith_prefetch_sem_wait_seconds_count 401
+   lith_prefetch_uncovered_total 3201
+   lith_prefetch_used_total 2330
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 2918
+   lith_s3_bytes_total 3.937063941e+09
+   lith_s3_requests_total{op="get",status="ok"} 3608
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 2
+   lith_distinct_bytes_read 851968
+   lith_fill_bytes_total{kind="demand"} 809084
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 0
+   lith_prefetch_sem_wait_seconds_sum 0
+   lith_prefetch_sem_wait_seconds_count 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+-- hemco (:9112)
+   lith_cache_misses_total 6991
+   lith_distinct_bytes_read 3.699310592e+09
+   lith_fill_bytes_total{kind="demand"} 4.161809109e+09
+   lith_fill_bytes_total{kind="whole"} 4.915910203e+09
+   lith_fill_runs_total 0
+   lith_prefetch_deestablished_total{size_class="16-64MiB"} 0
+   lith_prefetch_deestablished_total{size_class="4-16MiB"} 0
+   lith_prefetch_deestablished_total{size_class="<=4MiB"} 0
+   lith_prefetch_deestablished_total{size_class=">64MiB"} 13
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_evidence_clamped_total{size_class="16-64MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class="4-16MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class="<=4MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class=">64MiB"} 0
+   lith_prefetch_evidence_withheld_blocks_total 0
+   lith_prefetch_issued_total 4761
+   lith_prefetch_reset_random_total 316
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 772
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 806
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 806
+   lith_prefetch_sem_wait_seconds_sum 0.00040411999999999995
+   lith_prefetch_sem_wait_seconds_count 806
+   lith_prefetch_uncovered_total 7267
+   lith_prefetch_used_total 810
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 3068
+   lith_s3_bytes_total 9.077719312e+09
+   lith_s3_requests_total{op="get",status="ok"} 8094
+-- chem-inputs (:9113)
+   lith_cache_misses_total 78
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_bytes_total{kind="demand"} 4.179674e+06
+   lith_fill_bytes_total{kind="whole"} 192434
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 2
+   lith_prefetch_sem_wait_seconds_sum 2.5230000000000002e-06
+   lith_prefetch_sem_wait_seconds_count 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+-- restarts (:9114)
+   lith_cache_misses_total 25
+   lith_distinct_bytes_read 7.67295488e+08
+   lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+   lith_fill_bytes_total{kind="whole"} 7.79923747e+08
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_reset_random_total 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 81
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 93
+   lith_prefetch_sem_wait_seconds_sum 6.573199999999997e-05
+   lith_prefetch_sem_wait_seconds_count 93
+   lith_prefetch_uncovered_total 16
+   lith_prefetch_used_total 716
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 663
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 109
+ISSUED c met=NA hemco=NA
+  capture dir: 1 GiB
+  stale fuse.lith mounts after cleanup: 0
+
+=== capture complete 2026-09-20T03:48:51Z ===
+  -rw-rw-r-- 1 ec2-user ec2-user  16 Sep 20 03:48 /scratch/lith-gates/capture/c.issued
+  -rw-rw-r-- 1 ec2-user ec2-user 243 Sep 20 03:41 /scratch/lith-gates/capture/hemco-a.csv
+  -rw-rw-r-- 1 ec2-user ec2-user 243 Sep 20 03:41 /scratch/lith-gates/capture/hemco-b.csv
+  -rw-rw-r-- 1 ec2-user ec2-user 243 Sep 20 03:41 /scratch/lith-gates/capture/met-a.csv
+  -rw-rw-r-- 1 ec2-user ec2-user 243 Sep 20 03:41 /scratch/lith-gates/capture/met-b.csv
+
+Scoring is deliberately NOT done here. Offline, per the agreed rule:
+  pfreplay-267b -issued <sum of that class's issued> -out handles.csv \
+     met/a=met-a.csv met/b=met-b.csv hemco/a=hemco-a.csv hemco/b=hemco-b.csv
+Read the denominator-sanity and vs-live lines before anything below them.
+
+=== node facts 2026-09-20T03:51:28Z  job 22  arms a,b ===
+instance: c8g.48xlarge  host: compute-dy-nodes-1  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+/scratch:  1.1T avail
+--nic-gbps 50   (banked gate-5/5b numbers were all taken at 50)
+
+=== preflight ===
+  267b sha256: 54ee8d17e826b7472194f644d1f2f6103b5466dc047f43464e9566538bc9eb69
+  267b version: lith dev (unstamped local build of pr/267 = c922cc7)
+  control binary does not know --pf-trace (as expected)
+  all preflight checks passed
+
+=== ARM a ===
+  stale fuse.lith mounts after cleanup: 0
+  met   binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/met-a.csv]
+  hemco binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/hemco-a.csv]
+lith mounted in the background (pid 25241); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 25356); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 25475); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 25588); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 25702); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  trace created: /scratch/lith-gates/capture/met-a.csv
+  trace created: /scratch/lith-gates/capture/hemco-a.csv
+  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2   HcoDir -> /input-lith/HEMCO
+  HEMCO ROOT -> /input-lith/HEMCO
+  entry points resolve OK
+
+=== RUN a ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  HEMCO ROOT -> /input-lith/HEMCO
+RESULT a    init=180.68s sim_end=366.68s to_completion=387.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 md5-OK SUCCEEDED
+
+=== lith metrics after arm a ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3211
+   lith_distinct_bytes_read 3.254452224e+09
+   lith_fill_bytes_total{kind="demand"} 8.60393454e+08
+   lith_fill_bytes_total{kind="whole"} 3.078177815e+09
+   lith_fill_runs_total 0
+   lith_prefetch_deestablished_total{size_class=">64MiB"} 54
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_evidence_clamped_total{size_class=">64MiB"} 0
+   lith_prefetch_evidence_withheld_blocks_total 0
+   lith_prefetch_issued_total 2944
+   lith_prefetch_reset_random_total 114
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 387
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 403
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 403
+   lith_prefetch_sem_wait_seconds_sum 0.0001951640000000002
+   lith_prefetch_sem_wait_seconds_count 403
+   lith_prefetch_uncovered_total 3246
+   lith_prefetch_used_total 2347
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 2688
+   lith_s3_bytes_total 3.938571269e+09
+   lith_s3_requests_total{op="get",status="ok"} 3657
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 1
+   lith_distinct_bytes_read 851968
+   lith_fill_bytes_total{kind="demand"} 809084
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 0
+   lith_prefetch_sem_wait_seconds_sum 0
+   lith_prefetch_sem_wait_seconds_count 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+-- hemco (:9112)
+   lith_cache_misses_total 7131
+   lith_distinct_bytes_read 3.6978688e+09
+   lith_fill_bytes_total{kind="demand"} 4.189119392e+09
+   lith_fill_bytes_total{kind="whole"} 4.829224304e+09
+   lith_fill_runs_total 0
+   lith_prefetch_deestablished_total{size_class="16-64MiB"} 0
+   lith_prefetch_deestablished_total{size_class="4-16MiB"} 0
+   lith_prefetch_deestablished_total{size_class="<=4MiB"} 0
+   lith_prefetch_deestablished_total{size_class=">64MiB"} 12
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_evidence_clamped_total{size_class="16-64MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class="4-16MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class="<=4MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class=">64MiB"} 0
+   lith_prefetch_evidence_withheld_blocks_total 0
+   lith_prefetch_issued_total 4680
+   lith_prefetch_reset_random_total 301
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 777
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 801
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 801
+   lith_prefetch_sem_wait_seconds_sum 0.00036661199999999967
+   lith_prefetch_sem_wait_seconds_count 801
+   lith_prefetch_uncovered_total 7358
+   lith_prefetch_used_total 783
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 3056
+   lith_s3_bytes_total 9.018343696e+09
+   lith_s3_requests_total{op="get",status="ok"} 8175
+-- chem-inputs (:9113)
+   lith_cache_misses_total 79
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_bytes_total{kind="demand"} 4.179674e+06
+   lith_fill_bytes_total{kind="whole"} 192434
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 2
+   lith_prefetch_sem_wait_seconds_sum 2.743e-06
+   lith_prefetch_sem_wait_seconds_count 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+-- restarts (:9114)
+   lith_cache_misses_total 26
+   lith_distinct_bytes_read 7.67295488e+08
+   lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+   lith_fill_bytes_total{kind="whole"} 7.79923747e+08
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_reset_random_total 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 82
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 93
+   lith_prefetch_sem_wait_seconds_sum 5.962399999999998e-05
+   lith_prefetch_sem_wait_seconds_count 93
+   lith_prefetch_uncovered_total 16
+   lith_prefetch_used_total 716
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 663
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 109
+ISSUED a met=2944 hemco=4680
+TRACE met-a.csv bytes=3556442 rows=25667
+TRACE hemco-a.csv bytes=4069118 rows=33871
+  capture dir: 1 GiB
+
+=== ARM b ===
+  stale fuse.lith mounts after cleanup: 0
+  met   binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/met-b.csv]
+  hemco binary: lith-267b  trace: [--pf-trace /scratch/lith-gates/capture/hemco-b.csv]
+lith mounted in the background (pid 32120); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 32233); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 32348); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 32461); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 32576); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  trace created: /scratch/lith-gates/capture/met-b.csv
+  trace created: /scratch/lith-gates/capture/hemco-b.csv
+  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2   HcoDir -> /input-lith/HEMCO
+  HEMCO ROOT -> /input-lith/HEMCO
+  entry points resolve OK
+
+=== RUN b ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  HEMCO ROOT -> /input-lith/HEMCO
+RESULT b    init=182.79s sim_end=369.79s to_completion=391.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 md5-OK SUCCEEDED
+
+=== lith metrics after arm b ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3046
+   lith_distinct_bytes_read 3.254648832e+09
+   lith_fill_bytes_total{kind="demand"} 8.67864558e+08
+   lith_fill_bytes_total{kind="whole"} 3.069461527e+09
+   lith_fill_runs_total 0
+   lith_prefetch_deestablished_total{size_class=">64MiB"} 52
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_evidence_clamped_total{size_class=">64MiB"} 0
+   lith_prefetch_evidence_withheld_blocks_total 0
+   lith_prefetch_issued_total 2937
+   lith_prefetch_reset_random_total 109
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 386
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 399
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 399
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 400
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 400
+   lith_prefetch_sem_wait_seconds_sum 0.00023822899999999988
+   lith_prefetch_sem_wait_seconds_count 400
+   lith_prefetch_uncovered_total 3114
+   lith_prefetch_used_total 2341
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 2990
+   lith_s3_bytes_total 3.937326085e+09
+   lith_s3_requests_total{op="get",status="ok"} 3520
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 1
+   lith_distinct_bytes_read 851968
+   lith_fill_bytes_total{kind="demand"} 809084
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 0
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 0
+   lith_prefetch_sem_wait_seconds_sum 0
+   lith_prefetch_sem_wait_seconds_count 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+-- hemco (:9112)
+   lith_cache_misses_total 7158
+   lith_distinct_bytes_read 3.699245056e+09
+   lith_fill_bytes_total{kind="demand"} 4.207356629e+09
+   lith_fill_bytes_total{kind="whole"} 4.802583385e+09
+   lith_fill_runs_total 0
+   lith_prefetch_deestablished_total{size_class="16-64MiB"} 0
+   lith_prefetch_deestablished_total{size_class="4-16MiB"} 0
+   lith_prefetch_deestablished_total{size_class="<=4MiB"} 0
+   lith_prefetch_deestablished_total{size_class=">64MiB"} 11
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_evidence_clamped_total{size_class="16-64MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class="4-16MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class="<=4MiB"} 0
+   lith_prefetch_evidence_clamped_total{size_class=">64MiB"} 0
+   lith_prefetch_evidence_withheld_blocks_total 0
+   lith_prefetch_issued_total 4653
+   lith_prefetch_reset_random_total 306
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 759
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 796
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 796
+   lith_prefetch_sem_wait_seconds_sum 0.0003788199999999999
+   lith_prefetch_sem_wait_seconds_count 796
+   lith_prefetch_uncovered_total 7468
+   lith_prefetch_used_total 756
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 3080
+   lith_s3_bytes_total 9.009940014e+09
+   lith_s3_requests_total{op="get",status="ok"} 8278
+-- chem-inputs (:9113)
+   lith_cache_misses_total 81
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_bytes_total{kind="demand"} 4.179674e+06
+   lith_fill_bytes_total{kind="whole"} 192434
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_reset_random_total 0
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 2
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 2
+   lith_prefetch_sem_wait_seconds_sum 1.232e-06
+   lith_prefetch_sem_wait_seconds_count 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+-- restarts (:9114)
+   lith_cache_misses_total 30
+   lith_distinct_bytes_read 7.67229952e+08
+   lith_fill_bytes_total{kind="demand"} 1.6777216e+07
+   lith_fill_bytes_total{kind="whole"} 7.79923747e+08
+   lith_fill_runs_total 0
+   lith_prefetch_evicted_unread_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_reset_random_total 2
+   lith_prefetch_sem_wait_seconds_bucket{le="1e-06"} 85
+   lith_prefetch_sem_wait_seconds_bucket{le="4e-06"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="1.6e-05"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="6.4e-05"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.000256"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.001024"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.004096"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.016384"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.065536"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="0.262144"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="1.048576"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="4.194304"} 93
+   lith_prefetch_sem_wait_seconds_bucket{le="+Inf"} 93
+   lith_prefetch_sem_wait_seconds_sum 5.804500000000002e-05
+   lith_prefetch_sem_wait_seconds_count 93
+   lith_prefetch_uncovered_total 22
+   lith_prefetch_used_total 716
+   lith_prefetch_window_halved_total 0
+   lith_read_straddle_total 723
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 115
+ISSUED b met=2937 hemco=4653
+TRACE met-b.csv bytes=3554190 rows=25649
+TRACE hemco-b.csv bytes=4043179 rows=33656
+  capture dir: 1 GiB
+  stale fuse.lith mounts after cleanup: 0
+
+=== capture complete 2026-09-20T04:07:39Z ===
+  -rw-rw-r-- 1 ec2-user ec2-user      20 Sep 20 03:58 /scratch/lith-gates/capture/a.issued
+  -rw-rw-r-- 1 ec2-user ec2-user      20 Sep 20 04:07 /scratch/lith-gates/capture/b.issued
+  -rw-rw-r-- 1 ec2-user ec2-user      16 Sep 20 03:48 /scratch/lith-gates/capture/c.issued
+  -rw-rw-r-- 1 ec2-user ec2-user 4069118 Sep 20 03:57 /scratch/lith-gates/capture/hemco-a.csv
+  -rw-rw-r-- 1 ec2-user ec2-user 4043179 Sep 20 04:06 /scratch/lith-gates/capture/hemco-b.csv
+  -rw-rw-r-- 1 ec2-user ec2-user 3556442 Sep 20 03:57 /scratch/lith-gates/capture/met-a.csv
+  -rw-rw-r-- 1 ec2-user ec2-user 3554190 Sep 20 04:06 /scratch/lith-gates/capture/met-b.csv
+
+Scoring is deliberately NOT done here. Offline, per the agreed rule:
+  pfreplay-267b -issued <sum of that class's issued> -out handles.csv \
+     met/a=met-a.csv met/b=met-b.csv hemco/a=hemco-a.csv hemco/b=hemco-b.csv
+Read the denominator-sanity and vs-live lines before anything below them.
