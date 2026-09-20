@@ -1,0 +1,49 @@
+== populations (faithful handles only, as the verdict uses)
+class/arm     faithful  per-handle scored  shared scored   both
+hemco/a           6219                167            140    140
+hemco/b           6239                167            136    136
+met/a              596                141             63     63
+met/b              605                142             63     63
+
+== Spearman rho vs byte follow-through, three ways
+   A = per-handle FT over ALL per-handle-scored handles      (the banked verdict)
+   B = per-handle FT over the SHARED-scoreable subset ONLY   (isolates population)
+   C = shared FT over that same subset                       (isolates unit)
+
+feature                class/arm         A        B        C    n_A  n_BC
+mean_abs_gap_blocks    hemco/a      +0.271   +0.366   +0.122    167   140
+mean_abs_gap_blocks    hemco/b      +0.266   +0.329   +0.116    167   136
+mean_abs_gap_blocks    met/a        +0.635   +0.609   +0.167    141    63
+mean_abs_gap_blocks    met/b        +0.634   +0.634   +0.184    142    63
+max_abs_gap_blocks     hemco/a      +0.235   +0.319   +0.070    167   140
+max_abs_gap_blocks     hemco/b      +0.254   +0.308   +0.104    167   136
+max_abs_gap_blocks     met/a        +0.624   +0.627   +0.236    141    63
+max_abs_gap_blocks     met/b        +0.627   +0.657   +0.260    142    63
+frac_large_gap         hemco/a      +0.061   +0.093   -0.003    167   140
+frac_large_gap         hemco/b      +0.064   +0.022   -0.158    167   136
+frac_large_gap         met/a        +0.221   +0.047   -0.383    141    63
+frac_large_gap         met/b        +0.198   -0.031   -0.411    142    63
+mean_read_kib          hemco/a      -0.150   -0.160   +0.221    167   140
+mean_read_kib          hemco/b      -0.122   -0.059   +0.252    167   136
+mean_read_kib          met/a        +0.084   +0.381   +0.214    141    63
+mean_read_kib          met/b        +0.110   +0.412   +0.288    142    63
+frac_monotonic         hemco/a      +0.039   +0.033   +0.441    167   140
+frac_monotonic         hemco/b      +0.069   +0.085   +0.382    167   136
+frac_monotonic         met/a        -0.017   +0.160   +0.376    141    63
+frac_monotonic         met/b        +0.031   +0.175   +0.554    142    63
+frac_straddle          hemco/a      +0.023   +0.028   +0.117    167   140
+frac_straddle          hemco/b      -0.056   -0.039   -0.038    167   136
+frac_straddle          met/a        -0.034   -0.007   -0.246    141    63
+frac_straddle          met/b        -0.033   +0.004   -0.215    142    63
+
+== do the two units even rank the same handles the same way?
+   hemco/a   rho(per-handle FT, shared FT) = +0.448   n=140
+   hemco/b   rho(per-handle FT, shared FT) = +0.441   n=136
+   met/a   rho(per-handle FT, shared FT) = +0.257   n=63
+   met/b   rho(per-handle FT, shared FT) = +0.263   n=63
+
+== the cold tax, per unit (sum over faithful handles)
+   hemco/a   per-handle    8787.2 MB   shared    1318.4 MB   ratio 6.66x
+   hemco/b   per-handle    8906.2 MB   shared    1320.6 MB   ratio 6.74x
+   met/a   per-handle     685.3 MB   shared      51.0 MB   ratio 13.43x
+   met/b   per-handle     698.8 MB   shared      52.2 MB   ratio 13.38x

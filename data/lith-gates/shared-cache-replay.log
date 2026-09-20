@@ -1,0 +1,134 @@
+== class=met arm=a (capture2/met-a.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 25604 (window=25604 parts=0 footer=0)  handles: 596
+   state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 13403.9 MiB of dispatch DECISIONS against 5978.9 MiB of distinct objects (2.24x; >1x is normal)
+   ** 2 of 143 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 141 prefetching handles: median 0.000  mean 0.078  p10 0.000  p90 0.268
+   cold-start granularity tax (#256 floor): 6065 first-run pre-decision small reads (+727 cold re-entries, excluded)
+     NET waste 653.6 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 1328.1 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 401, suppressed as already resident 1289  => 4.21x dedup
+     dispatched 3185.3 MiB shared vs 13403.9 MiB per-handle;  followed through 2362.6 MiB vs 1256.1 MiB
+     byte follow-through 0.742 shared vs 0.094 per-handle
+     of the redeemed bytes, 84.3% were read by a DIFFERENT handle than the one that fetched them
+     keys 12, read by more than one handle 12;  dispatches clamped past EOF 139
+     cold tax, shared: 6065 first-run small reads, 5087 suppressed as already resident
+       NET waste 48.7 MiB shared vs 653.6 MiB per-handle  (13.43x)   [gross 874.5 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 2939 chunks:
+       shared 3185 chunks -> 1.08x    per-handle 13403 chunks -> 4.56x
+== class=met arm=b (capture2/met-b.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 25576 (window=25576 parts=0 footer=0)  handles: 605
+   state-machine fidelity: OK — replayed dispatch DECISIONS match the recorded ones on every handle
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 13308.2 MiB of dispatch DECISIONS against 5978.9 MiB of distinct objects (2.23x; >1x is normal)
+   ** 2 of 144 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 142 prefetching handles: median 0.000  mean 0.078  p10 0.000  p90 0.271
+   cold-start granularity tax (#256 floor): 5880 first-run pre-decision small reads (+627 cold re-entries, excluded)
+     NET waste 666.4 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 1322.8 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 401, suppressed as already resident 1278  => 4.18x dedup
+     dispatched 3185.3 MiB shared vs 13308.2 MiB per-handle;  followed through 2366.5 MiB vs 1241.0 MiB
+     byte follow-through 0.743 shared vs 0.093 per-handle
+     of the redeemed bytes, 85.4% were read by a DIFFERENT handle than the one that fetched them
+     keys 12, read by more than one handle 12;  dispatches clamped past EOF 151
+     cold tax, shared: 5880 first-run small reads, 4917 suppressed as already resident
+       NET waste 49.8 MiB shared vs 666.4 MiB per-handle  (13.38x)   [gross 862.1 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 2942 chunks:
+       shared 3185 chunks -> 1.08x    per-handle 13308 chunks -> 4.52x
+== class=hemco arm=a (capture2/hemco-a.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 33916 (window=33769 parts=147 footer=0)  handles: 6229
+   state-machine fidelity: ** MISMATCH on 10/6229 handles ** — the detector replay is wrong; everything below is void.
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 7074.1 MiB of dispatch DECISIONS against 18678.6 MiB of distinct objects (0.38x; >1x is normal)
+   ** 15 of 183 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 168 prefetching handles: median 0.000  mean 0.025  p10 0.000  p90 0.079
+   cold-start granularity tax (#256 floor): 24801 first-run pre-decision small reads (+358 cold re-entries, excluded)
+     NET waste 8403.1 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 10011.2 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 618, suppressed as already resident 289  => 1.47x dedup
+     dispatched 4822.8 MiB shared vs 7074.1 MiB per-handle;  followed through 607.4 MiB vs 121.7 MiB
+     byte follow-through 0.126 shared vs 0.017 per-handle
+     of the redeemed bytes, 85.5% were read by a DIFFERENT handle than the one that fetched them
+     keys 204, read by more than one handle 193;  dispatches clamped past EOF 515
+     cold tax, shared: 24801 first-run small reads, 20610 suppressed as already resident
+       NET waste 1257.3 MiB shared vs 8403.1 MiB per-handle  (6.68x)   [gross 3766.6 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 4632 chunks:
+       shared 4822 chunks -> 1.04x    per-handle 7074 chunks -> 1.53x
+== class=hemco arm=b (capture2/hemco-b.csv)
+   config: block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage=16/0.5 evidence_ratio=0
+   rows: 33610 (window=33471 parts=139 footer=0)  handles: 6248
+   state-machine fidelity: ** MISMATCH on 9/6248 handles ** — the detector replay is wrong; everything below is void.
+     (this compares Observe against a column produced by Observe: it validates the state machine, NOT the byte accounting)
+   denominator sanity: 7049.9 MiB of dispatch DECISIONS against 18678.6 MiB of distinct objects (0.38x; >1x is normal)
+   ** 14 of 182 handles that dispatched prefetch scored NOTHING: every dispatch clamped past EOF.
+      With real sizes this means the detector dispatched only past EOF. **
+   byte follow-through over 168 prefetching handles: median 0.000  mean 0.025  p10 0.000  p90 0.068
+   cold-start granularity tax (#256 floor): 24578 first-run pre-decision small reads (+309 cold re-entries, excluded)
+     NET waste 8513.2 MiB (chunk bytes never read by that handle)   [gross, uncorrected: 10100.1 MiB]
+   SHARED-CACHE unit (one cache per mount, no eviction => an upper bound):
+     blocks fetched once 628, suppressed as already resident 276  => 1.44x dedup
+     dispatched 4901.8 MiB shared vs 7049.9 MiB per-handle;  followed through 614.7 MiB vs 118.4 MiB
+     byte follow-through 0.125 shared vs 0.017 per-handle
+     of the redeemed bytes, 85.4% were read by a DIFFERENT handle than the one that fetched them
+     keys 204, read by more than one handle 192;  dispatches clamped past EOF 547
+     cold tax, shared: 24578 first-run small reads, 20407 suppressed as already resident
+       NET waste 1259.4 MiB shared vs 8513.2 MiB per-handle  (6.76x)   [gross 3749.4 MiB]
+     vs the MOUNT's own lith_prefetch_issued_total = 4700 chunks:
+       shared 4901 chunks -> 1.04x    per-handle 7049 chunks -> 1.50x
+
+   decomposition of the replay-vs-mount gap:
+     replay decisions      52256 chunks (pre-EOF-clamp)   -> 1.00x the mount's, 1.28x of which is past EOF
+     replay fetchable      40836 chunks                   -> 0.78x  <- window/input inflation
+     mount decided         52104 chunks (its own column)
+
+== pre-registered verdict (#256)
+   fidelity filter: 2 scored handles excluded (replay diverged from the mount);
+     the verdict below is computed on the faithful remainder ONLY. A diverging handle is
+     replaying a different program, so its score is not evidence about lith.
+   AUC(met vs hemco) on byte follow-through = 0.651  (n=283 vs 334)
+     (note: the 0.7 bar is undemanding — a uniform shift of one unit clears it at 0.719)
+   Spearman rho per class/arm (train on one arm, test on another — the agreed rule).
+     A value only counts toward the verdict when its arm has >= 8 scored handles AND >= 4
+     distinct values on BOTH axes: n=3 with a two-way tie is monotone by construction, not a finding.
+     mean_abs_gap_blocks     met/a=+0.635  met/b=+0.634  hemco/a=+0.271  hemco/b=+0.266   <- |rho|>=0.5 on 2+ QUALIFYING arms
+     max_abs_gap_blocks      met/a=+0.624  met/b=+0.627  hemco/a=+0.235  hemco/b=+0.254   <- |rho|>=0.5 on 2+ QUALIFYING arms
+     frac_large_gap          met/a=+0.221  met/b=+0.198  hemco/a=+0.061  hemco/b=+0.064
+     mean_read_kib           met/a=+0.084  met/b=+0.110  hemco/a=-0.150  hemco/b=-0.122
+     frac_monotonic          met/a=-0.017[feature has 3 distinct]  met/b=+0.031[feature has 3 distinct]  hemco/a=+0.039  hemco/b=+0.069
+     frac_straddle           met/a=-0.034  met/b=-0.033  hemco/a=+0.023  hemco/b=-0.056
+
+   best |rho| = 0.635 (mean_abs_gap_blocks); threshold 0.5
+   VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+            Validate it out-of-sample (fit one arm, test another) before designing a policy on it.
+
+per-handle scores written to /scratch/lith-gates/capture2-global.csv
+
+########## the same handles scored against a SHARED cache (see global.go) ##########
+   byte follow-through over 402 prefetching handles: median 0.089  mean 0.268  p10 0.000  p90 1.000
+
+== pre-registered verdict (#256)
+   AUC(met vs hemco) on byte follow-through = 0.777  (n=126 vs 276)
+     (note: the 0.7 bar is undemanding — a uniform shift of one unit clears it at 0.719)
+   Spearman rho per class/arm (train on one arm, test on another — the agreed rule).
+     A value only counts toward the verdict when its arm has >= 8 scored handles AND >= 4
+     distinct values on BOTH axes: n=3 with a two-way tie is monotone by construction, not a finding.
+     mean_abs_gap_blocks     met/a=+0.167  met/b=+0.184  hemco/a=+0.122  hemco/b=+0.116
+     max_abs_gap_blocks      met/a=+0.236  met/b=+0.260  hemco/a=+0.070  hemco/b=+0.104
+     frac_large_gap          met/a=-0.383  met/b=-0.411  hemco/a=-0.003  hemco/b=-0.158
+     mean_read_kib           met/a=+0.214  met/b=+0.288  hemco/a=+0.221  hemco/b=+0.252
+     frac_monotonic          met/a=+0.376[feature has 3 distinct]  met/b=+0.554[feature has 3 distinct]  hemco/a=+0.441  hemco/b=+0.382
+     frac_straddle           met/a=-0.246[feature has 3 distinct]  met/b=-0.215[feature has 3 distinct]  hemco/a=+0.117  hemco/b=-0.038
+
+   best |rho| = 0.441 (frac_monotonic); threshold 0.5
+   VERDICT: PARTIAL — no single early feature predicts follow-through (|rho| < 0.5), but the
+            per-label distributions do separate (AUC 0.777 >= 0.7): the difference is real and
+            observable somewhere, just not in these features.
+
+shared-cache scores written to /scratch/lith-gates/capture2-global.global.csv
