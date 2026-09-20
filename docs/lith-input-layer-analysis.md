@@ -244,6 +244,29 @@ that at the capture's 598 and 6,272 open handles **both traced mounts ran at the
 for gate 5b's invariance to a 4× window cut and reframes "imprecise prefetch" as a window pinned
 by budget-divided-by-handle-count.
 
+**Capture #2** (2026-09-20, ~$3.5) then buys the re-capture on #271's format and — for the first
+time in this sequence — **the pre-registered rule is scoreable and returns a verdict**.
+Correctness held in all three arms (15 arms now on the same checkpoint md5), arm c reproduced the
+release inside the n=6 null (2.426× vs 2.440 ± 0.022), and the fidelity filter voided **2** scored
+handles against capture 1's **135**. The verdict is **SEPARATION on met and not on HEMCO**:
+`mean_abs_gap_blocks` over a handle's first ≤8 reads predicts per-handle byte follow-through at
+ρ **+0.635** fit / **+0.634** out-of-sample on met, but reaches only **+0.27** on HEMCO — the mount
+whose waste the whole campaign is about is the one where a handle's first reads do *not* predict
+whether its prefetch gets read. Because the winning feature is built from the racy `gap` column,
+it was recomputed from a **repaired** gap (previous end of the same fh, in seq order): ρ moves
+**+0.635 → +0.637** and the two agree at 0.994, so the signal lives in the honest part of the
+column. Three more results fall out. My own acceptance criterion was wrong in the same way
+upstream's was — "`seq` increasing in file order" is violated *by design* (0.46–0.54% here), so
+scoreability is **uniqueness**, and the inversion rate is a measurement rather than a gate. Gate
+5i's floor prediction is **partially falsified**: the window in force is 1–2 orders below the 223
+ceiling (median **3** on HEMCO, **8** on met) which is the mechanism gate 5b needed, but it is not
+pinned at 2 — I had divided the budget by handles *seen over the run* instead of handles *open at
+once*. And the sort is necessary but **not sufficient**: 10 of 6,229 handles still diverge, with a
+sharp signature — every row `cold` or `random`, never `sequential` or `strided`, reproduced at 9 of
+6,248 in the second arm. The per-handle denominator is now settled as the wrong unit twice at the
+same multiplier (8403 and 8513 MiB of "waste" against a 5.32 GB budget; 3.42× sharing dedup), so
+the next step is the **shared-cache replay** — offline, free, and its input now exists.
+
 ## What lith is
 
 - Read-only by definition; every mutating op returns `EROFS`. No sidecar objects,
@@ -680,6 +703,22 @@ works on EBS. Low upside, new variable.
    `budgetBlocks` ≈ 1424 (24GB) / 1880 (32GB) ≈ 46% of cache, so at 598 and 6,272 open
    handles **both capture mounts ran at the clamp floor of 2 blocks** — `--max-readahead` was
    never binding, which is the arithmetic mechanism behind gate 5b's 4×-cut invariance.
+16. **Does a handle's first ≤8 reads predict whether its prefetch is read?** **ANSWERED
+   2026-09-20, ~$3.5 (capture #2, job 23) — see *Capture 2* below. YES on met, NO on HEMCO.**
+   `mean_abs_gap_blocks` reaches ρ **+0.635** (fit, met/a) and **+0.634** (out-of-sample, met/b)
+   against per-handle byte follow-through, clearing the pre-registered 0.5 bar; on HEMCO the best
+   feature reaches **+0.27**, so on the mount whose waste this campaign is about the answer is no.
+   The verdict is *scoreable at all* only because of #271's columns: the fidelity filter voided
+   **2** handles against capture 1's **135**, with 0.46–0.54% of rows appended out of decision
+   order. Robustness: recomputing the winning feature from a **repaired** gap moves ρ to **+0.637**
+   (agreement 0.994), so it is not an artefact of the `gap` race. Controls: checkpoint md5 held in
+   all three arms, arm c inside the n=6 null at 2.426×, tracing cost +0.5%/+1.5% wall and ≤0.64%
+   of HEMCO bytes. Three by-products — my own acceptance criterion had upstream's bug (file-order
+   monotonicity is violated by design, so scoreability is **uniqueness**); gate 5i's floor
+   prediction is **partially falsified** (median max_window **3** HEMCO / **8** met, not 2: the
+   window is far below the 223 ceiling, but I had divided the budget by handles *seen* rather than
+   handles *open*); and #273's sort is necessary but **not sufficient** — 10/6,229 and 9/6,248
+   handles still diverge, every row of them `cold` or `random` and none ever `sequential`.
 
 ## Gate 3 results — lith v1.1.0 vs FSx Lustre, measured 2026-09-17
 
@@ -2847,6 +2886,139 @@ early while few handles are open.
 
 Artifact: `data/lith-gates/gate5i-pr271-verification.txt`. Reported on lith#267, #256, #272.
 **Capture #2 held** until #272's sort lands.
+
+*Released the same day:* upstream's reply dissolved the hold, and the argument was theirs, not
+mine — #273 touches only `cmd/lith-pfreplay` (9 lines of `sort.SliceStable` plus tests), so it
+changes not one byte of what the *mount* writes; the format is on merged `main`; and scoring is
+offline, free and re-runnable on a banked trace. Verified on my own contended-handle trace
+as-written under #273: `fidelity OK`, replay decisions **96 = exactly 1.00×** the mount's own
+column. So the expensive half no longer depended on the cheap half landing first.
+
+## Capture 2 — the first scoreable GCHP prefetch trace, and the verdict it carries (2026-09-20)
+
+Job 23, one `c8g.48xlarge`, 48-rank C24 fullchem × 3 arms, ~25 min, **≈$3.5**. Harness
+`scripts/lith/capture2.sbatch`, derived from `capture.sbatch` by 20 asserted single-match edits so
+that everything capture 1 got right (arms, the untraced control, the md5 gate, the silent-nothing
+guard, the watchdog, the deliberate absence of in-job scoring) carried over unchanged. Traced
+mounts on merged `main` 36e79f0 (#271); controls on the 1.1.3 release. Scored offline with
+`pfreplay` built from #273. Artifacts: `data/lith-gates/capture2-verification.txt`,
+`capture2-full.log`, `capture2-traces.tgz`, `capture2-handles.csv`.
+
+### The run: every pre-registered correctness check held
+
+| arm | traced | to_completion | checkpoint md5 | HEMCO s3/distinct |
+|---|---|---|---|---|
+| a | yes | 395.1 s | `f3dd15b2…196a6` md5-OK | 2.425× |
+| b | yes | 399.2 s | `f3dd15b2…196a6` md5-OK | 2.441× |
+| c | **no** | 393.2 s | `f3dd15b2…196a6` md5-OK | 2.426× |
+
+P1 correctness held in all three arms — **15 arms** now on the same checkpoint. P2: arm c's 2.426×
+is inside the n=6 defaults null of **2.440 ± 0.022**, so merged `main` is behaviour-neutral against
+1.1.3 and every comparison to banked numbers stands. P3: tracing cost **+0.5% / +1.5%** wall, a
+*repeat* of capture 1's +0.5%/+1.6% — the documented global lock is real but small at 48 ranks,
+now twice measured. P4: HEMCO bytes moved −0.07% and +0.64%, inside the ±2% band, so the traces
+describe the untraced run.
+
+### The trace is scoreable — which was the entire point
+
+| mount | handles | rows | rows appended **out of decision order** | `seq` a total order |
+|---|---|---|---|---|
+| met | 596 | 25,605 | 137 (**0.54%**) | YES |
+| HEMCO | 6,229 | 33,917 | 157 (**0.46%**) | YES |
+
+Fidelity under the sorting scorer: met **OK on 596 / 605** handles, HEMCO mismatching on **10 of
+6,229** and **9 of 6,248**. The fidelity filter excluded **2** scored handles — against capture 1's
+**135 of met's 143**.
+
+**And my own acceptance criterion had upstream's bug in it.** Driving the checker on the gate 5i
+traces *before* submitting showed that "`seq` strictly increasing within each `fh`", read literally
+over file order, is failed at 0.36% by the c64 trace — the same trace that replays at exactly 1.00×
+under #273 — because rows are appended outside `w.mu` **by design**. A trace satisfying the literal
+reading would be one where `seq` was never needed. So the scoreable property is that `seq` is a
+**total order** (unique, positive), and the file-order inversion rate is a *measurement* of how
+much the sort matters, not a gate. Scored that way both mounts pass, and 0.46–0.54% is the direct
+evidence on real GCHP traces that #272/#273 is load-bearing. This is the same error class as the
+gap criterion gate 5i retired, made by me, one gate later.
+
+### The verdict: SEPARATION on met, and not on HEMCO
+
+The rule, agreed in writing on #256 before either side had data: SEPARATION iff a feature of a
+handle's first *k*≤8 reads predicts per-handle **byte** follow-through at Spearman |ρ| ≥ 0.5, fit
+on one arm and tested on another.
+
+| feature | met/a | met/b | hemco/a | hemco/b |
+|---|---|---|---|---|
+| **`mean_abs_gap_blocks`** | **+0.635** | **+0.634** | +0.271 | +0.266 |
+| `max_abs_gap_blocks` | +0.624 | +0.627 | +0.235 | +0.254 |
+| `frac_large_gap` | +0.221 | +0.198 | +0.061 | +0.064 |
+| `mean_read_kib` | +0.084 | +0.110 | −0.150 | −0.122 |
+| `frac_monotonic` | −0.017 | +0.031 | +0.039 | +0.069 |
+| `frac_straddle` | −0.034 | −0.033 | +0.023 | −0.056 |
+
+AUC(met vs HEMCO) = 0.651 over n = 283 vs 334. The verdict reproduces out of sample (0.635 fit,
+0.634 test), and it is **split by mount**: the thing a policy could act on exists on met and does
+not exist on HEMCO — the mount whose unreachable waste is the entire subject of gates 5b–5f.
+
+**The obvious objection, tested rather than caveated.** The winning feature is built from `gap`,
+and gate 5i showed `gap` is racy: read from `h.lastReadEnd.Load()` before the lock, `Store()`d
+after, so on a contended handle a read can be classified against another read's endpoint — and met
+*is* the contended shape. Recomputing the feature from a **repaired** gap (previous end of the same
+`fh`, in `seq` order):
+
+| class | ρ(recorded gap) | ρ(**repaired** gap) | ρ(recorded, repaired) | racy first-8 gaps |
+|---|---|---|---|---|
+| met/a | +0.635 | **+0.637** | +0.994 | 13 |
+| met/b | +0.634 | **+0.637** | +0.994 | 20 |
+| hemco/a | +0.271 | +0.270 | +1.000 | 139 |
+| hemco/b | +0.266 | +0.266 | +0.999 | 123 |
+
+The signal lives in the honest part of the column; repair moves ρ by +0.002 and changes no verdict.
+This deliberately does *not* re-run the replay — feeding repaired gaps to the state machine would
+trip the fidelity check by construction, because the mount really did decide on the racy values.
+What is testable, and tested, is whether the *predictive* signal survives. Script:
+`scripts/lith/capture2-gaprepair.py`.
+
+### P7 partially falsified: the window is small, but not pinned at the floor
+
+| mount | min | median | max | modes |
+|---|---|---|---|---|
+| met | 4 | **8** | 29 | 8×4231, 7×3418, 6×2840, 5×2840, 10×2764 |
+| HEMCO | 2 | **3** | 223 | 2×12704, **39×8314**, 3×4684, 4×1895, 5×1055 |
+
+The direction holds and the magnitude claim does not. The window in force is 1–2 orders below the
+223 ceiling for nearly every read, which is the mechanism gate 5b needed — `--max-readahead` was
+not binding, so eight policy arms that moved only the ceiling *could not* have moved the hit rate.
+But HEMCO is not uniformly at 2 (there is a 39-block mode over 8,314 rows and a 223 tail) and met
+never reaches the floor at all. **My estimation error, stated plainly:** I divided `budgetBlocks`
+by the handle count *in the trace* — handles seen over the run, not handles open at once. Real
+concurrency is lower and time-varying, which is precisely why #271's column had to be recorded
+rather than derived. A quantity reconstructed from a proxy is not the quantity.
+
+### The residual replay defect: sorting is necessary, not sufficient
+
+|  | rows (median/max) | obj_size (median) | `parts` rows | `state_after` seen |
+|---|---|---|---|---|
+| **mismatching** | 12 / 33 | 33.4 MB | 0 of 10 | `cold` 89, `random` 67 |
+| faithful, ≥10 rows | – / 510 | 107.8 MB | 14 of 794 | `cold` 15871, `sequential` 4507, `random` 4131, `strided` 120 |
+
+The signature is **state**, not size and not the parts path: every row of a mismatching handle is
+`cold` or `random`, and none is ever `sequential` or `strided`. Reproduced across arms (89/67 and
+88/65; 10 of 6,229 and 9 of 6,248), so it is deterministic rather than a race — `max_window`
+variation does not separate the groups (5 of 10 vs 317 of 794) and neither does the gap race
+(median 0 racy first-8 gaps). Keys are `ship_plume_lut_*.txt` and `AEIC_monmean_*.nc`. The
+divergence is in the replay's reconstruction of the `cold`→`random` path on handles that never
+establish.
+
+### What is still open
+
+P5's floor overflows again, at the same multiplier: HEMCO cold **net** waste 8,403 MiB (a) and
+8,513 MiB (b) per-handle, against a predicted 1.0–1.4 GB and a mount budget of 5.32 GB — capture
+1 produced 8,431 MiB, so two independent arms now reproduce it and it is a property of the **unit**,
+not of a run. The scorer's own decomposition says the same thing: replay decisions 52,256 chunks =
+**1.00×** the mount's own column, mount fetched 15,213 ⇒ **3.42× genuine sharing dedup**, with met
+read by 596 handles over ~12 keys and **zero** sole readers. So the per-handle denominator is
+settled as the wrong unit, twice. The next piece is the **shared-cache replay** — offline and free,
+and its input now exists: four traces in decision order carrying the window the mount applied.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
