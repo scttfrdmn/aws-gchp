@@ -1,0 +1,180 @@
+CAPTURE FOLLOW-UP ($0) — #269 ON THE REAL TRACES, AND TWO CORRECTIONS TO MY OWN DIAGNOSIS
+==========================================================================================
+2026-09-19, head node only, banked capture traces. lith main = 3bcb250 (includes #269,
+#270); scorer built as /scratch/lith-gates/pfreplay-269. Scripts:
+/scratch/lith-gates/{order.py,overlap.py,win.py}. No cluster spend.
+
+Upstream asked one design question ("are trace rows written in true arrival order? if not I
+need a timestamp column before you capture again") and asserted that #269's degeneracy
+guards would turn my hand-derived no-verdict into the tool's own output. Both are now
+measured. Neither answer was the expected one, and testing them retracted part of what I
+posted an hour earlier.
+
+
+1. ROW ORDER: NO — AND A TIMESTAMP IN tracePF WOULD NOT FIX IT
+---------------------------------------------------------------
+Test, straight from the trace and free: gap = off - h.lastReadEnd, and lastReadEnd.Store(end)
+happens AFTER the row is written and ONLY on the window path (fs.go:834; the parts/footer
+else-branch does not touch it, verified, so the test is unconfounded). Therefore for
+consecutive window rows of one fh in true issue order, gap MUST equal off - (prev_off+prev_len).
+
+     arm        window rows   gap self-inconsistent   handles affected
+     met/a           25,666        481  (1.87%)            116
+     met/b           25,648        512  (2.00%)            115
+     hemco/a         33,718        133  (0.39%)            114
+     hemco/b         33,515        147  (0.44%)            128
+
+met has zero parts/footer rows, so its figure is unambiguous. Examples that are impossible
+in order rather than merely odd:
+
+     fh=577   off=0          recorded_gap=0       implied_by_row_order=-131072
+     fh=1247  off=297029632  recorded_gap=0       implied_by_row_order=+114688
+     fh=1247  off=298586112  recorded_gap=122880  implied_by_row_order=0
+
+recorded_gap=0 means off == lastReadEnd at DECISION time, while row order says the handle
+had already read 131072 B past this offset: the earlier read's row was appended after the
+later read's row.
+
+MECHANISM, from the source: pfWrapper.observe decides under w.mu and RELEASES it
+(internal/fuse/prefetch.go:43-48); tracePF then takes a different mutex, f.pfTraceMu
+(fs.go:333-339). Between the two, another read on the same handle can decide and append.
+So a timestamp taken inside tracePF timestamps the APPEND, not the DECISION — it would
+record the wrong order faithfully. The fix is a monotonic sequence number assigned INSIDE
+pfWrapper.observe while w.mu is held; that also supplies the global decision order a
+shared-cache replay needs, which tracePF ordering cannot provide at any precision.
+Related: after/window/peak are read after observe returns and outside w.mu (fs.go:827-828),
+so on a concurrently-read handle those three columns can describe a different read's
+transition.
+
+
+2. CORRECTION: THE FIDELITY MISMATCH IS NOT SIBLING SUPPRESSION
+---------------------------------------------------------------
+I posted that the mount suppresses a dispatch for a block a sibling already holds, so
+recorded `dispatched` < replayed. WRONG, and retracted: `dispatched: len(pbs)` is taken
+straight from h.pf.observe (fs.go:825-829), BEFORE `go f.store.Prefetch` runs (831), so no
+sibling and no cache can reduce that column.
+
+Two real causes, and they split by mount:
+
+     arm        mismatching   also gap-inconsistent   share
+     met/a          137              102              74.5%
+     met/b          137              101              73.7%
+     hemco/a        178               11               6.2%
+     hemco/b        175               11               6.3%
+
+met is mostly the reordering of section 1. HEMCO is NOT — 167 of 178 mismatching handles
+have perfectly self-consistent gaps.
+
+
+3. HEMCO'S CAUSE: THE TRACE IS MISSING AN INPUT THE LIVE CODE USES ON EVERY CALL
+--------------------------------------------------------------------------------
+Live (internal/fuse/prefetch.go:43):
+     func (w *pfWrapper) observe(block, off, length, byteGap, maxWindow int64) []int64 {
+         w.mu.Lock(); defer w.mu.Unlock()
+         w.pf.SetMax(maxWindow)        // <-- EVERY call
+         return w.pf.Observe(block, off, length, byteGap)
+     }
+with maxWindow = f.perHandleWindow() = clamp(budgetBlocks / len(f.handles), 2, maxReadahead)
+(fs.go:1250-1270) — mount-wide and time-varying with the number of OPEN HANDLES.
+
+Replay (cmd/lith-pfreplay/main.go:291): p := prefetch.New(cfg.maxReadahead) — 223, once,
+never SetMax again. There is no trace column for that argument.
+
+The trace's own `window` column bounds what the mount actually used from below:
+
+     arm        max window   p99   mean(nonzero)   zero rows
+     met/a          17        17       9.66          43%
+     met/b          17        17       9.71          43%
+     hemco/a        95        11       4.98          87%
+     hemco/b       100        11       5.19          87%
+
+met never exceeded 17 blocks in 25,666 reads, against a replayed 223. That is a different
+program, which is what a state-machine fidelity check exists to catch — and did.
+
+
+4. THE DENOMINATOR DECOMPOSES EXACTLY, AND MY SHARING NUMBER WAS WRONG TWICE
+----------------------------------------------------------------------------
+My own input error first: I passed ARM A's counters (met 2944, HEMCO 4680) as the run total.
+The four traces are two arms; the correct sum is 2944+2937+4680+4653 = 15,214, so the tool's
+line is 9.25x, not the 18.45x I reported. Exactly the class of error `-issued` exists to
+catch — it caught mine.
+
+With that fixed the gap splits using a column already emitted:
+
+     replay                                  17,587 blocks
+     the mount's own `dispatched` column       6,524 blocks   -> 2.70x  window inflation
+     6,524 blocks = 52,192 MiB intended
+     mount fetched                           15,214 chunks    -> 3.43x  genuine dedup
+                                                                 product 9.25x  (tool: 9.25x)
+
+     per arm:   replay blk   trace dispatched   window infl   live MiB   issued   dedup
+     met/a          6618          1849            3.58x        14792      2944   5.02x
+     met/b          6581          1851            3.56x        14808      2937   5.04x
+     hemco/a        2196          1365            1.61x        10920      4680   2.33x
+     hemco/b        2191          1459            1.50x        11672      4653   2.51x
+
+So GENUINE SHARING DEDUP IS 3.43x, NOT THE 13.4x I CLAIMED — inside the 1.2-4.6x band
+upstream calibrated the alarm on. Their 8x threshold is correctly placed and my advice to
+recalibrate it for ~50x sharing is withdrawn. What tripped the alarm was the missing window
+input (2.70x) times my halved denominator (2x), not sharing.
+
+Corollary worth keeping: SUMMING THE TRACE'S OWN `dispatched` COLUMN is an independent check
+that needs no new column, and it separates "is the replay dispatching what the mount
+dispatched" from "did the cache dedupe it".
+
+
+5. WHAT IS RETRACTED, AND WHAT STANDS
+--------------------------------------
+RETRACTED: "the rule is unevaluable because the workload has no per-handle locality" is too
+strong. The sharing is real and measured (598 met handles over TWELVE keys, 0/598 sole
+readers) and it does make per-handle follow-through a 3.43x lower bound — but it is NOT what
+broke fidelity on 135/143 met prefetchers. With `max_window` recorded, most of those handles
+should become faithful, and the rule may be evaluable on this workload after all.
+
+RETRACTED: the sibling-suppression mechanism (section 2) and the 13.4x dedup figure
+(section 4).
+
+STANDS, unaffected by window or `issued`: the #256 cold-start count (24,762 HEMCO
+pre-decision cold reads over 204 keys = ~121 cold starts per object, 3.9 per handle); the
+per-open/per-object argument for why eight policies left the floor constant; the ~1.23 GB
+mount-level floor; all three correctness controls (md5 f3dd15b2 x3, c922cc7 behaviour-neutral
+against the n=6 null, bytes unchanged); and P3 (--pf-trace costs +0.5%/+1.6% of wall).
+
+The per-handle cold_net_waste of 8431 MiB exceeding the mount's 5.32 GB budget also stands;
+its inflation factor is handles-per-object (~30-50), a different quantity from the 3.43x
+issued dedup I had conflated it with.
+
+
+6. #269 DOES NOT PRODUCE THE NO-VERDICT OUTPUT UPSTREAM PREDICTED
+------------------------------------------------------------------
+Built main (3bcb250) and ran the four real traces. It still prints:
+
+     mean_abs_gap_blocks  met/a=+0.604 met/b=+0.616 hemco/a=+0.250 hemco/b=+0.199
+        <- |rho|>=0.5 on 2+ QUALIFYING arms
+     best |rho| = 0.616 (mean_abs_gap_blocks); threshold 0.5
+     VERDICT: SEPARATION — a feature of a handle's first reads predicts byte follow-through.
+
+`--min-n` counts SCORED handles (143 >= 8) and nothing connects it to the fidelity gate that
+said "everything below is void" eleven lines earlier. The guard needed is not min-n; it is
+the verdict respecting the fidelity gate — suppressed, or computed on the faithful subset
+only (by hand: rho -0.412/-0.082, AUC 0.438, n=8/n=3, where min-n then does the right thing).
+
+#269 did land the other two asks correctly: the global summed `-issued` check works (and is
+what caught my own denominator error), and the inverted size-less sanity ratio is suppressed.
+#270 makes an unwritable --pf-trace fail the mount and relaxes the mutex warning to the
+measured +0.5%/+1.6%.
+
+
+7. ORDER OF WORK PROPOSED UPSTREAM
+-----------------------------------
+1. `max_window` column (the perHandleWindow argument, already in hand at fs.go:823).
+2. Decision sequence number inside pfWrapper.observe under w.mu; capture after/window/peak there.
+3. THEN the shared-cache replay (one simulated cache per mount, suppress resident/in-flight,
+   credit if any handle later reads it).
+
+Step 2 is re-scorable against the banked traces; step 1 needs one fresh capture, which is
+worth funding when it lands since everything else about this capture held. Building the
+shared-cache replay first would layer sharing onto a 2.70x-overstated window.
+
+Posted: PR#267 and #256 (comments 5747739061 / 5747738992), including the traces at
+https://github.com/scttfrdmn/aws-gchp/raw/lith/input-layer/data/lith-gates/capture-traces.tgz

@@ -206,15 +206,29 @@ twelve MERRA-2 files; the scorer's fidelity gate consequently mismatches on **13
 143 prefetching handles**, since only a handle that tried to dispatch can have a dispatch
 suppressed by a sibling. Its headline `VERDICT: SEPARATION` (ρ = 0.616, AUC 0.670) is
 computed over the population it voids; on the faithful subset ρ is **−0.412 / −0.082**,
-sign-flipping between replicates, and AUC **0.438**, from n = 8 and n = 3. The same sharing
-makes the denominator 13.4× over and inflates per-handle net cold waste to 8431 MiB,
-**more than the mount's entire waste budget of 5.32 GB**. So `byte_follow_through_global`
-is not cosmetic: a shared-cache replay is the only unit in which the question has an
-answer. What the capture *does* settle is the floor's multiplier — **~121 cold starts per
-HEMCO object** — which makes gate 5f's one-handle tax a per-rank-per-file entry fee and
+sign-flipping between replicates, and AUC **0.438**, from n = 8 and n = 3. The sharing also
+inflates per-handle net cold waste to 8431 MiB, **more than the mount's entire waste budget
+of 5.32 GB**. What the capture *does* settle is the floor's multiplier — **~121 cold starts
+per HEMCO object** — which makes gate 5f's one-handle tax a per-rank-per-file entry fee and
 explains, necessarily, why eight per-handle policies left the floor constant. Controls all
 held (MD5 identical, `c922cc7` behaviour-neutral, bytes unchanged), and **P3 was falsified:
 `--pf-trace` costs +0.5%/+1.6% of wall despite documenting a global lock on every read.**
+
+*The capture, follow-up* then answers upstream's one design question and **retracts two of my
+own claims**. Trace rows are **not** in true order — 1.87–2.00% of met's rows carry a `gap`
+that contradicts the row sequence, some impossibly — and a timestamp inside `tracePF` would
+not fix it, because the decision is made under a different mutex that is released first; the
+fix is a sequence number assigned inside `pfWrapper.observe`. And the fidelity mismatch is
+**not** sibling suppression: `dispatched` is `len(pbs)` taken before `store.Prefetch` runs, so
+nothing can suppress it. The real causes split by mount — met is 74.5% row reordering, HEMCO
+is 94% **a missing `perHandleWindow` column**, since the live path calls `SetMax(budget /
+open_handles)` before every `Observe` while the replay uses a static 223 against a measured
+max of **17**. With my own halved-denominator error corrected (I passed one arm's counters as
+the run total), the gap decomposes exactly: **2.70× window inflation × 3.43× genuine dedup =
+9.25×**, so sharing dedup is 3.43×, not the 13.4× I reported, and upstream's 8× alarm
+threshold is correctly placed. Consequence: the per-handle rule may be **evaluable after
+all** once the window input is recorded, and the shared-cache replay should be built third,
+not first.
 
 ## What lith is
 
@@ -625,11 +639,13 @@ works on EBS. Low upside, new variable.
    dispatch, so the void population *is* the scored population. Its headline
    `VERDICT: SEPARATION` (ρ = 0.616, AUC 0.670) is computed over handles it rejects; on the
    faithful subset ρ goes **−0.412 / −0.082** (sign flips between replicates) and AUC
-   **0.438**, from n = 8 and n = 3. Same cause, three symptoms: 51.7 GiB of decisions
-   against 3.94 GB fetched (**13.4×**, dedup alone at ~50× sharing) and per-handle net cold
-   waste of 8431 MiB **exceeding the mount's entire waste budget of 5.32 GB**. The fix is
-   `byte_follow_through_global` — a shared-cache replay — promoted from nice-to-have to the
-   only unit the rule has an answer in. What the capture *does* settle is the floor's
+   **0.438**, from n = 8 and n = 3. Sharing also inflates per-handle net cold
+   waste to 8431 MiB, **exceeding the mount's entire waste budget of 5.32 GB**.
+   *(Corrected in the follow-up: the fidelity failure is **not** sibling suppression but
+   trace row reordering on met and a **missing `perHandleWindow` column** on HEMCO, and the
+   replay/mount gap is **2.70× window inflation × 3.43× dedup = 9.25×**, not the 13.4×
+   dedup I first reported — so the rule may be evaluable once the window input is recorded.)*
+   What the capture *does* settle is the floor's
    multiplier: **~121 cold starts per HEMCO object** (24,762 pre-decision cold reads over
    204 keys), so gate 5f's one-handle tax is paid once per rank per file, and gate 5b's
    "needs cross-handle state" follows necessarily. Controls: checkpoint MD5 identical in
@@ -2584,23 +2600,32 @@ handles that carry the verdict**:
 collapses to **−0.412 (met/a) and −0.082 (met/b)** — the sign flips between replicates —
 and AUC to **0.438** (n = 7 vs 16). That is the letter of NO SEPARATION, but from n = 8
 and n = 3, which is exactly the minimum-n degeneracy gate 5g asked upstream to guard. The
-honest verdict is neither of the rule's two outcomes: **the rule asks a per-handle
-question of a workload that has no per-handle locality.**
+honest verdict is neither of the rule's two outcomes: **UNEVALUABLE at the fidelity the
+instrument itself requires.** (My first reading of *why* — "the rule asks a per-handle
+question of a workload that has no per-handle locality" — is **retracted** in the follow-up
+below: the fidelity failure is two tool defects, not a property of the workload, so the rule
+may be evaluable once the replay records the window input the live code uses.)
 
 **Why, measured from the traces.** met/a is 25,666 rows over 598 handles and **twelve
 distinct keys** — mean 49.8 handles per key, max 77, 100% of keys multi-handle, and
 **0 of 598 handles is the sole reader of any object it touches**. hemco/a is 6,272
 handles over 204 keys (30.7 per key, 96% shared, 8 sole readers, and **0** of the 164
-mismatching prefetchers). 48 MPI ranks open the same twelve MERRA-2 files. One cause,
-three symptoms: (a) the mount suppresses a dispatch a sibling already has, so recorded
-`dispatched` < replayed, and only a handle that *tried* to dispatch can be suppressed —
-hence 135/143; (b) 143 handles each decide to prefetch most of a ~400 MB object, 51.7 GiB
-of decisions against 3.94 GB fetched, **13.4×**, and on this workload it *is* dedup alone
-at ~50× sharing; (c) per-handle net cold waste on HEMCO is **8431.0 MiB, which exceeds the
-mount's entire waste budget** (9.0183 − 3.6979 = 5.32 GB from all causes), because bytes a
-sibling reads count as this handle's waste. Gate 5h saw the first 2.0–2.4× of this with 6
-handles on 1 object; at GCHP's real sharing it is 13.4× and stops being a correction
-factor.
+mismatching prefetchers). 48 MPI ranks open the same twelve MERRA-2 files. The sharing is
+real and it does inflate the per-handle instrument: per-handle net cold waste on HEMCO is
+**8431.0 MiB, which exceeds the mount's entire waste budget** (9.0183 − 3.6979 = 5.32 GB
+from all causes), because bytes a sibling reads count as this handle's waste, at an
+inflation factor of handles-per-object (~30–50). Gate 5h saw the first 2.0–2.4× of this
+with 6 handles on 1 object.
+
+> **Correction — sharing is *not* what broke fidelity, and the dedup factor is 3.43×, not
+> 13.4×.** I first attributed the mismatch to the mount suppressing a dispatch a sibling
+> already holds. It cannot: `dispatched: len(pbs)` is taken straight from `h.pf.observe`
+> (`fs.go:825-829`) **before** `go f.store.Prefetch` runs, so no sibling and no cache can
+> reduce that column. And the 13.4× came partly from my own error — I passed arm a's
+> counters as the run total, halving the denominator. See *The capture, follow-up* below:
+> the real causes are trace row reordering (met, 74.5% of mismatches) and a **missing
+> `perHandleWindow` column** (HEMCO, 94% of mismatches), and the replay/mount gap
+> decomposes exactly as **2.70× window inflation × 3.43× genuine dedup = 9.25×**.
 
 **What the capture does answer: the floor's multiplier.** P5's 1.0–1.4 GB is a
 *mount*-level prediction (`fill_bytes{demand}`), measured directly at ~1.23 GB in gates
@@ -2639,6 +2664,96 @@ launching `mpirun`.
 Cost: ~35 min of one `c8g.48xlarge` across both jobs. Artifacts:
 `data/lith-gates/capture-verdict.txt`, `capture-results.txt`, `capture-all4.handles.csv`,
 `capture-subset-scoring.txt`, `capture-traces.tgz`.
+
+## The capture, follow-up — #269 on the real traces, and two corrections to my own diagnosis (2026-09-19)
+
+$0, head node, banked traces, lith `main` = `3bcb250` (includes #269 and #270). Upstream
+asked one design question — *are trace rows written in true arrival order? if not I need a
+timestamp column before you capture again* — and asserted that #269's degeneracy guards would
+turn my hand-derived no-verdict into the tool's own output. Both are now measured, neither
+answer was the expected one, and testing them retracted part of what I had just posted.
+
+**Row order: no, and a timestamp in `tracePF` would not fix it.** `gap = off − lastReadEnd`,
+and `lastReadEnd.Store(end)` happens *after* the row is written and only on the window path
+(`fs.go:834`; the parts/footer branch correctly doesn't touch it, so the test is
+unconfounded). So consecutive window rows of one `fh` in true issue order must satisfy
+`gap == off − (prev_off + prev_len)`. They don't: **481/25,666 = 1.87% of met/a's rows are
+gap-self-inconsistent** (met/b 2.00%, HEMCO 0.39%/0.44%), over 114–128 handles per arm, and
+some are impossible in order rather than merely odd — `recorded_gap = 0` (meaning
+`off == lastReadEnd` at decision time) on a handle whose previous row already ended 131,072 B
+*past* that offset. The mechanism is a two-mutex gap: `pfWrapper.observe` decides under
+`w.mu` and releases it (`internal/fuse/prefetch.go:43-48`), then `tracePF` takes
+`f.pfTraceMu` (`fs.go:333-339`), and another read on the same handle can decide and append in
+between. A timestamp inside `tracePF` would timestamp the *append*, not the *decision* — it
+would record the wrong order faithfully. What makes the trace replayable is a **monotonic
+sequence number assigned inside `pfWrapper.observe` while `w.mu` is held**, which also
+supplies the global decision order a shared-cache replay needs. Related: `after`, `window`
+and `peak` are read after `observe` returns and outside `w.mu` (`fs.go:827-828`), so on a
+concurrently-read handle those columns can describe a different read's transition.
+
+**Correction 1 — the fidelity mismatch is not sibling suppression.** `dispatched: len(pbs)`
+comes straight from `h.pf.observe` (`fs.go:825-829`), **before** `go f.store.Prefetch` runs
+(831), so no sibling and no cache can reduce that column; my mechanism was wrong. The real
+causes are two and they split by mount: of met's 137 mismatching handles **102 (74.5%)** are
+also gap-inconsistent, versus **11 of 178 (6.2%)** on HEMCO. met is the reordering above.
+HEMCO is not — 167 of 178 have perfectly self-consistent gaps.
+
+**HEMCO's cause: the trace is missing an input the live code uses on every call.**
+`pfWrapper.observe` calls `w.pf.SetMax(maxWindow)` before *every* `Observe`, with
+`maxWindow = perHandleWindow() = clamp(budgetBlocks / len(f.handles), 2, maxReadahead)`
+(`fs.go:1250-1270`) — mount-wide and varying with the number of open handles. The replay does
+`prefetch.New(cfg.maxReadahead)` once (`cmd/lith-pfreplay/main.go:291`) and never calls
+`SetMax` again, and **there is no trace column for that argument**. The trace's own `window`
+column bounds what the mount used from below: met's **max is 17 blocks over 25,666 reads**
+(p99 17, mean-nonzero 9.7), HEMCO's p99 is 11 with 87% zeros — against a replayed **223**.
+That is a different program, which is exactly what a state-machine fidelity check exists to
+catch, and did.
+
+**Correction 2 — the denominator decomposes exactly, and my sharing number was wrong twice.**
+I had passed **arm a's** counters (met 2944, HEMCO 4680) as the run total; the four traces are
+two arms, so the sum is **15,214** and the tool's line is **9.25×**, not 18.45×. Precisely the
+error `-issued` exists to catch — it caught mine. With that fixed the gap splits using a
+column already emitted:
+
+| | blocks | ratio |
+|---|---|---|
+| replay | 17,587 | |
+| the mount's own `dispatched` column | 6,524 | **2.70× window inflation** |
+| 6,524 blocks = 52,192 MiB intended vs 15,214 chunks fetched | | **3.43× genuine dedup** |
+| | | product **9.25×** (tool prints 9.25×) |
+
+So **genuine sharing dedup is 3.43×, not the 13.4× I claimed** — inside the 1.2–4.6× band
+upstream calibrated the alarm on, so their 8× threshold is right and my advice to recalibrate
+it for ~50× sharing is withdrawn. What tripped the alarm was the missing window input (2.70×)
+times my halved denominator (2×). Corollary worth keeping: **summing the trace's own
+`dispatched` column** is an independent check needing no new column, and it separates "is the
+replay dispatching what the mount dispatched" from "did the cache dedupe it".
+
+**What that retracts, and what stands.** Retracted: the sibling-suppression mechanism, the
+13.4× figure, and the strong reading that the rule is unevaluable *because the workload has
+no per-handle locality*. The sharing is real (598 met handles over twelve keys, 0/598 sole
+readers) and does make per-handle follow-through a **3.43× lower bound**, but it is not what
+broke fidelity on 135/143 met prefetchers — so with `max_window` recorded, most of those
+handles should become faithful and **the rule may be evaluable on this workload after all.**
+Unaffected, because they depend on neither the window nor `issued`: the ~121 cold starts per
+HEMCO object, the per-open/per-object argument for the constant floor, the ~1.23 GB
+mount-level figure, all three correctness controls, and P3.
+
+**#269 does not produce the no-verdict output upstream predicted.** On the real traces `main`
+still prints `best |rho| = 0.616 (mean_abs_gap_blocks)` → `VERDICT: SEPARATION`, with
+`<- |rho|>=0.5 on 2+ QUALIFYING arms`, because `--min-n` counts *scored* handles (143 ≥ 8) and
+nothing connects it to the fidelity gate that said "everything below is void" eleven lines
+earlier. The guard needed is not min-n; it is **the verdict respecting the fidelity gate**.
+#269's other two fixes did land (the summed `-issued` check is what caught my own error; the
+inverted size-less ratio is suppressed), and #270 makes an unwritable `--pf-trace` fail the
+mount and relaxes the mutex warning to the measured +0.5%/+1.6%.
+
+Proposed order of work upstream: (1) `max_window` column, (2) decision sequence number under
+`w.mu`, (3) *then* the shared-cache replay — building (3) first would layer sharing onto a
+2.70×-overstated window. (2) is re-scorable against the banked traces; (1) needs one fresh
+capture, worth funding when it lands.
+
+Artifact: `data/lith-gates/capture-followup-269.txt`. Reported on lith#267 and #256.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
