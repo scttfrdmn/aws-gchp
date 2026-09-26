@@ -298,8 +298,12 @@ plus one thing more: the same features scored against the **cold-start waste**, 
 confirmed half. Both answers land, and the second one closes the eligibility question the fix
 direction turned on. On the tax, the predictor is **coverage**: `distinct_frac` ρ **−0.689/−0.707**
 on HEMCO, both arms, same sign — and it survives the shared-denominator objection by permutation
-null (2,000 shuffles; null mean **+0.172**, 95% [+0.036, +0.303], p < 0.0005), because ρ(D,W)=+0.55
-means the shared term induces a *positive* correlation the finding is achieved against. So the
+null (2,000 shuffles; null mean **+0.172**, 95% [+0.036, +0.303], p < 0.0005) — the shared term
+induces a *positive* correlation the finding is achieved against. (My stated *mechanism* for that
+positive bias was wrong and upstream caught it; the driver is the D–S structure, −ρ(D/S,D)=+0.287,
+not ρ(D,W) — verified three ways including a construction that dials the bias across its whole
+range. The p-value was always empirical, so no number moves. See *The null's positive bias* below.)
+So the
 objects that pay the ~121× entry fee are the ones their readers touch **sparsely** — not the ones
 with many readers (+0.35), out-of-order reads (+0.29), or interleaved readers (−0.33). That forces a
 correction on this campaign's own story: **HEMCO is not "the mount with small scattered reads."**
@@ -801,7 +805,11 @@ works on EBS. Low upside, new variable.
    **coverage**: `distinct_frac` ρ **−0.689 / −0.707**, both HEMCO arms, and it survives the
    shared-denominator objection by permutation null (2,000 shuffles, W shuffled with D and S left
    attached: null mean **+0.172**, 95% [+0.036, +0.303], p < 0.0005) — the artifact runs the *other
-   way*, because ρ(D,W) = +0.55. So the objects that pay the ~121× entry fee are the **sparsely
+   way*. (**Mechanism corrected 2026-09-26**, upstream's catch: not ρ(D,W) — a permutation destroys
+   that pairing, so it cannot enter the null's expectation — but the D–S structure, −ρ(D/S,D) =
+   +0.287. Confirmed by forcing ρ(D,W) to ±0.993, which moves the null by **0.0016**, and by a
+   synthetic dial that tracks it from −0.554 to +0.548. The p-value was empirical throughout, so
+   the finding is unchanged.) So the objects that pay the ~121× entry fee are the **sparsely
    covered** ones, not the many-reader (+0.35), out-of-order (+0.29) or interleaved (−0.33) ones.
    Two corrections fall out. **This campaign's own story was wrong about read size**: `frac_small`
    is a constant **1.000** on all 216 objects of *both* mounts, mean read **104 KiB (HEMCO) vs
@@ -3323,10 +3331,10 @@ their objects (`scripts/lith/keylevel-artifact-null.py`):
 null mean +0.172, 95% [+0.036, +0.303], p(null <= observed) < 0.0005 on both arms
 ```
 
-**The artifact runs the other way.** Because ρ(D, W) = +0.55, the shared denominator induces a
-*positive* correlation, and the observed −0.689 is achieved against it. The artifact-free version of
-the same claim, ρ(`distinct_frac`, raw W), is −0.469/−0.476 — just under the bar, which is precisely
-why the null test is what licenses quoting the normalised figure rather than the raw one.
+**The artifact runs the other way**, and the observed −0.689 is achieved against it. The
+artifact-free version of the same claim, ρ(`distinct_frac`, raw W), is −0.469/−0.476 — just under
+the bar, which is precisely why the null test is what licenses quoting the normalised figure rather
+than the raw one. (I attached the wrong *mechanism* to that positive bias; corrected below.)
 
 So the objects that pay the entry fee are the ones their readers touch **sparsely**. Not the ones
 with many readers, not the ones read out of order, not the ones whose readers interleave.
@@ -3427,10 +3435,77 @@ Two of seven passed as stated. **Every pre-registered feature guess was wrong; t
 method found the answer anyway** — which is the argument for writing the falsifiers down rather than
 the predictions.
 
+### The null's positive bias — my mechanism was wrong (2026-09-26, $0)
+
+Upstream reproduced every number on their tree, then **reimplemented the null from the stated method
+rather than running my script** — "reproducing a number by running the code that produced it is not a
+check" — getting +0.171/+0.173, 95% [+0.037, +0.303] against my +0.172/[+0.036, +0.303]. And then
+corrected the mechanism I'd attached to it.
+
+Their argument is right and it's clean: the null's distribution depends only on the **multiset** of W
+and the **paired** (D, S). The permutation destroys which object each W belonged to, so ρ(D, W) — a
+property of the original pairing — cannot enter the null's expectation. Three tests, each stronger:
+
+**T1, force ρ(D,W) to its extremes** (re-attach the same W multiset to D monotonically):
+
+| hemco/a | ρ(D,W) | null centre |
+|---|---|---|
+| as measured | +0.551 | +0.1732 |
+| forced | **+0.993** | +0.1730 |
+| forced | **−0.993** | +0.1716 |
+
+Driving ρ(D,W) across its entire range moves the null centre by **0.0016**. My mechanism is dead.
+
+**T2, does −ρ(D/S, D) predict the null centre?** On all four arms, including the sign flip on met —
+which is what makes it a prediction rather than a fit:
+
+| arm | n | ρ(D,W) | ρ(D/S,D) | −ρ(D/S,D) | null centre | observed ρ |
+|---|---|---|---|---|---|---|
+| hemco/a | 204 | +0.551 | −0.287 | **+0.287** | **+0.1732** | −0.689 |
+| hemco/b | 204 | +0.546 | −0.280 | **+0.280** | **+0.1722** | −0.707 |
+| met/a | 12 | −0.854 | +0.804 | **−0.804** | **−0.2673** | −0.920 |
+| met/b | 12 | −0.854 | +0.812 | **−0.812** | **−0.2726** | −0.913 |
+
+**T3, the test neither of us ran:** hold the W multiset fixed and *dial* the D–S structure by
+construction. If the mechanism is real the null centre has to track it.
+
+| built so that | ρ(D/S,D) | −ρ(D/S,D) | null centre |
+|---|---|---|---|
+| D/S independent of D | −0.110 | +0.110 | **+0.061** |
+| D/S rises with D | +1.000 | −1.000 | **−0.554** |
+| D/S falls with D | −1.000 | +1.000 | **+0.548** |
+
+It tracks in sign and rough magnitude across the full range, which promotes their explanation from a
+plausible post-hoc mechanism to a tested one: sparsely-read objects are systematically **larger**,
+and that alone produces the positive bias.
+
+**Why the data didn't catch me.** Across the two mounts ρ(D,W) and ρ(D/S,D) happen to be
+anti-correlated (hemco +0.55/−0.287, met −0.854/+0.804), so *both* explanations predict the same null
+sign on both mounts. The banked output had met's negative null in it all along and it read as
+confirmation. Only T1 — an intervention on the data rather than another correlation in it — breaks
+the tie. That is the same lesson as the shared-cache flip's A/B/C control, in a different costume.
+
+**And a caveat I owe, from finally reading met's line:** on met the null runs *toward* the observed
+sign (−0.27 against an observed −0.92), so met's coverage correlation is partly induced by the shared
+denominator where HEMCO's is achieved against it. Pre-registered K7 barred met from voting on n=12
+grounds; there turns out to have been a second, independent reason. Nothing quoted here rests on
+met's ρ, so nothing moves.
+
+What does **not** change: the null was computed by permutation throughout, never derived from
+ρ(D,W), so p < 0.0005 and the −0.689/−0.707 finding stand exactly as published. One sentence of
+explanation changes, and the result is slightly stronger for it. Artifacts:
+`scripts/lith/keylevel-null-mechanism.py`, `data/lith-gates/key-level-null-mechanism.txt`.
+
 ### What this does not settle
 
 - **No eviction**, inherited: an upper bound on redemption, tight on these traces (3.0/3.4 GiB
   distinct vs 24/32 GB cache) and unsafe in general. An LRU is still the prerequisite.
+  *Lifted upstream 2026-09-26:* #281 drives the **production** memory tier offline (not a
+  reimplementation), and found two defects in it before producing any result — #279 (mem2Q's `Kin`
+  bound computed and never enforced, so the tier is a FIFO until over capacity) and #280
+  (`PutUnread` has no callers, so the newest fetch is the eviction victim with the thrash counter at
+  zero). They could not run it on these traces because they lost their copies to `/tmp` reaping —
+  the traces were in `data/lith-gates/capture2-traces.tgz` the whole time.
 - `chunk_overlap`, `readers_per_chunk` and `obj_size` are **post-hoc** — invented after seeing the
   first run's output, marked with `*` in the tool, and barred from qualifying a feature or setting
   the best |ρ| the verdict is read off. They are hypotheses for another workload.

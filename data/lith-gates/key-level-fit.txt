@@ -174,11 +174,17 @@ BUILT
 
     null mean +0.172, 95% [+0.036, +0.303], p(null <= observed) < 0.0005 on both arms.
 
-  The artifact runs the OTHER WAY — because rho(D, W) = +0.55, the shared denominator
-  induces a POSITIVE correlation, and the observed -0.689 is achieved against it. The
+  The artifact runs the OTHER WAY, and the observed -0.689 is achieved against it. The
   artifact-free version of the same claim, rho(distinct_frac, raw W), is -0.469 / -0.476:
   just under the bar, which is why the null test is what licenses quoting the normalised
   figure.
+
+  MECHANISM CORRECTED 2026-09-26 (upstream caught it; verified three ways, see section 7).
+  I wrote that the null is positive "because rho(D, W) = +0.55". That cannot be the
+  reason: the permutation destroys which W belongs to which (D, S), so no statistic of
+  that pairing can enter the null's expectation. The real driver is the D-S structure,
+  -rho(distinct_frac, D) = +0.287 / +0.280. The conclusion is unchanged — the null was
+  always computed empirically, never from rho(D,W) — and the p-value stands.
 
   So: the objects that pay the entry fee are the ones whose readers touch them SPARSELY.
   Not the ones with many readers (+0.35), not the ones read out of order (+0.29), not the
@@ -280,6 +286,66 @@ BUILT
     population to match EARLY's. It bit nothing on these traces because the degenerate
     EARLY features are constant rather than NaN — but it is the population-vs-unit confound
     from the shared-cache flip, one level down, and it would have bitten eventually.
+
+7. WHY THE NULL IS POSITIVE — MY EXPLANATION WAS WRONG (2026-09-26, $0)
+
+  Upstream reproduced every number, reimplemented the null from the stated method rather
+  than running my script (their words: "reproducing a number by running the code that
+  produced it is not a check") and got +0.171/+0.173, 95% [+0.037,+0.303] against my
+  +0.172/[+0.036,+0.303]. Then they corrected the MECHANISM I had attached to it.
+
+  THE ARGUMENT, which is correct: the null's distribution depends only on the multiset of
+  W and the paired (D, S). The permutation destroys which object each W belonged to, so
+  rho(D, W) — a property of the original pairing — CANNOT enter the null's expectation.
+
+  T1, FORCING rho(D,W) TO ITS EXTREMES (re-attach the same W multiset to D monotonically):
+
+    hemco/a   as measured   rho(D,W) = +0.551   null centre +0.1732
+              forced        rho(D,W) = +0.993   null centre +0.1730
+              forced        rho(D,W) = -0.993   null centre +0.1716
+
+  Driving rho(D,W) across its entire range moves the null centre by 0.0016. My stated
+  mechanism is dead; theirs survives.
+
+  T2, DOES -rho(D/S, D) PREDICT THE NULL CENTRE? Not just on HEMCO — on all four arms,
+  including the sign flip on met, which is the part that makes it a prediction:
+
+    arm        n    rho(D,W)   rho(D/S,D)   -rho(D/S,D)   null centre   observed rho
+    hemco/a  204     +0.551      -0.287        +0.287        +0.1732       -0.689
+    hemco/b  204     +0.546      -0.280        +0.280        +0.1722       -0.707
+    met/a     12     -0.854      +0.804        -0.804        -0.2673       -0.920
+    met/b     12     -0.854      +0.812        -0.812        -0.2726       -0.913
+
+  T3, THE TEST NEITHER OF US RAN: hold the W multiset fixed and DIAL the D-S structure by
+  construction. If the mechanism is real the null centre must track it across the range:
+
+    built so that          rho(D/S,D)   -rho(D/S,D)   null centre
+    D/S independent of D     -0.110        +0.110        +0.0609
+    D/S rises with D         +1.000        -1.000        -0.5544
+    D/S falls with D         -1.000        +1.000        +0.5483
+
+  It tracks, sign and rough magnitude, across the full range. That promotes their
+  explanation from a plausible post-hoc mechanism to a tested one.
+
+  WHY I GOT IT WRONG, AND WHY THE DATA DIDN'T CATCH ME: across the two mounts rho(D,W)
+  and rho(D/S,D) happen to be ANTI-CORRELATED (hemco +0.55/-0.287, met -0.854/+0.804), so
+  both explanations predict the same null SIGN on both mounts. The banked output contained
+  met's negative null all along and it looked like confirmation. Only T1 — an intervention
+  on the data, not another correlation in it — breaks the tie.
+
+  AND A CAVEAT I OWE, found by finally reading met's line: on met the null runs TOWARD the
+  observed sign (-0.27 against an observed -0.92), so met's coverage correlation is partly
+  induced by the shared denominator, where HEMCO's is achieved against it. Pre-registered
+  K7 barred met from voting for n=12; it turns out there was a second, independent reason.
+  Nothing quoted in this report changes, because nothing quoted rests on met's rho.
+
+  What does NOT change: the null was always computed by permutation, never derived from
+  rho(D,W), so p < 0.0005 and the -0.689/-0.707 finding stand exactly as published. What
+  changes is one sentence of explanation — and it slightly strengthens the result, since
+  the bias is a real property of the workload's size/coverage structure (sparsely-read
+  objects are systematically larger) rather than an accident of the waste distribution.
+  Artifacts: scripts/lith/keylevel-null-mechanism.py,
+  data/lith-gates/key-level-null-mechanism.txt.
 
 FILES
   patches/lith/pfreplay-keys.go             the key-level pass
