@@ -3510,7 +3510,8 @@ explanation changes, and the result is slightly stronger for it. Artifacts:
   first run's output, marked with `*` in the tool, and barred from qualifying a feature or setting
   the best |ρ| the verdict is read off. They are hypotheses for another workload.
 - One workload, two mounts, two arms of the same run. Cross-arm agreement is **reproducibility, not
-  generalisation**.
+  generalisation**. *Answered 2026-09-26 — see "The second workload" below: the same two objects,
+  an independent reader stack, and the relation replicates with the refuter never firing.*
 - A latent bug of my own, fixed in passing and changing no number here: the first draft filtered the
   FULL and EARLY fits with a **shared** NaN mask, which would have silently changed the FULL
   population to match EARLY's. It bit nothing on these traces because the degenerate EARLY features
@@ -3525,6 +3526,98 @@ offerable patch, 814 insertions), `scripts/lith/keylevel-artifact-null.py`,
 `data/lith-gates/key-level-fit.txt` (pre-registration + results),
 `data/lith-gates/key-level-fit.log`, `data/lith-gates/key-level-artifact-null.txt`,
 `data/lith-gates/key-level-scores.csv.gz` (one row per object).
+
+## The second workload — coverage is a property of the object, not of GCHP (2026-09-26)
+
+Everything above rests on one workload: GCHP 14.7.1 fullchem, MAPL/pFIO, 48 MPI ranks, the GCHP
+stack's NetCDF-C 4.9.2 + HDF5 1.14.0. Upstream's standing objection was the right one — coverage
+could be a property of *that reader*, in which case "a low-coverage reader" is a statement about
+how GCHP asks and not about the objects. Predictions were **pre-registered on #256 before the first
+byte was read**, because the interesting outcome here is disagreement and I didn't want to be able
+to narrate whichever way it landed.
+
+The same two S3 objects the capture-2 key rows are about
+(`MERRA2.20190701.A3dyn.05x0625.nc4`, 1.22 GB; `GT_Chlorine_01_01_2000_V1.0.0.nc`, 851 MB), read by
+**netCDF4 1.7.2 with its own bundled libnetcdf 4.9.4-dev / HDF5 1.14.2**, one process, no MPI, no
+MAPL, no ESMF. Same lith build, same `--pf-trace`, same `--nic-gbps 50`, trace config byte-identical
+to capture 2's header. Three read shapes per object: **whole** (every data variable end to end),
+**var1** (one variable end to end — low coverage but perfectly sequential), **sub** (one chunk-sized
+plane per variable at two time steps, ExtData-like). Head node only, no cluster time.
+
+| arm | coverage | key FT | tax/distinct | s3/distinct |
+|---|---|---|---|---|
+| met/whole | 1.0000 | **1.0000** | 0 | 1.00× |
+| met/var1 | 0.0184 | 0.0047 | 0 | **54.0×** |
+| met/sub | 0.0083 | 0.0000 | **0.230** | 2.02× |
+| hco/whole | 1.0000 | **1.0000** | 0 | 1.00× |
+| hco/var1 | 0.1010 | 0.0829 | 0 | **9.89×** |
+| hco/sub | 0.0057 | 0.0023 | **0.611** | 8.36× |
+
+Against GCHP on the identical objects: A3dyn.0701 coverage 1.000 / FT 0.911 / tax 0;
+A3dyn.0702 coverage 0.127 / FT 0.339 / tax 0.021; GT_Chlorine coverage 0.005 / tax 0.243.
+
+**Both pre-registered predictions passed and the refuter never fired.** A whole read lands at
+coverage 1.000 and follow-through **1.000** — above GCHP's own 0.911 on the same met object, where
+the prediction only asked for 0.74. A subset read of the *same* object lands at coverage 0.006–0.008
+with tax/distinct **0.230 and 0.611**, bracketing GCHP's HEMCO 0.243–0.435. Coverage versus
+follow-through is monotone across the six arms over a 175× range of coverage (ρ = +0.94, the single
+inversion being two floor values). The refuting outcome — a low-coverage read with high
+follow-through — did not occur. The narrower phrasing upstream's docs might have needed isn't needed.
+
+### var1 settles what the fit alone could not: coverage, not sequentiality
+
+`var1` is the most sequential access in the set — monotone start to finish within its variable — and
+it is the second- and third-worst arm for follow-through. Reading one variable of five fetches the
+**whole object**: over-fetch 54.03× against coverage 0.01843, whose reciprocal is 54.26. The
+over-fetch *is* 1/coverage, to 0.4%. Being sequential doesn't rescue a reader that wants a small
+fraction of an object; it's what dooms it, because sequential is exactly what earns it the full
+window. Every handle-level feature that looked like "sequentiality" was measuring the wrong thing.
+
+### Two waste channels, both selected by low coverage, and #256's own flag fixes exactly one
+
+Running all six arms again under `--readahead-evidence-ratio 4` — upstream's experimental bound,
+priced on a real workload for the first time:
+
+| arm | bytes | GETs | key FT |
+|---|---|---|---|
+| met/var1 | 1217.8 → **59.8 MB** (−95.1%) | 175 → 37 | 0.005 → **0.135** |
+| hco/var1 | 851.4 → **371.8 MB** (−56.3%) | 131 → 87 | 0.083 → **0.190** |
+| met/sub | 22.8 → 22.8 MB (**bit-identical**) | 62 → 62 | 0.000 → 0.000 |
+| hco/sub | 52.6 → 52.6 MB (**bit-identical**) | 35 → 35 | 0.002 → 0.002 |
+| met/whole | 1217.8 → 1217.8 MB (+0.00%) | 175 → 176 | 1.0000 → 1.0000 |
+| hco/whole | 851.4 → 852.0 MB (+0.07%) | 130 → **159 (+22.3%)** | 1.0000 → 0.9948 |
+
+So there are **two mechanisms, not one**, and low coverage selects between them by read shape:
+window over-commitment (a reader that looks sequential and wants little gets the whole object) is
+cut by 95% / 56%; the cold-start granularity tax — the #256 floor — is **inert to the flag**,
+correctly, because the chunk commitment is taken before any window decision exists. They need
+different fixes, and the campaign has been quoting the floor's number while the flag was aimed at
+the other channel.
+
+**The price on the sequential side is requests, not bytes:** up to +22% GETs for the same bytes,
+because the window has to ramp. Wall moved −4.4% and +2.6%, n=1 per arm, i.e. noise. Bytes and GETs
+are counters and need no repetition; the timings do, and aren't claimed.
+
+### The caveat, which cuts toward the finding rather than away
+
+Three open handles here against ~600 in capture 2. The window is
+`clamp(prefetch_budget/open_handles, 2, max_readahead)`, so **GCHP ran at the floor of 2 and this
+workload runs at the full 223** — which is why the low-coverage penalty is 54× here and 2.46× there.
+The 48-rank clamp was *hiding* most of it. The sign replicates and the magnitude is worse in the
+single-handle regime that ordinary tools — python, `ncks`, xarray — actually run in.
+
+One more replication, free: the shared `(key, block)` unit reproduced the mount's own
+`lith_prefetch_issued_total` at **1.00× on all six arms** (per-handle: 10.58× and 5.15× on the whole
+arms), tighter than the 1.04–1.08× on GCHP — but for a *different reason*. Cross-handle redemption
+here is **0.0%**, against 84–85% in GCHP, so the per-handle unit's overstatement is the same handle
+re-entering rather than another handle sharing. The unit is right in both workloads; the mechanism
+making it right is not the same one. Either way a per-handle governor has nothing to govern on.
+
+Artifacts: `scripts/lith/gate-2nd-workload.sh`, `data/lith-gates/second-workload.txt`,
+`data/lith-gates/second-workload-traces.tgz` (12 `--pf-trace` CSVs, both gate logs, both
+`keys*.csv`, both replay logs). My own harness bug, for the record: the first pass reused one metrics
+port across arms and the met/sub scrape came back empty; re-run on a free port, and the script now
+allocates a port per arm. No number depended on the scrape.
 
 ## lith#233 confirmation — the cold-sequential first-block tax, measured 2026-09-17
 
