@@ -3735,6 +3735,74 @@ Cost ~$0.55; running total ~$1.15 for the RTT question, reported against the est
 quietly. Artifacts: `data/lith-gates/xregion-291.txt`, `data/lith-gates/xregion291-traces.tgz`
 (6 `--pf-trace` CSVs, in-region probes for both builds, all 32 non-empty mount logs).
 
+### Gate 5f-J — the object larger than the window: a clean 2.6×, not a stall (2026-09-30)
+
+Upstream instrumented before proposing this time, refuted their own join hypothesis for $0 on my
+published traces (`-lead`: no demand read anywhere has a dispatch lead under 127 reads, identical
+minimum in both arms), withdrew their `--prefetch-concurrency 1` ask before I could spend on it —
+and then found the observation that retroactively weakens every cross-region gate either of us had
+run, mine included. **`GT_Chlorine` is 851 MB = 101.5 blocks, and the window is 223 blocks gate-off,
+163 mean gate-on — 2.2× and 1.6× the entire object.** The window had never been the binding
+constraint, so no window-mediated mechanism was testable, and #291's floor change did nothing
+because there was no window pressure to relieve.
+
+So I ran the arm they asked for on an object where the window *does* bind:
+`GEOSFP.20190701.A3dyn.025x03125.nc`, **3,776,834,855 B = 450.4 blocks**, staged to us-west-2
+(2.2 → 58.6 ms), `dd`, ratio 0 vs 4, n=8, fresh cold mount + `--pf-trace` per cell, ratios
+interleaved within rep.
+
+**The bimodality was an artefact of the small object.** On a window-binding object the cost is
+deterministic:
+
+| ratio | walls (s), sorted | median |
+|---|---|---|
+| 0 | 7.19 7.21 8.03 8.08 8.94 9.14 10.69 12.49 | 8.51 |
+| 4 | 17.16 19.53 21.24 21.41 22.07 22.64 23.27 29.11 | 21.74 |
+
+`min(r4) = 17.16 > max(r0) = 12.49` — zero overlap, 64/64 pairs, exact rank-sum *p* = 1.6e-4,
+median **2.56×**. And `lith_s3_bytes_total = 3,776,834,855` with **465 GETs in all 16 cells**: the
+same "counters cannot see it" result as 5f-G, now a factor rather than a fifth of a second. The free
+in-region arm on the same object gives **+0.215 s, +7.5%, *p* ≈ 0.03** — the effect is RTT-scaled,
+and upstream can see it without a cross-region endpoint, just not well.
+
+The trace localizes it. At ratio 4 the window reaches 223 at offset **469.8 MB** (formula:
+223 × 8 MiB / 4 = 467.6), so only **12.24% of reads** run capped, dispatch totals are identical
+(672 blocks), and window trajectories are bit-identical between reps. A cap binding over 12% of the
+read costs 160% of the wall. (Also for the record: `dd bs=1M` is irrelevant at this layer — FUSE
+delivers 28,815 reads of 128 KiB. That is *why* `dd`, `dd128` and `cat` were all +0.0% in 5f-G.)
+
+I pre-registered two hypotheses in commit `d981c2e` before spending the $0.45, using the crossover
+offset 223 × 8 MiB / R as a direct lever on prefix length — **and the ladder killed both**:
+
+| ratio | capped prefix | % reads capped | median (s) | excess |
+|---|---|---|---|---|
+| 0 | 0 MB | 0.00 | 8.51 | — |
+| 40 | 50 MB | 1.11 | 13.31 | +4.80 |
+| 4 | 470 MB | 12.24 | 21.74 | +13.23 |
+| 1 | 1871 MB | 49.42 | 23.55 | +15.04 |
+
+Strict monotone, with r40 cleanly separated from both r0 (24/24) and r4 (24/24); r1 and r4 overlap.
+`H_prefix` (excess ∝ prefix) predicted +1.3 s at R=40 and +53 s at R=1; `H_flip` (durable flip,
+flat cost) predicted +13.2 s everywhere. Measured: **a 40× range in prefix length buys a 3.1× range
+in excess.** And the naive pipelining integral — both ends of the ramp scale as 1/R, so excess
+∝ (RTT/R)·ln(223/floor), i.e. 1 : 0.25 : 0.025 — fails in the opposite direction against a measured
+1 : 0.88 : 0.32. Far flatter than any window account predicts, so the cost is not the window being
+small; it is triggered by the cap binding at all, early, and deepens only weakly. That is exactly
+where upstream's stated next step points (what `windowCap()` binding touches beyond the window
+value, `SetMax` being called before every `Observe`), now constrained: the durable thing is
+substantially set within the first ~50 MB.
+
+The documentable warning, which is the deliverable: **across ratios 0, 1, 4 and 40 every cell moved
+identical bytes in identical 465 GETs with identical dispatch, across a 2.8× wall spread.** So
+`--readahead-evidence-ratio` costs 1.6–2.8× wall on high-RTT reads of objects larger than the
+prefetch window, at every ratio tested including one permissive enough to clear the cap after 1.1%
+of the object, and you cannot tune the cost away by raising the ratio.
+
+Gate total ~$1.75 against a pre-stated $1.75 — on estimate. Running total ~$2.90 for the RTT
+question. Artifacts: `data/lith-gates/xregion-bigobject.txt`,
+`data/lith-gates/xregion-bigobj-traces.tgz` (three gate logs, 7 `--pf-trace` CSVs, 38 mount logs,
+none zero-byte — verified).
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is

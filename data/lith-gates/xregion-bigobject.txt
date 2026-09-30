@@ -96,14 +96,74 @@ PRE-REGISTERED PREDICTION, WRITTEN AND COMMITTED BEFORE THE NEXT BYTE MOVED
 
   Cost of the discriminator: 6 cells x 3.78 GB = 22.7 GB = ~$0.45.
 
+RESULT 4 — THE LADDER REFUTES BOTH PRE-REGISTERED HYPOTHESES
+  Ran it. Crossovers land exactly where the formula puts them, which validates the
+  lever: R=1 first window=223 at off 1870.7 MB (predicted 1870), 49.42% of reads
+  capped; R=40 at off 50.3 MB (predicted 47), 1.11% of reads capped.
+
+  ratio  capped prefix   % reads capped   walls (s)               median   excess
+  0           0 MB            0.00        7.19 ... 12.49 (n=8)      8.51    ---
+  40         50 MB            1.11        13.29 13.31 15.11        13.31   +4.80
+  4         470 MB           12.24        17.16 ... 29.11 (n=8)    21.74   +13.23
+  1        1871 MB           49.42        19.77 23.55 29.28        23.55   +15.04
+
+  Strict monotone ordering, and two of the three gaps are cleanly separated:
+  all 3 r40 cells exceed all 8 r0 cells (24/24), and all 3 r40 cells fall below
+  all 8 r4 cells (24/24). r1 vs r4 overlap and are NOT distinguishable at this n.
+
+  H_prefix predicted +1.3 s at R=40 (measured +4.80, 3.7x too small a prediction)
+  and +53 s at R=1 (measured +15.04, 3.5x too large). DEAD.
+  H_flip predicted +13.2 s at every nonzero ratio (measured +4.80 at R=40, 2.8x
+  too large a prediction). DEAD.
+
+  The truth is in between and strongly SATURATING: a 40x range in capped-prefix
+  length (50 -> 1871 MB) produces only a 3.1x range in excess (4.80 -> 15.04 s).
+
+  And the naive pipelining model fails in the opposite direction, which is the
+  useful part. If the excess were round trips spent below a full window, then
+  excess ~ (RTT/blockSize) * integral(dc / w(c)) over the ramp, and since both
+  ends of the ramp scale as 1/R that integral is (RTT/R)*ln(223/floor) — excess
+  proportional to 1/R, i.e. R=1:4:40 = 1 : 0.25 : 0.025. Measured: 1 : 0.88 :
+  0.32. Far flatter than any window-pipelining account predicts.
+
+  So the cost is NOT the window being small. It is triggered by the cap binding
+  at all early in the read and then deepens only weakly. Upstream's own stated
+  next step — audit what windowCap() binding touches on the read path BEYOND the
+  window value, given SetMax is called before every Observe — is where this
+  points, and the data now constrains it: whatever the durable thing is, it is
+  substantially set within the first ~50 MB.
+
+RESULT 5 — THE ONE-LINE WARNING FOR docs/knobs.md
+  Across ratio 0, 1, 4 and 40, EVERY cell moved exactly 3,776,834,855 bytes in
+  exactly 465 GETs with identical total dispatch (672 blocks). Same bytes, same
+  requests, 2.8x spread in wall. The practical consequence:
+
+    --readahead-evidence-ratio costs 1.6x to 2.8x wall clock on high-RTT reads of
+    objects larger than the prefetch window, at EVERY ratio tested including one
+    permissive enough to clear the cap after 1.1% of the object, with no change
+    in bytes fetched or requests issued. You cannot tune the cost away with a
+    higher ratio. In-region the same effect is +7.5% (+0.215 s, p~0.03).
+
+  That is narrower and more actionable than what is in knobs.md now, and it is
+  also the answer to upstream's framing question: the cost IS specific to objects
+  larger than the window — on the 101.5-block object it showed up as an
+  occasional stall, and on a 450-block object it is a deterministic factor.
+
 COST, AGAINST MY OWN ESTIMATE
-  ~$1.30 for this gate: 16 cross-region cells x 3.777 GB = 60.4 GB at $0.02/GB
-  = $1.21, plus $0.08 to stage the object once. Result 2 was free (in-region).
-  This is more than double 5f-I's $0.55 because the object is 4.4x larger; that
-  was the point of the gate. Running total for the RTT question: ~$2.45.
-  Bucket kept until the ladder runs, then deleted.
+  Main arm ~$1.30: 16 cross-region cells x 3.777 GB = 60.4 GB at $0.02/GB = $1.21,
+  plus $0.08 to stage the object once. Result 2 was free (in-region, no egress).
+  Ladder ~$0.45 as estimated: 6 cells x 3.777 GB = 22.7 GB. Gate total ~$1.75
+  against a pre-stated $1.30 + $0.45 = $1.75 — on estimate for once.
+  This gate is 3x 5f-I's $0.55 because the object is 4.4x larger; that was the
+  point. Running total for the RTT question: ~$2.90 across 5f-H, 5f-I, 5f-J.
+  I did NOT run --prefetch-concurrency 1; upstream withdrew it, so that $0.55
+  was never spent. Bucket and staged object deleted after banking.
 
 ARTIFACTS
   scripts/lith/gate-ramp-reader.sh   RATIOS= added (was hardcoded 0 4)
   data/lith-gates/xregion-bigobject.txt  this file
-  xregion-bigobj-traces.tgz  both gate logs, the --pf-trace CSVs, all 32 mount logs
+  data/lith-gates/xregion-bigobj-traces.tgz
+      all three gate logs (cross-region n=8, in-region n=8, ladder n=3), 7
+      --pf-trace CSVs (r0/r4 cross-region incl. two reps of r4, r1/r40 from the
+      ladder, r0/r4 in-region), and all 38 mount logs — NONE zero-byte, verified
+      sha256 55764044a1be804ff3156869957b73b989ab09b4325919c87fd1e27b769f1004
