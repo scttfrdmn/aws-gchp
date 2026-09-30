@@ -3636,6 +3636,48 @@ the high outlier on both 3-rep `dd` arms (2.10 vs 1.29/1.38; 1.81 vs 1.02/1.03).
 
 Artifacts: `data/lith-gates/ramp-reader.txt`, `data/lith-gates/ramp-reader-traces.tgz`.
 
+### Gate 5f-H — the high-RTT arm: the prediction passes on magnitude, fails on shape (2026-09-30)
+
+Upstream flagged one timing arm as still worth buying — a slow or high-latency endpoint — and the
+latency inference above makes it falsifiable, so the prediction went on #256 *before* the run: if the
+cost is ramp latency, at ~60 ms instead of ~1 ms it should grow to **order seconds** while bytes and
+requests stay identical; if it stays ~0.35 s the mechanism is wrong. Same object, server-side copied
+to us-west-2, read from the us-east-1 head node — only endpoint distance changes. Connect RTT 2.2 ms
+vs **58.6 ms** (26.7×). n=8 per cell, fresh cold mount each cell, ~$0.60 of egress.
+
+**Bytes and requests are identical in all 32 cells** — 851,394,200 B and 116 GETs at both ratios,
+both readers. The byte/request settlement upstream proposed is now *tested* at 26.7× the RTT rather
+than assumed.
+
+| reader | ratio 0 (sorted, n=8) | ratio 4 (sorted, n=8) | median Δ |
+|---|---|---|---|
+| `dd` | 3.05 3.38 3.73 4.19 4.41 4.44 4.56 7.21 | 4.25 4.40 4.96 **11.13 11.65 15.31 19.74 24.18** | +7.09 s (+165%) |
+| `pread` | 3.34 3.55 3.73 4.06 4.17 4.18 4.18 8.89 | 4.05 4.19 4.35 4.38 4.81 **11.15 19.81 22.97** | +0.48 s (+12%) |
+
+Order-seconds: **yes** on `dd`, 22× the in-region +0.32 s. But it is **not a fixed penalty** — the
+ratio-4 distribution is *bimodal*, a mode at the ratio-0 wall and a second at 11–24 s with nothing
+between 5.0 and 11.1 s on either reader. `pread`'s median sits in the low mode, which is why its
+median delta looks small while three of its eight reps are in the high mode; quoting either median
+alone misrepresents it. The distribution-free statement is the one to keep: **wall > 9 s in 0 of 16
+ratio-0 cells and 8 of 16 ratio-4 cells** (9 s exceeds every ratio-0 observation), Fisher exact
+p ≈ 7 × 10⁻⁴, with no rep-order pattern, so it isn't warmup.
+
+A smooth latency tax would not do that. A **stall mode** would: with the window at its floor and
+58 ms of RTT, in-flight bytes fall below the bandwidth–delay product, throughput becomes RTT-bound,
+evidence accrues more slowly, the window grows more slowly. The high mode runs at 35–75 MB/s against
+a ~200 MB/s baseline **for identical bytes and identical request counts**. I'm asserting the
+distribution, not the loop — but the loop predicts that raising the floor, or seeding evidence from
+the first block's own size, collapses the high mode, and that's a cheap experiment for upstream.
+
+Practical reading: nothing here touches the flag's upside (95%/56% of bytes with follow-through
+rising, in-region), and bytes/requests are now verified invariant at both RTTs. What it says is that
+the flag shouldn't default on for high-latency endpoints until the stall mode is understood, and that
+a byte/request-identity regression gate misses a fixed +0.35 s in-region and a coin-flip between 4 s
+and 20 s cross-region. Cost disclosure: I estimated $0.20 on #256 and spent ~$0.60, entirely on
+buying n=8 after n=3 produced an uninterpretable 24 s outlier.
+
+Artifacts: `data/lith-gates/xregion-ramp.txt`, `data/lith-gates/xregion-traces.tgz`.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is

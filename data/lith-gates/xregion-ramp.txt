@@ -1,0 +1,88 @@
+GATE 5f-H — THE HIGH-RTT RAMP ARM (lith#256), 2026-09-30, ~$0.60 of egress
+================================================================================
+
+WHY: upstream proposed we stop trying to time --readahead-evidence-ratio, with one
+exception — "unless you think a slow or high-latency endpoint (cross-region, a
+non-AWS S3) would change the ramp story, in which case that's the one arm worth
+adding, and it's cheap." Gate 5f-G found a wall cost that no counter carries
+(+0.24 to +0.49 s, fixed in seconds, bytes and requests identical), and inferred
+it was ramp LATENCY rather than ramp work. That inference makes a falsifiable
+prediction about RTT, which was pre-registered on #256 before this ran:
+
+  "If the cost is ramp latency rather than ramp work, it scales with RTT: at
+   ~60 ms instead of ~1 ms I predict the fixed penalty grows by roughly the RTT
+   ratio times the number of ramp steps — order SECONDS, not +0.35 s — while
+   bytes and requests stay identical. If instead the penalty stays ~0.35 s, my
+   mechanism is wrong and it's something local."
+
+SETUP  the SAME object, server-side copied to us-west-2, read from the us-east-1
+  head node. Only the endpoint distance changes.
+    in-region    s3://gcgrid/HEMCO/GT_Chlorine/v2024-05/GT_Chlorine_...nc
+    cross-region s3://gchp-lith-xregion-usw2-942542972736/hco/GT_Chlorine_...nc
+  TCP connect RTT from the head node: 2.2 ms (us-east-1) vs 58.6 ms (us-west-2)
+  = 26.7x. Readers dd (bs=1M) and pread (python os.pread, 1 MiB, increasing
+  offsets); ratio {0,4}; n=8 per cell pooled over two launches (3 + 5 reps);
+  fresh mount, cold cache and a unique metrics port per cell.
+
+RESULT
+  bytes and requests: IDENTICAL at both ratios, both readers, all 32 cells —
+  851,394,200 B and 116 GETs everywhere. The byte/request settlement upstream
+  proposed holds at 26.7x the RTT. That part is now tested, not assumed.
+
+  wall (s), sorted, n=8 per cell:
+    dd    r0  3.05 3.38 3.73 4.19 4.41 4.44 4.56 7.21      median 4.30
+          r4  4.25 4.40 4.96 11.13 11.65 15.31 19.74 24.18  median 11.39  (+7.09 s, +165%)
+    pread r0  3.34 3.55 3.73 4.06 4.17 4.18 4.18 8.89      median 4.11
+          r4  4.05 4.19 4.35 4.38 4.81 11.15 19.81 22.97    median  4.59  (+0.48 s, +12%)
+
+  in-region comparison, same object, same readers (gate 5f-G):
+    dd    1.03 -> 1.35  (+0.32 s)      pread 1.15 -> 1.64  (+0.49 s)
+
+1. THE PREDICTION PASSES ON MAGNITUDE AND FAILS ON SHAPE — both worth saying
+   Order-seconds: YES on dd (+7.09 s median, 22x the in-region +0.32 s). But it
+   is NOT a fixed penalty. The ratio-4 distribution is BIMODAL: a mode at the
+   ratio-0 wall (~4.3 s) and a second mode at 11-24 s, with nothing between
+   5.0 and 11.1 s on either reader. pread's median lands in the low mode, which
+   is why its median delta is only +0.48 s while three of its eight reps are in
+   the high mode. Reporting either reader's median alone misrepresents it.
+
+   The distribution-free statement is the honest one:
+     wall > 9 s   ratio 0: 0 of 16 cells      ratio 4: 8 of 16 cells
+   (9 s is above every ratio-0 observation.) Fisher exact p ~ 7e-4. Rep order
+   does not predict which mode a cell lands in, so it is not a warmup artifact.
+
+2. SO THE MECHANISM IS A STALL MODE, NOT A TAX
+   A fixed per-ramp latency cost would have scaled smoothly. A bimodal one says
+   the ramp sometimes fails to escape: with the window at its floor and a 58 ms
+   RTT, in-flight bytes fall below the bandwidth-delay product, so throughput
+   becomes RTT-bound, so evidence accrues more slowly, so the window grows more
+   slowly. Whether a given read escapes that loop is what is bimodal. The high
+   mode runs at 35-75 MB/s against a ~200 MB/s baseline for identical bytes and
+   identical request counts.
+   I am asserting the DISTRIBUTION, not the loop: the feedback story is the
+   simplest account of a bimodal wall with invariant counters, and it predicts
+   that raising the floor (or seeding evidence from the first block's own size)
+   should collapse the high mode. That is upstream's experiment, not mine.
+
+3. WHAT THIS DOES AND DOESN'T SAY ABOUT THE FLAG
+   Does not touch the upside: 95% / 56% of the bytes with follow-through rising
+   (gate 5f-F), all in-region. Does not touch bytes or requests, which are now
+   verified invariant at both RTTs. What it says is that
+   --readahead-evidence-ratio should not default on for high-latency endpoints
+   until the stall mode is understood, and that "bytes and requests are
+   byte-identical" is not a sufficient regression gate for it — in-region that
+   check misses a fixed +0.35 s, and cross-region it misses a coin-flip between
+   4 s and 20 s.
+
+COST, DISCLOSED AGAINST MY OWN ESTIMATE
+  I told #256 this would be ~$0.20. It was ~$0.60: 34 cross-region cells at
+  851 MB = 28.9 GB of us-west-2 -> us-east-1 egress at $0.02/GB, plus ~$0.02 for
+  the server-side copy. The overrun is entirely the extra reps — n=3 produced a
+  24 s outlier I could not interpret, so I bought n=8. The throwaway bucket was
+  deleted after the traces were banked; re-staging it is one `aws s3 cp`.
+
+ARTIFACTS
+  scripts/lith/gate-ramp-reader.sh    same script; HCO_PREFIX=/OBJS= env select
+                                      the cross-region object and one-object runs
+  data/lith-gates/xregion-traces.tgz  both gate logs + per-cell mount logs
+                                      sha256 85a824f2ccc85f2d743d2d6f3637f8127deec33ee1e1c90004c672dde64a626a
