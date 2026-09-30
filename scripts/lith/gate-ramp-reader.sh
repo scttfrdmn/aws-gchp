@@ -118,7 +118,7 @@ echo "  host: $(hostname) $(nproc) cores"
 
 for rep in $(seq 1 "$REPS"); do
   for reader in ${READERS:-dd pread nc}; do
-    for ratio in 0 4; do
+    for ratio in ${RATIOS:-0 4}; do
       for o in $OBJS; do
         case $o in
           met) run_cell met "$MET_PREFIX" "$MET_OBJ" "$reader" "$ratio" "$rep" ;;

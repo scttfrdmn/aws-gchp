@@ -1,0 +1,109 @@
+GATE 5f-J — THE OBJECT LARGER THAN THE WINDOW: THE COST IS NOT BIMODAL, IT IS A
+CLEAN 2.6x, AND IT IS CONFINED TO 12% OF THE READ (lith#256)
+2026-09-30, ~$1.30 of egress
+================================================================================
+
+WHY: upstream instrumented first this time and refuted their OWN join hypothesis
+for $0 on my published traces (#294): -lead shows no demand read anywhere has a
+block-dispatch lead under 127 reads, identical minimum in both arms. Then they
+found the observation that retroactively weakens every cross-region gate either
+of us has run, mine included:
+
+    GT_Chlorine is 851 MB = 101.5 blocks. The window is 223 blocks gate-off and
+    163 mean gate-on. THE WINDOW HAS NEVER BEEN THE BINDING CONSTRAINT.
+
+So every window-mediated mechanism was untestable on that object, and #291's
+floor change did nothing because there was no window pressure to relieve. Their
+ask: one arm on an object LARGER than the window, cross-region, ratio 0 vs 4,
+n=8. They also WITHDREW their own --prefetch-concurrency 1 proposal and told me
+not to spend the $0.55 on it. I didn't.
+
+OBJECT  s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07/GEOSFP.20190701.A3dyn.025x03125.nc
+  3,776,834,855 B = 450.4 blocks of 8 MiB. The 223-block window is 49.5% of the
+  object, so the window is binding for the whole read — the regime that has never
+  been tested. Server-side copied to a throwaway us-west-2 bucket (2.2 -> 58.6 ms).
+  Same head node, same lith-new (v1.1.3-15-gb3d78d8), dd bs=1M, fresh cold mount
+  + unique port + --pf-trace per cell, ratio interleaved within rep so no
+  time-of-day confound. n=8 per cell.
+
+RESULT 1 — CROSS-REGION: NOT TWO MODES. TOTAL SEPARATION.
+  ratio  walls (s), sorted                                          median
+  0      7.19 7.21 8.03 8.08 8.94 9.14 10.69 12.49                   8.51
+  4      17.16 19.53 21.24 21.41 22.07 22.64 23.27 29.11             21.74
+
+  min(ratio 4) = 17.16 > max(ratio 0) = 12.49. ZERO OVERLAP, 64/64 pairs.
+  Exact rank-sum p = 2/C(16,8) = 1.6e-4 one-sided. Median ratio 2.56x.
+
+  lith_s3_bytes_total = 3,776,834,855 and 465 GETs in ALL 16 cells. Byte- and
+  request-identical, 2.6x the wall. This is the same "the counters cannot see it"
+  finding as 5f-G, but now it is a factor rather than a fifth of a second.
+
+  The bimodality I reported in 5f-H and 5f-I was an artefact of the object being
+  SMALLER than the window. On an object where the window binds, the cost is not a
+  stall that sometimes fires — it is deterministic.
+
+RESULT 2 — IN-REGION ON THE SAME OBJECT, SAME ARMS ($0, no egress)
+  ratio  walls (s), sorted                                          median
+  0      2.71 2.73 2.82 2.83 2.88 2.94 3.07 3.42                     2.858
+  4      2.97 2.99 3.03 3.07 3.08 3.10 3.17 3.22                     3.073
+
+  +0.215 s, +7.5%, U = 52/64, p ~ 0.03. Same absolute magnitude as the
+  +0.24-0.49 s I measured on the small objects in 5f-G.
+
+  So the cost is RTT-SCALED, not intrinsic: +0.215 s at 2.2 ms, +13.23 s at
+  58.6 ms. 26.7x more RTT buys 62x more penalty — superlinear, which is itself
+  informative. And upstream can see the effect at all without a cross-region
+  endpoint; they just cannot see it WELL.
+
+RESULT 3 — THE TRACE LOCALIZES IT TO THE FIRST 12% OF THE READ
+  cell            rows    nonzero win   min  max  first win=223 at   sum dispatched
+  r0 (rep 5)      28815   28751         223  223  off 8.4 MB         672
+  r4 (rep 5)      28815   28751           4  223  off 469.8 MB       672
+  r4 (rep 2)      28815   28751           4  223  off 469.8 MB       672
+
+  Identical row count, identical total dispatch (672 blocks), identical window
+  trajectory between reps. 3520 of 28751 reads (12.24%) run with window < 223,
+  and they are exactly the first 469.8/3776.8 = 12.44% of the object by offset.
+  Crossover is where the formula puts it: 223 blocks x 8 MiB / 4 = 467.6 MB.
+
+  Note for the record: dd bs=1M is irrelevant at this layer. FUSE delivers
+  28,815 reads of 128 KiB = the object. That is WHY dd, dd128 and cat were all
+  +0.0% in 5f-G — they were never different readers below the kernel.
+
+  So a cap that binds over 12% of the read costs 160% of the wall. Either the
+  penalty is enormous but local, or something set while capped persists after.
+
+PRE-REGISTERED PREDICTION, WRITTEN AND COMMITTED BEFORE THE NEXT BYTE MOVED
+  The crossover offset is 223 x 8 MiB / R, so the ratio knob is a direct lever on
+  the length of the capped prefix:
+      R = 1  -> 1870 MB (49.5% of the object)
+      R = 4  ->  468 MB (12.4%)   [measured above]
+      R = 40 ->   47 MB (1.24%)
+
+  H_prefix: the excess is paid only while capped, so excess scales with prefix
+    length. First-order, from the measured 13.23 s at R=4:
+      R=40 -> excess ~1.3 s, wall ~9.8 s   (near ratio-0's 8.51)
+      R=1  -> excess ~53 s,  wall ~61 s
+  H_flip: binding the cap at all flips something durable, so every nonzero ratio
+    costs about the same:
+      R=40 -> wall ~21 s AND R=1 -> wall ~21 s
+
+  These differ by a factor of 2 at R=40 and a factor of 3 at R=1, against a
+  within-cell spread of ~1.5x. n=3 per ratio is enough. If R=40 lands near 21 s,
+  H_prefix is dead and the fix has to address durable state, not the window
+  schedule. If it lands near 10 s, the cost is bounded by 223 x 8 MiB / R and
+  THAT is the documentable warning for docs/knobs.md.
+
+  Cost of the discriminator: 6 cells x 3.78 GB = 22.7 GB = ~$0.45.
+
+COST, AGAINST MY OWN ESTIMATE
+  ~$1.30 for this gate: 16 cross-region cells x 3.777 GB = 60.4 GB at $0.02/GB
+  = $1.21, plus $0.08 to stage the object once. Result 2 was free (in-region).
+  This is more than double 5f-I's $0.55 because the object is 4.4x larger; that
+  was the point of the gate. Running total for the RTT question: ~$2.45.
+  Bucket kept until the ladder runs, then deleted.
+
+ARTIFACTS
+  scripts/lith/gate-ramp-reader.sh   RATIOS= added (was hardcoded 0 4)
+  data/lith-gates/xregion-bigobject.txt  this file
+  xregion-bigobj-traces.tgz  both gate logs, the --pf-trace CSVs, all 32 mount logs
