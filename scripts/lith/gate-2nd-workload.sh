@@ -29,7 +29,7 @@ set -u
 #   EXTRA=... OUT=... re-runs the same six arms under different mount flags, which is how
 #   gate 5f-F prices upstream's own candidate fix (--readahead-evidence-ratio) on them.
 
-B=/scratch/lith-gates/lith-new
+B=${B:-/scratch/lith-gates/lith-new}   # B= selects the binary (old vs a fix build)
 PYX=/scratch/ncenv/bin/python
 OUT=${OUT:-/scratch/lith-gates/gate2nd}
 EXTRA=${EXTRA:-}

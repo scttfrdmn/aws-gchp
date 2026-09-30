@@ -3678,6 +3678,63 @@ buying n=8 after n=3 produced an uninterpretable 24 s outlier.
 
 Artifacts: `data/lith-gates/xregion-ramp.txt`, `data/lith-gates/xregion-traces.tgz`.
 
+### Gate 5f-I — #291 on the 58 ms endpoint: both mechanisms lose (2026-09-30)
+
+Upstream read the code and killed my mechanism outright: `windowCap()` is
+`floor(consumed * ratio / blockSize)` and `Observe()` does `consumed += length` **before any gate**,
+so the cap schedule is a pure function of the byte stream and bit-identical at any RTT. Evidence
+accrues per byte, not per second — my "throughput is RTT-bound so evidence accrues slower" has no step
+where time enters. Their replacement: the floor is a constant 2 blocks = 16 MiB, which is 38 round
+trips of reading in-region and **1.4** cross-region, and under ~1.5× of margin whether the reader
+catches the frontier is a *race* — which is what gives two modes. They shipped the derived-floor fix
+as #291, said they couldn't verify it against a 58 ms endpoint, and asked for the observable my 5f-H
+archive was missing. They were right that it was missing: `gate-ramp-reader.sh` never passed
+`--pf-trace` and ran `--log-level warn`, so all 36 mount logs were empty. Both fixed (`PF_TRACE=1`,
+`LOGLVL=`).
+
+Pre-fix (v1.1.3-15-gb3d78d8) vs #291 (5c6d8a0 from a clean worktree), same us-west-2 object, same head
+node, `dd` bs=1M, ratio ∈ {0,4}, **n=8 per cell, one session**:
+
+| build | ratio | walls (s), sorted | > 9 s |
+|---|---|---|---|
+| old | 0 | 3.02 3.26 3.27 3.67 3.73 4.08 4.79 5.04 | 0/8 |
+| old | 4 | 4.16 4.20 4.55 7.02 **9.24 9.85 11.39 13.38** | **4/8** |
+| #291 | 0 | 2.88 3.24 3.24 3.86 3.95 4.09 4.27 **38.96** | 1/8 |
+| #291 | 4 | 3.43 3.67 3.83 4.06 **10.31 11.32 14.20 20.34** | **4/8** |
+
+Bytes and GETs identical in all 32 cells. **4/8 before the fix, 4/8 after** — upstream's discriminator
+was "if it doesn't collapse, both of us are wrong", and it didn't.
+
+**The window column settles why.** Slow and fast cells of the same arm have *bit-identical* window
+series — `#291` r4 at 20.34 s and at 3.43 s both run 6432 nonzero windows, min 30, max 223, first ≥223
+at off 469.8 MB, dispatched 323; same for the old build's 13.38 s and 4.16 s cells at min 4. A 6× wall
+difference on an identical trajectory, exactly as their code reading predicts, so the window cannot be
+what separates the modes on either build.
+
+**And the fix demonstrably worked without mattering:** old had 448 of 6432 windows below 30 blocks,
+#291 has zero, and the rate didn't move. Ratio 0 is the natural infinite-floor control — window 223
+from off 8.4 MB — and it still produced a 38.96 s cell. Pooled over both sessions the gate does triple
+the stall rate (**>9 s in 1/32 ratio-0 vs 16/32 ratio-4 cells**), so it's implicated; the window isn't
+the channel.
+
+**Why it couldn't have helped, and a bug either way.** `RoundTripBytes()` is read once at `Open()`
+(`fs.go:605`); `currentTTFB()` returns `ttfbSeed` with no samples (`fill.go:70-71`); `cmd_mount.go:326`
+sets that seed to a flat 40 ms. A single-handle reader on a fresh mount opens before any fill has
+recorded a TTFB, so it always gets 6.25 GB/s × 0.040 s = 250 MB → **30 blocks**. Measured and
+confirmed: min nonzero window is exactly 30 at *both* endpoints, where the real 58.6 ms round trip
+wants 44. The derived floor never adapts for the reader it targets.
+
+**The same seed breaks the in-region inertness claim, opposite sign** ($0 to check): re-running the six
+5f-E arms at ratio 4, `met/var1` goes **59.8 → 210.8 MB**, so the headline saving drops from 95.09% to
+82.69% — 151 MB of 1158 MB handed back — on a read wanting 22.5 MB of distinct data while the floor
+alone commits 240 MiB. Every other arm is unchanged (`hco/var1`'s earned window already cleared 30).
+Their assertion holds for a warm mount, not at first `Open()`, and cold single-open is the regime
+ordinary tools run in.
+
+Cost ~$0.55; running total ~$1.15 for the RTT question, reported against the estimate rather than
+quietly. Artifacts: `data/lith-gates/xregion-291.txt`, `data/lith-gates/xregion291-traces.tgz`
+(6 `--pf-trace` CSVs, in-region probes for both builds, all 32 non-empty mount logs).
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is

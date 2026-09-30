@@ -25,7 +25,13 @@
 # 3 reps per cell, fresh mount per rep, unique metrics port per mount. Head node only, $0.
 set -u
 
-B=/scratch/lith-gates/lith-new
+B=${B:-/scratch/lith-gates/lith-new}
+# PF_TRACE=1 captures the per-fetch trace and raises the mount log level. Upstream's
+# ask on #256 after gate 5f-H: the empty mount logs and absent CSVs were the one piece
+# neither of us had, and the window column over a slow run is what settles whether the
+# ramp was ever the story.
+PF_TRACE=${PF_TRACE:-0}
+LOGLVL=${LOGLVL:-warn}
 PYX=/scratch/ncenv/bin/python
 OUT=${OUT:-/scratch/lith-gates/gate-ramp}
 MNT=/scratch/mnt/r
@@ -84,7 +90,8 @@ run_cell() {
   local extra=""
   [ "$ratio" != "0" ] && extra="--readahead-evidence-ratio $ratio"
   umount_wait
-  $B mount "$prefix" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level warn $extra \
+  [ "$PF_TRACE" = "1" ] && extra="$extra --pf-trace $OUT/$tag.csv"
+  $B mount "$prefix" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level "$LOGLVL" $extra \
       > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
   if ! mountpoint -q "$MNT"; then echo "$tag MOUNT FAILED"; tail -n 3 "$OUT/$tag.mount.log"; return 1; fi
