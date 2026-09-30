@@ -3598,6 +3598,44 @@ the other channel.
 because the window has to ramp. Wall moved −4.4% and +2.6%, n=1 per arm, i.e. noise. Bytes and GETs
 are counters and need no repetition; the timings do, and aren't claimed.
 
+### Gate 5f-G — the ramp cost is the reader's, and the counters can't see all of it (2026-09-30)
+
+Upstream could not reproduce that +22%: a pure `cat` stream came back **bit-identical** in bytes and
+requests at ratio 0 vs 4, and they proposed that netCDF4's variable-by-variable walk makes the
+evidence bound re-bind where a contiguous stream never binds at all. Their question back — does it
+hold if the reader streams, on my box, same object — is the one worth answering, so
+`scripts/lith/gate-ramp-reader.sh` ran five readers over the same two objects at both ratios.
+
+| reader | contiguity | Δ GETs | Δ wall (median) |
+|---|---|---|---|
+| `dd` bs=1M | 1 stream | **+0.0%** | +0.24 / +0.32 s |
+| `dd` bs=128K | 1 stream | **+0.0%** | +0.28 / +0.49 s |
+| `cat` | 1 stream | **+0.0%** | +0.44 / +0.30 s |
+| python `os.pread` 1 MiB | 1 stream, not netCDF4 | **+0.0%** | +0.28 / +0.49 s |
+| netCDF4, met | 5 variables | +0.6% | +0.01 s |
+| netCDF4, hco | 12 variables | **+21.4%** | +1.67 s |
+
+**Upstream's explanation is confirmed, and read size is not the axis** — 1 MiB, 128 KiB and `cat`
+itself all agree at zero, and the request cost rises monotonically with discontiguity
+(1 stream → 5 variables → 12 variables). My +22.3% was real but it was a property of the *reader*,
+never of the flag; over 3 reps the honest figure is **+21.4%** (r0 = {130,131,131}), so my published
+number was the low end of its own spread.
+
+**What the counters miss.** On all eight contiguous cells `s3_bytes_total`,
+`distinct_bytes_read` and `prefetch_issued_total` are *equal* across ratios — not close, equal — and
+the ramp still costs **+0.24 to +0.49 s** of wall: 8 of 8 arms by median, 27 of 34 paired reps, and
+all 7 exceptions are reps whose ratio-0 wall is that arm's own maximum (cold-page warmup). The delta
+is roughly fixed in seconds rather than proportional, which is what a one-time ramp should look
+like — the window starts at the floor, so fewer blocks are in flight early and the cost is latency,
+not work. Hence 17–42% of a 1–2 s streaming read and 0–6% of a 14–29 s decompression-bound one.
+So *"bytes and requests are byte-identical"* is a true and **insufficient** regression check for this
+flag: request count is conserved, request concurrency during the ramp is not.
+
+Free corroboration of upstream's own rep-1 discard: unprompted and on different hardware, my rep 1 is
+the high outlier on both 3-rep `dd` arms (2.10 vs 1.29/1.38; 1.81 vs 1.02/1.03).
+
+Artifacts: `data/lith-gates/ramp-reader.txt`, `data/lith-gates/ramp-reader-traces.tgz`.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is

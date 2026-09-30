@@ -70,6 +70,14 @@ WHAT var1 SETTLES: COVERAGE, NOT SEQUENTIALITY
   fraction of the object; it is what dooms it, because sequential is precisely
   what earns it the full window.
 
+  HOW MUCH OF THAT IDENTITY IS EMPIRICAL — my own framing was too strong. On all
+  four whole-object arms s3_bytes_total EQUALS obj_size exactly, so once lith has
+  fetched 100% of the object, over-fetch = s3_bytes/distinct = obj/distinct =
+  1/coverage is arithmetic, not a fit. The empirical content is the antecedent —
+  "a perfectly sequential low-coverage reader gets the WHOLE object" — and the
+  0.4% residual is just the 47 KiB of block-boundary rounding. Quote the
+  antecedent, not the identity.
+
 TWO WASTE CHANNELS, BOTH SELECTED BY LOW COVERAGE, ONLY ONE FIXED BY #256's FLAG
   A  window over-commitment: looks sequential, wants little => whole-object fetch.
      var1 arms. evidence_ratio=4 cuts met/var1 by 95.1% of bytes (1217.8 -> 59.8 MB,
@@ -90,6 +98,19 @@ PRICE OF --readahead-evidence-ratio 4 ON THE SEQUENTIAL ARMS (the regression che
   read pays up to ~22% more GETs for the same bytes. Wall clock moved -4.4% and
   +2.6%, i.e. inside noise at n=1 per arm. That is the trade upstream should be
   pricing on #256, and it looks cheap next to 95% of the bytes on the low-coverage side.
+
+  TWO CORRECTIONS FROM GATE 5f-G (data/lith-gates/ramp-reader.txt), both mine:
+  (a) +22.3% was n=1 and was the low end of r0. Over 3 reps r0={130,131,131},
+      r4={159,159,159} => the honest figure is +21.4% median-to-median.
+  (b) the request cost is NOT a property of the flag. Every CONTIGUOUS reader
+      (dd 1M, dd 128K, `cat`, python pread) is +0.0% in requests and 0.00% in
+      bytes at ratio 4 on both objects. Only netCDF4 pays, in proportion to
+      discontiguity (1 stream +0.0%, 5 vars +0.6%, 12 vars +21.4%). Upstream's
+      reader explanation is confirmed on my box with my objects.
+  (c) what the counters miss, and upstream had no reason to look for: on all
+      eight contiguous cells the ramp is free in bytes AND requests and costs
+      +0.24 to +0.49 s of wall (8/8 arms by median; 27 of 34 paired reps). The
+      cost is request CONCURRENCY during the ramp, not request count.
 
 DISCLOSED REGIME DIFFERENCE (the honest caveat, and it cuts toward the finding)
   3 open handles here vs ~600 in capture 2. The window is
