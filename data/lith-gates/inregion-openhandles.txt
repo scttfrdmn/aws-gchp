@@ -1,0 +1,99 @@
+GATE 5f-M — IS THE WINDOW DIVISOR CHARGED FOR IDLE OPEN HANDLES? (lith#298)
+2026-10-01, in-region, ~$0.02 of GET requests (no egress, head node already up)
+================================================================================
+
+WHY: upstream handed #298 over explicitly — "#298 is the live thread and it's yours:
+the budget line reading 1250000000 bytes identically at c32, c128 and c512 means the
+third bound is computed with no reference to how many slots will consume it. Three
+bounds, three derivations, and now demonstrably no composition in that direction
+either." They also closed #256 and parked the default block-size change in #300 on
+the strength of 5f-L, so the unit question is settled and the DEPTH SIZING question
+is what remains.
+
+Of the three bounds, exactly one has never been exercised in this entire campaign:
+the per-handle divisor.
+
+  perHandleWindow() = clamp(budgetBlocks / openHandles, 2, maxReadahead)
+  budgetBlocks()    = prefetchBudget / blockSize            (fs.go:1252, :1279)
+
+Every gate from 5f-G through 5f-L ran ONE open handle, where budgetBlocks/1 = 492 >
+maxReadahead = 223, so the declared depth bound won and the divisor was invisible.
+It can only bind with more handles. And whether it counts handles that are merely
+OPEN, versus handles that are actively streaming, decides whether `--max-readahead`
+means anything at all to a real scientific reader — because netCDF/HEMCO workloads
+hold a great many files open and read them one at a time.
+
+There is a banked observation this would explain. In the original GCHP production
+measurement BOTH mounts ran at the window FLOOR of 2. Rank count alone does not
+explain it: 492/48 = 10, not 2. Hundreds of simultaneously-OPEN files would.
+
+SETUP  in-region (2.2 ms), DEFAULT flags (8 MiB block, auto max_readahead -> 223),
+  fresh cold mount + unique metrics port + --pf-trace per cell, --log-level info,
+  n=3. 16 distinct GEOSFP A3dyn days, 3.72-3.81 GB each = 444-454 blocks of 8 MiB,
+  so every object is larger than the 223-block window and can realize it in full.
+
+  ARM A  N processes each streaming a DIFFERENT object concurrently
+           N in {1, 2, 3, 4, 8, 16}
+  ARM B  1 streaming reader + (N-1) handles held OPEN after a single 4 KiB header
+           read, never streamed.  N in {2, 3, 4, 8, 16, 64, 256}
+           This is the netCDF/HEMCO shape, and N=256 is the only cell that can
+           reach the clamp FLOOR of 2 (492/256 = 1.92).
+  ARM C  1 streaming reader + 7 handles opened with NO read at all (N=8)
+           Separates "open() registers the handle" from "the first read does".
+
+  Observable is the window lith actually computed, from the trace's `window` column,
+  not a summary: per streaming handle, wmax = max over its fetches and wsteady =
+  median over the last 80% of its fetches. Arm A's readers do not start
+  simultaneously, so the first reader's early fetches legitimately see fewer open
+  handles; THE PREDICTION IS ABOUT wsteady and wmax is reported as an upper bound.
+
+PRE-REGISTERED, WRITTEN AND COMMITTED BEFORE THE RUN
+  H_charge: openHandles counts every OPEN handle regardless of activity. Then the
+    steady-state window is clamp(492/N, 2, 223) in BOTH arms:
+      N:        1    2    3    4    8   16   64  256
+      window: 223  223  164  123   61   30    7    2
+    Note the shape is not monotone-from-the-start: N=2 gives 246 > 223, so the
+    prediction is NO CHANGE at N=2 and a 26% drop at N=3. A threshold at a named
+    place is a much stronger test than "decreasing".
+    Arm C also drops (open() alone registers).
+  H_active: only handles with outstanding reads are counted. Then ARM A follows the
+    table above but ARM B STAYS AT 223 FOR EVERY N, including 256, and arm C stays
+    at 223.
+  H_firstread: open() alone does not register, the first read does. Then arm B
+    follows the table and ARM C STAYS AT 223 while arm B at N=8 does not.
+
+  These differ in sign on cheap decisive cells: B at N=8 (61 vs 223) and B at N=256
+  (2 vs 223) separate H_charge from H_active; C at N=8 separates H_charge from
+  H_firstread.
+
+  WHAT EACH OUTCOME WOULD MEAN
+  - H_charge: `--max-readahead` is unreachable for any multi-file reader, and the
+    headline knob of this entire issue is silently governed by how many files the
+    application happens to have open — which is not a property anyone tunes, log,
+    or documents. That makes the banked window-of-2 a bug rather than a mystery, and
+    it makes the divisor, not the unit and not the evidence ratio, the thing with the
+    largest reach into real workloads.
+  - H_active: the divisor is doing something defensible and #298 is purely a
+    reporting/derivation-disagreement issue, not a behavioural one.
+  - H_firstread: both, and the fix is scoped to accounting at open().
+
+  SECOND, INDEPENDENT PREDICTION (the one that makes it matter)
+  Aggregate in-flight commitment = (streaming handles) x window x 8 MiB. Under
+  H_charge: 1.87 GB at N=1, 3.74 GB at N=2, then ~4.13 GB flat for N>=3 in arm A.
+  The budget line in the mount log says 1,250,000,000 bytes. So the logged budget
+  would be EXCEEDED AT EVERY HANDLE COUNT — 1.5x at N=1 and 3.3x at N>=3 — which is
+  the concrete demonstration #298 is missing: not that three derivations disagree on
+  paper, but that the one printed as "the budget" is never the one enforced.
+
+  REFUTER, stated in advance: if arm A's wsteady does not fall at N=3 (where 492/3 =
+  164 first drops below 223), then budgetBlocks is not 492 on this box under
+  multi-handle load and the whole derivation I verified at one handle does not
+  generalize. I would report that and stop, rather than reach for a fourth bound.
+
+COST  in-region, so no egress. ~475 GB of GETs is ~$0.02 of request charges on a head
+  node that is already up. Upstream declined the $0.60 cross-region concurrency cells
+  on the grounds that no decision hung on them; this one is both cheaper and attached
+  to a live issue they just assigned to me.
+
+================================================================================
+RESULTS — pending
