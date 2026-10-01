@@ -85,3 +85,100 @@ LIMITS KNOWN BEFORE RUNNING
   establishment burst is a single step and survives that, a drain spike might not.
   This measures whether the proxy is tight, NOT whether candidate 1 is safe -- the
   re-grant churn objection upstream raised from my own 5f-M result is untouched by it.
+
+================================================================================
+RESULTS — 18 cells, 6 handle counts x 3 reps, all predictions pre-registered above
+================================================================================
+
+RESULT 0 — THE INSTRUMENT VALIDATES IN A REAL RUN, NOT ONLY ON CONSTRUCTED STATE
+  #303's tests assert against state the test constructs. These are the same properties
+  under a real mount with a real streaming reader:
+      lith_prefetch_budget_bytes = 4.127829504e9 EXACTLY, every cell
+        (= 33.022636032 GB x 25% x 50%; confirms to the byte the arithmetic I asserted
+         on #298 from /proc/meminfo)
+      resident drains to 0 at unmount in 18/18 cells -> the three removal paths account
+        for everything the add path counted, in production conditions
+      lith_prefetch_issued_total == lith_prefetch_used_total == 3586 in 18/18
+      resident steps 0 -> 1870.659584 MB in ONE 100 ms sample at N=1 = 223 x 8 MiB to
+        the byte -> 5f-M's single-shot full-window establishment burst, independently
+        confirmed by an instrument that does not share its defect
+
+RESULT 1 — H_headroom CONFIRMED. The budget is never close to full, not even once.
+      N=1 is the proxy's TIGHTEST case (tightness exactly 1.000) and it holds
+      1870.7 MB of a 4127.8 MB budget = 45.3%. Every larger N holds less.
+      Upstream's FIRST branch fires: the proxy is over-conservative.
+
+RESULT 2 — H_oneover CONFIRMED to within 0.0-6.2% at every point
+    N  win  hnd   resident      charge   tight   %budget   pred res   ratio
+    1  223    1   1870.7 MB   1870.7 MB  1.000     45.3%   1870.7 MB  1.000
+    2  223    2   1870.7 MB   3741.3 MB  0.500     45.3%   1870.7 MB  1.000
+    4  123    4   1033.4 MB   4127.2 MB  0.250     25.0%   1031.8 MB  1.002
+   16   30   16    253.8 MB   4026.5 MB  0.063      6.1%    251.7 MB  1.008
+   64    7   64     60.8 MB   3758.1 MB  0.016      1.5%     58.7 MB  1.036
+  256    2  256     17.8 MB   4295.0 MB  0.004      0.4%     16.8 MB  1.062
+
+  Resident tracks ONE window regardless of how many descriptors are charged for it, so
+      tightness = 1/N
+  and the proxy's error is not a constant factor but LINEAR IN THE OPEN DESCRIPTOR COUNT.
+  At N=256 the mount is charged 4295.0 MB and holds 17.8 MB: a 241x overstatement.
+  This is the quantitative form of 5f-M's "idle handles dispatch exactly zero" -- same
+  conclusion, reached with an instrument that measures instead of deriving.
+
+RESULT 3 — WHAT THE OVER-CONSERVATISM COSTS
+      N=1   walls 2.98 / 3.24 / 3.16 s   median  3.158 s
+      N=256 walls 36.21 / 30.15 / 28.21 s median 30.151 s   =  9.5x
+  So the mount is throttled ~9.5x while holding 0.43% of the bytes it is permitted to
+  hold, on a budget that is 99.6% empty.
+
+  CORRECTION TO MY OWN PUBLISHED NUMBER, with the control that forced it: 5f-M reported
+  6.38x for this comparison (3.187 -> 20.343 s). The two gates agree at N=1 (3.16 vs
+  3.19) and disagree at N=256 (20.3 vs 30.2). I A/B'd the binary to find out -- the
+  pre-#299 build lith-new, re-run through THIS harness, gives 31.20 / 30.99 / 30.16 s,
+  median 30.99 s, statistically identical to lith-303's 30.151 s. So the binary is
+  cleared (no regression from #299/#302/#303) and the 20.3 s was between-gate variance.
+  The window-2 cell is LATENCY-BOUND -- 465 GETs with 2 in flight -- so it is sensitive
+  to per-GET latency drift, which makes it a poor cell to quote a precise multiple from.
+  The honest statement is 6-10x, and "6.38x", which upstream has now quoted twice,
+  should be read as the low end of a range rather than a measurement.
+
+RESULT 4 — THE THRASH THE DIVISOR EXISTS TO PREVENT DID NOT OCCUR AT ANY N
+      lith_prefetch_evicted_unread_total = 0 in 18/18 cells
+      issued == used == 3586 in 18/18 -> 100% of prefetched chunks were consumed
+  Including at N=1, where residency is highest at 1870.7 MB.
+  LIMIT, and it is the important one: this is ONE streaming reader. #55's thrash shape is
+  not represented here at all. This does NOT show the divisor is unnecessary in general.
+  It shows that on the shape that motivated #256 -- a netCDF reader holding many
+  descriptors -- the divisor's protection bought nothing and cost ~9.5x.
+
+RESULT 5 — A THIRD OPTION THAT DID NOT EXIST BEFORE #303
+  #301's candidates both ration the proxy: candidate 1 stops charging for idle handles
+  (which upstream argued against using my own 5f-M re-grant finding -- the divisor would
+  then change on every establish/de-establish, multiplying ded_W+1 bursts), candidate 2
+  charges per object rather than per descriptor (which only fixes double-open).
+  The gauge makes a third possible: ration on the MEASURED resident bytes.
+
+  What this gate contributes to weighing it, measured rather than argued:
+    - resident does not move when an idle descriptor opens or closes. At N=256, with 255
+      descriptors opening before the read, resident never left 15.7-24.1 MB. The churn
+      source that defeats candidate 1 is absent from this signal by construction.
+    - the signal is steady enough to govern on: middle-50% spread of the resident series
+      is 0.71% (N=4), 2.89% (N=16), 9.58% (N=1), 12.62% (N=2), 13.79% (N=64). At N=256
+      it is 47%, but there the magnitude is 2 blocks, so that is one block of jitter.
+  NOT claimed: that this is safe. Admission on resident bytes still has to choose a
+  window for a newly establishing handle, and 5f-M showed that commitment is a
+  single-shot full window -- so the open transient is unchanged. And per the caveat
+  above, the gauge counts bytes at dispatch, so using it for admission rations
+  dispatched-including-in-flight, which is arguably the right quantity for admission but
+  is NOT bytes-in-RAM. Both belong in the decision; neither is settled by this gate.
+
+COST  ~$0.01. 21 cells x 3.78 GB = 79 GB of in-region GETs (~10,400 requests), no egress,
+  head node already running. Campaign running total ~$4.22.
+
+ARCHIVE
+  data/lith-gates/inregion-resident.txt     this file
+  data/lith-gates/resident-samples.tgz      42 files, 16.9 kB
+      sha256 cc3a35708e84523146eb3892fe29e1081841432215db69259c171c2e72bf641b
+      the 18 sampled series, every mount log (all non-empty), the 3 old-binary control
+      logs, the gate log, and the sampler/holder as run
+  scripts/lith/gate-resident.sh             harness (sampler + holder embedded)
+  scripts/lith/parse-resident.py            Results 1-2
