@@ -244,3 +244,97 @@ ARCHIVE — no zero-byte logs this time
   scripts/lith/walls-openhandles.py          wall/GETs per cell (Result 1)
   scripts/lith/grid-openhandles.py           composition grid (Result 2)
   scripts/lith/pack-openhandles.py           archive packer
+
+================================================================================
+FOLLOW-ON, $0, FROM THE BANKED TRACES — #301's "measure the invariant" step
+2026-10-01
+================================================================================
+
+#301/#298 asked for the one thing the gate did not produce: resident prefetched-but-
+unread BYTES, to decide whether the window x handles proxy is tight. Upstream's plan is
+a new gauge over `bs.prefetched`. Before they spend effort on it I tried to answer it
+from the 194 MB of --pf-trace already banked, at $0.
+
+RESULT A — THE DERIVATION IS IMPOSSIBLE, AND THE FAILURE MODE IS A TRAP
+  The obvious estimator, per handle, is
+
+      lead_i = cumsum(dispatched)_i - (blk_i + 1)
+
+  "blocks dispatched but not yet consumed". It does not close. For A-n1 (one handle,
+  window 223, a 451-block object):
+
+      distinct blocks read  451
+      sum(dispatched)       672        overshoot 221 = window - 2
+
+  Structure, read off the rows: ONE establishment burst of exactly 223 at blk 1, then
+  +1 at every subsequent block boundary — 449 of them — including the ~221 boundaries
+  after the frontier has already passed EOF and there is nothing left to dispatch. So
+  the counter overruns the object by the standing window, and across ALL 50 streaming
+  cells (6 window values, 2 arms, 4 forced-max controls):
+
+      overshoot == FINAL window - 2   in 50/50 cells, exactly
+
+  including the 3 cells whose window CHANGED mid-run, where it tracks the final window
+  (A-n16 med 30 -> final 223, overshoot 221) and not the median. No exceptions.
+
+  Therefore the estimator returns the standing window - 2 at any point BY CONSTRUCTION.
+  Divide it by the charge (window x handles) and you get ~1.0 and conclude the proxy is
+  tight. I had 0.93-0.99 across every cell and was one commit from posting it as the
+  answer to #301's decision criterion. It is window x handles / window x handles.
+
+  Stated for upstream's benefit, not mine: the new gauge must not be validated against
+  this identity. `--pf-trace` has no completion or eviction events, so the only bound it
+  can support is "resident <= window per handle", which IS the charge. The quantity is
+  knowable at `bs.prefetched` and nowhere else.
+
+RESULT B — WHAT THE TRACE *CAN* ANSWER: THE ESTABLISHMENT TRANSIENT, MEASURED
+  #301: "transient over-commitment is bounded by (newly establishing handles x their
+  window) and that wants measuring, not reasoning." This is one row per cell, no
+  cumulation, so it survives Result A:
+
+      establishment = exactly ONE burst, at the first block boundary, of size exactly
+      equal to the window, at state cold->sequential, in 50/50 cells
+      (223, 164, 123, 61, 30, 7, 2 — each matching its own clamp(492/N, 2, mra))
+
+  So the bound is not merely a bound: a handle commits its full window in a single shot
+  the moment it is classified sequential. #301's formulation is tight, not conservative.
+
+RESULT C — A SECOND TRANSIENT #301 DOES NOT ACCOUNT FOR: RE-GRANT AT handle CLOSE
+  Re-grant bursts appear late in the run, and the arm contrast makes them causal:
+
+      A-n3   win 164  one later burst at  92% of run, size 60
+      A-n8   win  61  one later burst at 100% of run, size 10
+      A-n16  win  30  ELEVEN later bursts, 89-98%: 3,4,15,6,8,10,13,17,26,42,60
+      A-n1, A-n2, A-n4           none
+      every B cell, every C cell none
+
+  Arm A runs N concurrent readers that FINISH and close; arm B holds N-1 descriptors
+  open for the whole run. Only the arm where handles close shows the bursts. A-n2 has 2
+  concurrent readers and shows none because 492/2 = 246 is already clamped to 223, so
+  there is no upward room. The sizes are exact: a close takes 492/N up by dW and the
+  survivor immediately dispatches dW + 1 (A-n3 164->223, dW 59, burst 60; A-n8 61->70,
+  dW 9, burst 10). A-n16's eleven bursts sum to 204 = the 30->223 climb (193) + 11.
+
+  So there are two transients, not one: open (full window, once) and close ((N-1)
+  survivors x dW each, repeated for every close). The second is unbounded by the first's
+  formula and lands at the END of a run, when the aggregate charge is at its highest.
+
+RECONCILIATION OF A CLAIM I DID NOT PUBLISH
+  My broken estimator peaked at 92.8-99.9% of the run and I read that as a 2.7x
+  transient breach of the #55 invariant (11.19 GB against a 4.128 GB budget). The
+  POSITION was a real signal — Result C, visible in single rows. The MAGNITUDE was the
+  Result A artifact. The 2.7x is withdrawn before it was ever asserted; what remains is
+  "re-grant bursts cluster at the end of the run", which is weaker and is observed.
+
+LIMIT
+  Results B and C are dispatch-side only. Whether a dispatched block is still RESIDENT
+  when the next one is dispatched is exactly what the trace cannot see, so none of this
+  converts into a bytes-resident number. It constrains the shape of the transient and
+  nothing about its decay.
+
+COST  $0. No mounts, no GETs; re-analysis of openhandles-traces.tgz on the running head
+  node. Campaign running total unchanged at ~$4.21.
+
+  scripts/lith/dispatch-closure.py   Results A/B/C; prints the closure defect rather
+                                     than a residency number, deliberately
+  scripts/lith/establish-burst.py    first-pass burst finder
