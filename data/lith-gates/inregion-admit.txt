@@ -99,3 +99,38 @@ LIMITS, STATED UP FRONT
   - #307 (a --mem-cache below 64 MiB silently disables the memory tier) does not touch
     any arm here: all three run the 8.256 GB default. Flagged because a future
     constrained cell would hit it.
+
+================================================================================
+MID-GATE PRE-REGISTRATION, written after rep 1 and BEFORE looking at rep 2
+================================================================================
+Rep 1 produced a second mechanism I did not anticipate, so the derived prediction below
+is a RETRODICTION on rep 1 and is tested OUT OF SAMPLE on rep 2, which is already running
+and which I have not looked at. Committed before looking.
+
+  Verified in code, not inferred: internal/fuse/fs.go:1075 Release() deletes the handle
+  and records prefetch stats, and calls nothing that releases committed bytes. The only
+  dropPrefetched callers are blockstore.go:492 (evict), :910 and :944 (consume / failed
+  fill). So commitment is released on CONSUME, EVICTION or FAILED FILL -- never on handle
+  close. A handle that closes with outstanding prefetched-unread chunks leaves those bytes
+  charged against the mount-wide admission cap, and if the working set fits the memory
+  tier, eviction never fires and the charge never clears.
+
+  H_WEDGE: the pool wedges -- committed pinned at the cap with admission permanently
+  refusing -- exactly when BOTH hold:
+      (a) total working set <= --mem-cache (8.256 GB), so eviction never reclaims, AND
+      (b) COVERED < N, so there is someone to starve.
+  Tier: 8.255659008 GB. Working sets: L2 4 GiB, L3 6 GiB, L4 8 GiB, L8 16 GiB,
+  C 60 GB, D 60 GB, W 62 GB.  COVERED: 2.21 on the --nic-gbps 50 arms, 14.91 on D and W.
+
+  POINT PREDICTION FOR REP 2, all seven arms:
+      WEDGE in L3 and L4 only.  L2 exempt by (b) -- COVERED 2.21 >= 2, refused must be 0.
+      L8, C, W exempt by (a) -- working set over the tier, so eviction releases.
+      D exempt by both.
+  Measured as the fraction of sampled instants with committed > open_handles x
+  window_commit_bytes, which is a CONSERVATION violation and needs no wall time: one
+  handle cannot legitimately commit more than one window. Rep 1: L3 92%, L4 91%, W 4%,
+  everything else 0%.
+
+  REFUTER: a wedge in L8, C or W at >10% of samples kills H_WEDGE -- those working sets
+  are 1.9-7.5x the tier, so if they wedge too, close-time residue is not what is filling
+  the pool and some other charge is.
