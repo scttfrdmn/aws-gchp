@@ -4023,6 +4023,71 @@ bursts cluster at the end of a run. The limit on all of it: these are dispatch-s
 whether a dispatched block is still resident when the next is dispatched is precisely what the trace
 cannot see, so this constrains the shape of the transient and says nothing about its decay.
 
+### Gate 5f-N — the proxy overstates by exactly the open descriptor count (2026-10-01)
+
+#303 landed the gauge that makes the question answerable — `lith_prefetch_resident_bytes`, the quantity
+`--prefetch-budget` actually bounds, as against the window × handles proxy that enforces it — and upstream
+stated the decision rule and then said it needed a box they had been deferring, while explicitly asking me
+for nothing. The rule: *if resident sits far below 4.128 GB at N=1, the proxy is over-conservative and the
+divisor is costing 6.38× for nothing; if it sits near it, candidate 1 is dangerous.* I had the box up and
+the 5f-M harness, so this is their experiment for about a cent.
+
+The arm is 5f-M's arm B — one streaming reader plus N−1 descriptors held open after a 4 KiB header read —
+at N = 1, 2, 4, 16, 64, 256, three reps, with all four gauges scraped at 10 Hz for the life of each cell.
+Every quantity is read from a gauge the mount exported. Nothing is derived from a cumulative counter, which
+is the discipline 5f-M's withdrawal bought.
+
+The instrument validates in a real run and not only on constructed state, which is all #303's tests could
+assert: the budget gauge reads 4.127829504e9 exactly — confirming to the byte the arithmetic I'd asserted
+on #298 from `/proc/meminfo` — resident drains to 0 at unmount in 18/18 cells, `issued == used == 3586` in
+18/18, and at N=1 resident steps 0 → 1870.659584 MB in a single 100 ms sample, which is 223 × 8 MiB
+exactly. That last one is 5f-M's single-shot establishment burst independently confirmed by an instrument
+that doesn't share its defect.
+
+Both pre-registered predictions hit, within 0.0–6.2% at every point:
+
+| N | win | resident | charge | tightness | % of budget |
+|---|-----|----------|--------|-----------|-------------|
+| 1 | 223 | 1870.7 MB | 1870.7 MB | 1.000 | 45.3% |
+| 2 | 223 | 1870.7 MB | 3741.3 MB | 0.500 | 45.3% |
+| 4 | 123 | 1033.4 MB | 4127.2 MB | 0.250 | 25.0% |
+| 16 | 30 | 253.8 MB | 4026.5 MB | 0.063 | 6.1% |
+| 64 | 7 | 60.8 MB | 3758.1 MB | 0.016 | 1.5% |
+| 256 | 2 | 17.8 MB | 4295.0 MB | 0.004 | 0.4% |
+
+**Resident tracks one window no matter how many descriptors are charged for it**, so tightness is 1/N and
+the proxy's error is not a constant factor but linear in the open descriptor count. At N=256 the mount is
+charged 4295.0 MB and holds 17.8 MB — a 241× overstatement — while being throttled about 9.5× (3.158 s to
+30.151 s median). The budget's *tightest* case, N=1, is 45.3% full. Upstream's first branch fires. This is
+the quantitative form of 5f-M's "idle handles dispatch exactly zero", reached this time by measuring.
+
+Two things worth as much as the headline. First, the thrash the divisor exists to prevent never occurred:
+`prefetch_evicted_unread_total` is 0 in 18/18 cells and 100% of prefetched chunks were consumed, including
+at N=1 where residency is highest — though this is one streaming reader and #55's thrash shape isn't
+represented, so it shows only that on the shape that motivated #256 the protection bought nothing and cost
+9.5×, not that the divisor is unnecessary.
+
+Second, **a correction to my own published number.** 5f-M reported 6.38× for this comparison; today it's
+9.5×. The two gates agree at N=1 and disagree at N=256 (20.3 vs 30.2 s), so I A/B'd the pre-#299 binary
+through this harness rather than guess — 31.20 / 30.99 / 30.16 s, median 30.99 s, statistically identical
+to current main. The binary is cleared of regression and the window-2 cell is latency-bound (465 GETs with
+two in flight), which makes it sensitive to per-GET latency drift and a poor cell to quote a precise
+multiple from. The honest statement is 6–10×, and "6.38×" — which upstream has now quoted twice — is the
+low end of a range rather than a measurement.
+
+The design consequence is that there's now a third option, because the gauge exists. Both of #301's
+candidates ration the *proxy*; the gauge makes it possible to ration the measured quantity. What this gate
+contributes to weighing that, measured rather than argued: resident does not move when an idle descriptor
+opens or closes — at N=256, with 255 descriptors opening before the read, it never left 15.7–24.1 MB — so
+the churn that defeated candidate 1 is absent from this signal by construction, and the signal is steady
+enough to govern on (middle-50% spread 0.71% at N=4, 2.89% at N=16, up to 13.79% at N=64; 47% at N=256,
+where the magnitude is two blocks and that's one block of jitter). What I'm not claiming is that it's safe:
+admission on resident bytes still has to pick a window for a newly establishing handle, and 5f-M showed
+that commitment is a single-shot full window, so the open transient is unchanged. And the gauge counts
+chunks at *dispatch*, so it rations dispatched-including-in-flight rather than bytes-in-RAM — arguably the
+right quantity for admission, but not the same quantity, and worth saying out loud before anyone enforces
+on it.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is
