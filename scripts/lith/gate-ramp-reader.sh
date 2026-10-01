@@ -87,8 +87,8 @@ run_cell() {
   local cls=$1 prefix=$2 obj=$3 reader=$4 ratio=$5 rep=$6
   local tag="$cls-$reader-r$ratio-$rep"
   N=$((N + 1)); local PORT=$((PORT_BASE + N))
-  local extra=""
-  [ "$ratio" != "0" ] && extra="--readahead-evidence-ratio $ratio"
+  local extra="${XFLAGS:-}"   # XFLAGS= passes mount flags through (--block-size, --max-readahead)
+  [ "$ratio" != "0" ] && extra="$extra --readahead-evidence-ratio $ratio"
   umount_wait
   [ "$PF_TRACE" = "1" ] && extra="$extra --pf-trace $OUT/$tag.csv"
   $B mount "$prefix" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level "$LOGLVL" $extra \

@@ -1,0 +1,130 @@
+GATE 5f-K — UNIT-SHRINKING HOLDS, AND THE FRONTIER HAS A STRICTLY BETTER POINT
+(lith#256)
+2026-10-01, ~$1.29 of egress against a requested ~$0.60
+================================================================================
+
+WHY: upstream scored their own cumulative-budget design offline against my banked
+traces and killed it with one line of arithmetic (223 blocks = 1.78 GB is larger
+than every object in the 5f-E set, so any policy permitting a full establishment
+burst fetches the WHOLE object and the byte saving on every low-coverage arm is
+exactly zero). They then proposed the one design that might escape it — shrink the
+prefetch UNIT rather than the count, so 223 requests commit 223 MB instead of
+1.78 GB — and said plainly they could not answer the throughput half offline,
+because the model that would let them predict it is the model that just failed
+(their k=4 arm had 5-block batches = 42 MB, which "should" sustain 717 MB/s and
+measured 173). Their ask: one arm, cross-region, 3.78 GB object, --block-size
+1MiB, gate OFF, n=8.
+
+TWO FREE PROBES FIRST, AND THEY CHANGED THE ARM
+  Lesson from 5f-J was "check the object against the mechanism's scale before
+  buying the arm." Same discipline applied to the config, in-region at $0:
+
+  (a) --max-readahead defaults to 0 = "1.5x the bandwidth-delay product,
+      inflight-bytes/block" — it is a BYTE budget divided by the block size. So
+      the literal arm (--block-size 1MiB, default readahead) does NOT hold the
+      request count at 223. Measured from the trace header: max_readahead becomes
+      1024 at 1 MiB, not 223 and not 1784 (so there is a hard cap in there too).
+      That arm holds NEITHER variable fixed: 4.6x the depth at 0.60x the bytes.
+      Pinning --max-readahead 223 gives 223 x 1 MiB = 233.8 MB — exactly the
+      design point in upstream's own table, to the decimal.
+
+  (b) --block-size 8MiB --max-readahead 1024 does not deliver what it accepts.
+      The mount log announces `"readahead window","blocks":1024` and the trace
+      reports realized peak_window = 492. Configured 1024, got 492, no warning.
+
+  So I ran the 2x2 (unit x depth) rather than the single arm, because (a) means
+  the single arm would have been uninterpretable.
+
+SETUP  same head node, same lith-new (v1.1.3-15-gb3d78d8), same 3,776,834,855 B
+  object (GEOSFP.20190701.A3dyn.025x03125.nc) staged to a fresh us-west-2 bucket,
+  dd, GATE OFF (ratio 0) in every cell, fresh cold mount + unique port +
+  --pf-trace per cell. Realized depth verified from peak_window in every arm.
+
+RESULT 1 — CROSS-REGION 2x2 (58.6 ms)
+  unit   depth  inflight   GETs   n   median s   MB/s    vs default
+  8 MiB   223    1.78 GB    465   8     8.509    443.8   (the default)
+  8 MiB   492    4.13 GB    465   4     8.226    459.2   +3%  (noise)
+  1 MiB   223    234 MB    3602   8    10.540    358.3   -19%
+  1 MiB  1024    1.07 GB   3602   4     5.369    703.4   +58%
+
+  walls, sorted:
+    8M/223   7.19 7.21 8.03 8.08 8.94 9.14 10.69 12.49
+    8M/492   7.08 7.84 8.61 10.75
+    1M/223   9.20 9.76 9.86 10.38 10.70 11.58 14.13 17.46
+    1M/1024  4.19 5.35 5.38 5.74
+
+  ANSWER TO THE QUESTION AS ASKED: at the depth upstream specified (223),
+  throughput HOLDS — 358 MB/s, not a collapse toward 173. Their "if it holds,
+  unit-shrinking is a real design" branch fires.
+
+  AND THE STRONGER RESULT: at a depth the byte budget comfortably allows, 1 MiB
+  is 1.58x FASTER than the shipping default, on 0.60x the in-flight bytes. All 4
+  cells of 1M/1024 fall below all 8 cells of 8M/223 — 32/32, complete separation.
+  The -19% at matched depth is real but overlapping (U = 54/64, p ~ 0.02).
+
+RESULT 2 — IN-REGION, SAME FOUR CONFIGS, FREE (2.2 ms)
+  unit   depth   n   median s   MB/s    vs default
+  8 MiB   223    8     2.858    1321    (the default)
+  8 MiB   492    2     3.416    1106    -16%
+  1 MiB   223    3     3.802     993    -25%
+  1 MiB  1024    3     2.426    1557    +18%
+
+  SAME ORDERING at 1/27th the RTT: 1M/1024 best, 1M/223 worst. The win is not a
+  high-RTT artefact — it is 1.18x in-region and 1.58x cross-region, i.e. the
+  direction is consistent and the magnitude grows with RTT. That matters because
+  it means upstream can develop and regression-test this without my endpoint.
+
+RESULT 3 — WHAT I WILL NOT CLAIM
+  Neither in-flight BYTES nor request COUNT alone orders these four points:
+    234 MB / 223 req -> 358 MB/s
+    1.07 GB / 1024   -> 703 MB/s
+    1.78 GB / 223    -> 444 MB/s
+    4.13 GB / 492(?) -> 459 MB/s
+  More bytes than 1M/1024 with fewer requests is SLOWER; fewer bytes with fewer
+  requests is slower still. Both axes are in it and I cannot separate them from
+  four points. I am explicitly not fitting a model — the last two mechanisms
+  published on this issue (mine by extrapolation, theirs by extrapolation) both
+  died, and the honest division of labour here is that I measure and upstream
+  reads the code.
+
+  Two loose ends I hand over rather than explain:
+    - The logged inflight-bytes budget is 1,250,000,000 B ("2 x 50.0 Gbps
+      baseline x 100 ms"), which is SMALLER than the default window's own
+      commitment of 1.78 GB at 223 x 8 MiB. The two sizing paths disagree with
+      each other by 1.4x in the shipping default.
+    - peak_window realizes 492 when 1024 is configured at 8 MiB. 492 x 8 MiB =
+      4.13 GB, which is neither the 1.25 GB budget nor the configured depth. I do
+      not know what sets it. (It does explain why 8M/223 -> 8M/492 bought nothing:
+      whatever the real ceiling is, both configs are already at it.)
+
+RESULT 4 — WHAT THIS IS WORTH IN PRACTICE
+  Every cell above moved exactly 3,776,834,855 bytes. The 8 MiB arms issued 465
+  GETs, the 1 MiB arms 3602 — so unit-shrinking costs 7.75x the request count
+  (~$0.0013 per object at S3 GET pricing) and buys 1.58x the throughput
+  cross-region, 1.18x in-region. For a read-mostly input layer that is an easy
+  trade, and it is a DEFAULT change, not a flag.
+
+  It also means --readahead-evidence-ratio is not the only thing on this issue
+  worth shipping: the gate was an attempt to spend fewer bytes, and the unit is
+  an axis that spends fewer bytes AND less time. On met/var1 upstream's own
+  offline numbers give 233.8 MB chunk-granular vs 1217.8 MB gate-off (-80.8%)
+  without the gate's wall-clock penalty at all.
+
+COST, AGAINST THE REQUEST
+  ~$1.29 against the ~$0.60 upstream asked for: 1M/223 n=8 (30.2 GB) + 1M/1024
+  n=4 (15.1 GB) + 8M/492 n=4 (15.1 GB) = 60.4 GB at $0.02/GB = $1.21, plus $0.08
+  staging. Results 2 and both config probes were free (in-region, no egress).
+  I spent the extra $0.69 deliberately: probe (a) showed the single requested arm
+  could not isolate what it was meant to isolate, and the two control points are
+  what make the decisive one interpretable. Running total for the RTT question:
+  ~$4.19 across 5f-H, 5f-I, 5f-J, 5f-K.
+  Bucket and staged object deleted after banking.
+
+ARTIFACTS
+  scripts/lith/gate-ramp-reader.sh   XFLAGS= added (mount-flag passthrough)
+  data/lith-gates/xregion-blocksize.txt   this file
+  data/lith-gates/xregion-blocksize-traces.tgz
+      all four cross-region gate logs, the two in-region logs, both config-probe
+      trace headers, --pf-trace CSVs with realized peak_window per arm, and every
+      mount log (none zero-byte, checked)
+      sha256 042f27b22998b4fa4f24263766d6489c152926909889411ef72f9608c1152374

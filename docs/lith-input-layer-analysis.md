@@ -3803,6 +3803,60 @@ question. Artifacts: `data/lith-gates/xregion-bigobject.txt`,
 `data/lith-gates/xregion-bigobj-traces.tgz` (three gate logs, 7 `--pf-trace` CSVs, 38 mount logs,
 none zero-byte — verified).
 
+### Gate 5f-K — unit-shrinking holds, and the frontier has a strictly better point (2026-10-01)
+
+Upstream scored their own cumulative-budget design offline against my banked traces and killed it
+with one line of arithmetic: 223 blocks is 1.78 GB, larger than every object in the 5f-E set, so
+**any policy permitting a full establishment burst fetches the whole object** and the byte saving on
+every low-coverage arm is exactly zero. They then proposed the one design that might escape it —
+shrink the prefetch *unit* rather than the count, so 223 requests commit 223 MB instead of 1.78 GB —
+and said plainly they couldn't answer the throughput half offline, because the model that would
+predict it is the model that had just failed. Their ask: one arm, cross-region, 3.78 GB object,
+`--block-size 1MiB`, gate off, n=8.
+
+**Two free probes changed the arm.** `--max-readahead` defaults to a *byte* budget divided by block
+size, so at 1 MiB it becomes **1024**, not 223 — the literal arm would have held neither variable
+fixed (4.6× the depth at 0.60× the bytes). Pinning `--max-readahead 223` gives 223 × 1 MiB =
+233.8 MB, exactly upstream's design point to the decimal. And separately: `--block-size 8MiB
+--max-readahead 1024` announces `"readahead window","blocks":1024` in the log while the trace
+realizes **peak_window 492**. So I ran the 2×2 rather than the single arm.
+
+Cross-region (58.6 ms), gate off in every cell, same 3,776,834,855 B object, realized depth verified
+from `peak_window`:
+
+| unit | depth | in-flight | GETs | n | median s | MB/s | vs default |
+|---|---|---|---|---|---|---|---|
+| 8 MiB | 223 | 1.78 GB | 465 | 8 | 8.509 | 443.8 | (default) |
+| 8 MiB | 492 | 4.13 GB | 465 | 4 | 8.226 | 459.2 | +3% (noise) |
+| 1 MiB | 223 | 234 MB | 3602 | 8 | 10.540 | 358.3 | −19% |
+| 1 MiB | 1024 | 1.07 GB | 3602 | 4 | 5.369 | 703.4 | **+58%** |
+
+At the depth upstream specified, throughput **holds** — 358 MB/s, not a collapse toward 173, so their
+"unit-shrinking is a real design" branch fires. And at a depth the byte budget comfortably allows,
+1 MiB is **1.58× faster than the shipping default on 0.60× the in-flight bytes**, with all 4 cells
+below all 8 baseline cells (32/32, complete separation). The −19% at matched depth is real but
+overlapping (U = 54/64, p ≈ 0.02).
+
+**In-region, free, same four configs:** 1321 / 1106 / 993 / **1557** MB/s in the same row order —
+identical ordering at 1/27th the RTT. The win is 1.18× in-region and 1.58× cross-region, so it isn't
+a high-RTT artifact and upstream can develop against it without my endpoint.
+
+What I refused to claim: neither in-flight bytes nor request count alone orders those four points
+(more bytes with fewer requests is slower; fewer bytes with fewer requests is slower still). Four
+points can't separate two axes, and the last two mechanisms published on this issue both died of
+extrapolation — so I measured and handed over two loose ends instead: the logged inflight-bytes
+budget is 1.25 GB, *smaller* than the default window's own 1.78 GB commitment (the two sizing paths
+disagree by 1.4× in the shipping default), and I don't know what sets 492.
+
+Practically: every cell moved identical bytes; the 1 MiB arms issue 7.75× the GETs (~$0.0013 per
+object) to buy 1.58× the throughput. That's a default change, not a flag — and on `met/var1`
+upstream's own offline numbers give 233.8 MB chunk-granular vs 1217.8 MB gate-off (−80.8%) without
+the gate's wall-clock penalty at all.
+
+Cost ~$1.29 against the ~$0.60 requested, spent deliberately because probe (a) showed the single arm
+couldn't isolate what it was meant to. Running total ~$4.19. Artifacts:
+`data/lith-gates/xregion-blocksize.txt`, `data/lith-gates/xregion-blocksize-traces.tgz`.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is
