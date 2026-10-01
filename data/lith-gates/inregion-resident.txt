@@ -1,0 +1,87 @@
+GATE 5f-N — is the window x handles PROXY tight? (lith#301, instrument #303)
+in-region, head node already up, ~$0.01 of GETs
+PRE-REGISTERED 2026-10-01 BEFORE THE DECISIVE CELLS RAN
+
+WHY THIS GATE AND WHY ME
+  #303 landed the gauge that makes #301 answerable: lith_prefetch_resident_bytes, the
+  quantity --prefetch-budget actually bounds, as against the window x handles PROXY that
+  enforces it. Upstream stated the decision rule and then said it needs a box they had
+  been deferring, and explicitly asked me for nothing ("Nothing of yours... I'd rather
+  bank what you've found than ask for more"). I have the box up and the 5f-M harness, so
+  this is their experiment for ~$0.01 instead of a cluster.
+
+  Their rule, quoted: "If resident sits far below 4.128 GB at N=1, the proxy is
+  over-conservative and the divisor is costing 6.38x for nothing. If it sits near it,
+  candidate 1 is dangerous and candidate 2 is the answer."
+
+ARM   5f-M arm B shape, the netCDF/HEMCO shape: 1 streaming reader (dd, 3.78 GB object)
+      + (N-1) descriptors held open after a 4 KiB header read and never streamed.
+      N in 1, 2, 4, 16, 64, 256. Upstream's 1/16/256 plus trend points, free.
+      3 reps, fresh cold mount per cell, default flags (8 MiB blocks, auto window 223).
+
+ALL FOUR QUANTITIES ARE MEASURED FROM THE MOUNT'S OWN GAUGES, NONE DERIVED BY ME
+      lith_prefetch_resident_bytes    held       (#303)
+      lith_prefetch_budget_bytes      the limit  (#303)
+      lith_readahead_window_blocks    realized window (#302)
+      lith_open_handles               the divisor     (#302)
+  scraped at 10 Hz for the life of each cell, sampler started BEFORE the reader so the
+  establishment transient is in the series.
+  tightness = resident / (window x handles x block_size).
+  This matters because 5f-M's withdrawn result was a DERIVATION from a cumulative
+  counter and it returned the charge. Nothing here is cumulative and nothing is derived.
+
+SMOKE CELL ALREADY RUN (N=1, 1 rep) — reported here because it is what the predictions
+are calibrated against, and it must not be presented later as a confirmation:
+      budget gauge reads 4.127829504e9 EXACTLY  (= 33.022636032 GB x 25% x 50%,
+        confirming the arithmetic I asserted on #298 to the byte)
+      resident steps 0 -> 1870.7 MB in ONE 100 ms sample, then holds flat
+        223 blocks x 8 MiB = 1870.659584 MB -> the establishment burst of 5f-M seen by
+        a correct instrument, and the first independent confirmation of it
+      resident drains to 0 at unmount -> the add/remove paths balance in a REAL run.
+        #303's tests only assert this on constructed state.
+
+PREDICTIONS, AND WHAT EACH OUTCOME WOULD MEAN
+
+  H_headroom  resident peaks at ~1871 MB at N=1 = 45.3% of the 4127.8 MB budget, and
+              LOWER at every N > 1. Upstream's first branch fires: the proxy is
+              over-conservative, and even its tightest case leaves the budget 55% empty.
+              -> If instead resident approaches 4128 MB at any N, the proxy is tight,
+                 candidate 1 is dangerous, and H_oneover dies with it.
+
+  H_oneover   ONLY the streaming handle dispatches, so resident tracks ONE window while
+              the charge is window x N:
+                  resident(N) ~ window(N) x 8 MiB      and     tightness ~ 1/N
+              Point predictions, from window = clamp(492/N, 2, 223) measured in 5f-M:
+                  N=1    win 223  resident ~1871 MB  charge 1871 MB  tight ~1.00
+                  N=2    win 223  resident ~1871 MB  charge 3741 MB  tight ~0.50
+                  N=4    win 123  resident ~1032 MB  charge 4128 MB  tight ~0.25
+                  N=16   win  30  resident ~ 252 MB  charge 4027 MB  tight ~0.063
+                  N=64   win   7  resident ~  59 MB  charge 3758 MB  tight ~0.016
+                  N=256  win   2  resident ~  17 MB  charge 4295 MB  tight ~0.004
+              -> This is the quantitative form of 5f-M's "idle handles dispatch exactly
+                 zero". If it holds, the divisor throttles a mount to 186 MB/s while it
+                 holds 0.4% of the bytes it is allowed to hold, and the proxy's error is
+                 not a constant factor but LINEAR IN THE IDLE DESCRIPTOR COUNT.
+
+  REFUTER     resident within 2x of the budget at N=16 or N=256. That kills H_oneover and
+              H_headroom together, says the proxy is doing real work at high N, and makes
+              candidate 2 the answer. I will report it as the result if it fires.
+
+  SECOND REFUTER  resident EXCEEDS 4128 MB at any N. Then the budget is not enforced by
+              this path at all and something else bounds prefetch; the whole #301 framing
+              would need re-deriving.
+
+CAVEAT, STATED UP FRONT BECAUSE IT CUTS TOWARD THE FINDING RATHER THAN AWAY
+  blockstore.go:809 marks a chunk prefetched at DISPATCH (LoadOrStore before the fill);
+  dropPrefetched removes it on consume / evict-unread / failed-fill. So the gauge counts
+  dispatched-and-unconsumed, which INCLUDES bytes still in flight. It is an UPPER BOUND
+  on bytes resident in RAM. A finding that it sits far below the budget is therefore
+  conservative; a finding that it sits near the budget would NOT be, and I would have to
+  separate in-flight from arrived before claiming it.
+
+LIMITS KNOWN BEFORE RUNNING
+  In-region (2.2 ms), one box, one object family, contiguous dd, 8 MiB blocks, n=3.
+  Resident is sampled at 10 Hz, so a transient shorter than 100 ms is invisible; the
+  establishment burst is a single step and survives that, a drain spike might not.
+  This measures whether the proxy is tight, NOT whether candidate 1 is safe -- the
+  re-grant churn objection upstream raised from my own 5f-M result is untouched by it.
