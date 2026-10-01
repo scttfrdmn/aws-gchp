@@ -182,3 +182,75 @@ ARCHIVE
       logs, the gate log, and the sampler/holder as run
   scripts/lith/gate-resident.sh             harness (sampler + holder embedded)
   scripts/lith/parse-resident.py            Results 1-2
+
+================================================================================
+FOLLOW-ON, $0 — upstream's #55 gate is already half-answered by banked arm A, and
+as framed it cannot discriminate between the candidates
+2026-10-01
+================================================================================
+
+Upstream named the gate they want before changing policy -- the #55 shape, N concurrent
+readers over a combined working set well above --mem-cache, watching committed /
+evicted_unread / re-fetch together -- and asked me not to spend on it ("the remaining
+work is lith's to do on lith's shapes"). Respected. But 5f-M arm A WAS that shape, so
+part of it is already banked, and the arithmetic says their gate will not separate the
+options they are choosing between.
+
+THE BOX'S TIERS, for reference (all confirmed against the #303 budget gauge)
+  MemTotal 33.022636032 GB
+  --mem-cache       25%  =  8.255659008 GB
+  --prefetch-budget 50%  =  4.127829504 GB   (gauge reads 4.127829504e9 exactly)
+
+RESULT A — AT 7.28x OVER THE CACHE TIER, 16 CONCURRENT STREAMING READERS DID NOT THRASH
+  5f-M arm A, N readers each streaming a DIFFERENT object, N up to 16. The 16 objects
+  total 60.077 GB = 57,301 chunks of 1 MiB, against a 8.256 GB mem-cache tier: 7.28x.
+
+      issued == used in 17/18 arm A cells; the 18th is off by 1 chunk in 57,045
+      issued at N=16 = 57,045, and 57,301 - 57,045 = 256 = EXACTLY 16 objects x the
+        16 demand-filled chunks per object seen directly on object 0 (3602 - 3586)
+
+  So every chunk was dispatched exactly once and consumed exactly once. There is no
+  re-dispatch signature -- a chunk evicted unread and re-fetched would increment issued
+  a second time, and issued never exceeds (total chunks - demand-filled prefix).
+
+  WHY THIS IS NOT AN ACQUITTAL, and it reads the other way from what I first thought:
+  at N=16 the divisor held committed to 30 x 16 = 480 blocks = 4.027 GB, which is 97.5%
+  of the prefetch budget and 48.8% of the whole cache tier. Without the divisor, 16
+  handles at the full 223-block window would commit 3568 blocks = 29.93 GB = 3.63x the
+  ENTIRE mem-cache tier, which cannot be held and must evict prefetched-unread blocks by
+  definition. That counterfactual is ARITHMETIC, not a measurement -- I did not run it.
+  The reading this supports is that on the concurrent-reader shape the divisor's
+  protection may be WORKING rather than idle, which is the opposite of what it does on
+  the idle-descriptor shape where it holds 0.4% of the budget and costs 9.5x.
+
+RESULT B — THE GATE AS FRAMED CANNOT DISCRIMINATE, ONLY VALIDATE
+  On the all-active shape (#55's), the three options collapse:
+    status quo   divisor = 16 active handles -> window 30 -> committed 4.027 GB
+    candidate 1  "don't charge idle handles": at arm A every handle IS active, so the
+                 divisor is unchanged -> IDENTICAL to the status quo. A no-op here.
+    candidate 3  "ration committed bytes at the budget" -> caps at 4.128 GB, which is
+                 within 2.4% of what the divisor already realizes.
+  So a #55-shape gate can establish that candidate 3's cap is SAFE -- worth having, and
+  it is the question upstream actually needs answered -- but it cannot choose between the
+  three, because they only diverge where descriptors are IDLE, which is the shape already
+  measured in 5f-N. Candidate 3 is therefore a strict generalization: it coincides with
+  the divisor where the divisor is right (all handles active, within 2.4%) and fixes it
+  where it is wrong (idle handles, 241x). Half of that is now measured, not argued.
+
+THREE TRAPS IN THAT GATE, FROM HAVING RUN THE SHAPE
+  1. NIC BOUND. 5f-M arm A saturated this box's NIC at ~14 Gbps (aggregate 1290 -> 1769
+     MB/s across N). A NIC ceiling throttles DISPATCH, which SUPPRESSES thrash -- so a
+     small box can return a null that is about the NIC and not about eviction. The gate
+     needs headroom between aggregate fetch rate and the NIC, and should report both.
+  2. NON-STATIONARY DIVISOR. 5f-M Result C: as readers finish, survivors are re-granted
+     upward and dispatch dW+1 immediately, so committed RISES over the run (eleven such
+     bursts at N=16, 89-98% of the run). Correlating committed against evicted_unread
+     over a whole run will smear unless binned by live handle count.
+  3. DEFEATING THE DIVISOR NEEDS ONE FLAG, NOT A BIG BOX. To reach the regime where
+     committed exceeds the tier, raise --prefetch-budget to >= N x maxReadahead x
+     blockSize (29.93 GB at N=16, 223, 8 MiB) while holding --mem-cache fixed. That
+     makes the thrash regime reachable on any box and turns the gate into a 2-arm
+     intervention rather than a scaling exercise.
+
+COST  $0. Re-analysis of banked 5f-M counters plus one S3 LIST for object sizes.
+  Campaign running total unchanged at ~$4.22.
