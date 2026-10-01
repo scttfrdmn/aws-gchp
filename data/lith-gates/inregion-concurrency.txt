@@ -46,4 +46,94 @@ PRE-REGISTERED, WRITTEN AND COMMITTED BEFORE THE RUN
   --block-size, and upstream's step 3 ("the default question, which I want to be
   slow about") is asking about the wrong default.
 
-RESULT — pending
+RESULT 0 — THE INTERVENTION IS CLEAN
+  Realized peak_window is 223 in all three A cells and 1024 in all three B cells,
+  so --s3-concurrency does not move the depth. Concurrency is an independent knob
+  here and the comparison is not confounded by the ceiling upstream just derived.
+
+RESULT 1 — H_conc FIRES ON ITS OWN DECISIVE CELL AND FAILS ON ITS MONOTONICITY
+  n=3, median of 3, 3776.835 MB / median s:
+
+  s3-conc   A = 8MiB/223        B = 1MiB/1024       B/A      separation
+     32     2.629 s  1437 MB/s  4.097 s   922 MB/s  0.642    9/9, B SLOWER
+    128     2.742 s  1377 MB/s  2.317 s  1630 MB/s  1.183    9/9, B FASTER
+    512     2.978 s  1268 MB/s  3.014 s  1253 MB/s  0.988    overlap, null
+
+  walls:
+    A-c32   2.526 2.629 3.451      B-c32   3.768 4.097 5.158
+    A-c128  2.646 2.742 2.836      B-c128  2.314 2.317 2.318
+    A-c512  2.721 2.978 3.036      B-c512  2.941 3.014 3.531
+
+  THE SIGN INVERTS. At 32 slots the 1 MiB config is 1.56x SLOWER than the default,
+  with complete separation (all 3 B cells above all 3 A cells). That is exactly
+  H_conc's signature and exactly what H_unit forbids: 32 x 1 MiB = 34 MB in flight
+  against 32 x 8 MiB = 268 MB, and the bigger unit wins when slots are scarce.
+
+  But H_conc's monotonicity prediction fails. It said B/A should keep rising with
+  concurrency because depth 1024 can backlog 512 slots while depth 223 cannot.
+  Measured B/A is 0.642 -> 1.183 -> 0.988: NOT monotone. Raising 128 -> 512 makes
+  BOTH configs slower (A 1377 -> 1268, B 1630 -> 1253) and erases the advantage.
+
+RESULT 2 — WHAT THE INTERVENTION ACTUALLY ESTABLISHES
+  The 1 MiB win is NOT a property of the unit. It is a property of the unit x
+  concurrency pairing — bytes per slot — and in-region it exists only in a band
+  around the shipping default of 128. Below the band the small unit is a clear
+  loss; above it, extra slots cost both configs and the advantage is gone.
+
+  Corollary nobody asked for: the SHIPPING default (A) is flat-to-declining in
+  concurrency in-region — 1437 at c32, 1377 at c128, 1268 at c512, best at the
+  LOWEST setting tested. At 8 MiB in-region the pipe is already full at 32 slots
+  and the default 128 is costing ~4%.
+
+RESULT 3 — WHY THIS MATTERS FOR UPSTREAM'S STEP 3
+  They wrote that the default question is the one they want to be slow about,
+  because --block-size is the fill unit and feeds coalescing, --parts-max, the
+  bgzf plane and the footer planes. This adds a reason that is upstream of all of
+  those: shrinking the default block size would be a change whose benefit is
+  CONTINGENT ON --s3-concurrency STAYING AT ITS DEFAULT, and which actively harms
+  anyone who has lowered concurrency — small instances, shared endpoints, or
+  politeness to S3. The tunable that actually orders these points is bytes per
+  slot, not block size alone, and a default change on one axis of a product is
+  the kind of change that looks free until someone moves the other axis.
+
+LIMITS, STATED RATHER THAN BURIED
+  - IN-REGION ONLY, 2.2 ms. The 1.58x headline was CROSS-REGION, where the same
+    pairing measured 1.18x in-region. More RTT means more latency to hide, so the
+    concurrency optimum can move and the c512 null in particular may not hold at
+    58.6 ms. I am NOT extrapolating this to the cross-region case; the cell is
+    unmeasured and I say so.
+  - n=3. Two of the three cells are completely separated (9/9), the third is a
+    null with overlap, so the SIGNS are solid and the magnitudes are soft.
+  - One object, one access shape (contiguous dd), one box, one open handle.
+
+  I did not buy the cross-region version (~$0.60 for B at c32 and c512, n=4).
+  Upstream explicitly said they would stop asking for cells they can run
+  themselves, I overran their last request by $0.69, and this in-region result
+  already changes the step-3 decision without needing the cross-region magnitude.
+  Offered rather than spent — it is one command if they want it.
+
+COST  $0. In-region, no egress, on a head node that was already up. The only
+  reason this was free is that --s3-concurrency is a FLAG: the variable upstream
+  suspected could be intervened on instead of fitted. That is the reusable move —
+  when two accounts agree on every number you have, perturb the suspected cause
+  rather than collecting more points through it.
+
+ONE HONEST GAP IN THE ARCHIVE, AND HOW IT IS COVERED
+  I ran the timing cells at LOGLVL=warn, so all 18 per-cell mount logs are ZERO
+  BYTES — the same defect upstream caught in the 5f-H archive, repeated by me.
+  The decision observable is not missing: PF_TRACE=1 was on, so realized
+  peak_window is in a CSV for every cell (Result 0). To cover the config
+  provenance without re-running and re-reporting different timings, I took a
+  separate info-level mount per config afterwards. All 6 are non-empty and
+  confirm announced depth == realized depth (223 / 1024) in every cell.
+
+  They also add a small fact for #298: the inflight-bytes budget line is
+  "1250000000 bytes (2 x 50.0 Gbps baseline x 100 ms)" at c32, c128 AND c512
+  alike — the budget does not account for concurrency at all, so the third bound
+  is computed independently of the number of slots that will consume it.
+
+ARTIFACTS
+  data/lith-gates/inregion-concurrency.txt   this file
+  data/lith-gates/inregion-conc-traces.tgz   6 gate logs, 6 --pf-trace CSVs with
+      realized peak_window, and 6 info-level provenance mount logs
+      sha256 3f2218c12f60e2a28a24010cf9797f3f0c5951d0de67368d9bef0f0bc42bcfef

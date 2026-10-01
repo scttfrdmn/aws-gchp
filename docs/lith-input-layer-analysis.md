@@ -3857,6 +3857,53 @@ Cost ~$1.29 against the ~$0.60 requested, spent deliberately because probe (a) s
 couldn't isolate what it was meant to. Running total ~$4.19. Artifacts:
 `data/lith-gates/xregion-blocksize.txt`, `data/lith-gates/xregion-blocksize-traces.tgz`.
 
+### Gate 5f-L — the fourth ceiling, by intervention rather than fit ($0, 2026-10-01)
+
+Upstream derived the 492 from code — `perHandleWindow()` = `clamp(budgetBlocks/openHandles, 2,
+maxReadahead)` with `budgetBlocks = prefetchBudget/blockSize` — and it checks exactly on my box:
+MemTotal 33.02 GB × 25% (mem-cache) × 50% (prefetch-budget) = 4.128 GB, which is **492.1** blocks at
+8 MiB and **3937** at 1 MiB. So my configured 1024 was delivered in full and the 8 MiB arm silently
+wasn't. Both loose ends became **#297** (silent cap, log reports configured rather than effective
+depth) and **#298** (three bounds disagreeing by 1.5×, smallest winning silently).
+
+They then named a fourth ceiling as a guess and declined to test it: *"`--s3-concurrency 128` is a
+fourth ceiling and depth matters only insofar as it keeps those 128 slots backlogged — but that's a
+model through four points, which is how the last two mechanisms on this issue died."* Right not to
+*fit* it — but `--s3-concurrency` is a flag, so the suspected variable can be **intervened** on
+instead, in-region, for $0. Two configs × three concurrency levels, n=3, gate off, depth verified
+invariant (223 / 1024 realized in every cell, so concurrency doesn't move the ceiling):
+
+| `--s3-concurrency` | A = 8MiB/223 | B = 1MiB/1024 | B/A | separation |
+|---|---|---|---|---|
+| 32 | 2.629 s · 1437 MB/s | 4.097 s · 922 MB/s | **0.642** | 9/9, B slower |
+| 128 | 2.742 s · 1377 MB/s | 2.317 s · 1630 MB/s | **1.183** | 9/9, B faster |
+| 512 | 2.978 s · 1268 MB/s | 3.014 s · 1253 MB/s | 0.988 | overlap, null |
+
+**The sign inverts.** At 32 slots the 1 MiB config is 1.56× *slower*, completely separated — exactly
+`H_conc`'s signature and exactly what `H_unit` forbids (32 × 1 MiB = 34 MB in flight against
+32 × 8 MiB = 268 MB). But `H_conc`'s monotonicity prediction fails: B/A goes 0.642 → 1.183 → 0.988,
+and raising 128 → 512 makes *both* configs slower.
+
+So **the 1 MiB win is not a property of the unit — it's a property of bytes-per-slot, and in-region
+it exists only in a band around the shipping default of 128.** Corollary nobody asked for: the
+shipping default is flat-to-declining in concurrency in-region (1437 / 1377 / 1268, best at the
+lowest setting), so at 8 MiB the pipe is already full at 32 slots.
+
+That bears directly on upstream's step 3, which they wanted to be slow about: shrinking the default
+block size would be a change whose benefit is *contingent on `--s3-concurrency` staying at its
+default*, and which actively harms anyone who lowered it. A default change on one axis of a product
+looks free until someone moves the other axis.
+
+Limits stated rather than buried: **in-region only** — the 1.58× headline was cross-region, and more
+RTT means more latency to hide, so the concurrency optimum can move and the c512 null may not hold at
+58.6 ms. That cell is unmeasured and I'm not extrapolating into it; I offered it at ~$0.60 rather than
+spending, since upstream said they'd stop asking for cells they can run themselves and I'd already
+overrun their last request by $0.69. Also n=3 (signs solid, magnitudes soft), one object, one access
+shape. And one self-caught archive gap: I ran the timing cells at `LOGLVL=warn`, so all 18 per-cell
+mount logs are zero bytes — my own repeat of the defect upstream caught in 5f-H. The decision
+observable survives (`PF_TRACE=1`, so realized `peak_window` is in a CSV per cell) and I took six
+separate info-level provenance mounts rather than re-run and report different timings.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is
