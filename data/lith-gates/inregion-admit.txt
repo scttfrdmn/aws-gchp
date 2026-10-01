@@ -1,0 +1,101 @@
+GATE 5f-O — does byte admission hold #55 on the shape where the divisor was load-bearing?
+lith#301 / #306 (merged ceeb2b7) / #308.  Head node, in-region, 2026-10-01.
+
+WHY THIS ARM, IN UPSTREAM'S OWN WORDS
+  They merged byte admission -- BlockStore.admitCommitted reserves a chunk's bytes against
+  --prefetch-budget with a CAS, refuses what will not fit, and perHandleWindow stops
+  dividing by the open-descriptor count -- and then asked for exactly one thing back:
+
+    "Re-run arm A against ceeb2b7. 16 concurrent readers, 60 GB over your 8.256 GB tier,
+     the shape where admission must not regress #55. [...] every check I have on the
+     safety half is weaker than that arm: my fake-server sweep runs at 2.4-3.5x
+     production memory pressure, in a direction the network can't produce; my own
+     concurrent-reader measurement had two of three cells NIC-suppressed;
+     TestPrefetchBudgetNoThrash passes, but at the 1:8 budget-to-tier ratio where my
+     sweep showed the rationing barely matters at all."
+
+  They also ruled out the obvious fix first, which is why only the charge changed:
+  deleting the rationing outright costs 13.8-22.4x wall and 4.2-5.2x the bytes with
+  81-92% of prefetch evicted unread (bench/prefetch-divisor, real S3 in-region).
+
+WHAT ACTUALLY CHANGES ON THIS SHAPE, AND IT IS NOT NOTHING
+  At 16 handles the divisor gave each handle clamp(492/16,2,223) = 30 blocks -- an equal
+  SHARE, guaranteed, 16 x 30 x 8 MiB = 4.027 GB aggregate. Admission gives each handle the
+  full 223 and caps the POOL at 4.128 GB. The realized totals agree to 2.4%, which is the
+  arithmetic I gave upstream and which decided the merge, but the allocation discipline is
+  different in kind: equal share vs first-come race. So this gate is not only "does the
+  total still fit" -- it is also "does a global pool starve anyone", which is a question
+  nobody has asked yet and which the divisor could not have.
+
+ARMS  16 concurrent readers, 16 distinct GEOSFP A3dyn objects, 3 reps, fresh cold mount
+      per cell, default flags unless stated.  scripts/lith/gate-admit.sh
+  OLD  52138ee   the divisor + the #303/#304 gauges
+  NEW  7a8b38e   byte admission (ceeb2b7, plus #308 docs)
+  POS  7a8b38e   --prefetch-budget 30GB            POSITIVE CONTROL, see below
+
+  Working set: 60.077 GB = 57,301 chunks of 1 MiB, against a 8.256 GB mem-cache tier
+  = 7.28x oversubscribed.  Box: 33.022636032 GB MemTotal, --mem-cache 25% = 8.255659008 GB,
+  --prefetch-budget 50% of that = 4.127829504 GB = 492.08 blocks at 8 MiB; maxReadahead
+  auto-resolves to 223.
+
+  POS exists because TRAP 1 IS MINE AND IT APPLIES TO ME. 5f-M arm A saturated this box's
+  NIC at ~14 Gbps (aggregate 1290 -> 1769 MB/s across N). A NIC ceiling throttles DISPATCH,
+  which SUPPRESSES thrash, so a null in NEW is worth having only if this box can show
+  thrash at all. POS raises the admission cap to 30 GB -- above the entire 8.256 GB cache
+  tier -- so prefetched-unread chunks MUST be evicted if dispatch can ever outrun
+  consumption here. A null in POS does not acquit NEW; it bounds NEW, and gets reported
+  that way rather than quietly strengthening the result.
+
+PRE-REGISTERED PREDICTIONS  (committed before the decisive cells ran)
+
+  P1 WINDOW, integer-exact.  OLD 30, NEW 223, POS 223 -- the regime change made visible
+     in the #302 gauge. If NEW does not read 223 the merge did not take effect and
+     nothing below means anything.
+
+  P2 ADMISSION MUST BIND, i.e. the VALIDITY CHECK.  NEW attempts 16 x 223 x 8 MiB =
+     29.93 GB against a 4.128 GB cap, so lith_prefetch_refused_total must be >> 0.
+     IF IT READS 0 THE ARM DID NOT TEST ADMISSION and the null is vacuous. This is the
+     counter-form of the defect: refusals are the cap doing its job, and they cost
+     nothing (upstream's own distinction -- a refusal costs no GET and no bytes, an
+     eviction costs both).
+
+  P3 committed_bytes plateaus at <= 4.127829504e9 in OLD and NEW, and ABOVE the cache
+     tier in POS. Peak from the 10 Hz sampler, not the final scrape.
+
+UPSTREAM'S TWO FALSIFIERS, TAKEN AS STATED
+  F1 RE-DISPATCH.  issued exceeding (total chunks - the demand-filled prefix). Measured
+     two ways: the chunk form (issued <= 57,301 - demand prefix; banked OLD at N=16 is
+     issued 57,045 and 57,301 - 57,045 = 256 = exactly 16 objects x 16 demand chunks),
+     and the byte form, which needs no prefix estimate: lith_s3_bytes_total must stay at
+     60.077 GB +-2%. Any chunk fetched twice shows up in both.
+  F2 EVICTION.  lith_prefetch_evicted_unread_total rising off its floor. Floor is 0 in
+     18/18 banked cells, so ANY non-zero value in NEW is the signal.
+
+MY OWN FALSIFIER, WHICH UPSTREAM DID NOT NAME
+  F3 STARVATION.  The divisor rationed by equal share; admission rations by race, and a
+     fast handle may take 223 blocks while another gets refused down to nothing. Thrash
+     is not the only way a global pool can be worse than a share. Measured as the
+     per-reader wall spread within a cell, max/min over the 16 readers.
+     THRESHOLD, set in advance: NEW's spread ratio within 1.3x of OLD's is a pass;
+     wider than that is a real regression even if F1 and F2 are both clean, and I will
+     report it as one. Secondary: lith_prefetch_deestablished_total and
+     lith_prefetch_window_halved_total, since a refused prefix could in principle drop a
+     handle out of sequential detection.
+
+  P4 WALL.  Banked arm A at N=16 is NIC-bound, so I predict PARITY, NEW/OLD in 0.90-1.10
+     on aggregate wall, with ~34 s per cell (60,077 MB at ~1769 MB/s). A large NEW win
+     here would be suspicious rather than welcome: the win from this change lives on the
+     IDLE-descriptor shape (5f-N, 6-10x), not here, and the whole argument for the merge
+     was that it COINCIDES with the divisor on this shape.
+
+LIMITS, STATED UP FRONT
+  - One box, one object family, one access shape (whole-object sequential streaming via
+    dd at 1 MiB). netCDF discontiguity is absent by construction; that is 5f-G/5f-I
+    territory and is not what upstream asked for.
+  - 16 readers is the most this 16-core box can run without CPU contending with the
+    measurement.
+  - POS changes a flag, not the code path, so it tests whether EVICTION is reachable on
+    this box -- not whether some other box would thrash at the default.
+  - #307 (a --mem-cache below 64 MiB silently disables the memory tier) does not touch
+    any arm here: all three run the 8.256 GB default. Flagged because a future
+    constrained cell would hit it.
