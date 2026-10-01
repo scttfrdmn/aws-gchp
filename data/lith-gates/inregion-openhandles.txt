@@ -96,4 +96,151 @@ COST  in-region, so no egress. ~475 GB of GETs is ~$0.02 of request charges on a
   to a live issue they just assigned to me.
 
 ================================================================================
-RESULTS — pending
+RESULTS
+
+RESULT 0 — H_charge CONFIRMED, INTEGER-EXACT, IN EVERY CELL
+  Realized steady-state window vs clamp(492/N, 2, 223), median of 3 reps:
+
+    N          1    2    3    4    8   16   64  256
+    predicted 223  223  164  123   61   30    7    2
+    ARM A     223  223  164  123   61   30    -    -     (N streaming readers)
+    ARM B      -   223  164  123   61   30    7    2     (1 reader + N-1 held OPEN)
+    ARM C      -    -    -    -    61    -    -    -     (1 reader + 7 opened, NO read)
+
+  42/42 cells exact, every rep, both arms. Not one off-by-one. The threshold lands
+  exactly where predicted: NO change at N=2 (492/2 = 246 > 223, so maxReadahead still
+  binds) and a 26% drop at N=3 (164). H_active is refuted — arm B does not stay at
+  223 — and H_firstread is refuted by arm C: 7 handles that were opened and NEVER
+  read drive the window from 223 to 61 exactly as 7 header-reading handles do.
+
+  So: openHandles counts every OPEN file descriptor, mount-wide, whether or not it
+  has ever been read.
+
+  Three consequences that were not in the prediction and fall straight out:
+  (a) CROSS-PROCESS. The holder is a separate process from the reader. One
+      process's open files shrink another process's prefetch depth, with no
+      isolation and nothing in either process's view to show it.
+  (b) PER-DESCRIPTOR, NOT PER-OBJECT. Arm B at N=64 held 63 fds spread over only 16
+      distinct objects and realized 7 = 492/64, not 492/17 = 28. Opening the same
+      file twice halves your prefetch depth.
+  (c) THE LOG IS WRONG BY 111x. The mount log line "readahead window blocks=223" is
+      printed identically in the N=64 and N=256 cells, where the realized window is
+      7 and 2. Nothing else in the log corrects it. That is #297 with a number on it.
+
+RESULT 1 — IT COSTS WALL TIME, AND THE COUNTERS CANNOT SEE IT
+  Arm B only: ONE streaming reader, SAME object, every cell. The only thing that
+  changes across the row is how many OTHER files are sitting open.
+
+    N           2      3      4      8     16      64     256
+    window    223    164    123     61     30       7       2
+    wall s  3.187  3.110  3.161  3.366  3.239   7.739  20.343   (median of 3)
+    MB/s     1185   1214   1195   1122   1166     488     186
+    GETs      480    481  481/2  485/6    494     495     495
+    fetched  3776.8 3777.9 3778.9 3783.1 3791.5 3792.6  3792.6  MB
+
+  6.38x THE WALL for holding 255 files open, on fetched bytes that differ by +0.4%
+  and a GET count that differs by +3%. Complete separation: B-n64's fastest rep
+  (7.655 s) is slower than B-n16's slowest (3.674 s), and B-n256's fastest (20.090 s)
+  is slower than B-n64's slowest (7.837 s).
+
+  This is the THIRD independent instance on this issue of the same lesson: bytes and
+  requests being near-identical is a true and insufficient regression gate. 5f-G/5f-I
+  found it for --readahead-evidence-ratio; this is a 6.4x version of it.
+
+  THERE IS A KNEE, AND IT IS NOT WHERE THE KNOB IS. From 223 down to 30 blocks the
+  cost is not measurable (1185 / 1214 / 1195 / 1122 / 1166 MB/s — unordered inside
+  noise). The cliff is between 30 and 7. So 30 blocks = 252 MiB in flight already
+  saturates this path in-region, and the shipping 223 is ~7x deeper than it needs to
+  be — while the regime that actually hurts is the one no one is tuning.
+
+RESULT 2 — CAUSAL CONTROL: IT IS THE DEPTH, NOT THE DESCRIPTORS
+  The obvious alternative is that holding 255 descriptors is itself expensive. So the
+  same shallow windows were produced a second way, with ONE handle and no holders at
+  all, by forcing --max-readahead. 4 forced depths x 8 handle counts, n=3, 32 cells:
+
+    realized window == clamp(492/N, 2, forced_max_readahead) in 32/32 CELLS.
+    The two bounds compose exactly as min(), with no interaction term.
+
+  Pooling every cell by the window it actually realized:
+
+    window   cells    med s    MB/s    spread
+      223        3     2.92    1293    2.90-3.01   (auto, 1 handle, main gate)
+       61       15     3.12    1212    2.72-4.23
+       30       21     3.61    1047    3.28-5.44
+        7       27     9.47     399    7.00-24.80
+        2       33    25.50     148   16.06-51.34
+
+  At ONE handle with no holders, --max-readahead 2 gives 25.67 s — SLOWER than the
+  20.34 s reached at window 2 via 255 held descriptors. So holding descriptors is not
+  a cost in itself; the entire penalty is the depth they cause. And at forced
+  --max-readahead 2 the wall is flat across N = 1..256 (23.8-27.5 s, no trend),
+  confirming handle count has no effect of its own once the window is pinned.
+
+  WHAT I WILL NOT CLAIM: that wall is a function of realized window ALONE. The
+  window-2 row spans 16.06-51.34 s, and the spread is not random — the
+  mra=61/N=256 cell (16.1-18.4 s) is systematically ~1.5x faster than every other
+  way of reaching window 2. Same realized steady-state window, different wall. I do
+  not know what the residual is; it is not monotone in forced max_readahead
+  (mra=30/N=256 is the slowest of all). Window sets the magnitude CLASS and the sign;
+  something else sets ~1.5x inside it, and I am handing that over rather than fitting
+  it.
+
+RESULT 3 — THE LOGGED BUDGET IS NEVER THE ENFORCED ONE (the #298 point)
+  The mount log says, verbatim and in every one of the 150 cells:
+    "inflight-bytes budget" budget="1250000000 bytes (2 × 50.0 Gbps baseline × 100 ms)"
+  = 1192 MiB. Realized aggregate commitment in arm A, (streaming handles) x window x
+  8 MiB:
+
+    N              1     2     3     4     8    16
+    aggregate   1871  3741  4127  4127  4094  4027   MiB
+    vs logged   1.57x 3.14x 3.46x 3.46x 3.43x 3.38x
+
+  Exceeded at EVERY handle count, by 1.57x at one handle and ~3.46x once the divisor
+  takes over. So the three bounds of #298 do not merely disagree on paper: the one
+  printed as "the budget" is not a budget. What the divisor actually conserves is the
+  RAM fraction (4.128 GB), which holds flat to within 2.4% for all N >= 3 — that part
+  is working exactly as designed and arm A is the control that shows it.
+
+RESULT 4 — THE BANKED GCHP FLOOR OF 2, EXPLAINED
+  The original production measurement had BOTH mounts running at the window floor of
+  2, which 48 ranks alone could not explain (492/48 = 10). The floor needs N >= 246
+  open descriptors. A 48-rank GCHP run holding ~6 met/HEMCO files open per rank is
+  288. Arm B at N=256 reproduces the floor exactly, and Result 1 prices it: that run
+  was reading at 186 MB/s where 1293 was available, through no flag anyone set.
+
+  This also explains, retroactively, why `--max-readahead` did nothing in the earliest
+  gates of this campaign and why the whole investigation had to move to single-handle
+  microbenchmarks to see any window effect at all. The knob was never reachable.
+
+LIMITS, STATED RATHER THAN BURIED
+  - IN-REGION ONLY (2.2 ms), one box, one object family, contiguous dd, 8 MiB blocks.
+    At higher RTT the knee almost certainly moves deeper, so the 30-block knee is a
+    number for this path, not a recommendation.
+  - Arm A's aggregate throughput is NIC-BOUND (1290 -> 1769 MB/s, saturating ~14 Gbps
+    on a c7g.4xlarge) and therefore says nothing about the divisor's cost. Arm A is
+    here for the window observable and the aggregate-commitment arithmetic only. All
+    wall claims come from arm B and the forced-window control, which stream ONE
+    object and never approach the NIC.
+  - n=3 throughout. Every wall claim above rests on complete separation between
+    adjacent cells rather than on the magnitudes, which are soft.
+  - The ~1.5x residual inside window 2 is unexplained (Result 2).
+
+COST  ~$0.02 of GET requests. In-region, so no egress; head node already up. 475 GB
+  read across 182 cells.
+
+ARCHIVE — no zero-byte logs this time
+  All 150 mount logs non-empty (--log-level info, default in the harness now). The raw
+  --pf-trace CSVs total 194 MB uncompressed, which is wildly out of line with the
+  1-2 MB archives banked for every other gate on this issue, so the archive keeps
+  windows.csv — the decision observable for all 150 cells, 1134 rows, one per handle —
+  plus the full raw CSV for the 12 decisive cells, and every mount log and wall file
+  untrimmed.
+
+  data/lith-gates/inregion-openhandles.txt   this file
+  data/lith-gates/openhandles-traces.tgz     438 files, 3.08 MB
+      sha256 63f1e960f74ecdc48a424ce72399098d0d5ca5b1b0ec5e4ca6d86a156ad3bfc9
+  scripts/lith/gate-openhandles.sh           harness
+  scripts/lith/parse-openhandles.py          window per cell (Result 0)
+  scripts/lith/walls-openhandles.py          wall/GETs per cell (Result 1)
+  scripts/lith/grid-openhandles.py           composition grid (Result 2)
+  scripts/lith/pack-openhandles.py           archive packer
