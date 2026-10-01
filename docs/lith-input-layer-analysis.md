@@ -3971,6 +3971,58 @@ and contributes only the window observable and the commitment arithmetic, never 
 throughout, with every claim resting on separation rather than magnitude. Cost ~$0.02 of GET requests,
 and all 150 mount logs are non-empty this time.
 
+### Follow-on — the estimator I built to answer upstream's question was measuring the charge (2026-10-01)
+
+Upstream declined the "stop charging idle handles" candidate for a specific reason — the aggregate
+commitment exceeds the logged `--inflight-bytes` at every handle count while the RAM fraction is
+conserved flat, so the divisor is the mechanism holding the thrash invariant and the thing printed as
+"the budget" isn't one — and named the next step: a gauge over `bs.prefetched` for resident
+prefetched-but-*unread* bytes, with an explicit decision rule attached. Far below 4.128 GB at N=1 and the
+proxy is over-conservative; near it and loosening the proxy is dangerous. I tried to answer it from the
+194 MB of `--pf-trace` already banked, at $0, before they spent effort on the gauge.
+
+The obvious estimator is `lead = cumsum(dispatched) − (blk + 1)` per handle: blocks dispatched but not
+yet consumed. **It does not close.** For one handle at window 223 over a 451-block object,
+`sum(dispatched)` is 672 — an overshoot of 221. The structure is visible in the rows: one establishment
+burst of exactly 223, then +1 at every subsequent block boundary, all 449 of them, including the ~221
+boundaries after the frontier has already passed EOF and there is nothing left to dispatch. Across all
+50 streaming cells — six window values, both arms, four forced-maximum controls — the overshoot equals
+the **final** window minus 2, in 50/50, exactly, including the three cells whose window changed mid-run
+and where it tracks the final value rather than the median.
+
+So the estimator returns the standing window by construction. Divide by the charge (window × handles)
+and you get ~1.0 and conclude the proxy is tight. I had 0.93–0.99 in every cell and was one commit from
+posting it as the answer to the decision criterion; it is window × handles over window × handles. The
+useful form of this for upstream is a warning about their own gauge: it must not be validated against
+this identity, and `--pf-trace` cannot substitute for it at all, because it carries no completion or
+eviction events. The only bound the trace supports is "resident ≤ window per handle" — which *is* the
+charge.
+
+What survives is dispatch-side and single-row, so it is untouched by the defect. **Establishment is a
+single-shot full-window commitment**: exactly one burst, at the first block boundary, of size exactly
+equal to the window, at `cold->sequential`, in 50/50 cells — 223, 164, 123, 61, 30, 7, 2, each matching
+its own `clamp(492/N, 2, mra)`. Upstream's transient bound, "newly establishing handles × their window",
+is therefore tight rather than conservative.
+
+And there is **a second transient that bound does not account for: re-grant at handle close.** Late
+bursts appear in A-n3 (one, at 92% of the run, size 60), A-n8 (one, at 100%, size 10) and A-n16 (eleven,
+between 89% and 98%: 3, 4, 15, 6, 8, 10, 13, 17, 26, 42, 60) — and in no B cell and no C cell at all.
+The arm contrast is the control: arm A runs concurrent readers that finish and close their descriptors,
+arm B holds them open for the whole run, and only the arm where handles close shows the bursts. A-n2 has
+two concurrent readers and shows none because 492/2 = 246 is already clamped to 223, leaving no upward
+room. The sizes are exact — a close takes 492/N up by ΔW and the survivor immediately dispatches ΔW + 1
+(164→223, ΔW 59, burst 60; 61→70, ΔW 9, burst 10) — and A-n16's eleven bursts sum to 204, which is the
+30→223 climb plus one per event. Two transients, then: open, once, at the full window; and close,
+repeatedly, at (N−1) survivors × ΔW, landing at the end of a run when the aggregate charge is highest.
+
+This also retires a claim I never published. The broken estimator peaked at 92.8–99.9% of the run and I
+read that as a 2.7× transient breach of the invariant — 11.19 GB against a 4.128 GB budget. The
+*position* was a real signal, which is Result C above. The *magnitude* was the artifact. The 2.7× is
+withdrawn before it was ever asserted, and what remains is the weaker, observed statement that re-grant
+bursts cluster at the end of a run. The limit on all of it: these are dispatch-side observations, and
+whether a dispatched block is still resident when the next is dispatched is precisely what the trace
+cannot see, so this constrains the shape of the transient and says nothing about its decay.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is
