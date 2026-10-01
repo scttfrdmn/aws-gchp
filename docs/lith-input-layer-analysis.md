@@ -3904,6 +3904,73 @@ mount logs are zero bytes — my own repeat of the defect upstream caught in 5f-
 observable survives (`PF_TRACE=1`, so realized `peak_window` is in a CSV per cell) and I took six
 separate info-level provenance mounts rather than re-run and report different timings.
 
+### Gate 5f-M — the divisor counts handles that are merely open, and that is the whole campaign's blind spot (2026-10-01)
+
+Upstream parked the block-size default in #300 on the strength of 5f-L and handed #298 over: *"#298 is
+the live thread and it's yours."* Of its three bounds on prefetch depth, exactly one had never been
+exercised in this entire campaign — the per-handle divisor in
+`perHandleWindow() = clamp(budgetBlocks / openHandles, 2, maxReadahead)`. Every gate from 5f-G through
+5f-L ran **one** open handle, where `492/1` exceeds `maxReadahead = 223`, so the declared bound won and
+the divisor was invisible.
+
+**It counts every open file descriptor, mount-wide, cross-process, including descriptors that have
+never been read.** Realized window matched `clamp(492/N, 2, 223)` to the integer in 42/42 cells across
+two arms, including the threshold shape: no change at N=2 (246 > 223) and a 26% drop at N=3. A third
+arm settled the accounting question — seven files opened and **never read** drive the window from 223 to
+61 exactly as seven header-reading files do, so registration happens at `open()`. Two details fell out
+that weren't predicted: the divisor is per-**descriptor**, not per-object (63 fds over 16 distinct
+objects gave `492/64 = 7`, not `492/17 = 28`, so opening the same file twice halves your depth), and
+the mount log prints `readahead window blocks=223` identically in the cells where the realized window
+is 7 and 2 — #297, with a **111× overstatement** attached.
+
+The consequence is not theoretical. One streaming reader, same object, every cell; the only thing
+changing is how many *other* files sit open:
+
+| open handles | 2 | 3 | 4 | 8 | 16 | 64 | 256 |
+|---|---|---|---|---|---|---|---|
+| window | 223 | 164 | 123 | 61 | 30 | 7 | 2 |
+| wall s | 3.187 | 3.110 | 3.161 | 3.366 | 3.239 | 7.739 | 20.343 |
+| MB/s | 1185 | 1214 | 1195 | 1122 | 1166 | 488 | 186 |
+| fetched MB | 3776.8 | 3777.9 | 3778.9 | 3783.1 | 3791.5 | 3792.6 | 3792.6 |
+
+**6.38× the wall on +0.4% bytes and +3% GETs**, with complete separation between adjacent cells. That is
+the third independent instance on this issue of the same lesson — bytes and requests being
+near-identical is a true and insufficient regression gate — and the largest one by a factor of six.
+There is also a knee, and it is nowhere near the knob: from 223 down to **30** blocks the cost is not
+measurable, and the cliff is between 30 and 7. So 252 MiB in flight already saturates this path
+in-region and the shipping 223 is ~7× deeper than it needs to be, while the regime that actually hurts
+is the one nobody tunes.
+
+The obvious alternative — that holding 255 descriptors is itself expensive — is dead. Producing the
+same shallow windows a second way, with one handle and no holders, by forcing `--max-readahead`:
+realized window was `clamp(492/N, 2, forced)` in **32/32** cells, so the two bounds compose exactly as
+`min()` with no interaction term; and at one handle `--max-readahead 2` gives **25.67 s**, *slower* than
+the 20.34 s reached at window 2 via 255 held descriptors. At a pinned window the wall is flat across
+N = 1…256. The penalty is the depth, not the descriptors.
+
+And the #298 point lands quantitatively. The log says `inflight-bytes budget 1250000000 bytes` — 1192
+MiB — in all 150 cells. Realized aggregate commitment is 1871 MiB at one handle and ~4127 MiB for
+N ≥ 3: **exceeded at every handle count, 1.57× to 3.46×.** The three bounds don't merely disagree on
+paper; the one printed as "the budget" is not a budget. What the divisor actually conserves is the RAM
+fraction, flat to within 2.4% for all N ≥ 3 — that part works as designed.
+
+Finally, this retires a banked mystery. Both GCHP production mounts ran at the window **floor of 2**,
+which 48 ranks alone could not explain (`492/48 = 10`). The floor needs ≥ 246 open descriptors; 48 ranks
+holding ~6 met/HEMCO files each is 288. So that run read at 186 MB/s where 1293 was available, through
+no flag anyone set — and it explains why `--max-readahead` did nothing in the earliest gates and why the
+whole investigation had to retreat to single-handle microbenchmarks to see a window effect at all. The
+knob was never reachable from the workload.
+
+What I won't claim: that wall is a function of realized window *alone*. The window-2 row spans
+16.06–51.34 s, and the spread isn't random — reaching window 2 via `mra=61`/N=256 is systematically
+~1.5× faster than every other route to the same realized window, and it isn't monotone in forced
+`max_readahead`. Window sets the magnitude class and the sign; something else sets ~1.5× inside it, and
+that goes over the wall rather than into a model. Other limits: in-region only, so the 30-block knee is
+a number for this path and not a recommendation; arm A's aggregate throughput is NIC-bound at ~14 Gbps
+and contributes only the window observable and the commitment arithmetic, never a wall claim; n=3
+throughout, with every claim resting on separation rather than magnitude. Cost ~$0.02 of GET requests,
+and all 150 mount logs are non-empty this time.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is
