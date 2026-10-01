@@ -1,0 +1,49 @@
+GATE 5f-L — THE FOURTH CEILING, BY INTERVENTION RATHER THAN FIT (lith#256)
+2026-10-01, $0 (in-region, head node already up)
+================================================================================
+
+WHY: upstream derived the 492 from code (`perHandleWindow()` = clamp(budgetBlocks /
+openHandles, 2, maxReadahead), budgetBlocks = prefetchBudget / blockSize,
+fs.go:1252/:1279) and it checks EXACTLY on my box: MemTotal 33.02 GB x 25%
+(mem-cache) x 50% (prefetch-budget) = 4.128 GB; /8 MiB = 492.1 blocks (measured
+peak_window 492), /1 MiB = 3937 blocks (so my configured 1024 was delivered in
+full, which is why that arm realized its depth and the 8 MiB arm silently did not).
+Both my loose ends are filed as #297 (silent cap + log reports configured depth)
+and #298 (three bounds disagreeing by 1.5x, smallest winning silently).
+
+They then named a FOURTH ceiling as a guess and explicitly declined to test it:
+"--s3-concurrency 128 is a fourth ceiling and depth matters only insofar as it
+keeps those 128 slots backlogged — but that's a model through four points, which
+is how the last two mechanisms on this issue died. Not going there."
+
+They are right not to FIT it. But it does not have to be fitted: --s3-concurrency
+is a flag, so the variable they suspect can be INTERVENED on directly. That is the
+lesson already banked from the permutation-null episode — when two explanations
+agree on every number you have, perturb the data rather than collect more of it.
+In-region, on a box that is already up, this costs $0 and no cross-region egress,
+and it lands inside the regime they say they will develop in.
+
+SETUP  in-region (2.2 ms), same 3,776,834,855 B object, dd, GATE OFF, fresh cold
+  mount + unique port per cell, n=3. Two configs x three concurrency levels:
+    A = --block-size 8MiB  --max-readahead 223   (the shipping default)
+    B = --block-size 1MiB  --max-readahead 1024  (the 1.58x cross-region winner)
+    --s3-concurrency in {32, 128 (default), 512}
+  Realized depth verified from peak_window in every cell.
+
+PRE-REGISTERED, WRITTEN AND COMMITTED BEFORE THE RUN
+  H_conc (upstream's guess): the binding resource is concurrent REQUEST SLOTS, and
+    a unit only matters because it sets bytes-per-slot. Then:
+      - at concurrency 32 the 1 MiB advantage VANISHES OR INVERTS, because 32 slots
+        x 1 MiB = 34 MB in flight against 32 x 8 MiB = 268 MB;
+      - raising 128 -> 512 helps B (depth 1024 can backlog 512 slots) and barely
+        helps A (depth 223 becomes the binding term below 512);
+      - so B/A throughput ratio should be MONOTONE INCREASING in concurrency.
+  H_unit: the 1 MiB advantage is a property of the unit and survives at every
+    concurrency, so B/A is roughly FLAT in concurrency.
+
+  These differ in sign at concurrency 32, which is the cheap decisive cell. If
+  H_conc fires, the actionable knob is --s3-concurrency (or bytes-per-slot), NOT
+  --block-size, and upstream's step 3 ("the default question, which I want to be
+  slow about") is asking about the wrong default.
+
+RESULT — pending
