@@ -762,3 +762,33 @@ collapsed in 5f-P2. NIC-only N_crit = 6.6 predicts ALL FOUR collapse.
 Refuter: any S375 or M043 cell with evicted_unread > 100 or peak committed above its hard
 bound means a bound I read from the code is not real, and I withdraw the correction.
 2 reps. ~180 GB in-region GETs, ~$0.01.
+
+--- 5f-P4 arm S375, rep 1 (rep 2 stopped by me: it would have repeated a 13-minute cell) ---
+  16 dd readers on ONE 3.76 GB object, lith-315, --nic-gbps 50, stock tier:
+    wall 776.3 s, spread 1.000          (one reader alone on this object: 3.19 s, 5f-M)
+    streaming_handles 0 throughout, peak committed 8 MiB (one block), issued 16 chunks
+    GETs 25,035 at a mean 151 KB; s3_bytes 3.780 GB vs distinct 3.777 GB (amp 1.001)
+  The pre-registered prediction ("peak committed <= 3.76 GB, evicted 0") is TRUE AND
+  VACUOUS: the dedup bound holds because nothing prefetches. 243x slower than a lone reader
+  on byte-perfect counters -- the fourth instance of "bytes+requests correct is an
+  insufficient gate", and the largest.
+
+================================================================================
+GATE 5f-P5  pre-registration   (before any cell)   lith-315, --nic-gbps 50, --pf-trace on
+================================================================================
+Hypothesis H-PAGECACHE (from code, unmeasured): lith opens with FOPEN_KEEP_CACHE, so the
+kernel page cache is shared by every descriptor on an inode. A block one reader faults in is
+served to the others from page cache and never reaches lith, so each handle's stream has
+holes, the byte-gap gate keeps it out of Sequential, and no handle ever prefetches.
+
+Arms (512 MB per reader from offset 0): T1, T2, T4, T16 same object; T16D same object with
+iflag=direct (O_DIRECT, bypasses the shared page cache); T16X 16 distinct objects.
+
+Predictions under H-PAGECACHE:
+  T1    sh_max 1, rows mostly Sequential, wall < 2 s
+  T16   sh_max 0-1, most handles end non-sequential, many reads with gap > 0, slow
+  T16D  sh_max >= 8, most handles Sequential, wall within 3x of T16X
+  T16X  sh_max >= 12 (5f-P2 shape)
+  T2/T4 exploratory: where does establishment break?
+Refuter: T16D fails to establish like T16 => the shared page cache is NOT the mechanism,
+and I say so rather than offering a second story.
