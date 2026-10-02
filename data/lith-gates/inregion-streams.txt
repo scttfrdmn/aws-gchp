@@ -1,0 +1,174 @@
+GATE 5f-P -- the stream divisor (lith#311 / 88d0c6f): does it restore arm A, fix the
+held-descriptor shape, and how large is the #312 residual it documents?
+
+PRE-REGISTERED 2026-10-02, before any cell ran. Committed before the harness was launched.
+
+================================================================================
+WHAT UPSTREAM ASKED FOR
+================================================================================
+
+5f-O measured byte-exact admission (ceeb2b7) at 5.66x slower on the arm they asked for and
+up to 11.03x elsewhere. They accepted it, reverted it (#309), added floor visibility (#310),
+and then repaired the divisor's INPUT rather than removing the division (#311, merged
+88d0c6f, #301 closed):
+
+    clamp(budgetBlocks / N, 2, maxReadahead)
+      N was  len(f.handles)            -- open DESCRIPTORS, cross-process, incl. never read
+      N is   streamingHandles.Load()   -- handles the detector is prefetching for
+
+maintained by +1/-1 deltas from each read's detector transition and from Release, not by a
+scan (perHandleWindow runs on every read; an O(handles) scan at 6229 handles would cost more
+than the misallocation it fixes).
+
+Their asks, verbatim in substance:
+
+  1. "Arm A. Prediction: unchanged from your pre-ceeb2b7 baseline on the concurrent-reader
+     arms, improved on the production shape. IF THE CONCURRENT ARMS MOVE AT ALL, THE DELTA
+     ACCOUNTING IS WRONG -- that is the falsifier, and I'd want it before anything else."
+  2. "lith_streaming_handles vs lith_open_handles on a production mount. Expect ~48 against
+     ~288. If streams come out near 288, then most of those descriptors establish and idle,
+     and the residual is the dominant term rather than a footnote."
+
+And one they volunteered as the thing they'd most want contradicted:
+
+  "N readers starting together each see a near-zero count and so a full window. What bounds
+   the burst is the geometric ramp -- a first dispatch is 2 blocks, not 223 -- so the count
+   settles long before any window is deep. I believe this is fine; it is the thing I'd most
+   want a real measurement to contradict."
+
+Also noted by them, deliberately unbuilt: #312, the handle that establishes, reads a little,
+and idles. It keeps its share until close or collapse to Random. They will not build an
+idle-out on speculation, because the divisor would then change on every idle and
+re-establish, and I already measured eleven dispatch bursts from the divisor merely DROPPING
+as handles closed.
+
+================================================================================
+THE SEPARATION THIS GATE BUYS, WHICH IS WHY IT IS WORTH RUNNING
+================================================================================
+
+5f-M's two held-descriptor arms are, exactly, the two issues:
+
+    arm C   descriptors opened and NEVER READ            = #301, closed, fixed by construction
+    arm B   descriptors opened + ONE 4 KiB pread, idle   = #312, open, magnitude unknown
+
+#311 drops never-read descriptors from the divisor as a matter of code. Whether it helps
+arm B turns on a question nobody has measured: DOES A SINGLE 4 KiB READ PUT THE DETECTOR IN
+prefetch.Sequential? The answer is not guessable from the patch -- establishment is a
+contiguity judgment, and one read has no second read to be contiguous with.
+
+  if a 4 KiB pread does NOT establish  ->  arm B is fixed too, #312 is a footnote
+  if it DOES establish                 ->  arm B stays at the floor, and the residual is the
+                                           DOMINANT term on every netCDF workload, which is
+                                           the finding they said would change what they
+                                           build next
+
+lith_streaming_handles reads out which branch is true directly, so the gauge decides it and
+the wall clock confirms it. Both branches are informative, which is the point: this is not a
+gate that can only pass.
+
+================================================================================
+ARMS -- scripts/lith/gate-streams.sh, --nic-gbps 50, fresh cold mount per cell
+================================================================================
+
+OLD = lith-304 = 52138ee, the descriptor divisor (the pre-ceeb2b7 baseline upstream names)
+NEW = lith-311 = 88d0c6f, the stream divisor
+
+  S           1 streamer alone, whole object          the ceiling; N=1 on both binaries
+  R    N=16   16 concurrent streamers, whole objects  ARM A -- upstream's falsifier
+  C8   N=8    1 streamer + 7 opened, never read
+  C256 N=256  1 streamer + 255 opened, never read     5f-M's 6.38x cell
+  B8   N=8    1 streamer + 7 header-read then idle
+  B64  N=64   "
+  B256 N=256  "                                       #312's magnitude
+
+REPS=2. Objects are the same 16 GEOSFP A3dyn days as 5f-M and 5f-O (3.72-3.81 GB each,
+444-454 blocks of 8 MiB, every one larger than the 223-block window) so the banked numbers
+are directly comparable. Holders take objects 1..15; the streamer owns object 0, so a held
+descriptor never shares a file with the reader under test.
+
+BANKED REFERENCE (5f-M, same box, same flags, same objects, whole-object reads)
+  1 streamer, window 223          3.19 s   1185 MB/s
+  1 streamer behind 255 held fds  20.34 s   186 MB/s   window 2
+  1 streamer, --max-readahead 2   25.67 s             (the causal control; min() composition)
+  knee at 30 blocks: 223->30 free, cliff 30->7
+BANKED REFERENCE (5f-O, same box, --nic-gbps 50, 16 concurrent whole objects)
+  arm C OLD (divisor)             33.58 s
+  arm C NEW (admission)          190.06 s   = the 5.66x that got ceeb2b7 reverted
+
+================================================================================
+PRE-REGISTERED PREDICTIONS
+================================================================================
+
+P1  UPSTREAM'S FALSIFIER, arm R.  NEW/OLD aggregate wall in [0.90, 1.10], and the realized
+    window identical on both binaries at 30 blocks (492/16 = 30, the cell 5f-O reported).
+    streaming_handles should equal open_handles to within 1 during the steady state, since
+    every reader streams.
+    BREACH: |ratio - 1| > 0.10 on the median of 2 reps. If it breaches I report it before
+    anything else in this gate and reopen #301, as they asked.
+
+P2  #301 IS FIXED, arms C8 and C256.  NEW pre-stream gauges: open_handles = 8 / 256,
+    streaming_handles = 0, window = 223 (nothing has established, so the first reader gets
+    everything -- upstream's own test asserts {0, 223}).
+    NEW C256 wall within 15% of NEW S wall. Point prediction 3.2-3.7 s against OLD's 20.3 s,
+    i.e. 5.5-6.4x faster, recovering the 6.38x 5f-M measured.
+    No floor warning in the NEW C cells; one in the OLD C256 cell is impossible (OLD has no
+    such warning -- #310 is newer), so the warning count is only informative on NEW.
+
+P3  #312's MAGNITUDE, arms B8/B64/B256.  I do not know which branch this takes, so both are
+    written down with their discriminator, and the discriminator is the GAUGE, not the wall:
+
+      B-null branch   NEW B256 streaming_handles <= 2 and wall within 15% of NEW S
+                      => one 4 KiB pread does not establish; #312 is a footnote; the
+                         production mount comes off the floor on descriptors alone
+      B-dominant      NEW B256 streaming_handles >= 128 and wall >= 3x NEW S
+                      => read-once-then-idle holds a share; on a 48-rank netCDF job the
+                         divisor is still ~288, not ~48, and #311 does NOT lift the
+                         production mount off the floor. #312 is the dominant term.
+      intermediate    streaming_handles between 3 and 127: report the number and the
+                         implied window clamp(492/sh, 2, 223) against the measured one
+
+    The B ladder's shape is itself a prediction: if establishment needs k>1 reads, B should
+    track C at every N, and the three N values discriminate a partial effect from a null.
+
+P4  THE BURST THEY WANT CONTRADICTED, arm R on NEW.  16 readers start within ~50 ms of each
+    other; each computes its window from a count that does not include itself, and
+    perHandleWindow runs BEFORE the Observe that establishes it. If the geometric ramp bounds
+    the burst as they argue, then:
+      - peak lith_prefetch_committed_bytes <= lith_prefetch_budget_bytes (4.127829504e9),
+      - the window gauge settles to 30 within the first ~5 s and stays,
+      - and s3_bytes_total is within 2% of OLD's.
+    CONTRADICTED IF: peak committed > 1.5x budget, OR the window gauge sits above 60 blocks
+    for more than 5 s with 16 readers live, OR NEW R bytes exceed OLD R bytes by > 5%.
+    Note the gauge is sampled at 5 Hz, so a burst shorter than 200 ms is invisible to this
+    instrument and a null here is bounded by that -- stated now, not after.
+
+P5  CONSERVATION, free, every cell.  committed <= streaming_handles x window_commit_bytes,
+    where window_commit_bytes = window x 8 MiB. Post-revert this is the invariant the divisor
+    is SUPPOSED to maintain, which is upstream's own framing of why it is now worth checking
+    rather than an identity. Separately: committed is still never released at handle close
+    (Release has no dropPrefetched path), so in the C and B arms -- working set well over the
+    8.256 GB tier -- eviction should reclaim it and the ratchet should NOT appear. The ratchet
+    needs working-set <= tier, which no arm here has, so its absence proves nothing and is
+    recorded only so that its presence would.
+
+================================================================================
+WHAT THIS GATE CANNOT DO
+================================================================================
+
+- It is not a production mount. Arms B and C are the netCDF descriptor shape distilled to one
+  variable; they are not GCHP. Ask 2 is answered properly by a GCHP run, which is the next
+  step and is separate from this file.
+- One box, one region, 2.2 ms RTT. The 5f-I bimodal stall was cross-region and is not probed.
+- 5 Hz sampling, as noted in P4.
+- No claim about #312's cost on a workload whose handles cycle (open, read, close, reopen).
+  The deltas are the thing that could drift there, and these arms hold descriptors still.
+
+COST  ~330 GB of in-region GETs at 8 MiB coalescing, on an already-running head node. The
+expensive arm is R (60 GB/cell x 4 cells). Expect ~$0.02-0.05 of requests, no egress.
+Estimate stated before running; actual reported with the results.
+
+================================================================================
+RESULTS
+================================================================================
+
+(pending)
