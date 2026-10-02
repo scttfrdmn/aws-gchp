@@ -920,3 +920,54 @@ ADDED ARMS at --nic-gbps 600 (the derivation upstream's cell intended): maxRA 26
 F1 already in (3 reps, identical counters each rep): 7.5 -> 3.48x, 15 -> 5.96x (#239 had
   3.5x/6.0x -- reproduced), 50 -> 17.34x, 100 -> 17.65x (window 223 -> 447, issued 1888 ->
   1922 chunks), auto(=50) -> 17.34x; wall 2.47-3.22 s across ALL cells.
+
+--- 5f-F RESULTS (c8gn.48xlarge, lith-315; ran 17:36-18:43Z; instance terminated after
+    FATNIC2 DONE; ~75 min = ~$14.2 + ~$0.4 of in-region GETs; logs data/lith-gates/fatnic/) ---
+tier 99.6 GB.  "x tier" = peak committed / tier.  All counters identical rep to rep to <1%.
+
+F2 ladder (2 reps each)
+ arm        sizing    wall s        spread      evicted_unread  issued  s3/distinct  pk commit  x tier  pk RSS GB
+ L8         auto=50   5.8, 4.5      1.35, 1.31      0, 0        28434    1.00       14.98 GB   0.15    30.3
+ L32        auto=50   20.9, 18.1    1.17, 1.11      0, 0       114221    1.00       58.77      0.59   121
+ L64        auto=50   58.2, 54.1    1.05, 1.08      0, 0       229439    1.01       92.77      0.93   199
+ L112       auto=50   447.6, 450.0  1.01, 1.01  19590, 19566   401030    1.18      120.29      1.21   201
+ L8         600       5.5, 5.7      1.43, 1.18      0, 0        (EOF)    1.00       29.81      0.30    30.4
+ L32        600       19.4, 19.2    1.06, 1.07      0, 0       114221    1.00       92.29      0.93   119-122
+ L64        600       281.0, 250.9  2.19, 2.02  25644, 25485   229439    1.15      126.5       1.27   189-194
+ L112       600       908.0, 1002.1 1.08, 1.08  51917, 51726   401030    1.41      154.0       1.55   189-197
+ (600 window clamps at 1024 blocks = 8.59 GB by "--max-readahead x --block-size", not my
+  derived 2682; still > objSize, so the EOF bound binds as pre-registered.)
+
+Scoring against the pre-registration and amendment:
+  L8  600  CLEAN  PASS -- upstream's 8-reader cell: peak committed 29.81 GB = sum of the 8
+                  object sizes (29.95) to 0.5%. The EOF bound is real and binds.
+  L32 600  CLEAN  PASS
+  L64 600  exploratory -> COLLAPSE by both criteria (11% evicted, spread 2.0-2.2, ~13x the
+                  wall of a clean 241 GB read on this box).
+  L112 600 COLLAPSE  PARTIAL: evicted 13% of issued (PASS), spread 1.08 (FAIL). The failure
+                  is uniform, not a fairness split: all 112 readers ~14x slow, 1.41x bytes.
+                  My spread criterion assumed the 5f-P2 winners/losers shape.
+  auto ladder (amendment: ALL CLEAN): L8/L32/L64 PASS, L112 FAIL (19.6k evicted, 4.6x the
+                  clean rate). A recorded failed prediction.
+  Bracket transfer: FAILED. On c7g.4xl objects-bound/tier separated clean <=2.36 from collapse
+                  at 3.62; here L112-auto at 2.10 collapsed and the clean ceiling is 1.21.
+                  The objects-bound ratio orders cells within a box but its threshold is not
+                  box-invariant.
+  POST HOC (not pre-registered; offered as a hypothesis, not a finding): peak committed /
+                  tier separates EVERY cell on BOTH boxes -- clean <= 1.20 (M122 c7g 1.20,
+                  L32-600/L64-auto 0.93), collapse >= 1.21 (L112-auto 1.21, L64-600 1.27,
+                  D375 c7g 1.39, L112-600 1.55). The knife edge 1.20 vs 1.21 is one cell each.
+  Under-detection helped: 50-Gbps sizing (lith's wrong imds-estimate) is ~5x FASTER than the
+                  true 600 on L64 (56 vs 251-281 s) and ~2x on L112, with fewer bytes.
+#314: peak RSS ~190-201 GB = ~2.0x the 99.6 GB --mem-cache in every cell from L64 up,
+                  both sizings; no OOM (dmesg clean). RSS = tier + burst holds at fat-NIC scale.
+
+F1 #239 (A3dyn /U slice, 115 MB distinct, 3 reps, every rep identical)
+  stated   7.5    15     50     100    600    auto(=50)
+  amp      3.48   5.96   17.34  17.65  17.65  17.34
+  window   33     67     223    447    1024   223
+  issued   368    640    1888   1922   1922   1888        wall 2.47-3.22 s in all cells
+  7.5/15 reproduce #239 (3.5x/6.0x) exactly. H239 REFUTER FIRED from 50 up: amplification is
+  flat (1.02x) while the window grows 4.6x; issued saturates at 1922 chunks. Something other
+  than the window bounds a hyperslab reader above ~50 Gbps; not identified (no trace taken).
+  The cost #239 describes is real below 50 (3.5x -> 17.3x, wall flat) and absent above it.
