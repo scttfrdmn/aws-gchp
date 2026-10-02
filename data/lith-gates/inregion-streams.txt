@@ -1020,7 +1020,9 @@ P6c upstream's #313 pre-registration (tier 8.2557 GB = 2 x budget 4127829504):
   => PASS for upstream's prediction (clean < 0.9, collapsed >= ~0.95): clean max 0.80,
      collapsed 1.000 -- the tier is FULL of unread bytes, to 0.02%. Separation 0.80 -> 1.00,
      vs committed/tier 1.20 -> 1.39 on the same box. Three cells, one box: c8gn not rerun.
-  Observation only, no mechanism claimed: in D375, committed - resident = 11.458 - 8.254 = 3.20 GB,
-     and the mount log's binding bound is --inflight-bytes 1.25 GB. So in-flight bytes alone don't
-     account for the plateau. Its cause is still unidentified (as stated on #313).
+  Upstream's decomposition (#313: committed ~= resident-unread + in-flight) checked against D375:
+     committed - resident = 11.458 - 8.254 = 3.20 GB, against the mount's binding
+     --inflight-bytes 1.25 GB. So it does NOT close unless in-flight can exceed that bound.
+     ~1.95 GB is unaccounted for. Candidate (NOT tested): the never-released commitment ratchet.
+     Peak committed is identical to 1 MB across reps (11.4588 / 11.4578 GB).
   (M122 spread 1.93 in rep 1 with evicted 0: spread alone is not the transient, again.)
