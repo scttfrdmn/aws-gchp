@@ -1047,3 +1047,28 @@ evicted_unread (0 vs > 1000), as in 5f-F, BEFORE reading resident.
 Secondary (no prediction, upstream's decomposition): report committed - resident against the
 mount's inflight_bytes bound per collapsed cell; on c7g it did not close (3.20 vs 1.25 GB).
 Hard cost cap: shutdown -h +120 in user-data; instance terminated on "P6D DONE".
+
+GATE 5f-P6e  pre-registration (written before the job is submitted) -- the 48-rank GCHP gauges
+Upstream (#313/#316): "the 48-rank run is the discriminator between #313 and #316".
+Job: one compute node (c8g.48xlarge or m9g.48xlarge, whichever Slurm gives -- recorded),
+48 ranks, the validated TT run dir via setCommonRunSettings.sh/checkRunSettings.sh exactly as
+5f-P3 (nothing hand-edited), the same five prefix-scoped mounts, lith-318 (35daae9),
+--nic-gbps 50, met mount traced (--pf-trace). Two arms, same node, one job:
+  T2G   --mem-cache 2GB per daemon   (the 5f-P3 setting -> third point on the 6/12 ladder)
+  T64G  --mem-cache 64GB per daemon  (5 x 64 = 320 GB < node RAM; tier >> GCHP's ~4 GB of input)
+Estimated cost: ~25 min of one node incl. boot, ~$3-4.
+PREDICTIONS:
+  E1 (5f-P3 ladder) sh/oh at the peak-oh tick > 0.318 in T2G (it rose 0.275 -> 0.318 from 6 to
+     12 ranks). Direction only; no magnitude claimed.
+  E2 (#316 on GCHP) met trace: objects with >= 2 handles open in the same 1 s window exist, and
+     on those handles median per-handle coverage is < 0.5 while single-handle objects' is >= 0.9.
+     FALSIFIER: no multi-handle objects (=> #316 shape absent from GCHP's met reads at 48 ranks),
+     or multi-handle coverage >= 0.9 (=> the page-cache sharing does not bite here).
+  E3 (#313 on GCHP) T2G met: evicted_unread > 0 (12-rank NEW was 9-25), and per upstream's rule
+     peak unread_resident/tier >= 0.95 on every mount with evicted_unread > 1000; < 0.9 on every
+     mount with evicted_unread = 0. (Mounts with 1..1000 evictions are reported, not scored.)
+  E4 (predicted null) T64G: evicted_unread = 0 on all five mounts and peak resident/tier < 0.1,
+     because total input bytes (~4 GB) are far below a 64 GB tier.
+  Discriminator reading, fixed now: E2 true + E3 false => GCHP at 48 ranks is #316-shaped;
+     E3 true + E2 false => #313-shaped; both => the mix upstream predicted; neither => neither
+     defect is load-bearing for GCHP at this scale, and that is what gets reported.
