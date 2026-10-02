@@ -1099,5 +1099,9 @@ PREDICTIONS:
      => #316's shape is present on every met object at 48 ranks but carries ~9% of the bytes.
   COUNTER TIMING: lith_prefetch_low_coverage_total read 0 in every 2 Hz sample during the run and
      527 / 522 in the final scrape, taken after GCHP was killed and its handles closed. Consistent
-     with the counter being folded in at handle release rather than live -- inference, not read
-     from the code yet. If so, it cannot show the defect on a running job.
+     with the counter being folded in at handle release -- CONFIRMED from code at 35daae9:
+     fs.go:1109 calls PrefetchLowCoverage once per handle in Release (documented, metrics.go:382).
+     So it cannot show the defect on a running job (GCHP holds met handles for the whole run).
+     Also from code: deEstablish() (prefetch.go:223) counts only an establishment that existed,
+     so the line-436 rejection of a NEVER-established handle (every T4 handle) is counted by
+     neither low_coverage nor de_established.
