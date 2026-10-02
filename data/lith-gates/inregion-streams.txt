@@ -417,3 +417,150 @@ OLD (lith-304), so the ratio is measured at the honest setting rather than infer
   own headline.
 
 COST  4 cells x ~60 GB in-region, ~$0.008.
+
+================================================================================
+RESULTS
+================================================================================
+
+HEADLINE, and it includes a correction to the one I posted on #301 first:
+
+  At --nic-gbps 50, #311 is 3.03x slower than #304 on upstream's arm A (n=2 each), their
+  falsifier breached. At --nic-gbps 15 -- this box's TRUE rating -- the same arm is 1.013x,
+  clean. The regression is REAL and CONDITIONAL, and the condition is a quantity nobody was
+  looking at: N concurrent readers x maxReadahead x blocksize against --mem-cache.
+
+  The cause is NOT the delta accounting they offered as the falsifier's diagnosis. It is the
+  start transient (H-BURST), and the proximate cost is eviction-before-read (H-EVICT). Both
+  are now established by intervention, not by correlation.
+
+5f-P ARM A (--nic-gbps 50, 16 concurrent whole-object readers, N=16, 2 reps)
+  OLD lith-304   33.97 / 33.55 s   spread 1.05   evicted_unread    0   GETs  7396
+  NEW lith-311  106.53 / 107.31 s  spread 3.66   evicted_unread 4537   GETs 12275
+  median ratio 3.17x on that pair, 3.03x against the 4 later baseline reps. OLD reproduced
+  5f-O's banked 33.58 s to 0.5%.
+  streaming_handles == open_handles == 16 and the realized window == 30 == 492/16 exactly,
+  through the whole steady state. The delta accounting is CORRECT. The falsifier fired and the
+  diagnosis attached to it does not hold.
+
+5f-P2 DISCRIMINATOR (NEW only, N=16, 2 reps each; tier = 8.256 GB)
+  arm    flags                    wall (s)         spread       peak committed /tier  evict
+  RBASE  none                     101.97 / 102.67  3.60 / 3.72  13.078 GB     1.58x  4537/4549
+  RCONC  --s3-concurrency 512      85.77 /  88.63  3.27 / 3.34  13.078 GB     1.58x  4483/4510
+  RCAP   --max-readahead 30        33.93 /  33.15  1.01 / 1.07   4.093 GB     0.50x     0/0
+  RPB    --prefetch-budget 1GB     35.22 /  34.30  1.26 / 1.27   4.236 GB     0.51x     0/0
+
+  By the rule fixed before rep 2 was read: R-CAP restores (33.93 s against OLD's 33.76 s
+  median, spread 1.012 against 1.05) and R-CONC gives 14.8% against a pre-set 20% bar, so
+  => H-BURST. Not H-QUEUE: 512 slots leave the spread and the peak committed untouched.
+  5f-L's prior held -- more concurrency at the 8 MiB unit is not the lever.
+
+  P4 WAS WRONG ABOUT THE DENOMINATOR, and that is the useful part. RPB restores while
+  exceeding its OWN 1 GB budget 4.24x. So "committed <= budget" is not the condition; both
+  restoring arms sit at 0.50x the MEMORY TIER and both collapsing arms at 1.58x it.
+
+  prefetch_issued_total == 57045 in ALL EIGHT CELLS while walls differ 3x. Third independent
+  instance of this: upstream's F1 chunk-form falsifier is blind in exactly the regime it was
+  written for, because evicted blocks return as uncovered DEMAND reads rather than as new
+  prefetch issues. uncovered is the counter that moves: 256 in the fast arms, ~5150 in the slow.
+
+5f-P2b TIER CONTROL -- VOID at 20 GB, and the void is a finding (see above): RSS 30.56 GB
+  ~= 20 GB tier + 13.08 GB committed ~= MemTotal 33.02 GB to 0.2%. Tier and in-flight prefetch
+  are ADDITIVE in RSS, so --mem-cache does not bound the daemon's footprint.
+  Re-run at a tier the arithmetic fits (15 GB; RSS peak 29.70 GB, 1.25 GB headroom, no OOM):
+
+  RTIER15  --mem-cache 15GB --prefetch-budget 4127829504 (budget/window/burst BIT-IDENTICAL
+           to RBASE: same 223-block bound, same 13.078 GB realized committed)
+             33.61 / 33.43 s   spread 1.49 / 1.41   evicted_unread 0 / 0   bytes 60.08 GB
+
+  3.05x recovered by moving ONLY the cache tier, landing on OLD's wall to within 1%, with
+  evicted_unread 4520 -> 0 and bytes back to the no-refetch figure. H-EVICT CONFIRMED CAUSALLY.
+  Residual: spread 1.45 against OLD's 1.05, so a little unfairness survives the tier fix; it
+  costs ~0 wall here because the arm is bandwidth-bound.
+
+5f-P2c READER LADDER (NEW, default flags, --nic-gbps 50, 2 reps)
+  N    peak committed /tier   evicted_unread   spread        agg wall   aggregate
+  4      6.94 GB      0.84x      0 /    0      1.14 / 1.15     8.87 s   1692 MB/s
+  8     10.08 GB      1.22x      0 /    0      1.29 / 1.23    17.0  s   1762 MB/s
+  12    11.86 GB      1.44x      0 /   10      1.56 / 1.40    24.9  s   1811 MB/s
+  16    13.08 GB      1.58x   4505 / 4540      3.65 / 3.64   104.3  s    624 MB/s
+
+  MY KNEE PREDICTION WAS WRONG, for a measurable reason. I predicted the knee at N~10 from a
+  linear per-reader committed model; committed is strongly SUBLINEAR (per-reader 1.74 -> 1.26
+  -> 0.99 -> 0.82 GB), so the knee is at 12-16. And N=8 sits at 1.22x the tier with ZERO
+  evicted-unread, which KILLS "peak committed > tier" as a sufficient condition -- the CI
+  check I was about to offer upstream would have fired falsely there. The usable empirical
+  threshold is realized committed >= ~1.5x tier, bracketed between 1.44x (clean) and 1.58x
+  (collapsed).
+  Also: the aggregate saturates at 1811 MB/s for every N <= 12. This box's link is the binding
+  resource in all of them.
+
+5f-P2d THE HONEST-NIC CELL, aimed at my own headline (N=16, 2 reps per binary, --nic-gbps 15,
+  realized window 67 blocks exactly as predicted)
+  NEW lith-311   33.90 / 34.41 s   spread 1.127 / 1.108   evicted_unread 0   bytes 60.08 GB
+  OLD lith-304   33.46 / 33.94 s   spread 1.107 / 1.115   evicted_unread 0   bytes 60.09 GB
+  NEW/OLD = 1.013, inside the pre-registered [0.90, 1.15]. CONDITIONAL branch confirmed.
+
+  And the bound I should have stated when I first reported the breach: 60 GB at 1811 MB/s is a
+  33.1 s floor, and OLD's N=16 wall was 33.76 s. OLD WAS ALREADY AT THE NIC CEILING. Arm A on
+  this box can detect harm and cannot detect benefit. 1.013x is "both at the ceiling", not
+  "equally good".
+
+--------------------------------------------------------------------------------
+THE CONDITION, STATED SO IT CAN BE CHECKED WITHOUT A BOX
+--------------------------------------------------------------------------------
+
+The transient burst is N readers each taking maxReadahead before the stream count rises, so
+the quantity that must fit in the cache is
+
+    N  x  maxReadahead  x  --block-size        vs        --mem-cache
+
+with maxReadahead = 1.5 x (nic_bytes_per_sec x 0.2) / block-size when --max-readahead is auto.
+Substituting and cancelling block-size, harm is expected when
+
+    N  >  mem_cache / (0.2 x nic_bytes_per_sec)                        [N_crit]
+
+and at defaults (--mem-cache = RAM/4) that is N_crit = 1.25 x RAM_bytes / nic_bytes_per_sec.
+The ladder puts the realized knee at ~2.4x N_crit, because committed is sublinear in N -- not
+every reader peaks at once -- so N_crit is conservative by about that factor.
+
+    this box, --nic-gbps 15 (honest)   N_crit = 22    ran 16   clean        <- matches
+    this box, --nic-gbps 50 (mine)     N_crit =  6.6  ran 16   collapsed    <- matches
+    c8gn.48xlarge  384 GB, 600 Gbps    N_crit =  6.4  at DEFAULTS, 192 vCPU
+    m8gn.48xlarge  768 GB, 600 Gbps    N_crit = 12.8  at DEFAULTS, 192 vCPU
+
+THIS IS WHY THE CONDITIONALITY IS NOT A DISMISSAL. I had to overstate my NIC 3.3x to enter the
+regime on a 15 Gbps box. A real fat-NIC instance is IN the regime at stock defaults with ~7-13
+concurrent readers, because N_crit falls as the NIC grows relative to RAM -- and those are
+exactly the instances this project runs GCHP on, with 48-192 ranks. The small box needed a
+flag; the big box needs nothing.
+
+--------------------------------------------------------------------------------
+WHAT I NOW THINK THE REPAIR IS, having been wrong once about the denominator
+--------------------------------------------------------------------------------
+
+Not "committed <= budget" (RPB violates it 4.2x and is fast). Not "committed <= tier" (N=8
+violates it 1.22x and is clean). The transient is the thing, so bound the transient:
+
+  1. Size a new handle's window from the count it is ABOUT TO JOIN, budget/(N+1), since
+     perHandleWindow runs before the Observe that establishes the handle. Clock-free.
+  2. Refuse to INFLATE a window on a count DECREASE. A reader already mid-stream has no need
+     of a deeper window, and this alone removes the measured 30 -> 32 -> 164 -> 223 climb.
+  3. The aggregate guard, if one is wanted, is on the SUM of windows against the TIER, not
+     against the budget, and it must tolerate 1.2x (N=8 is fine there) -- so ~1.4x tier is the
+     latest it can fire and still be ahead of the collapse.
+  4. Charge in-flight prefetch against --mem-cache, or document that RSS is tier + burst. The
+     20 GB cell OOM-killed a daemon on a 33 GB box with a 20 GB cache setting, which no user
+     would predict from the flag's name.
+
+LIMITS, stated rather than discovered later:
+- One box, 16 cores, 33 GB, 2.2 ms RTT, in-region. N=16 equals the core count, so reader CPU
+  and reader count move together in the ladder; the OLD/NEW comparison controls for it (same
+  16 dd processes, only the binary differs) but the LADDER does not.
+- The collapse threshold 1.44x-1.58x is bracketed by two ladder rungs, not resolved.
+- 5 Hz gauge sampling; a sub-200 ms burst is invisible, so the 13.078 GB peak is a lower bound
+  and the true transient may be larger.
+- peak_window in the P2 cells includes the t=0 pre-reader sample, where the gauge reads 223
+  with nothing open. peak COMMITTED is the burst evidence; peak window is not.
+
+COST  ~$0.03 for 5f-P (estimated $0.02-0.05), plus ~$0.02 for P2/P2b/P2c/P2d, all in-region
+GETs on the already-running gchp-lith-ab head node. No egress, no new instance.
