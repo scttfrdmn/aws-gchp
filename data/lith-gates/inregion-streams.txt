@@ -971,3 +971,25 @@ F1 #239 (A3dyn /U slice, 115 MB distinct, 3 reps, every rep identical)
   flat (1.02x) while the window grows 4.6x; issued saturates at 1922 chunks. Something other
   than the window bounds a hyperslab reader above ~50 Gbps; not identified (no trace taken).
   The cost #239 describes is real below 50 (3.5x -> 17.3x, wall flat) and absent above it.
+
+================================================================================
+GATE 5f-P6  pre-registration (before computing anything)  -- $0, offline + head node
+================================================================================
+Upstream (#316) re-attributes 5f-P5: not the byte-gap gate (gap max = 1 block = 8 MiB; my
+holes are 128-512 KiB) but the #221 coverage gate, coverage = union(last 16 reads)/span,
+Random below 0.5 (internal/fuse/prefetch.go:50-51, prefetch.go:254-293). They predict
+coverage ~ 1/N for N readers sharing the page cache.
+
+P6a (offline, from the existing 5f-P5 --pf-trace CSVs; recordRead re-implemented exactly,
+W=16, first 2 reads skipped as the code does): per-handle median coverage.
+  Their prediction: T1 ~1.0, T2 ~0.5, T4 ~0.25, T16 ~0.06; T16D and T16X ~1.0.
+  Refuter (their attribution): T4 or T16 median >= 0.5 => the coverage gate is not what
+  holds them Random. A partial: if T4/T16 are < 0.5 but far from 1/N, the gate is the
+  mechanism and 1/N is not the law.
+P6b (head node, lith main 35daae9 = #318): rerun T1/T2/T4/T16/T16D with the new
+  lith_prefetch_low_coverage_total. Prediction: ~0 in T1/T16D, large in T4/T16.
+P6c (head node): upstream's own pre-registration on #313 --
+  unread_resident_bytes / tier  < 0.9 in every clean cell, >= ~0.95 in every collapsed one.
+  Cells available free on c7g.4xl: M043, M122 (clean), D375 (collapsed), 2 reps, the new
+  gauge sampled at 5 Hz. Refuter (theirs): collapsed D375 with peak resident-unread well
+  below tier. The c8gn cells would need a new instance and are NOT run without approval.
