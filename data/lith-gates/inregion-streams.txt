@@ -797,9 +797,9 @@ and I say so rather than offering a second story.
   cell   rep  wall s   sh_max  s3 GB   issued  uncovered  final handle states          rows Seq
   T1      1    1.82     1      2.416   2288      16       sequential 1                  98.4%
   T1      2    1.51     1      2.416   2288      16       sequential 1                  98.4%
-  T2      1    1.73     2      -       -         -        sequential 1, cold 1          -
+  T2      1    1.73     2      2.416   2288      30       sequential 1, cold 1          58.5%
   T2      2    1.68     1      2.416   2288      25       sequential 2                  52.9%
-  T4      1   29.7      0      0.538      0      -        cold 4                         0.0%
+  T4      1   29.7      0      0.537      0     972       cold 4                         0.0%
   T4      2   31.7      0      0.538      0     974       cold 4                         0.0%
   T16     1   38.8      0      0.538      0    1249       cold 7, random 9               0.0%
   T16     2   40.6      0      0.538      0    1337       random 13, cold 3              0.0%
@@ -807,7 +807,6 @@ and I say so rather than offering a second story.
   T16D    2    2.26    16      1.887   2224      16       sequential 16                 98.4%
   T16X    1   45.0     16     22.469  18872    2557       sequential 16                 98.4%
   T16X    2   46.6     16     22.418  18624    2756       sequential 16                 98.4%
-  (T2-1 counter line: see p5.log; it established 1 of 2 handles.)
 
   Hole sizes in T2/T4/T16 traces: every positive gap is a multiple of 131072 (128 KiB, the
   kernel readahead unit); commonest 128K > 256K > 384K > 512K. T16D: no positive gaps.
