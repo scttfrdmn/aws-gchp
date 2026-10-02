@@ -45,7 +45,10 @@ HZ=${HZ:-5}
 PREFIX=${PREFIX:-s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07}
 B=${B:-/scratch/lith-gates/lith-311}
 
-OBJS=(GEOSFP.201907{01..16}.A3dyn.025x03125.nc)
+# OBJLIST overrides the object set (space-separated, relative to PREFIX). Repeating one name
+# puts several readers on the SAME object, which is how 5f-P4 tests chunk dedup.
+if [ -n "${OBJLIST:-}" ]; then read -r -a OBJS <<<"$OBJLIST"
+else OBJS=(GEOSFP.201907{01..16}.A3dyn.025x03125.nc); fi
 
 # label:extra flags.  Empty flags for the baseline.
 ARMS=${ARMS:-"BASE: CAP:--max-readahead 30 CONC:--s3-concurrency 512 PB:--prefetch-budget 1GB"}
@@ -111,7 +114,8 @@ run_cell() {
 }
 
 echo "=== gate 5f-P2  $(date -u +%FT%TZ)  reps=$REPS ==="
-echo "  B=$B md5 $(md5sum "$B" | cut -c1-12)   readers=${NR:-${#OBJS[@]}}"
+echo "  B=$B md5 $(md5sum "$B" | cut -c1-12)   readers=${NR:-${#OBJS[@]}}  prefix=$PREFIX"
+echo "  objects: $(printf '%s\n' "${OBJS[@]}" | sort -u | wc -l) distinct of ${#OBJS[@]}  first=${OBJS[0]}"
 for rep in $(seq 1 "$REPS"); do
   # Parse "LABEL:flag flag" groups: a token containing ':' opens a new arm, the rest are
   # that arm's flags. Word splitting on $ARMS is intended.

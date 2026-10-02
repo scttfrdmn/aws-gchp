@@ -721,3 +721,44 @@ Harness lessons banked (both cost real time this session):
     classes and exclude $$.
   - requiring ALL gauges in the sampler silenced it completely on OLD, which predates
     lith_streaming_handles. An A/B sampler must require only the intersection.
+
+================================================================================
+GATE 5f-P4  pre-registration   (written before any cell runs)   binary lith-315 = 1f82fec
+================================================================================
+Upstream (#313/#301 close-out) asked for the fat-NIC cell at stock defaults and predicted:
+"one 192-vCPU box at stock defaults with 8 readers should collapse", from
+N_crit = mem_cache / (0.2 x nic_bytes_per_sec) = 6.4 on c8gn.48xlarge.
+
+That formula prices each reader's burst at maxReadahead x blockSize. The code bounds it
+twice more, and neither bound appears in N_crit:
+
+  (a) EOF. blockstore.Prefetch returns when c0*ChunkSize >= objSize, so no reader
+      commits past its own object.
+  (b) Dedup. Prefetch skips a chunk already in bs.prefetched, so N handles on ONE
+      object commit that object once. The aggregate is over DISTINCT objects.
+
+So the burst is  sum over distinct streamed objects of min(maxRA x bs, budget, objSize).
+On c8gn.48xlarge at stock defaults: maxRA = 1.5 x (75e9 x 0.2)/8 MiB = 2682 blocks
+= 22.5 GB, tier ~101 GB. A GEOS-FP 0.25 A3dyn is 3.76 GB, so the EOF bound binds 6x
+below the window, and 8 readers have a HARD ceiling of 8 x 3.76 = 30 GB = 0.30x tier.
+The proposed cell cannot collapse on GCHP's largest met object; a null there would read
+as a refutation of N_crit and would be neither. (Same shape as the GT_Chlorine confound:
+an object too small to exercise the mechanism.)
+
+Free test of both bounds, here, at the N=16 / --nic-gbps 50 / stock tier (8.256 GB) that
+collapsed in 5f-P2. NIC-only N_crit = 6.6 predicts ALL FOUR collapse.
+
+  arm   objects                                   hard bound    prediction
+  D375  16 distinct GEOS-FP A3dyn  (3.76 GB)      29.9 GB (win)  COLLAPSE: evicted >1000,
+                                                                  spread >2 (5f-P2 repro on 315)
+  S375  16 readers on ONE A3dyn    (3.76 GB)       3.76 GB 0.46x  CLEAN: peak committed
+                                                                  <= 3.76 GB, evicted 0
+  M043  16 distinct MERRA2 A3cld   (0.43 GB)       6.85 GB 0.83x  CLEAN: peak committed
+                                                                  <= 6.85 GB, evicted 0,
+                                                                  spread <= 1.3
+  M122  16 distinct MERRA2 A3dyn   (1.22 GB)      19.5 GB 2.36x  NOT PREDICTED -- neither
+                                                                  bound decides it; exploratory
+
+Refuter: any S375 or M043 cell with evicted_unread > 100 or peak committed above its hard
+bound means a bound I read from the code is not real, and I withdraw the correction.
+2 reps. ~180 GB in-region GETs, ~$0.01.
