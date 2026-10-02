@@ -250,6 +250,67 @@ and --pf-trace at 16 readers over 60 GB is ~300 MB of CSV per cell, which is aff
 the above comes out ambiguous but is not worth it in advance.
 
 ================================================================================
+SECOND MID-GATE PRE-REGISTRATION (5f-P2b): THE TIER CONTROL
+written after RBASE/RCAP/RCONC/RPB rep 1 and RBASE/RCAP rep 2, before any RTIER cell ran
+================================================================================
+
+Rep 1 of the discriminator came out H-BURST by the rule above, but it also broke the
+threshold I pre-registered in P4, and in a way that matters more than the pass/fail:
+
+    RBASE   101.97 s  spread 3.598  peak committed 13.078 GB  window 223   (NEW baseline)
+    RCAP     33.93 s  spread 1.012  peak committed  4.093 GB  window  30   --max-readahead 30
+    RCONC    85.77 s  spread 3.272  peak committed 13.078 GB  window 223   --s3-concurrency 512
+    RPB      35.22 s  spread 1.257  peak committed  4.236 GB  window 119   --prefetch-budget 1GB
+
+RPB restores -- and its peak committed is 4.236 GB against the 1 GB budget it was given, so
+it exceeded its OWN budget 4.2x and was fast anyway. P4 asked whether committed stays inside
+the BUDGET. That was the wrong denominator. Both restoring arms land at 0.50-0.51x the
+8.256 GB memory tier and both collapsing arms land at 1.58x it, across two different knobs
+that move the burst by different routes (window ceiling vs numerator). So the quantity that
+tracks the collapse is peak committed RELATIVE TO THE CACHE TIER, not relative to the budget,
+and the named mechanism is eviction: commit more than the tier holds and blocks are evicted
+before their reader arrives (evicted_unread 4537 in RBASE, 0 in OLD), and an evicted-unread
+block returns as a synchronous demand read.
+
+That is still only a correlation over four cells, and all four moved the burst. The causal
+control is to move the TIER and leave the burst alone, which is possible because
+--prefetch-budget is independent of --mem-cache:
+
+  R-TIER   --mem-cache 20GB --prefetch-budget 4.127829504GB
+           Budget, budgetBlocks (492), maxReadahead (223) and therefore every window this
+           mount can choose are BIT-IDENTICAL to RBASE. The only thing that changes is how
+           much the cache can hold: 20 GB against RBASE's realized 13.078 GB peak, so the
+           same burst now fits.
+
+PRE-REGISTERED, 2 reps, NEW binary, 16 concurrent streamers, everything else as RBASE:
+
+  H-EVICT (the claim above)   RTIER wall within 15% of OLD's 33.76 s median => 29-39 s,
+      spread <= 1.3, evicted_unread <= 100, AND peak committed still >= 10 GB (if committed
+      drops, the intervention did not do what it says and the cell is void).
+  H-EVICT IS FALSE IF  RTIER wall stays >= 80 s with evicted_unread >= 1000 removed, or
+      stays >= 80 s at all while committed stays >= 10 GB. Then the burst costs something
+      other than eviction -- in-flight contention that neither 512 slots nor a bigger cache
+      relieves -- and I will report the mechanism as UNRESOLVED rather than assert eviction,
+      because RCONC already failed to help and that would leave no measured cause standing.
+  INTERMEDIATE  39-80 s: eviction is a contributing term and not the whole cost; report the
+      fraction recovered, do not round it to a mechanism.
+
+Confound stated in advance: 20 GB of page-cache-backed tier on a 33.0 GB box leaves ~13 GB,
+and the readers are dd to /dev/null so they hold nothing. If the cell shows memory pressure
+(any swap activity, or the daemon's RSS near 20 GB with the wall degrading) the result is
+void and reported as void, not as a null.
+
+Why this is worth the money even though the rule already fired: the repair I offered upstream
+(size a new handle's window from budget/(N+1), refuse to inflate on a count DECREASE) follows
+from H-BURST either way. But if eviction is the proximate cost, then the sufficient condition
+is much simpler to state and to test in CI -- peak committed must stay under the tier, which
+is one inequality over two gauges they already export -- and it tells them the bound they
+need is on the SUM over handles, not on any one handle's window. That is a different patch
+from the one I proposed, so it is worth knowing which.
+
+COST  ~120 GB in-region GETs, ~15k requests, ~$0.006, on the already-running head node.
+
+================================================================================
 RESULTS
 ================================================================================
 
