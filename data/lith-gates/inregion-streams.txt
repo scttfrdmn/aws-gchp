@@ -168,6 +168,88 @@ expensive arm is R (60 GB/cell x 4 cells). Expect ~$0.02-0.05 of requests, no eg
 Estimate stated before running; actual reported with the results.
 
 ================================================================================
+MID-GATE PRE-REGISTRATION (5f-P2): THE DISCRIMINATOR, written before rep 2 was read
+================================================================================
+
+Rep 1 arm R, the only cell read at the time of writing:
+
+    OLD  33.97 s   per-reader 32.25-33.97  spread 1.05x   evicted_unread 0     GETs 7396
+    NEW 106.53 s   per-reader 29.11-106.52 spread 3.66x   evicted_unread 4537  GETs 12275
+
+P1 IS BREACHED: 3.14x, far outside [0.90, 1.10]. P4 IS CONTRADICTED: peak committed
+12.9436 GB against a 4.1278 GB budget = 3.14x, where the threshold was 1.5x.
+
+But the cause upstream named is NOT what broke. The delta accounting is CORRECT:
+streaming_handles == open_handles == 16 exactly through the whole steady state, and the
+realized window is 30 = 492/16, which is the share the divisor is supposed to give. So the
+falsifier fired and the diagnosis attached to it ("if the concurrent arms move at all, the
+delta accounting is wrong") does not hold. Something else does.
+
+The sampled series says what, at 5 Hz:
+
+    t=6.05   16 streams, window 30,  committed 12.944 GB   <- 3.14x the budget, already
+    t=24.20  16 streams, window 30,  committed  4.351 GB
+    t=30.26  15 streams, window 32,  committed  2.906 GB
+    t=36.33   3 streams, window 164, committed  0.707 GB   <- 13 readers are DONE at ~33 s,
+    t=72.65   3 streams, window 164, committed  2.680 GB      the same time OLD took for all 16
+    t=78.71   2 streams, window 223, committed  2.611 GB
+    t=102.92  1 stream,  window 223, committed  1.787 GB   <- last reader finishes at 106.5 s
+
+So this is not a uniform slowdown, it is a FAIRNESS COLLAPSE: 13 of 16 readers finish on
+OLD's schedule and 3 become permanent losers. Two sub-mechanisms are consistent with every
+number above, and they have opposite fixes, so guessing between them is exactly what this
+project does not do.
+
+  H-BURST   The start transient makes permanent losers. All 16 readers start within ~50 ms,
+            each computes its window from a count that does not yet include itself
+            (perHandleWindow runs before the Observe that establishes), so each sees N~0 and
+            takes 223. 16 x 223 x 8 MiB = 29.9 GB potential against an 8.256 GB memory tier;
+            realized peak 12.94 GB, which is already 1.57x the tier. Blocks are therefore
+            evicted BEFORE being read (4537 of them), and an evicted-unread block returns as a
+            synchronous demand read, which is the 5f-O starvation rate. Whichever readers lose
+            that first cache race fall behind, and falling behind makes them lose it again.
+            Upstream's bound -- "the geometric ramp is what bounds the burst, a first dispatch
+            is 2 blocks not 223" -- bounds the FIRST dispatch and not the ramp's integral:
+            16 ramps running together reach 12.9 GB committed within 6 s.
+
+  H-QUEUE   The late window inflation starves the stragglers. As readers finish, N falls, so
+            every surviving reader's window GROWS: 30 -> 32 -> 164 -> 223. With 3 readers at
+            164 blocks the mount has up to 492 chunk requests outstanding against a fixed
+            --s3-concurrency of 128, so the block a reader needs next can queue behind
+            hundreds it will not need for seconds. That is 5f-L's bytes-per-slot result in a
+            new place. Committed RISING monotonically from 0.71 to 2.68 GB between t=36 and
+            t=73 while only 3 readers are live, at an aggregate ~115 MB/s against the 1185
+            MB/s this box does with one reader, is the signature.
+
+PRE-REGISTERED DISCRIMINATOR, three cells on NEW, 16 concurrent streamers, 2 reps:
+
+  R-CAP   --max-readahead 30.  Pins every reader at the share 16 readers are entitled to, so
+          no burst is possible and no late inflation either.
+          H-BURST predicts: wall within 10% of OLD (33-37 s), spread <= 1.2x,
+          evicted_unread <= 100, peak committed <= 4.2 GB. This is the cell that would show
+          the steady-state share is fine and only the TRANSIENT is wrong.
+  R-CONC  --s3-concurrency 512, --max-readahead default.
+          H-QUEUE predicts >= 20% faster than NEW baseline. H-BURST predicts no help or
+          harm, and 5f-L is the prior: at the 8 MiB unit, 128 -> 512 slowed BOTH arms there.
+  R-PB    --prefetch-budget 1GB (budgetBlocks 119, so 119/16 = 7 at steady state and 119 even
+          at N=1).  Caps the burst by the NUMERATOR instead of the window. If H-BURST holds,
+          this also restores fairness; if it does not restore while R-CAP does, then the
+          window ceiling and not the committed total is what matters, which is a third thing
+          and I will say so.
+
+INTERPRETATION RULE, fixed now: R-CAP restoring and R-CONC not helping => H-BURST, and the
+repair is to clamp a new handle's window by the count it is about to join (budget/(N+1)) or to
+refuse to inflate a window on a count DECREASE, neither of which needs a clock in the read
+path. R-CONC helping and R-CAP not => H-QUEUE, and the repair is to bound outstanding chunk
+requests rather than window depth. Both helping => the two are the same mechanism seen from
+two sides, and I will report it as unseparated rather than pick.
+
+What this cannot settle: whether the 3 stragglers are stable identities (the loser set) or
+whether the loss rotates. The per-reader walls give the distribution but not the trajectory,
+and --pf-trace at 16 readers over 60 GB is ~300 MB of CSV per cell, which is affordable if
+the above comes out ambiguous but is not worth it in advance.
+
+================================================================================
 RESULTS
 ================================================================================
 
