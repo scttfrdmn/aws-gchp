@@ -1073,8 +1073,8 @@ PREDICTIONS:
      E3 true + E2 false => #313-shaped; both => the mix upstream predicted; neither => neither
      defect is load-bearing for GCHP at this scale, and that is what gets reported.
 
---- 5f-P6e RESULTS (Slurm job 24, c8g.48xlarge, 48 ranks, lith-318; 20:00-20:03Z, ~6 min node
-    incl. boot ~$1, under the $3-4 estimate). ONE rep per arm. ---
+--- 5f-P6e RESULTS (Slurm job 24, c8g.48xlarge, 48 ranks, lith-318; job 20:00-20:03Z; node
+    i-06520dc61e392a3e8 up 19:56:35-20:09:15Z incl. boot + idle scale-down = 12.7 min, ~$1.60, under the $3-4 estimate). ONE rep per arm. ---
   arm   wall*  met s3_GB  distinct  amp   evicted  peak resident/tier  win_min  sh/oh@peak-oh
   T2G    70 s   3.865     3.223    1.20     42       0.763              2      0.363
   T64G   61 s   5.274     3.224    1.64      0       0.032             38      0.356
@@ -1105,3 +1105,26 @@ PREDICTIONS:
      Also from code: deEstablish() (prefetch.go:223) counts only an establishment that existed,
      so the line-436 rejection of a NEVER-established handle (every T4 handle) is counted by
      neither low_coverage nor de_established.
+
+--- 5f-P6d RESULTS (c8gn.48xlarge i-0d01f0ad609e65bf4, us-east-1c, lith-318; driver 19:51-20:19Z;
+    instance 19:48:44-20:22:33Z = 34 min, ~$6.30, under the ~$12 estimate; terminated) ---
+tier = 2 x prefetch_budget 49815600640 = 99.631 GB.  Verdict by evicted_unread first (rule).
+  cell          evicted   verdict   resident/tier   committed/tier   committed-resident   wall s
+  auto L64 -1        0    clean      0.8352          0.931            9.56 GB             55.1
+  auto L64 -2        0    clean      0.8378          0.931            9.30 GB             52.8
+  auto L112-1    19605    collapse   0.9996          1.207           20.70 GB            430.1
+  auto L112-2    19595    collapse   0.9996          1.207           20.70 GB            445.6
+  600  L32 -1        0    clean      0.7214          0.926           20.37 GB             21.7
+  600  L32 -2        0    clean      0.7589          0.925           16.60 GB             21.7
+  600  L64 -1    25544    collapse   0.9996          1.270           26.92 GB            264.5
+  600  L64 -2    25469    collapse   0.9996          1.269           26.85 GB            255.6
+  Binary check: all four verdicts identical to 5f-F (lith-315), evictions within 0.5%. No flip.
+  SCORE: PASS, 8/8 cell-reps on the predicted side. Clean max 0.838, collapsed min 0.9996.
+  Pooled over both boxes (P6c + P6d, 14 cell-reps): resident/tier clean <= 0.838, collapse
+     >= 0.9996 (gap 0.16); committed/tier clean <= 1.205 (c7g M122), collapse >= 1.207 (gap
+     0.002). Upstream's "wider gap than committed" holds by ~80x.
+  In every collapse the tier is full of unread bytes to 0.04%, on both boxes, at both sizings.
+  Decomposition (secondary, no prediction): committed - resident is 9.3-26.9 GB against
+     inflight bounds of 1.25 GB (auto) and 15 GB (600). It does not close on c8gn either, in
+     clean cells as well as collapsed ones. auto peak committed identical to the BYTE across
+     reps (92769615872, 120292638720).
