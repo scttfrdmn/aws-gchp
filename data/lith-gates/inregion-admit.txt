@@ -134,3 +134,179 @@ and which I have not looked at. Committed before looking.
   REFUTER: a wedge in L8, C or W at >10% of samples kills H_WEDGE -- those working sets
   are 1.9-7.5x the tier, so if they wedge too, close-time residue is not what is filling
   the pool and some other charge is.
+
+================================================================================
+RESULTS
+================================================================================
+P1 WINDOW — CONFIRMED, integer-exact, from the #302 gauge sampled at 5-10 Hz:
+  OLD median window 30 (climbing 30 -> 32 -> 35 -> 37 -> 44 -> 61 -> 223 as readers
+  finish: the non-stationary divisor, trap 2 of my own list, visible in the series),
+  NEW flat 223 in every sample of every cell. The merge took effect.
+
+P2 ADMISSION BINDS — CONFIRMED, so the arm is valid. refused_total 6,471-6,480 at
+  N=16, and exactly 0 at N=2, which is the first hint of the whole result.
+
+P3 COMMITTED PLATEAU — CONFIRMED and then some. OLD peaks at 4.103 GB, NEW at
+  4.127829504 GB = the budget to the byte. POS peaks at 8.2487 GB = the entire
+  mem-cache tier.
+
+THE HEADLINE: BYTE ADMISSION IS 2.6-11x SLOWER THAN THE DIVISOR IT REPLACED, AND
+BOTH OF UPSTREAM'S FALSIFIERS ARE CLEAN
+
+  Medians of 2 reps. OLD = 52138ee, NEW = 7a8b38e; the only functional commit between
+  them is ceeb2b7 (#308 is docs plus a log-only bindingBound helper, checked).
+
+  arm    N  COVERED  OLD s   NEW s  NEW/OLD   pred cov%  meas cov%  refused  GETs x
+   L2    2    2.21    4.37    3.87    0.89x     100.0      100.0        0     0.92
+   D    16   14.91   48.09   44.32    0.92x      93.2       94.5      917     1.42
+   W    31   14.91   63.33  165.57    2.61x      48.1       50.4     6844     4.93
+   C    16    2.21   33.58  190.06    5.66x      13.8       17.5     6471     6.77
+   L8    8    2.21   12.42   87.75    7.07x      27.6       35.7     2511     4.48
+   L3    3    2.21    5.97   63.20   10.58x      73.6       79.8      302     1.94
+   L4    4    2.21    7.07   77.98   11.03x      55.2       63.7      720     2.81
+
+  F1 RE-DISPATCH: clean. Byte form, every NEW cell within +0.5% of the working set.
+     The 0.49% excess at C is 295,698,432 B = 282 chunks of 1 MiB EXACTLY, which
+     cross-validates the two counters against each other; 282 double-fetches in 57,301
+     is not a thrash signature and I am not calling it one.
+  F2 EVICTION: clean, and more than clean -- evicted_unread is 0 in all 14 NEW cells.
+     The only non-zero values in the whole gate are 20 and 30, in OLD.
+  F3 STARVATION, which upstream did not name: FIRES in 4 of 7 arms, at up to 14x the
+     OLD spread. Per-reader wall spread within a single cell reaches 18.4x (L4): some
+     readers finish in 4 s and others in 78 s of the same cell.
+
+  So the change passes every check upstream proposed and is up to 11x slower. This is
+  the FOURTH instance on this issue of the same lesson, and the largest: bytes and
+  requests being near-identical is a true and insufficient regression gate. Here bytes
+  are +0.5% and the wall is 11x.
+
+MECHANISM 1 — THE COVERAGE RATIO, WHICH IS ARITHMETIC ON TWO NUMBERS #308 ALREADY PRINTS
+  Admission is a prefix: blockstore.go takes chunks in order and the FIRST refusal ends
+  the block. So a handle that cannot fit a full window gets NO prefetch, not a shallower
+  one. The divisor sized every handle to budget/N and covered all N shallowly; admission
+  covers floor(budget/window_commit) of them fully and starves the rest to synchronous
+  1 MiB demand reads.
+
+      COVERED = prefetch_budget_bytes / window_commit_bytes
+      covered fraction = min(1, COVERED/N)
+
+  Both terms are in the mount's own new log line:
+      "prefetch bounds" window_blocks=223 window_commit_bytes=1870659584
+                        prefetch_budget_bytes=4127829504 binding="--inflight-bytes"
+  4127829504/1870659584 = 2.21. The budget admits TWO full windows. At 16 readers, 14 get
+  nothing, and the log says binding="--inflight-bytes" without mentioning it.
+
+  Predicted vs measured covered fraction, 7 arms, no fitted parameters: 13.8/17.5,
+  27.6/35.7, 48.1/50.4, 55.2/63.7, 73.6/79.8, 93.2/94.5, 100/100. Measured runs 1-8 pp
+  above predicted in every arm -- the model is a floor, as it should be, since a covered
+  reader's commitment is released as it consumes and partially re-admitted by others.
+  A starved reader gets 19-32 MB/s where OLD's aggregate is 1,200-1,800 MB/s: ~2% of the
+  available bandwidth, which is single-stream synchronous 1 MiB GET latency and nothing
+  else. GETs/chunk confirms it: OLD coalesces 7.75 chunks per GET, NEW 1.15.
+
+  THE KNEE IS EXACTLY AT COVERED. L2 (N=2 <= 2.21) is identical to OLD in every counter
+  -- issued 7,135 both, refused 0, 925 GETs both -- and 0.89x the wall. L3 (N=3 > 2.21)
+  is 10.58x slower. Two readers nothing, three readers catastrophic.
+
+  AND IT IS NOT MY FLAG. Every banked cell of this campaign sets --nic-gbps 50, which
+  inflates maxReadahead from this box's default 33 to 223 and so inflates the quantum
+  6.8x. So I ran the default: imds-estimate gives 7.5 Gbps, window 33,
+  window_commit_bytes 276,824,064, COVERED 14.91. Arm D (N=16 <= 14.91, near parity) is
+  0.92x -- NEW slightly FASTER, the predicted null. Arm W sets no bandwidth flag at all
+  and simply adds readers to 31 > 14.91: the regression returns at 2.61x. The failure
+  condition is a ratio, not a flag, and it is reachable at the shipping default by
+  opening enough concurrent readers.
+
+MECHANISM 2 — COMMITMENT IS NEVER RELEASED AT HANDLE CLOSE, SO THE POOL RATCHETS
+  Found because one thing in rep 1 did not fit mechanism 1: at L3 the two covered readers
+  finish at 4.9 s, which should free the pool, yet the third still takes 64 s. The sampler
+  says why. With ONE open handle on the mount, committed climbs to 4,127.3 MB and sits
+  pinned at the cap for the last 36 of 64 s. One handle's legitimate maximum is
+  window_commit_bytes = 1,870.7 MB. It is holding 2.21x that.
+
+  Verified in code rather than inferred: Release() (internal/fuse/fs.go:1075) deletes the
+  handle and records prefetch stats and calls nothing that releases committed bytes. The
+  only dropPrefetched callers are blockstore.go:492 (evict), :910 and :944 (consume /
+  failed fill). Close is none of those. So a handle that closes with outstanding
+  prefetched-unread chunks leaves those bytes charged indefinitely, and if the working set
+  fits the memory tier, eviction never fires and the charge never clears.
+
+  This is a CONSERVATION violation and needs no wall time to detect:
+      committed > open_handles x window_commit_bytes   is impossible by design.
+
+  H_WEDGE was pre-registered on rep 1 and tested on rep 2 (above, commit cef4b1c).
+  Fraction of sampled instants violating conservation, rep 2:
+      L3 92% (worst 2.21x)   L4 91% (2.21x)   L2 59% (1.85x)
+      W   3% (worst 14.91x)  L8 2%   C 0%   D 0%
+  6 of 7 as predicted, and THE MISS IS THE USEFUL PART. I predicted L2 exempt because
+  COVERED >= N leaves nobody to starve. L2 has no starvation and no wall cost (0.89x) --
+  and it has the leak anyway, 59% of samples. So clause (b) of H_WEDGE was wrong and the
+  two things separate cleanly:
+
+      THE LEAK occurs iff working set <= --mem-cache, i.e. iff eviction never reclaims.
+        L2 4 GiB, L3 6 GiB, L4 8 GiB -> 59/92/91%.  L8 16 GiB, C 60 GB, D 60 GB,
+        W 62 GB -> 0-3%.  7/7 on that rule alone.
+      THE HARM additionally needs COVERED < N. L2 has the leak and is harmless; L3/L4
+        have the leak and are 10.6x/11.0x.
+
+  The worst single instance is in W, at the shipping default: ONE handle holding the
+  entire 4.128 GB pool against a 276.8 MB window commitment, 14.91x. That ratio is
+  COVERED again, necessarily -- one handle can hold at most the whole pool, which is
+  COVERED of its own windows -- so the same number governs both mechanisms.
+
+  WHY THIS IS WORSE THAN RATIONING, for a real workload: the ratchet is driven by the
+  number of handles OPENED OVER TIME, not by how many are open at once. A netCDF reader
+  that opens and closes thousands of files, each with readahead outstanding at close,
+  charges residue every time. The divisor's bug THROTTLED; this one WEDGES.
+
+POSITIVE CONTROL — THE BOX CAN THRASH, SO THE NULL IN F2 IS REAL
+  POS (--prefetch-budget 30GB, cap above the whole 8.256 GB tier) at N=16:
+  evicted_unread 46,406 against a floor of 0, used/issued 2,766/57,045 = 4.85%
+  follow-through, and 374.63 GB fetched to deliver 43.76 GB of reads = 8.56x
+  amplification. 46,406/57,045 = 81.3% of prefetch evicted unread, which lands inside
+  upstream's own 81-92% from bench/prefetch-divisor -- their result reproduced on real S3
+  from the opposite direction, by loosening the cap instead of deleting the rationing.
+  Trap 1 is retired for this box: a null in F2 is not NIC-manufactured, because the same
+  box and the same 16 readers produce 46,406 evictions when the cap is loosened.
+  DISCLOSURE: I terminated POS's readers at 902 s with 72.8% of the reads delivered. The
+  control had already fired and the remaining arms were the decisive ones; its wall is
+  therefore a lower bound and is not used in any comparison.
+
+AND THE POSITIVE CONTROL BREAKS F1 AS UPSTREAM STATED IT
+  In the real thrash regime, issued PLATEAUS at exactly 57,045 -- the same value as the
+  clean OLD run -- because an evicted chunk is re-read as an UNCOVERED DEMAND read, not
+  as a second prefetch. uncovered goes to 300,239 and s3_bytes to 8.56x, and issued never
+  moves. So "issued exceeding total-chunks-minus-the-demand-prefix" cannot detect
+  re-dispatch in the regime it was written for. The byte form (s3_bytes vs working set)
+  detects it immediately. I had flagged the byte form as preferable because it needs no
+  prefix estimate; the control shows the chunk form is not merely awkward but blind.
+
+WHAT I GOT WRONG, AND IT IS THE LOAD-BEARING THING
+  The argument that decided this merge was mine: "candidate 3 is a strict generalization
+  -- it coincides with the divisor where the divisor is right (16 concurrent readers,
+  4.027 vs 4.128 GB, within 2.4%) and fixes it where it is wrong (idle handles, 241x)."
+  Upstream said so explicitly: "your 'strict generalization' framing is what decided it."
+
+  The 2.4% is true and it is the wrong comparison. It compares AGGREGATE TOTALS, and what
+  the divisor was providing was an ALLOCATION DISCIPLINE: 16 x 30 blocks covers sixteen
+  readers shallowly; 2 x 223 + 14 x 0 commits the same total and covers two. Equal totals,
+  opposite outcomes. I checked that the budget still fits and never asked how it is
+  distributed, and "strict generalization" was exactly the wrong frame -- admission is not
+  a superset of the divisor's behaviour, it is a different allocator that happens to agree
+  on one scalar.
+
+  Candidate 1 ("don't charge idle handles"), which upstream ruled out on my Result 3 and
+  which I called a no-op on this shape, is now the one indicated: keep the division --
+  that is the share, and the share is what was load-bearing -- and fix only the divisor's
+  input, counting established sequential streams instead of open descriptors. My Result 3
+  showed the divisor conserves the RAM fraction; it did not show the PROXY had to go.
+
+COST  $0.27 of S3 GET requests (679,013 GETs, in-region so no transfer), on a head node
+  that was already running. The expensive cells are the starved ones -- a starved reader
+  issues ~1 GET per MiB where a covered one issues 1 per 8 MiB -- so the regression paid
+  for its own measurement. Campaign running total ~$4.49.
+
+ARCHIVE  data/lith-gates/admit-samples.tgz -- 2 reps x 7 arms x 2 binaries of 5 Hz gauge
+  series, the mount logs including the #308 bounds line, per-reader walls, and the
+  terminated POS cell. All mount logs non-empty (checked; this is the third gate running
+  that check after 5f-L shipped 18 empty ones).

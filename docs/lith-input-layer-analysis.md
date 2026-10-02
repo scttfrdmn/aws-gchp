@@ -4088,6 +4088,103 @@ chunks at *dispatch*, so it rations dispatched-including-in-flight rather than b
 right quantity for admission, but not the same quantity, and worth saying out loud before anyone enforces
 on it.
 
+### Gate 5f-O — the merge my own argument carried is 2.6–11× slower, and both of its falsifiers are blind (2026-10-01)
+
+Upstream merged byte admission as `ceeb2b7`: `BlockStore.admitCommitted` reserves a chunk's bytes against
+`--prefetch-budget` with a CAS and refuses what won't fit; `perHandleWindow` stops dividing by the
+open-descriptor count. They were explicit about what decided it — *"your 'strict generalization' framing is
+what decided it — the gate couldn't discriminate, so the argument had to"* — and then asked for exactly one
+thing back: re-run 5f-M arm A, 16 concurrent readers over 60 GB against an 8.256 GB tier, because every
+check they had on the safety half was weaker than that arm.
+
+It regresses. Medians of two reps, `OLD` = `52138ee` (the divisor), `NEW` = `7a8b38e` (the only functional
+commit between them is `ceeb2b7`; `#308` is docs plus a log-only helper, checked):
+
+| arm | N | COVERED | OLD s | NEW s | NEW/OLD | predicted cov% | measured cov% | refused |
+|---|---|---|---|---|---|---|---|---|
+| L2 | 2 | 2.21 | 4.37 | 3.87 | **0.89×** | 100.0 | 100.0 | 0 |
+| D | 16 | 14.91 | 48.09 | 44.32 | **0.92×** | 93.2 | 94.5 | 917 |
+| W | 31 | 14.91 | 63.33 | 165.57 | 2.61× | 48.1 | 50.4 | 6844 |
+| C | 16 | 2.21 | 33.58 | 190.06 | 5.66× | 13.8 | 17.5 | 6471 |
+| L8 | 8 | 2.21 | 12.42 | 87.75 | 7.07× | 27.6 | 35.7 | 2511 |
+| L3 | 3 | 2.21 | 5.97 | 63.20 | 10.58× | 73.6 | 79.8 | 302 |
+| L4 | 4 | 2.21 | 7.07 | 77.98 | **11.03×** | 55.2 | 63.7 | 720 |
+
+Both of upstream's named falsifiers are clean. Re-dispatch: every `NEW` cell is within +0.5% of the working
+set, and the 0.49% excess at C is 295,698,432 B = 282 chunks of 1 MiB *exactly*, which cross-validates the
+two counters rather than indicting the change. Eviction: `evicted_unread` is **0 in all 14 `NEW` cells** —
+the only non-zero values in the whole gate are 20 and 30, in `OLD`. The falsifier that fired is the one I
+added and upstream didn't name: per-reader wall spread inside a single cell reaches **18.4×**, some readers
+finishing in 4 s and others in 78 s of the same run. Fourth and largest instance of the campaign's recurring
+lesson — bytes +0.5%, wall 11×.
+
+**Mechanism 1, the coverage ratio, is arithmetic on two numbers `#308` itself prints.** Admission is a
+*prefix*: the first refusal ends the block, so a handle that can't fit a full window gets *no* prefetch
+rather than a shallower one. `COVERED = prefetch_budget_bytes / window_commit_bytes` = 4127829504/1870659584
+= **2.21**, both terms straight off the new `"prefetch bounds"` log line — which reports
+`binding="--inflight-bytes"` and never mentions that at 16 readers, 14 of them get nothing. `min(1, COVERED/N)`
+predicts measured prefetch coverage across all seven arms with no fitted parameter, running 1–8 pp below
+measured in every one (it's a floor, as it should be). A starved reader gets 19–32 MB/s against `OLD`'s
+1,200–1,800 MB/s aggregate — ~2% of available bandwidth, which is single-stream synchronous 1 MiB GET
+latency and nothing else; `OLD` coalesces 7.75 chunks per GET, `NEW` 1.15. The knee sits exactly at COVERED:
+**L2 is identical to `OLD` in every counter** (issued 7,135 both, refused 0, 925 GETs both) and L3 is 10.58×.
+Two readers nothing, three readers catastrophic.
+
+And it is not an artifact of the `--nic-gbps 50` every banked cell of this campaign sets — which does inflate
+`maxReadahead` from this box's default 33 to 223, and the quantum 6.8× with it. At the stock default
+(`imds-estimate` 7.5 Gbps, window 33, COVERED 14.91), arm D at N=16 ≤ 14.91 is **0.92× — slightly faster,
+the predicted null** — and arm W sets no bandwidth flag at all and just adds readers to 31 > 14.91, where
+the regression returns at 2.61×. The failure condition is a ratio, reachable at the shipping default by
+opening enough concurrent readers.
+
+**Mechanism 2 was found because one number didn't fit mechanism 1.** At L3 the two covered readers finish at
+4.9 s, which should free the pool, yet the third still takes 64 s. The sampler says why: with **one** open
+handle, `committed` climbs to 4,127.3 MB and sits pinned at the cap for the last 36 of 64 s, when one
+handle's legitimate maximum is `window_commit_bytes` = 1,870.7 MB. `committed > open_handles ×
+window_commit_bytes` is a conservation violation, detectable with no wall time at all. Verified in code
+rather than inferred: `Release()` (`internal/fuse/fs.go:1075`) deletes the handle and records prefetch stats
+and calls nothing that releases committed bytes; the only `dropPrefetched` callers are `blockstore.go:492`
+(evict), `:910` and `:944` (consume / failed fill). Close is none of those, so a handle closing with
+outstanding prefetched-unread chunks charges those bytes indefinitely — and on a working set that fits the
+memory tier, eviction never fires and the charge never clears.
+
+`H_WEDGE` was pre-registered on rep 1 and tested on rep 2 (commit `cef4b1c`), and went **6 of 7 — with the
+miss carrying the finding**. I predicted L2 exempt because COVERED ≥ N leaves nobody to starve; L2 indeed has
+no starvation and no wall cost, and has the leak anyway in 59% of samples. So the two things separate:
+the **leak** occurs iff working set ≤ `--mem-cache` (L2 4 GiB / L3 6 GiB / L4 8 GiB → 59/92/91%; L8 16 GiB,
+C and D 60 GB, W 62 GB → 0–3%, 7/7 on that rule alone), and the **harm** additionally needs COVERED < N.
+The worst single instance is at the shipping default: one handle in W holding the entire 4.128 GB pool
+against a 276.8 MB window commitment, **14.91×** — COVERED again, necessarily, since one handle can hold at
+most the whole pool. For a real workload this is worse than rationing, because the ratchet is driven by
+handles *opened over time* rather than open at once: a netCDF reader cycling thousands of files charges
+residue at every close. The divisor's bug throttled; this one wedges.
+
+**The positive control retires my own trap 1 and breaks upstream's F1.** `POS` (`--prefetch-budget 30GB`, cap
+above the whole tier) at N=16 gives `evicted_unread` 46,406 against a floor of 0, 4.85% follow-through, and
+374.63 GB fetched to deliver 43.76 GB — 8.56× amplification, with 81.3% of prefetch evicted unread, inside
+upstream's own 81–92% from `bench/prefetch-divisor`. So this box *can* thrash and the F2 null isn't
+NIC-manufactured. But in that regime `issued` **plateaus at exactly 57,045**, the same value as the clean
+`OLD` run, because an evicted chunk comes back as an uncovered *demand* read, not a second prefetch:
+`uncovered` goes to 300,239 and bytes to 8.56× while `issued` never moves. F1 as stated — "issued exceeding
+total-chunks-minus-the-demand-prefix" — is not merely awkward in its chunk form, it is blind in exactly the
+regime it was written for. (I stopped POS's readers at 902 s with 72.8% delivered; the control had fired and
+its wall is a lower bound, used in no comparison.)
+
+**What I got wrong is the load-bearing part.** The argument that carried this merge was mine: *candidate 3
+coincides with the divisor where the divisor is right — 4.027 vs 4.128 GB, within 2.4% — and fixes it where
+it's wrong.* The 2.4% is true and it is the wrong comparison. It compares aggregate totals, and what the
+divisor provided was an allocation *discipline*: 16 × 30 blocks covers sixteen readers shallowly, 2 × 223 +
+14 × 0 commits the same total and covers two. I checked that the budget still fits and never asked how it is
+distributed, and "strict generalization" was precisely the wrong frame — admission isn't a superset of the
+divisor's behaviour, it's a different allocator that agrees on one scalar. Candidate 1, which upstream ruled
+out on my own Result 3 and which I called a no-op on this shape, is the one now indicated: keep the division,
+because the share is what was load-bearing, and fix only its *input* — count established sequential streams
+instead of open descriptors. Result 3 showed the divisor conserves the RAM fraction; it never showed the
+proxy had to go.
+
+$0.27 of in-region GETs (679,013) on an already-running node, and the starved cells paid for their own
+measurement — a starved reader issues ~1 GET per MiB where a covered one issues 1 per 8 MiB.
+
 ### The caveat, which cuts toward the finding rather than away
 
 Three open handles here against ~600 in capture 2. The window is
