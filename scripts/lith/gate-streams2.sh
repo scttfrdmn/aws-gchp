@@ -67,7 +67,7 @@ run_cell() {
   N=$((N + 1)); local PORT=$((PORT_BASE + N))
   rm -f "$OUT/$tag.walls" "$OUT/$tag.stop"
   umount_wait
-  "$B" mount "$PREFIX" "$MNT" --metrics ":$PORT" --nic-gbps 50 \
+  "$B" mount "$PREFIX" "$MNT" --metrics ":$PORT" --nic-gbps "${NICG:-50}" \
       --log-level "$LOGLVL" "${xf[@]}" > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
   if ! mountpoint -q "$MNT"; then echo "$tag MOUNT FAILED"; tail -n 3 "$OUT/$tag.mount.log"; return 1; fi

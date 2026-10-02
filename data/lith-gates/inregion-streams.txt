@@ -375,3 +375,45 @@ already earned; and if it OOMs too, the additive relation is confirmed a second 
 different tier, which is the stronger reading of a failure.
 
 COST  4 ladder N values + 1 tier cell, 2 reps, 15-60 GB per cell, ~$0.01 total, same box.
+
+--------------------------------------------------------------------------------
+PRE-REGISTERED (5f-P2d): IS THE BREACH CONDITIONAL ON MY OWN --nic-gbps?
+written after the ladder and the tier control, before the cell ran. This one is aimed at my
+own result, because if it comes out the way the arithmetic says, the regression I just
+reported upstream does not happen on a correctly configured mount.
+--------------------------------------------------------------------------------
+
+The ladder's aggregate rate saturates at 1811 MB/s = 14.5 Gbps, which is this box's real
+rating (c7g.4xlarge, up to 15 Gbps). I set --nic-gbps 50 in every cell, for comparability with
+5f-M, so the mount sized its in-flight allowance from a link 3.3x faster than it has:
+
+    --nic-gbps 50   inflight 1250 MB   window 223 blocks   burst at N=16 = 29.93 GB = 3.63x tier
+    --nic-gbps 15   inflight  375 MB   window  67 blocks   burst at N=16 =  8.99 GB = 1.09x tier
+
+The measured collapse threshold is between 1.44x (N=12, clean) and 1.58x (N=16, collapsed) of
+realized committed. At the HONEST rating the potential burst is 1.09x, below it. So the whole
+3.17x breach may be an artifact of a flag I set, and the honest reading would be that #311
+regresses only a mount that has been told it has 3.3x more bandwidth than it does.
+
+Second, and this bounds everything above: 60 GB at 1811 MB/s is a 33.1 s floor, and OLD's
+N=16 wall was 33.76 s. OLD WAS ALREADY AT THE NIC CEILING. There was never any throughput for
+#311 to win on this arm; the only axis available was fairness and overhead, so arm A on this
+box can detect harm and cannot detect benefit. I should have said that when I reported the
+breach and did not.
+
+CELLS, N=16, 2 reps, --nic-gbps 15, everything else as the baseline: NEW (lith-311) and
+OLD (lith-304), so the ratio is measured at the honest setting rather than inferred.
+
+  CONDITIONAL (what the arithmetic predicts)   NEW/OLD wall in [0.90, 1.15], spread <= 1.3,
+      evicted_unread <= 100 on NEW, both arms within a few percent of the 33.1 s NIC floor.
+      => The breach is REAL BUT CONDITIONAL on an overstated --nic-gbps, I say so at the top
+         of the follow-up, and the defect reduces to: the window ceiling is derived from a
+         user-supplied bandwidth claim, and overstating it is now much more expensive than it
+         was before #311, because the descriptor divisor used to cut it down.
+  UNCONDITIONAL   NEW/OLD >= 1.5 at --nic-gbps 15 as well. => The breach stands at honest
+      settings, which is worse than what I reported, and the burst-vs-tier threshold is not
+      the whole mechanism either, since 1.09x should be safe.
+  I will report whichever of these happens, and the first one is a partial retraction of my
+  own headline.
+
+COST  4 cells x ~60 GB in-region, ~$0.008.
