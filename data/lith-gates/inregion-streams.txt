@@ -792,3 +792,39 @@ Predictions under H-PAGECACHE:
   T2/T4 exploratory: where does establishment break?
 Refuter: T16D fails to establish like T16 => the shared page cache is NOT the mechanism,
 and I say so rather than offering a second story.
+
+--- 5f-P5 results (2 reps, all cells dderr=0) ---
+  cell   rep  wall s   sh_max  s3 GB   issued  uncovered  final handle states          rows Seq
+  T1      1    1.82     1      2.416   2288      16       sequential 1                  98.4%
+  T1      2    1.51     1      2.416   2288      16       sequential 1                  98.4%
+  T2      1    1.73     2      -       -         -        sequential 1, cold 1          -
+  T2      2    1.68     1      2.416   2288      25       sequential 2                  52.9%
+  T4      1   29.7      0      0.538      0      -        cold 4                         0.0%
+  T4      2   31.7      0      0.538      0     974       cold 4                         0.0%
+  T16     1   38.8      0      0.538      0    1249       cold 7, random 9               0.0%
+  T16     2   40.6      0      0.538      0    1337       random 13, cold 3              0.0%
+  T16D    1    2.09    16      1.887   1784      16       sequential 16                 98.4%
+  T16D    2    2.26    16      1.887   2224      16       sequential 16                 98.4%
+  T16X    1   45.0     16     22.469  18872    2557       sequential 16                 98.4%
+  T16X    2   46.6     16     22.418  18624    2756       sequential 16                 98.4%
+  (T2-1 counter line: see p5.log; it established 1 of 2 handles.)
+
+  Hole sizes in T2/T4/T16 traces: every positive gap is a multiple of 131072 (128 KiB, the
+  kernel readahead unit); commonest 128K > 256K > 384K > 512K. T16D: no positive gaps.
+  T16X: 68-70 gaps per cell, ~0 per handle, all states Sequential.
+
+VERDICT: H-PAGECACHE CONFIRMED BY INTERVENTION, both reps.
+  - T16 vs T16D: same object, same binary, same flags; only O_DIRECT differs.
+    sh_max 0 -> 16, issued 0 -> ~2000, wall 39-41 s -> 2.1-2.3 s (~18x).
+  - Establishment breaks between 2 and 4 readers: T2 is marginal (1 of 2, then 2 of 2 at
+    53% Sequential rows), T4 never issues a prefetch.
+  - The S3 counters cannot see it: T16 moved 0.538 GB for 0.512 GB distinct (amp 1.05),
+    the cleanest bytes of any cell -- and the slowest per distinct byte.
+  - Refuter (T16D fails like T16) did not fire.
+  Pre-registered predictions: T1 PASS, T16 PASS, T16D PASS (sh 16, wall 0.05x of T16X --
+  "within 3x" holds, though T16X reads 16x the distinct bytes so it is not a speed
+  comparison), T16X PASS.
+  Mechanism: a block read by one descriptor lands in the shared inode page cache
+  (FOPEN_KEEP_CACHE), the other descriptors' reads of it never reach lith, so each handle's
+  offset stream has 128 KiB-multiple holes and the byte-gap gate holds it in Cold/Random.
+  GCHP's met reads are exactly this shape (many ranks, one file).
