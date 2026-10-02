@@ -1014,14 +1014,13 @@ P6b counters on #318:
      (prefetch.go:436-444), which increments nothing. That is why T4 ends COLD, not Random.
 P6c upstream's #313 pre-registration (tier 8.2557 GB = 2 x budget 4127829504):
   cell  rep  peak unread_resident   / tier   evicted_unread  spread  peak committed
-  M043  1,2  3.263, 3.446 GB        0.40, 0.42    0, 0        1.36    5.97 GB
+  M043  1,2  3.263, 3.446 GB        0.40, 0.42    0, 0        1.36    5.95-5.97 GB
   M122  1,2  5.471, 6.637 GB        0.66, 0.80    0, 0        1.93, 1.52  9.95 GB
   D375  1,2  8.254, 8.254 GB        1.000, 1.000  2870, 2868  3.21, 3.39  11.46 GB
   => PASS for upstream's prediction (clean < 0.9, collapsed >= ~0.95): clean max 0.80,
      collapsed 1.000 -- the tier is FULL of unread bytes, to 0.02%. Separation 0.80 -> 1.00,
      vs committed/tier 1.20 -> 1.39 on the same box. Three cells, one box: c8gn not rerun.
-  Their in-flight explanation of the committed plateau does NOT close: committed - resident =
-     3.20 GB against an inflight bound of 1.25 GB ("binding: --inflight-bytes" in the mount
-     log), so ~2 GB of committed is neither resident nor in flight -- consistent with the
-     never-released ratchet (evicted-unread chunks' commitment), not shown.
+  Observation only, no mechanism claimed: in D375, committed - resident = 11.458 - 8.254 = 3.20 GB,
+     and the mount log's binding bound is --inflight-bytes 1.25 GB. So in-flight bytes alone don't
+     account for the plateau. Its cause is still unidentified (as stated on #313).
   (M122 spread 1.93 in rep 1 with evicted 0: spread alone is not the transient, again.)
