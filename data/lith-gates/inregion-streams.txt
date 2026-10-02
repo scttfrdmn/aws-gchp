@@ -854,3 +854,47 @@ Against the pre-registration:
   threshold on this box lies between 2.36x and 3.62x of tier (one box, one object family;
   not a fitted constant). D375 peak committed is 11.459 GB to the byte in both reps
   (1.39x tier) -- some cap I have not identified binds below the 29.9 GB bound; unexplained.
+
+================================================================================
+GATE 5f-F  pre-registration   (written before the box was staged; no cell run)
+================================================================================
+Box: c8gn.48xlarge (i-0e9f1bd2f53c3b59d, us-east-1c -- 1a had no capacity), 192 cores,
+384 GiB, 600 Gbps (2 cards; lith uses one ENI). lith-315 (1f82fec), STOCK defaults unless
+an arm says otherwise. In-region against s3://gcgrid. Approved by the user; on-demand
+$11.376/h, hard self-terminate at 150 min (cap ~$28), expected ~1 h.
+
+Expected derivation if lith resolves 600 Gbps (the mount log is read BEFORE any arm is
+scored; if it resolves something else every bound below is recomputed from the logged
+value and that recomputation is reported, not hidden):
+  maxRA = 1.5 x (75e9 x 0.2) / 8 MiB = 2682 blocks = 22.5 GB
+  tier  = 25% of MemTotal ~ 99 GB;  budget = 50% of tier ~ 49 GB;  inflight = 15 GB
+
+--- 5f-F1 (#239): one hyperslab reader, A3dyn /U one time slice (as #239), 3 reps ---
+  stated NIC 7.5 / 15 / 50 / 100 Gbps, and auto (stock detection)
+  Prior (#239, v1.1.0, c7g.4xl): 15 -> 6.0x amplification, 7.5 -> 3.5x, wall flat.
+  H239: amplification keeps rising with stated NIC through 100 and auto, while wall is
+        flat (max/min of medians across 50/100/auto < 1.3).
+  Hard ceiling: EOF -> amplification <= objSize/slab_bytes (~34x on 3.78 GB / ~110 MB).
+  Refuter: amplification flat (within 1.25x) from 50 to auto => something other than the
+  NIC (coverage sizing #229/#284, inflight bound) already caps the window, and #239's
+  deeper question is answered NO at this version.
+  Note: lith has changed a lot since v1.1.0, so the 7.5/15 cells are re-measured here and
+  compared only to each other, not to #239's numbers.
+
+--- 5f-F2 (#313/#314): distinct-object ladder, dd of whole objects, 2 reps, stock ---
+  arm    objects (GEOS-FP A3dyn, July 2019 first)   sum of sizes   / tier (~99 GB)
+  L8       8                                         29.9 GB        0.30
+  L32     32                                        120.3 GB        1.21
+  L64     64                                        241.6 GB        2.44
+  L112   112                                        422.3 GB        4.26
+  The 5f-P4 bracket (clean <= 2.36x, collapse at 3.62x; c7g.4xl) predicts:
+    L8   CLEAN    evicted_unread 0, spread < 1.5       <- upstream's 8-reader cell
+    L32  CLEAN    evicted_unread < 1% of issued
+    L64  EXPLORATORY (at the bracket edge)
+    L112 COLLAPSE evicted_unread > 1% of issued AND spread > 2
+  Refuters:  L8 or L32 collapses => the EOF/distinct-object bound is wrong and I withdraw
+             it on #313.  L112 clean => the 5f-P4 bracket does not transfer to a fat NIC
+             (something else -- inflight bytes, the real per-ENI rate -- binds first).
+  #314: lith peak RSS is sampled. Predicted RSS <= tier + peak committed (+ small heap).
+  If cache plus outstanding prefetch pass 384 GiB in L112, OOM is possible; that is
+  recorded as a #314 result, not retried around.

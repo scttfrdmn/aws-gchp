@@ -70,14 +70,23 @@ run_cell() {
   N=$((N + 1)); local PORT=$((PORT_BASE + N))
   rm -f "$OUT/$tag.walls" "$OUT/$tag.stop"
   umount_wait
-  "$B" mount "$PREFIX" "$MNT" --metrics ":$PORT" --nic-gbps "${NICG:-50}" \
+  # NICG=auto drops the flag so lith detects the NIC itself (stock defaults).
+  local nicf=(--nic-gbps "${NICG:-50}"); [ "${NICG:-}" = auto ] && nicf=()
+  "$B" mount "$PREFIX" "$MNT" --metrics ":$PORT" "${nicf[@]}" \
       --log-level "$LOGLVL" "${xf[@]}" > "$OUT/$tag.mount.log" 2>&1 &
+  local lpid=$!
   for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
   if ! mountpoint -q "$MNT"; then echo "$tag MOUNT FAILED"; tail -n 3 "$OUT/$tag.mount.log"; return 1; fi
 
   $PYX "$OUT/sampler.py" "http://127.0.0.1:$PORT/metrics" "$OUT/$tag.samples.csv" \
       "$HZ" "$OUT/$tag.stop" > "$OUT/$tag.sampler.log" 2>&1 &
   local spid=$!
+  # lith RSS high-water (#314: RSS = tier + outstanding prefetch)
+  ( pk=0; while [ ! -f "$OUT/$tag.stop" ]; do
+      r=$(awk '/^VmRSS/{print $2}' "/proc/$lpid/status" 2>/dev/null); r=${r:-0}
+      [ "$r" -gt "$pk" ] && pk=$r && echo "$pk" > "$OUT/$tag.rsskb"; sleep 0.2
+    done ) &
+  local rspid=$!
   sleep 1
 
   local t0 t1 i; local rpids=()
@@ -98,7 +107,7 @@ run_cell() {
     | awk -v t="$tag" '{printf "MET %s %s %s\n", t, $1, $2}' > "$OUT/$tag.met"
   grep -o '"msg":"prefetch bounds".*' "$OUT/$tag.mount.log" | head -1 > "$OUT/$tag.bounds"
 
-  touch "$OUT/$tag.stop"; wait "$spid" 2>/dev/null
+  touch "$OUT/$tag.stop"; wait "$spid" "$rspid" 2>/dev/null
 
   local agg wmin wmax pk
   agg=$(echo "$t1 - $t0" | bc)
@@ -108,7 +117,7 @@ run_cell() {
   pk=$(awk -F, 'NR>1{if($5+0>c)c=$5+0; if($4+0>w)w=$4+0}END{printf "%.0f %d", c, w}' \
         "$OUT/$tag.samples.csv" 2>/dev/null)
   echo "CELL $tag agg_wall=$agg rmin=$wmin rmax=$wmax spread=$(echo "scale=3; $wmax/$wmin" | bc)" \
-       "peak_committed=${pk% *} peak_window=${pk#* } flags=${xf[*]:-none}"
+       "peak_committed=${pk% *} peak_window=${pk#* } peak_rss_GB=$(awk '{printf "%.2f", $1*1024/1e9}' "$OUT/$tag.rsskb" 2>/dev/null) flags=${xf[*]:-none}"
   cat "$OUT/$tag.met"
   umount_wait
 }
