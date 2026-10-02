@@ -4301,6 +4301,135 @@ That is the useful conclusion for our architecture: **#233 needs no action from
 us and should not gate the input-layer decision.** It would become interesting if
 we ever add a bulk-staging path that reads whole met files start to finish.
 
+## Gate 5f-P3 — the divisor on a real GCHP mount: a small two-sided trade, and a 1.60x that wasn't (2026-10-02)
+
+Upstream's `#311` replaced the prefetch divisor's input: `perHandleWindow()` =
+`clamp(budgetBlocks/N, 2, maxReadahead)` where `N` was open file descriptors
+(`len(f.handles)`) and is now established sequential streams
+(`prefetch.Sequential`). `#312` is the acknowledged residual — a handle that
+establishes, reads a little, and then idles keeps its share forever, because the
+detector only transitions on reads.
+
+Upstream asked for one thing and called it cheap and decisive: **how many of the
+descriptors a production mount holds open are simultaneously established
+streams?** They expected roughly 48 against 288. Everything synthetic had been
+run already; what no arm could settle is that a real netCDF open is not one
+`pread` — superblock, B-tree walk, scattered metadata — so it has enough reads in
+it to plausibly establish and enough discontiguity to plausibly not. Only the
+real library on the real files decides.
+
+### The handle counts
+
+Five prefix-scoped lith mounts (`MERRA2/2019/01`, `MERRA2/2015/01`, `HEMCO`,
+`CHEM_INPUTS`, `GEOSCHEM_RESTARTS`), each with its own index and metrics port,
+`--mem-cache 2GB` per daemon because five daemons at the 25%-of-RAM default would
+cap 125% of a 33 GB box that also has to run the model. TransportTracers C24 out
+of the validated 48-rank run directory, with all three rank knobs set by
+`setCommonRunSettings.sh` and the layout validated by `checkRunSettings.sh`.
+
+| ranks | descriptors | streams | streams/descriptors at the peak-descriptor tick |
+|---|---|---|---|
+| 6 | 91 | 25 | 0.275 |
+| 12 | 148 | 47 | 0.318 |
+
+Directionally upstream is right and `#312` is a real term: **68–72% of the
+descriptors GCHP holds open are not established streams.** Two corrections,
+though. The "~288 against ~48" in the issue body is *our* arithmetic — 48 ranks ×
+~6 files — not a measurement, and the measured fraction is about twice it. And
+the fraction is **not stable in rank count**: streams scale nearly linearly in
+ranks (25 → 47) while descriptors scale sublinearly (91 → 148), because part of
+the descriptor count is fixed per mount rather than per rank. Two points don't
+license an exponent, so no single 48-rank number is offered.
+
+Realized windows confirm the stream divisor is the live one (budget here is 1 GB
+per daemon = 119 blocks at 8 MiB, so absolute depths are a property of our
+`--mem-cache`, not of lith's defaults):
+
+| mount | ranks | streams | realized window | what `#304` would have given |
+|---|---|---|---|---|
+| met 2019/01 | 6 | 25 | 4 | 119/65 → floor **2** |
+| met 2019/01 | 12 | 43 | 2 | 119/110 → floor **2** |
+| HEMCO | 12 | 4 | 29 | 119/20 → **5** |
+
+So the stream divisor buys the busiest mount 2 → 3 blocks and the quiet mounts
+5–10 → 29–119. Which immediately raises the only question that matters: **where
+are the bytes?**
+
+### Where the bytes are, and the wall that wasn't
+
+met carries **93.7%** of S3 bytes, the identical share in both arms. HEMCO 5.3%,
+restarts ~1%, the rest ~0%. The mount `#311` helps least carries almost all the
+traffic.
+
+Seven cells at 12 ranks, OLD = `lith-304` (`52138ee`), NEW = `lith-311`
+(`88d0c6f`), run order reversed between reps:
+
+```
+OLD walls: 200, 125, 130, 191 s        NEW walls: 125, 120, 186 s
+```
+
+Both arms are bimodal, with the *same* two modes (~120–130 and ~186–200, a 1.5x
+stall) and mode membership independent of the binary. The first pair looked like
+a **1.60x** regression in OLD — a breach of our own prediction, in the direction
+we'd said we'd rather be wrong in. It did not reproduce; its twin mode then showed
+up in NEW; and the 200 s and 125 s OLD cells are byte-identical in every lith
+counter (3.691 vs 3.690 GB, issued 2589 vs 2591, uncovered 4282 vs 4296, evicted 0
+both), so the 75 s lives entirely outside the input layer. The GCHP log diff is
+only the known benign finalization backtrace, present in three of four cells
+regardless of wall. **Retracted before it was asserted** — one rep short of
+publishing it.
+
+### The counters, which are tight
+
+`distinct_bytes_read` is **3.224 GB in all seven cells** — the workload read
+exactly the same data every time, which is the control that makes the rest
+interpretable. On top of that control, four OLD cells and three NEW cells
+separate with zero overlap on all five derived quantities:
+
+| | amplification | hit % | wasted % | evicted_unread | window at busiest |
+|---|---|---|---|---|---|
+| OLD (n=4) | 1.145–1.150 | 32.2–34.2 | 14.0–14.6 | 0, 0, 0, 0 | 2 |
+| NEW (n=3) | 1.194–1.215 | 36.2–37.3 | 17.1–18.3 | 9, 10, 25 | 3 |
+
+`hit % = used/(used+uncovered)`; `wasted % = 1 − used/issued`. We have not
+established whether those counters are reads or blocks, so they're reported as
+ratios within a fixed workload, not converted to bytes.
+
+**`#311` on a real GCHP mount is a small, reproducible, two-sided trade:** +3.6
+points of prefetch hit fraction, at +4.6% more bytes off S3 and +3.9 points of
+wasted prefetch, with no wall change this harness can resolve.
+
+And one prediction failed usefully. We predicted `evicted_unread = 0` everywhere,
+on the grounds that a 1 GB budget under a 2 GB tier with windows at the floor
+cannot over-commit. It is 0 in 4/4 OLD cells and 9, 10, 25 in 3/3 NEW cells, all
+on met — tiny, but systematic, one-sided, and present only where `#311` granted
+the deeper window. That is the H-BURST over-commitment from gate 5f-P2 appearing
+outside the synthetic arms for the first time.
+
+### The thing that matters more than the divisor
+
+**63–68% of met reads are uncovered in every cell, both binaries.** Prefetch is
+missing roughly two-thirds of GCHP's dominant read stream, and the divisor is
+tuning the other third. Separately, met moved 3.85 GB in 120 s = **32 MB/s**
+against a link that measured 1185–1437 MB/s in gates 5f-L/5f-M, so demand is
+~2.7% of capacity: at 12 ranks on a 16-core head node the run is compute-bound
+and the reads are interleaved, so window *depth* has almost nothing to bind on.
+
+For our own architecture that is the conclusion to carry forward: **the divisor
+is not what limits GCHP's input path, and neither `#311` nor `#312` changes our
+deployment decision.** On an `m8gn.48xlarge` at stock defaults the budget is
+11444 blocks against 125–188 streams, i.e. a 60–91 block window — well clear of
+the 30-block knee gate 5f-M measured — where `#304`'s descriptor divisor would
+have landed at ~29, right at it. That is the real production value of `#311`, and
+it doesn't depend on the fragile exponent. The workload that could actually
+resolve a depth effect is a cold C180 fullchem start, where met, HEMCO and
+restarts land together; that's a cluster job, not a free head-node gate, and
+nothing here claims it.
+
+Cost: ~$0.03 of in-region GETs across nine GCHP cells on an already-running node,
+against a $0.02–0.05 estimate. Gate script `scripts/lith/gate-streams-gchp2.sh`;
+per-cell numbers in `data/lith-gates/inregion-streams.txt`.
+
 ## Provenance
 
 Every number here was measured on 2026-09-14 against live `s3://gcgrid` objects
