@@ -827,3 +827,30 @@ VERDICT: H-PAGECACHE CONFIRMED BY INTERVENTION, both reps.
   (FOPEN_KEEP_CACHE), the other descriptors' reads of it never reach lith, so each handle's
   offset stream has 128 KiB-multiple holes and the byte-gap gate holds it in Cold/Random.
   GCHP's met reads are exactly this shape (many ranks, one file).
+
+--- 5f-P4 remaining arms (lith-315, --nic-gbps 50, stock tier 8.256 GB, 2 reps) ---
+  arm   rep  wall s  spread  peak committed  evicted_unread  issued  uncovered  s3 GB  hard bound
+  M043   1    4.67   1.458    5.954 GB          0             6287     256      6.854   6.85 GB 0.83x
+  M043   2    4.22   1.210    5.950 GB          0             6287     256      6.854
+  M122   1   11.62   1.490    9.924 GB          0            18382     296     19.577  19.5 GB 2.36x
+  M122   2   11.19   1.373    9.962 GB          0            18382     332     19.614
+  D375   1   87.22   2.765   11.459 GB       2003            57045    2543     62.475  29.9 GB(win)
+  D375   2   95.66   3.525   11.459 GB       2826            57045    3395     63.368
+  (S375 rep 1 above: 776 s, nothing prefetched.)
+
+Against the pre-registration:
+  D375  COLLAPSE    PASS  evicted 2003/2826 (>1000), spread 2.77/3.53 (>2). 5f-P2 reproduces
+                          on lith-315, so #315 does not fix the start transient.
+  S375  CLEAN       PASS, VACUOUS  (nothing prefetched; 5f-P5 gives the mechanism)
+  M043  CLEAN       PASS on evicted (0) and peak committed (5.95 <= 6.85 GB);
+                    FAIL on spread in rep 1 (1.458 > 1.3; rep 2 1.210). Spread without
+                    eviction is not the transient; the prediction was too tight.
+  M122  exploratory CLEAN: evicted 0 in both reps, though peak committed (9.9 GB) EXCEEDS
+                    the 8.256 GB tier. A burst above the tier is not by itself a collapse.
+  Refuter (S375/M043 evicted > 100, or peak committed above hard bound): NOT fired.
+
+  NIC-only N_crit = 6.6 predicted all four collapse; 1 of 4 did. The distinct-object,
+  EOF-bounded burst separates them: 0.46x / 0.83x / 2.36x clean, 3.62x collapsed. The
+  threshold on this box lies between 2.36x and 3.62x of tier (one box, one object family;
+  not a fitted constant). D375 peak committed is 11.459 GB to the byte in both reps
+  (1.39x tier) -- some cap I have not identified binds below the 29.9 GB bound; unexplained.
