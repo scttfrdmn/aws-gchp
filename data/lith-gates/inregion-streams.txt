@@ -564,3 +564,59 @@ LIMITS, stated rather than discovered later:
 
 COST  ~$0.03 for 5f-P (estimated $0.02-0.05), plus ~$0.02 for P2/P2b/P2c/P2d, all in-region
 GETs on the already-running gchp-lith-ab head node. No egress, no new instance.
+
+================================================================================
+GATE 5f-P3b  pre-registration        (written before the A/B cells are launched)
+================================================================================
+5f-P3 is measured at two rank counts and the thing I was counting on did NOT hold:
+sh/oh is not stable in rank count, it RISES.
+
+  ranks   descriptors(oh)  streams(sh)   sh/oh at the peak-oh tick
+     6         91              25            0.275
+    12        148              47            0.318
+
+Streams scale ~linearly in ranks (25 -> 47 = 1.88x for 2x ranks); descriptors scale
+sublinearly (91 -> 148 = 1.63x), because a chunk of the descriptor count is fixed per
+mount rather than per rank. So the fraction climbs, and a two-point exponent is not
+something I am willing to push to 48 ranks as a single number.
+
+Realized windows confirm the stream divisor is the live one (budget here is 1 GB per
+daemon = 119 blocks at 8 MiB, because I set --mem-cache 2GB x 5 daemons on a 33 GB box):
+  met  @6: 119/25 = 4.76 -> 4   observed 4      (#304 would give 119/65 = 1.83 -> floor 2)
+  met @12: 119/43 = 2.76 -> 2   observed 2      (#304 would give 119/110 = 1.08 -> floor 2)
+  hemco@12: 119/4 =  29.8 -> 29  observed 29     (#304 would give 119/20 = 5)
+
+That is the uncomfortable number: at 12 ranks the stream divisor gives the met mount
+NOTHING -- 2 blocks either way -- while it lifts the quiet mounts from 5-8 blocks to
+29-119. So #311's benefit on a real GCHP mount is concentrated on the mounts that are
+not doing the reading, and the question of whether it matters is entirely a question of
+where the bytes are.
+
+WHAT IS BEING TESTED, and what would make me wrong:
+
+  P1  met >= 80% of total s3_bytes_total across the five mounts.
+      If met is NOT dominant, the met floor is a curiosity and the headline is instead
+      that #311 lifted the mounts that matter. Captured as final per-mount metrics,
+      which 5f-P3 did not record -- that omission is why this re-run exists.
+
+  P2  GCHP input-phase wall, NEW (#311, 88d0c6f) vs OLD (#304, 52138ee), within +-10%.
+      Reason: at 12 ranks the met window is 2 under BOTH binaries, so the binary cannot
+      change the mount that moves the bytes.
+      FALSIFIER: NEW more than 10% faster => the quiet mounts matter more than I think
+      and #311 helps GCHP materially. I would rather be wrong this way and will say so.
+
+  P3  prefetch_evicted_unread_total = 0 on all five mounts in both arms.
+      Reason: budget 1 GB sits under the 2 GB tier and the windows are at or near the
+      floor, so the H-BURST over-commitment of 5f-P2 cannot arise here. A nonzero count
+      means the burst reaches real workloads too, which would be a bigger finding than
+      anything else in this gate.
+
+Honest scaling caveat, stated BEFORE the result so it cannot be tuned afterwards: the
+absolute windows above are a property of MY --mem-cache 2GB, not of lith's defaults. The
+dimensionless quantity is budgetBlocks/streams. Here 119/43 = 2.8. On an m8gn.48xlarge
+(768 GB, 600 Gbps) at stock defaults the budget is 96 GB = 11444 blocks and maxReadahead
+is 2682, so with somewhere between 125 and 188 streams at 48 ranks the realized window is
+60-91 blocks -- bracketing both ways of extrapolating, and in BOTH cases comfortably above
+the 30-block knee 5f-M measured (223 -> 30 free, 30 -> 7 a cliff). Under #304's descriptor
+divisor the same box lands at ~29, i.e. AT the knee. That is the real production claim and
+it does not depend on the fragile exponent: #311 moves GCHP from the knee to clear of it.
