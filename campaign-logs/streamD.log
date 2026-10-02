@@ -1,0 +1,17 @@
+launched c7a.48xlarge -> i-00c9ee22f5f4b3ef0
+launched m9g.48xlarge -> i-0ca1aee501e24f02c
+launched c8i.48xlarge -> i-069a8455d0054c649
+launched c8g.48xlarge -> i-0d471d7ca8c920200
+launched c8a.48xlarge -> i-09b66fabf6294b7b9
+waiting 210s for boot+compile+run...
+c7a.48xlarge NO_RESULT
+m9g.48xlarge NO_RESULT
+c8i.48xlarge NO_RESULT
+c8g.48xlarge NO_RESULT
+c8a.48xlarge NO_RESULT
+=== STREAM DONE (results in /Users/scttfrdmn/src/aws-gchp/scripts/stream/stream_results.txt); all probe instances terminated ===
+c7a.48xlarge NO_RESULT
+m9g.48xlarge NO_RESULT
+c8i.48xlarge NO_RESULT
+c8g.48xlarge NO_RESULT
+c8a.48xlarge NO_RESULT

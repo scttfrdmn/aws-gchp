@@ -1,6 +1,14 @@
 #!/bin/bash
-# Gate 5f-P3 (lith#301 ask 2 / #312): on a real GCHP mount, how many of the open
-# DESCRIPTORS are established sequential STREAMS?
+# Gate 5f-P3b (lith#301 ask 2 / #311 / #312): 5f-P3 answered the handle-count question at
+# 6 and 12 ranks and the answer raised a sharper one. The stream divisor gives the met mount
+# NOTHING at 12 ranks (window 2 under both binaries) while lifting the quiet mounts 5-8 -> 29-119,
+# so whether #311 helps GCHP is entirely a question of WHERE THE BYTES ARE -- which 5f-P3 failed
+# to record. This run adds per-mount byte accounting and an OLD/NEW A/B at fixed rank count.
+# Predictions and falsifiers are pre-registered in data/lith-gates/inregion-streams.txt.
+#
+# Original 5f-P3 header follows, because the mounts, indexes and run dir are unchanged.
+#
+# On a real GCHP mount, how many of the open DESCRIPTORS are established sequential STREAMS?
 #
 # Upstream's ask, and the one they called cheap and decisive:
 #
@@ -57,7 +65,7 @@ clean_lith() {
            /input-lith/HEMCO /input-lith/CHEM_INPUTS /input-lith/GEOSCHEM_RESTARTS; do
     fusermount3 -u "$m" >/dev/null 2>&1
   done
-  pkill -f "lith-311 mount" >/dev/null 2>&1
+  pkill -f "lith-3[0-9][0-9] mount" >/dev/null 2>&1
   sleep 2
   local left; left=$(mount | grep -c fuse.lith)
   say "  stale fuse.lith mounts after cleanup: $left"
@@ -135,9 +143,10 @@ cat > "$OUT/sampler.py" <<'PY'
 import os, sys, time, urllib.request
 out, hz, stop = sys.argv[1], float(sys.argv[2]), sys.argv[3]
 targets = [a.split("=", 1) for a in sys.argv[4:]]     # name=url
-WANT = ("lith_open_handles", "lith_streaming_handles", "lith_readahead_window_blocks")
+WANT = ("lith_open_handles", "lith_streaming_handles", "lith_readahead_window_blocks",
+        "lith_s3_bytes_total")
 f = open(out, "w")
-f.write("t,mount,open_handles,streaming_handles,window_blocks\n")
+f.write("t,mount,open_handles,streaming_handles,window_blocks,s3_bytes\n")
 t0 = time.time()
 while not os.path.exists(stop):
     for name, url in targets:
@@ -152,9 +161,9 @@ while not os.path.exists(stop):
             p = ln.split()
             if len(p) >= 2 and p[0] in WANT:
                 v[p[0]] = p[1]
-        if len(v) == len(WANT):
-            f.write("%.2f,%s,%s,%s,%s\n" % (time.time() - t0, name,
-                    v[WANT[0]], v[WANT[1]], v[WANT[2]]))
+        if all(w in v for w in (WANT[0], WANT[2], WANT[3])):
+            f.write("%.2f,%s,%s,%s,%s,%s\n" % (time.time() - t0, name,
+                    v[WANT[0]], v.get(WANT[1], "-1"), v[WANT[2]], v[WANT[3]]))
     f.flush()
     time.sleep(1.0 / hz)
 f.close()
@@ -211,6 +220,48 @@ sleep 3
 say "--- GCHP progress markers"
 grep -cE "AGCM Date" "$OUT/gchp.log" 2>/dev/null | awk '{print "  heartbeat lines: " $1}'
 grep -iE "ERROR|forrtl|not found" "$OUT/gchp.log" 2>/dev/null | head -3
+
+say "--- final per-mount metrics (P1/P3: where the bytes are, and whether the burst reaches GCHP)"
+{ set -- $NAMES
+  for p in $PORTS; do
+    curl -s --max-time 5 "http://localhost:$p/metrics" | grep -v '^#' | grep -E \
+      '^lith_(s3_bytes_total|s3_requests_total|distinct_bytes_read|prefetch_issued_total|prefetch_used_total|prefetch_uncovered_total|prefetch_evicted_unread_total|readahead_window_blocks|open_handles|streaming_handles) ' \
+      | awk -v m="$1" '{printf "MET %s %s %s\n", m, $1, $2}'
+    shift
+  done
+} | tee "$OUT/final.met"
+$PYX - "$OUT/final.met" <<'PY2'
+import sys, collections
+d = collections.defaultdict(dict)
+for ln in open(sys.argv[1]):
+    p = ln.split()
+    if len(p) == 4 and p[0] == "MET":
+        d[p[1]][p[2]] = float(p[3])
+tot = sum(v.get("lith_s3_bytes_total", 0) for v in d.values()) or 1
+print("  %-16s %10s %7s %8s %9s %9s" % ("mount", "GB", "share", "requests", "uncovered", "evicted"))
+for m, v in d.items():
+    print("  %-16s %10.3f %6.1f%% %8d %9d %9d" % (m, v.get("lith_s3_bytes_total",0)/1e9,
+          100*v.get("lith_s3_bytes_total",0)/tot, v.get("lith_s3_requests_total",0),
+          v.get("lith_prefetch_uncovered_total",0), v.get("lith_prefetch_evicted_unread_total",0)))
+print("  TOTAL %.3f GB   evicted_unread across all mounts: %d"
+      % (tot/1e9, sum(v.get("lith_prefetch_evicted_unread_total",0) for v in d.values())))
+PY2
+
+say "--- input phase in time (t at which each mount reached 99% of its final bytes)"
+$PYX - "$OUT/handles.csv" <<'PY3'
+import csv, sys, collections
+rows = list(csv.DictReader(open(sys.argv[1])))
+by = collections.defaultdict(list)
+for r in rows:
+    by[r["mount"]].append((float(r["t"]), float(r.get("s3_bytes") or 0)))
+for m, v in by.items():
+    fin = max(b for _, b in v)
+    if fin <= 0:
+        print("  %-16s no bytes" % m); continue
+    t99 = min(t for t, b in v if b >= 0.99 * fin)
+    print("  %-16s final %.3f GB   99%% reached at %6.1f s   mean %.0f MB/s to that point"
+          % (m, fin/1e9, t99, fin/1e6/max(t99, 1e-9)))
+PY3
 
 say "--- per-mount handle counts (max and median over the run)"
 $PYX - "$OUT/handles.csv" <<'PY'

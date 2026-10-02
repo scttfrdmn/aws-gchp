@@ -620,3 +620,104 @@ is 2682, so with somewhere between 125 and 188 streams at 48 ranks the realized 
 the 30-block knee 5f-M measured (223 -> 30 free, 30 -> 7 a cliff). Under #304's descriptor
 divisor the same box lands at ~29, i.e. AT the knee. That is the real production claim and
 it does not depend on the fragile exponent: #311 moves GCHP from the knee to clear of it.
+
+================================================================================
+GATE 5f-P3 / 5f-P3b  RESULTS      2026-10-02, head node, in-region, ~$0.03
+================================================================================
+Seven GCHP cells at 12 ranks (plus one at 6) on the five prefix-scoped lith mounts.
+OLD = lith-304 (52138ee, descriptor divisor). NEW = lith-311 (88d0c6f, stream divisor).
+Run dir is a copy of the validated 48-rank TT dir with all three rank knobs set by
+setCommonRunSettings.sh and validated by checkRunSettings.sh; nothing hand-edited.
+
+--- the handle-count question upstream asked (5f-P3) ---------------------------
+
+  ranks   descriptors(oh)  streams(sh)   sh/oh at the peak-oh tick
+     6         91              25            0.275
+    12        148              47            0.318
+
+Directionally upstream is right and #312 is real: 68-72% of the descriptors GCHP holds
+open are NOT established streams. But the issue body's "~288 descriptors against ~48
+streams" (0.167) came from MY arithmetic -- 48 ranks x ~6 files -- not from a measurement,
+and the measured fraction is roughly twice that and RISING in rank count, because streams
+scale ~linearly in ranks (25 -> 47) while descriptors scale sublinearly (91 -> 148). Two
+points do not license an exponent, so no single 48-rank number is offered; see the bracket
+in the pre-registration.
+
+Realized windows confirm which divisor is live (budget 1 GB/daemon = 119 blocks here):
+  met  @6: 119/25 -> 4 observed 4      met @12: 119/43 -> 2 observed 2
+  hemco@12: 119/4 -> 29 observed 29
+Under #304 the met mount sits at the floor of 2 at both rank counts, so the stream divisor
+buys the busiest mount 2 -> 3 blocks and the quiet mounts 5-10 -> 29-119.
+
+--- P1: where the bytes are.  CONFIRMED (predicted met >= 80%) -----------------
+
+  met 93.7% of S3 bytes, identical share in both arms. hemco 5.3%, restarts 0.9-1.0%,
+  cheminputs and the 2015 met prefix ~0%. So the mount #311 helps least carries almost
+  all the traffic, which is why this gate exists.
+
+--- P2: wall.  NO EFFECT RESOLVABLE, and the harness cannot resolve one -------
+
+  OLD walls: 200, 125, 130, 191 s        NEW walls: 125, 120, 186 s
+
+  BOTH arms are bimodal, with the same two modes (~120-130 and ~186-200, a 1.5x stall),
+  and mode membership is independent of the binary (OLD 2/4 high, NEW 1/3 high). The first
+  OLD cell at 200 s against NEW's 125 s looked like a 1.60x breach of my own prediction in
+  the direction I had said I would rather be wrong in. I was one rep from publishing it.
+  It did not reproduce, its twin mode then appeared in NEW, and the two OLD cells at 200 s
+  and 125 s are byte-identical in every lith counter (3.691 vs 3.690 GB, issued 2589 vs
+  2591, uncovered 4282 vs 4296, evicted 0 both), so the 75 s lives entirely outside the
+  input layer. The GCHP log diff is only the known benign finalization backtrace, which is
+  present in three of four cells regardless of wall. RETRACTED before it was asserted.
+
+--- the counters, which ARE tight: 4 OLD vs 3 NEW, zero overlap on all five --
+
+  cell       s3_GB  distinct  amp    hit%  wasted%  evicted  win@busiest
+  ab-304     3.691    3.224   1.145  34.2    14.1       0        (no samples)
+  ab2-304    3.690    3.224   1.145  34.1    14.0       0         2
+  ab3-304    3.707    3.224   1.150  32.8    14.3       0         2
+  ab4-304    3.698    3.224   1.147  32.2    14.6       0         2
+  ab-311     3.848    3.224   1.194  36.2    17.1      10         3
+  ab2-311    3.873    3.224   1.202  36.8    17.4       9         3
+  ab3-311    3.919    3.224   1.215  37.3    18.3      25         3
+
+  hit% = used/(used+uncovered); wasted% = 1 - used/issued. Unit caveat: I have not
+  established whether these counters are reads or blocks, so they are reported as a
+  ratio within a fixed workload, not converted to bytes.
+  distinct_bytes_read is 3.224 GB in all seven cells -- the workload read exactly the
+  same data every time, which is the control that makes the rest interpretable.
+
+  So #311 on a real GCHP mount is a small, reproducible, two-sided trade:
+    + 3.6 points of prefetch hit fraction   (33.3 -> 36.8 mean)
+    + 4.6% more bytes off S3               (amp 1.147 -> 1.204)
+    + 3.9 points of wasted prefetch        (14.3 -> 17.6)
+  and no wall change this harness can see.
+
+--- P3: FALSIFIED.  The burst reaches a real workload -------------------------
+
+  I predicted evicted_unread = 0 everywhere, on the grounds that a 1 GB budget under a
+  2 GB tier with windows at the floor cannot over-commit. It is 0 in 4/4 OLD cells and
+  9, 10, 25 in 3/3 NEW cells, all on the met mount. Tiny in magnitude, but systematic,
+  one-sided, and present only where #311 granted the deeper window -- which is the 5f-P2
+  H-BURST mechanism showing up outside the synthetic arms for the first time.
+
+--- the thing that matters more than the divisor ------------------------------
+
+  63-68% of met reads are UNCOVERED in every cell, both binaries. Prefetch is missing
+  roughly two-thirds of GCHP's dominant read stream, and the divisor is tuning the other
+  third. Separately, met moved 3.85 GB in 120 s = 32 MB/s against a link that measured
+  1185-1437 MB/s in 5f-M/5f-L, so demand is ~2.7% of capacity: at 12 ranks on a 16-core
+  head node this workload is compute-bound and interleaved, and window DEPTH has almost
+  nothing to bind on. A workload that could resolve a depth effect is a cold C180 fullchem
+  start, where met + HEMCO + restarts land together -- that is a cluster job, not a free
+  head-node gate, and it is not claimed here.
+
+Costs: ~$0.03 of in-region GETs across nine GCHP cells on an already-running node,
+against a $0.02-0.05 estimate.
+
+Harness lessons banked (both cost real time this session):
+  - never scp over a script bash is executing: it shifts the running shell's byte offset
+    and hangs mid-file. Launch each revision from a distinct filename.
+  - `pkill -f <script>` matches the ssh command line running the pkill. Use character
+    classes and exclude $$.
+  - requiring ALL gauges in the sampler silenced it completely on OLD, which predates
+    lith_streaming_handles. An A/B sampler must require only the intersection.

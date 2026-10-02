@@ -1,0 +1,84 @@
+# GCHP Spack scope for AWS ParallelCluster 3.15.0
+# Merged from GCHP's packages.yaml + PCluster 3.15.0 externals
+#
+# Based on GCHP 14.7.1 documentation:
+# - ESMF 8.6.1 (pinned by GCHP)
+# - OpenMPI 4.1.7 (from PCluster 3.15.0, external)
+# - GCC 12.2.0 (built by Spack)
+
+packages:
+  #
+  # Preferred compiler
+  #
+  gcc:
+    version: ["12.2.0"]
+
+  #
+  # ParallelCluster 3.15.0 externals (use system packages)
+  #
+  openmpi:
+    externals:
+    - spec: "openmpi@4.1.7%gcc@11.5.0+atomics~cuda~cxx~cxx_exceptions~java~memchecker+pmi~static~wrapper-rpath fabrics=ofi schedulers=slurm"
+      prefix: /opt/amazon/openmpi
+    buildable: False
+
+  libfabric:
+    externals:
+    - spec: "libfabric@2.4.0 fabrics=efa,tcp,udp,sockets,shm"
+      prefix: /opt/amazon/efa
+    buildable: False
+
+  slurm:
+    externals:
+    - spec: "slurm@23.11.10"
+      prefix: /opt/slurm
+    buildable: False
+
+  #
+  # Core GEOS-Chem/GCHP/HEMCO dependencies (build with Spack)
+  #
+  cmake:
+    version: ["3.30.2"]
+    variants: "~doc~ncurses+openssl+ownlibs~qt"
+
+  esmf:
+    version: ["8.6.1"]
+    variants: "~pio~pnetcdf~xerces"
+
+  hdf5:
+    version: ["1.14.0"]
+    variants: "~doc+mpi+hl+pic+shared+threadsafe"
+
+  netcdf-c:
+    version: ["4.9.2"]
+    variants: "^hdf5~doc+mpi+hl+pic+shared+threadsafe~dap~fsync~hdf4~jna~parallel-netcdf"
+
+  netcdf-fortran:
+    version: ["4.6.0"]
+    variants: "~doc+pic+shared"
+
+  #
+  # Optional analysis tools (build with Spack)
+  #
+  cdo:
+    version: ["2.1.0"]
+    variants: "~doc~proj"
+
+  nco:
+    version: ["5.1.4"]
+    variants: "~doc"
+
+  ncview:
+    version: ["2.1.8"]
+
+  readline:
+    version: ["8.2"]
+
+  #
+  # Settings for all Spack-built packages
+  #
+  all:
+    compiler: ["gcc@12.2.0"]
+    providers:
+      mpi: ["openmpi"]
+    target: ["x86_64"]
