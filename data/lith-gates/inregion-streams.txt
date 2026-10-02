@@ -898,3 +898,25 @@ value and that recomputation is reported, not hidden):
   #314: lith peak RSS is sampled. Predicted RSS <= tier + peak committed (+ small heap).
   If cache plus outstanding prefetch pass 384 GiB in L112, OOM is possible; that is
   recorded as a #314 result, not retried around.
+
+--- 5f-F AMENDMENT (written after F1 auto/L8/L32-auto were seen, before any 600 Gbps cell) ---
+Stock detection on this box resolved 50 Gbps, source "imds-estimate", not 600:
+  ethtool: ENA exposes no speed (sysfs speed = EINVAL); DescribeInstanceTypes: the
+  borrowed gchp-lith-ab head-node role is DENIED ec2:DescribeInstanceTypes (my environment,
+  not lith); so the fallback ran, and lith's imds-estimate gives 50 for c8gn.48xlarge
+  (12x below the rated 600). The estimate is lith's; the denied call is mine.
+  Measured box: MemTotal 389184380 kB; tier (logged budget x2) 99.6 GB; budget 49.8 GB.
+
+Recomputed bounds, stock-as-resolved (50 Gbps): per-handle burst min(1.87 GB, 3.78) =
+  1.87 GB -> L8 15.0 GB 0.15x, L32 59.8 GB 0.60x, L64 120 GB 1.20x, L112 209 GB 2.10x.
+  Prediction (5f-P4 bracket, clean <= 2.36x): ALL CLEAN, L112 weakly (2.10x is near edge).
+  Observed before this amendment, already consistent: L8 peak committed 14.98 GB, L32
+  58.77 GB (the window bound, to 2%), evicted 0, spread 1.11-1.35.
+
+ADDED ARMS at --nic-gbps 600 (the derivation upstream's cell intended): maxRA 2682 = 22.5
+  GB > objSize, so the EOF bound binds: ratios 0.30 / 1.21 / 2.43 / 4.24 of tier, and the
+  ORIGINAL predictions stand (L8, L32 clean; L64 exploratory; L112 COLLAPSE). Plus F1 slab at
+  --nic-gbps 600, 3 reps: H239 predicts amp > 17.65 (the 100 Gbps value); refuter, flat.
+F1 already in (3 reps, identical counters each rep): 7.5 -> 3.48x, 15 -> 5.96x (#239 had
+  3.5x/6.0x -- reproduced), 50 -> 17.34x, 100 -> 17.65x (window 223 -> 447, issued 1888 ->
+  1922 chunks), auto(=50) -> 17.34x; wall 2.47-3.22 s across ALL cells.
