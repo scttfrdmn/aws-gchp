@@ -1026,3 +1026,24 @@ P6c upstream's #313 pre-registration (tier 8.2557 GB = 2 x budget 4127829504):
      ~1.95 GB is unaccounted for. Candidate (NOT tested): the never-released commitment ratchet.
      Peak committed is identical to 1 MB across reps (11.4588 / 11.4578 GB).
   (M122 spread 1.93 in rep 1 with evicted 0: spread alone is not the transient, again.)
+
+GATE 5f-P6d  pre-registration (written before the instance is launched) -- c8gn.48xlarge, ~$12
+Question: does upstream's #313 prediction (resident-unread/tier < 0.9 in every clean cell,
+>= ~0.95 in every collapsed one, wider gap than committed/tier 1.20/1.21) hold on the box where
+committed/tier sat on its knife edge? c7g passed (P6c: 0.80 -> 1.000).
+Binary: lith-318 (main 35daae9, md5 ba06073b2c24). NOTE this is a change from 5f-F (lith-315):
+#318 adds gauges/counters only, but if any 5f-F cell flips clean<->collapse, that is reported as
+a binary difference first, not as a test of the prediction.
+Harness: gate-streams2.sh with RESIDENT=1 (sampler column 7), whole-object dd, distinct A3dyn
+objects (fatnic-a3dyn-objects.txt order), 2 reps, fresh mount per cell.
+  cell        5f-F verdict   5f-F committed/tier   PREDICTION (upstream's)
+  auto L64    clean          0.93                  resident/tier < 0.9
+  auto L112   collapse       1.21                  resident/tier >= 0.95
+  600  L32    clean          0.93                  resident/tier < 0.9
+  600  L64    collapse       1.27                  resident/tier >= 0.95
+Scoring: PASS iff all 8 cell-reps fall on the predicted side. Any clean cell-rep >= 0.9 or any
+collapsed one < 0.95 is a FAIL, reported per cell. Verdict (clean/collapse) is assigned by
+evicted_unread (0 vs > 1000), as in 5f-F, BEFORE reading resident.
+Secondary (no prediction, upstream's decomposition): report committed - resident against the
+mount's inflight_bytes bound per collapsed cell; on c7g it did not close (3.20 vs 1.25 GB).
+Hard cost cap: shutdown -h +120 in user-data; instance terminated on "P6D DONE".
