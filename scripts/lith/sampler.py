@@ -1,7 +1,8 @@
 import os, sys, time, urllib.request
 url, out, hz, stop = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
 WANT = ("lith_open_handles", "lith_streaming_handles", "lith_readahead_window_blocks",
-        "lith_prefetch_committed_bytes", "lith_prefetch_budget_bytes")
+        "lith_prefetch_committed_bytes", "lith_prefetch_budget_bytes",
+        *(("lith_prefetch_unread_resident_bytes",) if os.environ.get("RESIDENT") else ()))
 f = open(out, "w")
 f.write("t," + ",".join(w.replace("lith_", "") for w in WANT) + "\n")
 t0 = time.time()

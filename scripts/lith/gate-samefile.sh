@@ -91,7 +91,8 @@ run_cell() {
   met=$(curl -s "http://127.0.0.1:$PORT/metrics" | grep -v '^#' | awk '
     /^lith_s3_bytes_total /{b=$2} /^lith_prefetch_uncovered_total /{u=$2}
     /^lith_prefetch_used_total /{h=$2} /^lith_prefetch_issued_total /{s=$2}
-    END{printf "s3_GB=%.3f issued=%d used=%d uncovered=%d", b/1e9, s, h, u}')
+    /^lith_prefetch_low_coverage_total /{c=$2}
+    END{printf "s3_GB=%.3f issued=%d used=%d uncovered=%d low_coverage=%s", b/1e9, s, h, u, (c==""?"NA":c)}')
   local shmax; shmax=$(sort -g "$OUT/$tag.sh" | tail -1)
   umount_wait
   echo "CELL $tag readers=$nr distinct=$(printf '%s\n' "${objs[@]}" | sort -u | wc -l)" \
@@ -115,6 +116,8 @@ print("  trace: %d rows over %d handles   reads-with-hole/handle: min %.2f med %
 print("  final state per handle: %s   rows in Sequential: %.1f%%"
       % (dict(final), 100.0 * seq / max(len(rows), 1)))
 print("  commonest positive gaps (bytes x count): %s" % gaps.most_common(4))
+bs = 8 << 20
+print("  gaps > one block (8 MiB, the gap gate): %d of %d positive gaps" % (sum(c for g, c in gaps.items() if g > bs), sum(gaps.values())))
 PY
 }
 

@@ -116,8 +116,10 @@ run_cell() {
   # Peak committed bytes and peak window: the two quantities the hypotheses disagree about.
   pk=$(awk -F, 'NR>1{if($5+0>c)c=$5+0; if($4+0>w)w=$4+0}END{printf "%.0f %d", c, w}' \
         "$OUT/$tag.samples.csv" 2>/dev/null)
+  # RESIDENT=1: peak unread_resident_bytes (#318), column 7 when the sampler carries it
+  local pr=""; [ -n "${RESIDENT:-}" ] && pr=" peak_unread_resident=$(awk -F, 'NR>1&&$7+0>r{r=$7+0}END{printf "%.0f", r}' "$OUT/$tag.samples.csv")"
   echo "CELL $tag agg_wall=$agg rmin=$wmin rmax=$wmax spread=$(echo "scale=3; $wmax/$wmin" | bc)" \
-       "peak_committed=${pk% *} peak_window=${pk#* } peak_rss_GB=$(awk '{printf "%.2f", $1*1024/1e9}' "$OUT/$tag.rsskb" 2>/dev/null) flags=${xf[*]:-none}"
+       "peak_committed=${pk% *} peak_window=${pk#* } peak_rss_GB=$(awk '{printf "%.2f", $1*1024/1e9}' "$OUT/$tag.rsskb" 2>/dev/null)$pr flags=${xf[*]:-none}"
   cat "$OUT/$tag.met"
   umount_wait
 }

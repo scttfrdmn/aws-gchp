@@ -993,3 +993,35 @@ P6c (head node): upstream's own pre-registration on #313 --
   Cells available free on c7g.4xl: M043, M122 (clean), D375 (collapsed), 2 reps, the new
   gauge sampled at 5 Hz. Refuter (theirs): collapsed D375 with peak resident-unread well
   below tier. The c8gn cells would need a new instance and are NOT run without approval.
+
+--- 5f-P6 RESULTS (head node, $0 instance; lith main 35daae9 = #318, md5 ba06073b2c24) ---
+P6a offline coverage (recordRead re-implemented, W=16), median per handle, 2 reps:
+  T1 1.000/1.000  T2 0.578, 0.532 (41-48% of reads < 0.5)  T4 0.267, 0.270  T16 0.068, 0.068
+  T16D 1.000  T16X 1.000.       1/N = 1, 0.5, 0.25, 0.0625.
+  => Upstream's attribution PASSES, and 1/N is the law to within ~8%. My "byte-gap gate"
+     attribution on #316 was WRONG: T4 has 0 of 4198-4310 gaps over one block.
+P6b counters on #318:
+  cell  rep wall s  sh_max  low_coverage  gaps>8MiB / positive gaps  final states
+  T1    1,2  1.79,1.69  1     0, 0          0/39, 0/40                 seq
+  T2    1,2  1.81,1.88  1,2   0, 0          0/2900, 0/2933             seq 2; cold 1+seq 1
+  T4    1,2  37.2,33.4  0     0, 0          0/4310, 0/4198             cold 4, cold 4
+  T16   1,2  56.7,44.6  0     33, 19        33/4967, 19/5019           random 14+cold 2; 11+5
+  T16D  1,2  1.98,2.14  16    0, 0          0/0                         seq 16
+  => NEW: the new counter reads 0 where the defect is purest (T4). low_coverage counts ONLY
+     the #221 seek-path rejection (prefetch.go:484-488), and equals the over-block gap count
+     exactly (33=33, 19=19). The rejection that actually holds T2/T4/T16 is the #229
+     contiguous-branch check, `if !p.coverageOK(cov) { deEstablish; Cold; return nil }`
+     (prefetch.go:436-444), which increments nothing. That is why T4 ends COLD, not Random.
+P6c upstream's #313 pre-registration (tier 8.2557 GB = 2 x budget 4127829504):
+  cell  rep  peak unread_resident   / tier   evicted_unread  spread  peak committed
+  M043  1,2  3.263, 3.446 GB        0.40, 0.42    0, 0        1.36    5.97 GB
+  M122  1,2  5.471, 6.637 GB        0.66, 0.80    0, 0        1.93, 1.52  9.95 GB
+  D375  1,2  8.254, 8.254 GB        1.000, 1.000  2870, 2868  3.21, 3.39  11.46 GB
+  => PASS for upstream's prediction (clean < 0.9, collapsed >= ~0.95): clean max 0.80,
+     collapsed 1.000 -- the tier is FULL of unread bytes, to 0.02%. Separation 0.80 -> 1.00,
+     vs committed/tier 1.20 -> 1.39 on the same box. Three cells, one box: c8gn not rerun.
+  Their in-flight explanation of the committed plateau does NOT close: committed - resident =
+     3.20 GB against an inflight bound of 1.25 GB ("binding: --inflight-bytes" in the mount
+     log), so ~2 GB of committed is neither resident nor in flight -- consistent with the
+     never-released ratchet (evicted-unread chunks' commitment), not shown.
+  (M122 spread 1.93 in rep 1 with evicted 0: spread alone is not the transient, again.)
