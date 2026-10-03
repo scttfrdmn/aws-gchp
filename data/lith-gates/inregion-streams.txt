@@ -1327,3 +1327,11 @@ Upstream's prediction: r = median(ratio 4)/median(ratio 0) <= 1.10 (from bench/e
 Rule: r <= 1.10 -> CONFIRMS (penalty is RTT-driven; default-on in-region is safe for this shape).
       r > 1.10 -> FALSIFIES (ramp is a bottleneck even at 2 ms; needs the consumer-rate term).
 Separation (all 4 on > all 4 off) is reported, not scored. Cost: in-region GETs only, $0.
+
+--- 5f-P9d RESULTS (02:47:43-02:48:18Z, same binary) ---
+  DI0 walls 3.09 2.82 3.05 2.87   median 2.96   3776.8 MB  465 GETs
+  DI4 walls 3.05 3.02 3.25 3.15   median 3.10   3776.8 MB  465 GETs (identical)
+  r = 1.047 -> CONFIRMS (<= 1.10). Not separated: 13/16 pairs have on > off; overlap at 3.02-3.09.
+  Same shape cross-region (P9c) r = 2.35. Penalty +0.14 s (+5%) at 2.2 ms vs +10.7 s (+135%) at 58.6 ms.
+  Consistent with bench/evidence-ratio/ +7.5%. Throughput off: 1.28 GB/s in-region, 0.48 GB/s xregion.
+  Also fixes a placeholder in the P9c record: "in-region 5f-? not re-measured" = this cell.
