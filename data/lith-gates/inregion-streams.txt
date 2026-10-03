@@ -1476,3 +1476,19 @@ Cost: in-region GETs only, $0.
   the same thing (window establishment/ramp on each new handle), present in both arms and lengthened
   by the gate.
   Cost $0.
+
+--- 5f-P9h PRE-REGISTRATION (lith#284, upstream asked 2026-10-03 21:16Z; before any cell ran) ---
+DIAGNOSTIC, no numeric prediction from either side: where does the ~0.47 s per-open intercept
+  (P9f/P9g fits) go? Head node c7g.4xlarge, in-region, lith d0ca3eb (#331: timeline kind=open row;
+  md5 1a78f75b8b81), --nic-gbps 50, --readahead-evidence-ratio pinned 0 and 4 (main now defaults it
+  on in-region, #330), --timeline-csv per mount. scripts/lith/gate-open.sh: one mount per (ratio,
+  rep), n=3, ABBA; per mount dd A3mstC 260 MB whole (cold) then dd A3cld 424 MB (warm, new object).
+Readouts, upstream's order:
+  1. ms from the open row to the first chunk row for that key. ~0.47 s -> the cost is BEFORE any
+     fetch (the open path).
+  2. If (1) is small: sum of wait_ms over the early chunk rows (join-wait spread across the ramp).
+  3. lag_ms on the early rows (negative = never prefetched -> demand-fill TTFB is the floor).
+  4. inflight on the first few reads (a cold burst competing for bandwidth).
+Also, mine: dd wall vs P9f/P9g on the new binary, and dd start/end epochs. That tells me whether
+  any of the intercept sits OUTSIDE the timeline (before the open row, or after the last chunk).
+Cost $0.
