@@ -1167,3 +1167,36 @@ Rule: P-IF holds in every cell -> the decomposition stands, P6c/P6d's "refutatio
   peak-misalignment artifact, and I retract it upstream. P-LD holds -> LEAK-D is the gap; reported
   with the U bound. Neither -> the gap is real and unexplained; reported as such.
 Cost: ~40 GB in-region GETs, ~$0.003 of requests. No instance.
+
+--- 5f-P7 RESULTS (head node c7g.4xlarge, lith-main b801706 md5 c62832b261d0, 01:15-01:19Z, $0) ---
+INSTRUMENT DEFECT, disclosed first: lith_fill_inflight counts only the fill-batch path (fill.go:410,
+  #31), not prefetch fills (Prefetch -> ensureChunks -> fillRun). It read 0 on every scrape of every
+  cell. So I could not be measured for prefetch, and no shipped gauge measures prefetch bytes
+  dispatched-but-not-landed (bs.inflightN exists but is maintained only when timeline != nil).
+  cell    settle G   committed=resident at rest   K vs committed/MiB   max simultaneous G during run
+  F  -1/-2   0 / 0     0 / 0 MiB                   equal                264 / 264 MiB
+  FX -1/-2   0 / 0     0 / 0                       equal                 23 /  23
+  H  -1/-2   0 / 0     271 = 271 (held AND closed)  equal (271)          251 / 257
+  M3 -1/-2   0 / 0     0 / 0                       equal                763 / 685
+  uncovered U = 16 per object in every cell; straddle 0; evicted 0.
+  F-1's max G is at t=0.41 s: committed 264 MiB, resident 0 -- the first window dispatched, nothing
+  landed. M3-1's at t=5.4 s: 794 vs 31 MiB.
+SCORE
+  P-IF  PASS where measurable: G = 0 at rest in all 8 cells (16 snapshots). Its "I = 0" leg was
+        unmeasurable (above), so the in-run gap is CONSISTENT with dispatched-not-landed, not shown
+        to be it.
+  P-LD  FAIL. No leak: committed returns to exactly resident; FX (23) < F (264), not >. LEAK-D's
+        code path was not provoked (U = 16 = the pre-window first block in every cell), so it is
+        unobserved, not ruled out.
+  P-REL PASS. Closing H changed neither committed nor resident (271 -> 271 both). Release does
+        ratchet committed, but the same chunks stay unread-resident, so it opens NO gap.
+  Rule: P-IF holds -> retract the P6d "refutation" upstream. Corrected reason: NOT peak
+        misalignment (peak - peak is a LOWER bound on the max simultaneous gap, so the 9-27 GB
+        gaps did exist at some instant). The error was the bound I compared them against:
+        committed is charged in Prefetch BEFORE fillRun's semaphore waits, and Prefetch runs as one
+        goroutine per block (fs.go:883), so it includes chunks queued for a slot, not only GETs on
+        the wire. --inflight-bytes bounds the wire, not the queue.
+  For #320 option 1 ("derive committed := unread_resident + in_flight, both already tracked"):
+        in_flight is NOT tracked for prefetch in a shipped gauge.
+  Not shown: the c8gn end state. The P6d sample CSVs went with the instance; only p6d.log kept.
+  Artifacts: data/lith-gates/p7/ (p7.log + 8 sample CSVs), scripts/lith/gate-p7.sh.
