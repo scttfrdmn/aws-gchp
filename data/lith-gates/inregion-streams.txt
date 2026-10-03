@@ -1200,3 +1200,21 @@ SCORE
         in_flight is NOT tracked for prefetch in a shipped gauge.
   Not shown: the c8gn end state. The P6d sample CSVs went with the instance; only p6d.log kept.
   Artifacts: data/lith-gates/p7/ (p7.log + 8 sample CSVs), scripts/lith/gate-p7.sh.
+
+--- 5f-P8 PRE-REGISTRATION (lith#316 attribution check, requested 2026-10-03 01:46Z). Written
+    BEFORE any cell ran. Head node c7g.4xlarge, lith-main b801706 (has --prefetch-coverage-min and
+    lith_prefetch_coverage_held_total), gate-samefile.sh, 512 MiB per reader, REPS=2. ---
+Upstream's claim: the #221 COVERAGE gate (covMin 0.5), not the byte-gap gate, holds same-object
+  readers provisional; trailing coverage ~1/N, so lowering covMin below 1/16 = 0.0625 admits T16.
+  (P6b measured T16 per-handle coverage 0.068, above 0.05.)
+Arms, one object (GEOSFP.20190701.A3dyn), 16 dd readers, page cache untouched unless stated:
+  T16   default covMin              control: expect the P5 shape (0 handles Sequential)
+  T16C  --prefetch-coverage-min 0.05, NO O_DIRECT        the test
+  T16D  iflag=direct, default covMin                     positive control (P5: 16/16)
+Observable: handles ever Sequential per --pf-trace (primary), sh_max, coverage_held, wall.
+Rule (upstream's, verbatim in effect):
+  CONFIRMS  T16C has 16 of 16 handles reach Sequential in BOTH reps.
+  REFUTES   T16C fails that in either rep -> the attribution is wrong.
+  Void if T16 is not held (control) or T16D does not establish 16/16 (positive control).
+  Wall and amplification are reported, not scored (this is attribution, not benefit).
+Cost: ~3 arms x 2 reps x 8 GB logical (deduped by page cache for T16/T16C), $0 instance.

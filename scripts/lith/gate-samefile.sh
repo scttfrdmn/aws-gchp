@@ -51,7 +51,7 @@ N=0
 run_cell() {
   local arm=$1 rep=$2 tag="$1-$2" nr objs=() ddx=() i
   case "$arm" in
-    T1) nr=1 ;; T2) nr=2 ;; T4) nr=4 ;; T16|T16D|T16X) nr=16 ;;
+    T1) nr=1 ;; T2) nr=2 ;; T4) nr=4 ;; T16|T16D|T16X|T16C) nr=16 ;;
     *) echo "unknown arm $arm"; return 1 ;;
   esac
   for ((i = 0; i < nr; i++)); do
@@ -59,11 +59,13 @@ run_cell() {
     else objs+=("$ONE"); fi
   done
   [ "$arm" = T16D ] && ddx=(iflag=direct)
+  # T16C (#316, 5f-P8): coverage threshold lowered, page cache untouched
+  local mf=(); [ "$arm" = T16C ] && mf=(--prefetch-coverage-min "${COVMIN:-0.05}")
 
   N=$((N + 1)); local PORT=$((PORT_BASE + N))
   rm -f "$OUT/$tag".*
   umount_wait
-  "$B" mount "$PREFIX" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level info \
+  "$B" mount "$PREFIX" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level info "${mf[@]}" \
       --pf-trace "$OUT/$tag.trace.csv" > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
   mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED"; tail -n 3 "$OUT/$tag.mount.log"; return 1; }
@@ -91,8 +93,8 @@ run_cell() {
   met=$(curl -s "http://127.0.0.1:$PORT/metrics" | grep -v '^#' | awk '
     /^lith_s3_bytes_total /{b=$2} /^lith_prefetch_uncovered_total /{u=$2}
     /^lith_prefetch_used_total /{h=$2} /^lith_prefetch_issued_total /{s=$2}
-    /^lith_prefetch_low_coverage_total /{c=$2}
-    END{printf "s3_GB=%.3f issued=%d used=%d uncovered=%d low_coverage=%s", b/1e9, s, h, u, (c==""?"NA":c)}')
+    /^lith_prefetch_low_coverage_total /{c=$2} /^lith_prefetch_coverage_held_total /{q=$2}
+    END{printf "s3_GB=%.3f issued=%d used=%d uncovered=%d low_coverage=%s coverage_held=%s", b/1e9, s, h, u, (c==""?"NA":c), (q==""?"NA":q)}')
   local shmax; shmax=$(sort -g "$OUT/$tag.sh" | tail -1)
   umount_wait
   echo "CELL $tag readers=$nr distinct=$(printf '%s\n' "${objs[@]}" | sort -u | wc -l)" \
@@ -113,6 +115,8 @@ gaps = collections.Counter(int(r["gap"]) for r in rows if int(r["gap"]) > 0)
 seq = sum(1 for r in rows if r["state_after"].lower().startswith("seq"))
 print("  trace: %d rows over %d handles   reads-with-hole/handle: min %.2f med %.2f max %.2f"
       % (len(rows), len(by), min(holes), sorted(holes)[len(holes)//2], max(holes)))
+est = sum(1 for v in by.values() if any(r["state_after"].lower().startswith("seq") for r in v))
+print("  handles ever Sequential: %d of %d" % (est, len(by)))
 print("  final state per handle: %s   rows in Sequential: %.1f%%"
       % (dict(final), 100.0 * seq / max(len(rows), 1)))
 print("  commonest positive gaps (bytes x count): %s" % gaps.most_common(4))
