@@ -1397,3 +1397,44 @@ Rule: both inside their bands -> #232 EXPLAINED as one round trip per miss (re-s
   Which band the original 109 ms matches is reported, not scored.
 max_background (#326): no lith flag exists for it, so no second arm.
 Cost: copy ~0.9 GB to us-west-2 (~$0.02) + ~1.4 GB cross-region reads (~$0.03); est. < $0.10.
+
+--- 5f-P9f RESULTS (head node c7g.4xlarge, 04:01:10-04:02:22Z, same binary; dd-only wall, n=6) ---
+                    off median  on median   r      abs     pairs on>off   r drop-rep1
+  260 MB (SCORED)     0.655       0.790    1.206  +0.135     30/36          1.219
+  424 MB              0.795       0.865    1.088  +0.070     27/36          1.063
+  733 MB              0.975       1.100    1.128  +0.125     24/36          1.207
+  3.78 GB (P9d)       2.96        3.10     1.047  +0.14      13/16           -
+  Bytes, GETs, issued == used are identical across arms at every size; amp 1.00.
+  SCORED r = 1.206 -> AMBIGUOUS (1.15 < r < 1.4). Neither ratio prediction holds.
+  But the absolute penalty is flat (+0.07..+0.14 s) over a 14.5x size range. A proportional ramp
+  would have scaled +0.135 s at 260 MB to ~+2.0 s at 3.78 GB, and measured is +0.14 s.
+  -> MECHANISM: fixed ramp, as upstream predicted. The r prediction missed because its
+  baseline model (size / throughput) is wrong. The off arm has its own fixed cost:
+  4-point fit off = 0.50 s + size / 1.55 GB/s. So on this box worst-case r in the exposed band
+  is ~1.24 at 64 MiB, ~1.19 at 256 MB, not 2.2-3.4.
+  Caveats: (1) the 0.50 s intercept is per cold mount + first open; whether a long-lived WARM
+  mount opening a new file keeps it is untested. If it doesn't, r moves back toward upstream's
+  table. (2) Rep 1 off is slow at every size (1.19/1.10/1.74 s: first touch of the object, and
+  off always runs first). Medians absorb it, and drop-rep1 r is shown. (3) c8gn intercept not measured.
+  Cost $0.
+
+--- 5f-P11 RESULTS (head node, 04:02:49-04:16:16Z; stock flags -> nic 7.5 Gbps imds-estimate) ---
+  cell   wall s   ms/fault  p50   p90    p99    max    hits<1ms  s3_MB  GETs  KiB/fault
+  MI-1    99.35    33.12   25.88  79.31 157.56 287.32    598     444.4  2419   145
+  MX-1   315.64   105.21  101.08 181.10 306.80 545.57    598     444.4  2419   145
+  MI-2    94.09    31.36   25.69  70.12 144.31 307.24    598     444.4  2419   145
+  MX-2   293.92    97.97   94.13 165.78 283.99 527.46    598     444.4  2419   145
+  Bytes, GETs and hits are identical across all 4 cells (same page set; deterministic).
+  Cross-region 101.6 ms/fault (mean of 2) -> INSIDE 70-120. In-region 32.2 ms/fault -> just ABOVE
+  the 15-30 band (p50 25.8 inside), well under 60 -> "in between", reported as is.
+  Original #232 (109 ms/fault, 326 s) matches the cross-region cells (98-105 ms, 294-316 s)
+  and is 3.4x the in-region ones. The original was almost certainly cross-region, and #232 is
+  EXPLAINED: one GET round trip per miss. X-I = 69 ms/fault = 86 ms/miss = ~1.5 RTT at 58.6 ms.
+  2402 misses / 2419 GETs = ~1 GET per miss; 181 KiB per MISS (upstream's 220 KiB assumed no
+  hits; 598 of 3000 faults (20%) were served from an earlier fault's read-around).
+  FUSE reads: 2471, 2030 of them 128 KiB.
+  Side finding: the random walk is not 100% Random. 7/2471 reads flipped Random -> Strided on
+  large coincidental gaps, dispatching prefetch 3 times (prefetch_issued=24, s3 444.4 vs
+  distinct 416.9 MB = +27 MB, amp 1.07). Small, but it violates #316's "a random mmap walk must
+  not start prefetching" constraint via the STRIDE detector, not the coverage gate.
+  Cost: ~0.9 GB server-side copy to us-west-2 + ~0.9 GB cross-region reads = ~$0.04. Bucket deleted.

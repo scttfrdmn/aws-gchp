@@ -1,0 +1,10 @@
+=== gate 5f-P11  2026-10-03T04:02:49Z  B=0cbe181ec7e6  GEOSFP.20190701.A3mstC.025x03125.nc faults=3000
+CELL MI-1 faults=3000 wall=99.35 per_fault_ms=33.12 p50=25.88 p90=79.31 p99=157.56 max=287.32 under_1ms=598 s3_MB=444.4 GETs=2419 distinct_MB=416.9 KiB_per_fault=145 prefetch_issued=24
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"imds-estimate"
+CELL MX-1 faults=3000 wall=315.64 per_fault_ms=105.21 p50=101.08 p90=181.10 p99=306.80 max=545.57 under_1ms=598 s3_MB=444.4 GETs=2419 distinct_MB=416.9 KiB_per_fault=145 prefetch_issued=24
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"imds-estimate"
+CELL MI-2 faults=3000 wall=94.09 per_fault_ms=31.36 p50=25.69 p90=70.12 p99=144.31 max=307.24 under_1ms=598 s3_MB=444.4 GETs=2419 distinct_MB=416.9 KiB_per_fault=145 prefetch_issued=24
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"imds-estimate"
+CELL MX-2 faults=3000 wall=293.92 per_fault_ms=97.97 p50=94.13 p90=165.78 p99=283.99 max=527.46 under_1ms=598 s3_MB=444.4 GETs=2419 distinct_MB=416.9 KiB_per_fault=145 prefetch_issued=24
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"imds-estimate"
+=== done 2026-10-03T04:16:16Z
