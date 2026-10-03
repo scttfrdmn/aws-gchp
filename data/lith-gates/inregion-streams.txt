@@ -1258,3 +1258,31 @@ Rule:
   say so separately from wall.
 Cost: ~1.2 GB copy + ~4 x 1.2 GB cross-region GETs (X0) + small X4 = ~6 GB x $0.02 = ~$0.12;
   bucket deleted after. No instance.
+
+--- 5f-P9 RESULTS (head node, lith 49c1c54 md5 0cbe181ec7e6, 02:28:11-02:29:17Z) ---
+  cell  walls s (rep 1..n)            median  s3_MB   GETs  amp    issued/used
+  X0    6.34 6.41 5.20 5.54            5.87   1217.8  175   54.02  1146/7   (every rep)
+  X4    4.99 4.89 4.95 4.96            4.955    59.8   37    2.65    40/6   (every rep)
+  I0    2.74 2.62                      2.68   1217.8  175   54.02  (anchor)
+  I4    2.34 2.23                      2.28     59.8   37    2.65  (anchor)
+SCORE: CONFIRMS. r = 4.955/5.87 = 0.844 (<= 1.10); bytes cut 20.4x in every rep (>= 10x); and the
+  separation runs the OTHER way -- all 4 X4 walls < all 4 X0 walls (16/16 pairs, p = 1/70 in the
+  gate's FAVOUR). Gate on is ALSO faster in-region (r = 0.85, n=2).
+  Bytes and GETs are byte-identical to #284's in-region numbers (1217.8 -> 59.8 MB, 175 -> 37), and
+  identical across all 12 cells: distance changes wall, not what is fetched.
+  Correction to the prediction's wording, not its verdict: bytes fell 20.4x, not ~50x. 54x -> 2.65x
+  is the AMPLIFICATION; the gate still over-fetches 2.65x of the 22.5 MB wanted.
+  Gauge check: lith_readahead_evidence_ratio = 0 / 4 as set, in every cell.
+
+--- 5f-P9b PRE-REGISTRATION (written after P9 results, before any P9b cell ran) ---
+Why: upstream's stated consequence of a P9 confirm is "the gate can go on everywhere". The one
+  measurement against that is 5f-H: ratio 4 cost 2.56x wall on a WHOLE-object read at 58.6 ms --
+  but on lith v1.1.3, with dd, on a 3.78 GB GEOS-FP object. Not re-measured on current main.
+Cells: WX0 / WX4 = same MERRA2 object, cross-region, reader.py mode whole (every data variable),
+  ratio 0 vs 4, n=4 interleaved; same binary, flags, cold mounts as P9.
+Prediction (from 5f-H): the gate COSTS wall on a whole read at distance: r = median(WX4)/median(WX0)
+  > 1.10, bytes within 1%.
+Rule: r > 1.10 -> 5f-H stands on current main; "on everywhere" carries a whole-read penalty at
+  distance. r <= 1.10 -> 5f-H does not reproduce on this object/binary/reader; reported as such, and
+  whether it is the object size (1.2 vs 3.8 GB) or the binary is NOT separated by this cell.
+Cost: 8 x ~1.2 GB cross-region = ~$0.20.
