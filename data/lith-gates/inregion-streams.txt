@@ -1347,3 +1347,16 @@ Upstream's prediction: r = median(4)/median(0) <= 1.10.
 Rule: r <= 1.10 -> CONFIRMS on a fast consumer box; r > 1.10 -> FALSIFIES (ramp binds on a fat box,
   default flip needs the consumer-rate term). Separation reported, not scored.
 Cost estimate: ~15 min instance life at ~$11/h = ~$3; hard cap shutdown -h +45 (~$8.30 worst case).
+
+--- 5f-P9e RESULTS (c8gn.48xlarge i-0b917683ff85d6d2b us-east-1c, 03:44:00-03:44:26Z, same binary) ---
+  DI0 walls 2.17 1.91 1.85 1.77   median 1.883   3776.8 MB  465 GETs
+  DI4 walls 2.05 2.06 2.23 1.68   median 2.055   3776.8 MB  465 GETs (identical bytes/GETs/issued/used)
+  r = 1.091 -> CONFIRMS (<= 1.10), with a THIN margin. Not separated: the fastest cell of all is a
+  ratio-4 cell (1.68) and the ranges overlap completely; n=4 cannot resolve 0.17 s at ~2 s walls.
+  Off throughput 2.01 GB/s (vs 1.28 GB/s on c7g in P9d): the consumer got 1.57x faster.
+  Absolute penalty ~constant: +0.14 s (c7g) -> +0.17 s (c8gn); the FRACTION grew 4.7% -> 9.1% only
+  because the baseline shrank. Reading: a roughly fixed ramp cost per cold whole read, not a rate
+  term, so the fraction scales as 1/consumer-rate and a faster box or smaller object crosses 1.10.
+  This is an inference from two boxes, not separately tested.
+  Cost: launch 03:38:03, terminate 03:44:38 (+~1 min shutting-down) = ~7.6 min at ~$11/h = ~$1.40
+  vs $3 estimated.
