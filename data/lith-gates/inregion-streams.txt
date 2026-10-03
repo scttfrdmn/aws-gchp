@@ -1304,3 +1304,17 @@ Prediction (5f-H, v1.1.3): r = median(DX4)/median(DX0) ~= 2.56, zero overlap.
 Rule: r > 1.10 -> the whole-read penalty at distance stands on current main and "gate on
   everywhere" would cost it; r <= 1.10 -> 5f-H no longer reproduces (binary changed it).
 Cost: 3.78 GB copy + ~8 x 3.78 GB cross-region = ~34 GB x $0.02 = ~$0.68.
+
+--- 5f-P9c RESULTS (02:35:19-02:37:14Z, same binary 49c1c54) ---
+  DX0 walls 8.71 7.65 8.15 7.55   median 7.90    3776.8 MB  465 GETs
+  DX4 walls 15.57 19.20 19.26 17.94  median 18.57  3776.8 MB  465 GETs (identical bytes+GETs)
+  r = 2.35, zero overlap (min DX4 15.57 > max DX0 8.71; p = 1/70). 5f-H (2.56x, v1.1.3) STANDS on
+  current main. The counters cannot see it: bytes and requests identical in all 8 cells.
+TOGETHER (P9/P9b/P9c, all cross-region 58.6 ms, same binary, n=4):
+  slice, netCDF4           gate r = 0.84  (wins, 20.4x fewer bytes)
+  whole, netCDF4 (~80MB/s) gate r = 1.00  (consumer-bound, nothing to lose or save)
+  whole, dd (~480 MB/s)    gate r = 2.35  (loses; no bytes to save)
+  The trade is not 1-D in coverage: it depends on coverage AND on whether the consumer is fast
+  enough for the ramp to be the bottleneck (in-region 5f-? not re-measured here).
+Cost: ~50 GB cross-region (5 GB copies + 45 GB reads) = ~$1.00 (estimates summed $1.00).
+  Bucket gchp-lith-xregion-usw2-942542972736 emptied and deleted after.
