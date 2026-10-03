@@ -1236,3 +1236,25 @@ Not scored: wall T16C 3.0 s vs T16 40-50 s (~15x) vs O_DIRECT 2.1 s. s3 1.887 GB
   (ever-Sequential was the criterion). sh_max 15 is the 5 Hz sampler, trace says 16.
 coverage_held on T16 = 1008 / 989 vs upstream's bytes/--block-size = 16 x 512 MiB / 8 MiB = 1024:
   matches their block-boundary magnitude note to 2-3.5%. low_coverage is now live (16/27 at end).
+
+--- 5f-P9 PRE-REGISTRATION (lith#284, asked 2026-10-02 23:32Z): #284's slice shape cross-region,
+    evidence gate off vs on. Written BEFORE any cell ran. ---
+Setup: head node c7g.4xlarge us-east-1. lith main 49c1c54 (incl. #322 plumbing, #323 credit fix;
+  latencyDerivedEvidenceRatio returns 0, so flag 0 = gate off). Object MERRA2.20190701.A3dyn.05x0625.nc4
+  (1,217,808,214 B), server-side copied to s3://gchp-lith-xregion-usw2-942542972736/merra2/ (the same
+  58.6 ms path as 5f-H). Reader: gate2nd reader.py mode var1 (netCDF4 1.7.2, one process, first
+  data variable end to end -- #284's 54x arm). Fresh cold mount per cell, --nic-gbps 50, unique port.
+Cells (scored): X0 = cross-region --readahead-evidence-ratio 0; X4 = cross-region ratio 4.
+  n=4 each, interleaved X0,X4 within rep (no time-of-day confound). n=4 rather than the 2 asked
+  because 5f-H walls at this distance spread 7.2-12.5 s within one cell.
+Anchor (not scored): I0/I4 = same object in-region from gcgrid, n=2 each, same binary.
+Upstream's prediction: gate wins on both axes cross-region -- bytes ~50x down, wall down or flat.
+Rule:
+  r = median wall(X4) / median wall(X0), wall = reader's process wall (open + read + close).
+  CONFIRMS   r <= 1.10 AND bytes(X4) <= bytes(X0)/10 in every rep AND not (all 4 X4 walls >
+             all 4 X0 walls).
+  FALSIFIES  r > 1.10, or all 4 X4 walls > all 4 X0 walls (exact one-sided p = 1/70).
+  Bytes are reported as measured; if the byte cut is < 10x the CONFIRMS leg fails on bytes and I
+  say so separately from wall.
+Cost: ~1.2 GB copy + ~4 x 1.2 GB cross-region GETs (X0) + small X4 = ~6 GB x $0.02 = ~$0.12;
+  bucket deleted after. No instance.
