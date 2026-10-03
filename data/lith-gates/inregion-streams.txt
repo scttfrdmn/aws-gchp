@@ -1360,3 +1360,40 @@ Cost estimate: ~15 min instance life at ~$11/h = ~$3; hard cap shutdown -h +45 (
   This is an inference from two boxes, not separately tested.
   Cost: launch 03:38:03, terminate 03:44:38 (+~1 min shutting-down) = ~7.6 min at ~$11/h = ~$1.40
   vs $3 estimated.
+
+--- 5f-P9f PRE-REGISTRATION (lith#284, upstream asked 2026-10-03 03:56Z; before any cell ran) ---
+Is the evidence-gate penalty on a whole read a FIXED ramp cost or proportional to the read?
+Head node c7g.4xlarge, in-region s3://gcgrid, dd bs=1M whole object, --readahead-evidence-ratio 0 vs 4,
+  n=6 interleaved (up from 4: walls are ~0.2 s), cold mount per cell, --nic-gbps 50, lith 49c1c54
+  (md5 0cbe181ec7e6), scripts/lith/gate-p9.sh with OBJ/IPREFIX overrides.
+  SCORED:   MERRA2.20190701.A3mstC.05x0625.nc4   259,688,793 B  (upstream's ~256 MB point)
+  UNSCORED: MERRA2.20190701.A3cld.05x0625.nc4    423,855,882 B
+            GEOSFP.20190701.A3mstE.025x03125.nc  733,423,842 B   (3.78 GB already: P9d r=1.047)
+  All sizes are > --parts-max (auto, <= 64 MiB), so all take the windowed path.
+Metric: the dd-only wall (reader=[mode=dd wall=]), not the cell wall, so python start-up does not
+  dilute a fixed cost at ~0.2 s. Median over 6.
+Upstream's prediction (mechanism, not ratio): r >= 1.4 at 260 MB -> CONFIRMS fixed ramp (their
+  earlier ratio gate was unsound). r <= 1.15 -> FALSIFIES (ramp scales with the read; 3.78 GB
+  generalizes). 1.15 < r < 1.4 -> AMBIGUOUS, reported as such.
+Recomputed for THIS box (upstream's table used c8gn's 2.01 GB/s): fixed +0.14 s at 1.28 GB/s ->
+  baselines 0.20 / 0.33 / 0.57 s -> fixed-model r ~1.69 / 1.42 / 1.24; proportional ~1.05 at all.
+  Also reported: absolute penalty (median on - median off) per size; fixed model says ~0.14 s flat.
+Cost: in-region GETs only, $0.
+
+--- 5f-P11 PRE-REGISTRATION (lith#232, upstream asked 2026-10-03 03:56Z; before any cell ran) ---
+Per-fault cost of a serial random mmap page-fault stream, in-region vs cross-region.
+Head node c7g.4xlarge, lith 49c1c54 (md5 0cbe181ec7e6) at stock flags (no --nic-gbps), cold mount
+  per cell. scripts/lith/gate-mmap.sh: mmap PROT_READ / MADV_NORMAL, 3000 distinct random 4 KiB
+  pages (seed 232, identical page set in every cell), touched serially, each fault timed.
+Object: GEOSFP.20190701.A3mstC.025x03125.nc (876,229,026 B), a stand-in for #232's 892 MB
+  human_g1k_v37.fasta.gz (not in any bucket of ours). The page-fault shape doesn't depend on the contents.
+  I = s3://gcgrid in-region; X = server-side copy to a throwaway us-west-2 bucket (58.6 ms), deleted
+  after. n=2 each, interleaved I,X.
+Upstream's prediction: in-region 15-30 ms/fault, cross-region 70-120 ms/fault; bytes ~220 KiB/fault
+  (~660 MB for 3000).
+Rule: both inside their bands -> #232 EXPLAINED as one round trip per miss (re-scope: no lith
+  lever). Either cell well above its band (> 2x the upper bound: in-region > 60 ms, xregion
+  > 240 ms) -> UNEXPLAINED serialization, the interesting number. In between -> reported as is.
+  Which band the original 109 ms matches is reported, not scored.
+max_background (#326): no lith flag exists for it, so no second arm.
+Cost: copy ~0.9 GB to us-west-2 (~$0.02) + ~1.4 GB cross-region reads (~$0.03); est. < $0.10.
