@@ -1128,3 +1128,42 @@ tier = 2 x prefetch_budget 49815600640 = 99.631 GB.  Verdict by evicted_unread f
      inflight bounds of 1.25 GB (auto) and 15 GB (600). It does not close on c8gn either, in
      clean cells as well as collapsed ones. auto peak committed identical to the BYTE across
      reps (92769615872, 120292638720).
+
+--- 5f-P7 PRE-REGISTRATION (lith#320): what holds committed above unread-resident with nothing
+    in flight?  Written 2026-10-02 BEFORE any cell ran. Head node c7g.4xlarge, lith-main b801706. ---
+CORRECTION FIRST: every "committed - resident" figure in 5f-P6c/P6d is PEAK committed minus PEAK
+  unread_resident, two maxima taken separately (gate-streams2.sh), not a simultaneous difference.
+  A peak-minus-peak gap can come from in-flight bytes at a moment resident was lower, so P6d did
+  NOT refute committed ~= resident + in-flight. This gate measures them together, with
+  lith_fill_inflight sampled on the same scrape, after readers finish and fills settle.
+Candidate from code (b801706), not yet measured -- call it LEAK-D:
+  Prefetch() commits a chunk (pfCommittedBytes.Add + prefetched.LoadOrStore, blockstore.go:856)
+  whenever the tier does not already cover it -- including a chunk a DEMAND fill owns in flight,
+  or one a demand fill completed between Prefetch's lookup and ensureChunks'. That chunk lands
+  via complete(blocking=false) -> Merge, no unread flag; the demand owner's fetchExtents/
+  ensureChunks path never calls notePrefetchHit; and the reader has already consumed it, so no
+  later read drops it. Committed holds its bytes forever; the tier never counts them unread.
+  Also from code: the straddle path (GetRange -> ensureChunks) never calls notePrefetchHit on a
+  tier hit or join, so a straddle-consumed prefetch chunk stays in BOTH sets (no gap, but unread
+  is overstated).
+Arms (fresh mount per cell, --mem-cache 16GB so nothing evicts, stock otherwise; A3dyn objects of
+  ~3.76 GB; 20 s settle after readers exit; 5 Hz sampler of committed, unread_resident,
+  fill_inflight, issued, used, uncovered, evicted_unread, straddle; REPS=2):
+  F    1 dd bs=1M, one whole object
+  FX   F with --max-readahead 1 (window barely ahead: demand should race prefetch often)
+  H    python reader: first 1024 MiB in 1 MiB reads, handle HELD 20 s, close, 15 s more
+  M3   3 dd on 3 distinct objects concurrently
+Quantities at end of settle: G = committed - unread_resident (bytes); I = fill_inflight;
+  K = issued - used - evicted_unread (chunks still charged per the counters); U = uncovered.
+Predictions:
+  P-IF (upstream: committed ~= resident + in-flight): every cell with I = 0 has G <= 8 MiB.
+  P-LD (LEAK-D): G > 8 MiB with I = 0 in at least F/FX/M3; G flat (+-1 MiB) across the settle;
+       G/1MiB <= U in every cell (a leaked chunk was demand-filled, so it was counted uncovered);
+       G(FX) > G(F) in both reps.
+  P-REL (Release): in H, closing the handle changes committed by <= 8 MiB and unread_resident by
+       <= 8 MiB (close releases nothing -- both stay; Release is not what OPENS a gap).
+  Consistency check, no prediction: committed/1MiB vs K.
+Rule: P-IF holds in every cell -> the decomposition stands, P6c/P6d's "refutation" was a
+  peak-misalignment artifact, and I retract it upstream. P-LD holds -> LEAK-D is the gap; reported
+  with the U bound. Neither -> the gap is real and unexplained; reported as such.
+Cost: ~40 GB in-region GETs, ~$0.003 of requests. No instance.
