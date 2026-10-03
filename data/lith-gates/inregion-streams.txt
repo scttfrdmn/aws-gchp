@@ -1318,3 +1318,12 @@ TOGETHER (P9/P9b/P9c, all cross-region 58.6 ms, same binary, n=4):
   enough for the ramp to be the bottleneck (in-region 5f-? not re-measured here).
 Cost: ~50 GB cross-region (5 GB copies + 45 GB reads) = ~$1.00 (estimates summed $1.00).
   Bucket gchp-lith-xregion-usw2-942542972736 emptied and deleted after.
+
+--- 5f-P9d PRE-REGISTRATION (lith#284, asked 2026-10-03 02:43Z; before any cell ran) ---
+Row 3 in-region: GEOSFP.20190701.A3dyn.025x03125.nc (3,776,834,855 B) from s3://gcgrid in-region
+  (2.2 ms), dd bs=1M whole object, --readahead-evidence-ratio 0 vs 4, n=4 interleaved, cold mount
+  per cell, --nic-gbps 50, lith 49c1c54 (md5 0cbe181ec7e6) -- identical to P9c except distance.
+Upstream's prediction: r = median(ratio 4)/median(ratio 0) <= 1.10 (from bench/evidence-ratio/ +7.5%).
+Rule: r <= 1.10 -> CONFIRMS (penalty is RTT-driven; default-on in-region is safe for this shape).
+      r > 1.10 -> FALSIFIES (ramp is a bottleneck even at 2 ms; needs the consumer-rate term).
+Separation (all 4 on > all 4 off) is reported, not scored. Cost: in-region GETs only, $0.
