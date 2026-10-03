@@ -1456,3 +1456,23 @@ Rule (thresholds mine where upstream said "~1.2"): r >= 1.5 -> CONFIRMS (interce
 Also reported: warm off baseline at 260 MB vs P9f cold 0.655 s, vs the fit's 0.67 s, vs 0.17 s
   (no intercept); absolute penalty per position; and the warm 4-point fit's intercept.
 Cost: in-region GETs only, $0.
+
+--- 5f-P9g RESULTS (head node, 04:56:23-04:57:20Z, same binary; dd-only wall, n=6, ABBA) ---
+  pos  object         state  off median  on median   r      abs     pairs on>off
+   0   A3mstE 227 MB  COLD     0.650      0.735    1.131  +0.085     24/36
+   1   A3mstC 260 MB  WARM     0.650      0.715    1.100  +0.065     24/36   (SCORED)
+   2   A3cld  424 MB  WARM     0.745      0.835    1.121  +0.090     26/36
+   3   I3     709 MB  WARM     0.945      1.120    1.185  +0.175     29/36
+  SCORED r = 1.100 -> FALSIFIES (<= 1.3). The warm 260 MB off baseline is 0.650 s, the same as
+  P9f's cold 0.655 s. The cold primer (0.650 s at 227 MB) is no slower than the warm reads: the
+  mount itself adds nothing measurable. Warm 3-point fit: off = 0.47 s + size / 1.51 GB/s
+  (cold P9f: 0.50 s + size / 1.55 GB/s).
+  -> The intercept is per-OPEN/per-object, not per-mount; the ~+24% bound holds on a warm mount.
+  Absolute penalty +0.065..+0.175 s, again ~flat (fixed ramp, as P9f).
+  Instrument fault, disclosed: the per-object s3_MB delta column is EMPTY (bc can't parse the
+  exponent-notation counter values). Bytes were not verified in this gate; P9f showed identical
+  bytes across arms at amp 1.00 on these shapes. The walls (the pre-registered metric) are unaffected.
+  Unscored hypothesis, not tested: the 0.47 s per-open intercept and the 0.13 s gate penalty may be
+  the same thing (window establishment/ramp on each new handle), present in both arms and lengthened
+  by the gate.
+  Cost $0.
