@@ -1335,3 +1335,15 @@ Separation (all 4 on > all 4 off) is reported, not scored. Cost: in-region GETs 
   Same shape cross-region (P9c) r = 2.35. Penalty +0.14 s (+5%) at 2.2 ms vs +10.7 s (+135%) at 58.6 ms.
   Consistent with bench/evidence-ratio/ +7.5%. Throughput off: 1.28 GB/s in-region, 0.48 GB/s xregion.
   Also fixes a placeholder in the P9c record: "in-region 5f-? not re-measured" = this cell.
+
+--- 5f-P9e PRE-REGISTRATION (lith#284 blocker for the in-region default flip; spend approved by
+    user 2026-10-03; written BEFORE the instance is launched) ---
+P9d unchanged on a c8gn.48xlarge (600 Gbps): GEOSFP.20190701.A3dyn.025x03125.nc from s3://gcgrid
+  in-region, dd bs=1M whole object, --readahead-evidence-ratio 0 vs 4, n=4 interleaved, cold mount
+  per cell, lith 49c1c54 (md5 0cbe181ec7e6, the same aarch64 binary), same gate-p9c.sh/p9c-dd.py.
+  ONE deliberate difference, kept identical to P9d anyway: --nic-gbps 50 (as P9d). A second pass
+  with NIC auto-detection is NOT added (#317: auto resolves 50 Gbps on c8gn, so it is the same).
+Upstream's prediction: r = median(4)/median(0) <= 1.10.
+Rule: r <= 1.10 -> CONFIRMS on a fast consumer box; r > 1.10 -> FALSIFIES (ramp binds on a fat box,
+  default flip needs the consumer-rate term). Separation reported, not scored.
+Cost estimate: ~15 min instance life at ~$11/h = ~$3; hard cap shutdown -h +45 (~$8.30 worst case).
