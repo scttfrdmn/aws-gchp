@@ -1218,3 +1218,21 @@ Rule (upstream's, verbatim in effect):
   Void if T16 is not held (control) or T16D does not establish 16/16 (positive control).
   Wall and amplification are reported, not scored (this is attribution, not benefit).
 Cost: ~3 arms x 2 reps x 8 GB logical (deduped by page cache for T16/T16C), $0 instance.
+
+--- 5f-P8 RESULTS (head node, lith-main b801706 md5 c62832b261d0, 02:19:47-02:21:36Z, $0) ---
+  cell     ever-Seq  sh_max  wall s        coverage_held  low_cov  uncovered  s3_GB  issued/used
+  T16 -1    0/16       0     49.53         1008            16       1336       0.538  0/0
+  T16 -2    0/16       0     40.31          989            27       1341       0.539  16/16
+  T16C-1   16/16      15      3.12          158            22         29       1.887  1784/497
+  T16C-2   16/16      15      2.96          157            19         28       1.887  1784/497
+  T16D-1   16/16      16      2.17           16             0         16       1.887  1784/496
+  T16D-2   16/16      16      2.11           16             0         16       1.887  1784/496
+SCORE: CONFIRMS, both reps. Controls valid (T16 held 0/16; T16D 16/16). The #221 coverage gate is
+  what holds same-object readers; lowering covMin to 0.05 admits them with the page cache untouched.
+  Holes are unchanged by the flag (reads-with-hole/handle med 0.95 in T16 and T16C).
+Not scored: wall T16C 3.0 s vs T16 40-50 s (~15x) vs O_DIRECT 2.1 s. s3 1.887 GB in BOTH T16C and
+  T16D for 0.537 GB read: window ran past dd's 512 MiB stop (used ~497 of 1784), a short-read
+  artifact common to both, not covMin's. T16C final states 12/14 sequential, 1 random each rep
+  (ever-Sequential was the criterion). sh_max 15 is the 5 Hz sampler, trace says 16.
+coverage_held on T16 = 1008 / 989 vs upstream's bytes/--block-size = 16 x 512 MiB / 8 MiB = 1024:
+  matches their block-boundary magnitude note to 2-3.5%. low_coverage is now live (16/27 at end).
