@@ -1,0 +1,10 @@
+=== gate 5f-P9  2026-10-03T02:30:37Z  B=0cbe181ec7e6  MERRA2.20190701.A3dyn.05x0625.nc4
+CELL WX0-1 wall=16.419780295 s3_MB=1217.8 GETs=175 distinct_MB=1217.9 amp=1.00 issued=1146 used=1146 evidence_ratio_gauge=0 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.3]
+CELL WX4-1 wall=16.559147903 s3_MB=1217.8 GETs=176 distinct_MB=1217.9 amp=1.00 issued=1145 used=1145 evidence_ratio_gauge=4 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.3]
+CELL WX0-2 wall=16.191383248 s3_MB=1217.8 GETs=175 distinct_MB=1217.9 amp=1.00 issued=1146 used=1146 evidence_ratio_gauge=0 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.1]
+CELL WX4-2 wall=16.551702635 s3_MB=1217.8 GETs=176 distinct_MB=1217.9 amp=1.00 issued=1145 used=1145 evidence_ratio_gauge=4 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.4]
+CELL WX0-3 wall=16.440013839 s3_MB=1217.8 GETs=175 distinct_MB=1217.9 amp=1.00 issued=1146 used=1146 evidence_ratio_gauge=0 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.1]
+CELL WX4-3 wall=16.331880031 s3_MB=1217.8 GETs=176 distinct_MB=1217.9 amp=1.00 issued=1145 used=1145 evidence_ratio_gauge=4 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.1]
+CELL WX0-4 wall=16.522145172 s3_MB=1217.8 GETs=175 distinct_MB=1217.9 amp=1.00 issued=1146 used=1146 evidence_ratio_gauge=0 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=15.3]
+CELL WX4-4 wall=16.020938947 s3_MB=1217.8 GETs=176 distinct_MB=1217.9 amp=1.00 issued=1145 used=1145 evidence_ratio_gauge=4 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=14.9]
+=== done 2026-10-03T02:32:57Z

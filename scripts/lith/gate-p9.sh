@@ -19,6 +19,8 @@ IPREFIX=${IPREFIX:-s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07}
 XREPS=${XREPS:-4}
 IREPS=${IREPS:-2}
 PORT_BASE=${PORT_BASE:-9990}
+MODE=${MODE:-var1}     # P9b: MODE=whole TAGP=W
+TAGP=${TAGP:-}
 mkdir -p "$OUT" "$MNT"
 
 umount_wait() {
@@ -31,7 +33,7 @@ N=0
 run_cell() {
   local where=$1 ratio=$2 rep=$3 prefix tag
   [ "$where" = X ] && prefix=$XPREFIX || prefix=$IPREFIX
-  tag="$where$ratio-$rep"
+  tag="$TAGP$where$ratio-$rep"
   N=$((N + 1)); local PORT=$((PORT_BASE + N))
   umount_wait
   "$B" mount "$prefix" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level warn \
@@ -41,7 +43,7 @@ run_cell() {
   mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED"; tail -n 3 "$OUT/$tag.mount.log"; return 1; }
   local t0 t1 rd
   t0=$(date +%s.%N)
-  rd=$($PYX "$READER" "$MNT/$OBJ" var1 2>&1)
+  rd=$($PYX "$READER" "$MNT/$OBJ" "$MODE" 2>&1)
   t1=$(date +%s.%N)
   local met
   met=$(curl -s "http://127.0.0.1:$PORT/metrics" | grep -v '^#' | awk '
