@@ -1686,3 +1686,15 @@ Predictions: inflight reaches >= 64 on the met mount (48 ranks open ~4x the file
   Gauge flaps as at 12 ranks; floor steadier than median.
 Cost: c8g.48xlarge $7.657/hr x ~0.5 h (boot + 2 reps + teardown idle) ~ $4. Node scales down via PC
   idle timeout; job time limit 1 h.
+  ADDENDUM (17:36-17:37Z, same cells on v1.6.0 md5 39ebae8ab0c3, sampler with lith_ttfb_floor_seconds;
+     unscored, n=1 each, run so the floor gauge itself is on record before the bucket is deleted):
+     C3v6  x-region idle   n=961 le025 0 (0.0%)  le060 0      floor gauge 123-134 ms all run, 8-median 145 ms
+     C4iv6 in-region 6-conc n=535 le025 53 (9.9%) le060 98 (18.3%) s3 3682.7 MB, end floor 70.3 ms
+     C4iv6 time series (2 Hz): t0.5 floor 18.0 / median 25.8 / inflight 0 / gauge 4;
+        t1.5 20.8 / 102.0 / 10 / gauge 0 (median crosses, gate off); t2.0 73.9 / 105.1 / 27 / 0;
+        t3.0 70.3 / 108.3 / 0 / 0.
+     -> Under 6 concurrent burst readers in-region the rolling p10 rose from 18 to ~70-74 ms within ~0.5 s
+        of the gate turning off: above the 50 ms bound and above the 58.6 ms cross-region RTT. The floor
+        separated from the far side only because the far floor (also burst-queued, gate off) sat at ~125 ms.
+        Gauge tracked the median, not the floor (as designed: nothing reads the floor).
+     Also: bytes vary across the two concurrent in-region runs (5967 vs 3683 MB); both far above 359 MB engaged.
