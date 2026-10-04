@@ -15,6 +15,9 @@
 #
 # COST NOTE: MinCount 0 everywhere and ScaledownIdletime 5 so nothing compute
 # bills while the index builds. /scratch is created and deleted with the cluster.
+#
+# STATUS 2026-10-04: the A/B is complete. The /input control FSx is detached (see
+# SharedStorage); to re-run gate 4, re-add an /input FSx by ID.
 
 Region: us-east-1
 Image:
@@ -113,17 +116,16 @@ SharedStorage:
       VolumeType: gp3
       Size: 120
       DeletionPolicy: Delete
-  - Name: input
-    StorageType: FsxLustre
-    MountDir: /input
-    FsxLustreSettings:
-      FileSystemId: fs-0804c4d8e01897d21   # CONTROL: gcgrid, us-east-1a, already hydrated
-  - Name: scratch
-    StorageType: FsxLustre
+  # 2026-10-04: the A/B is finished, so /input (control FSx fs-0804) was dropped and
+  # /scratch moved from a 1200 GB SCRATCH_2 FSx (~$168/mo, 20 GB used) to gp3 EBS
+  # (~$16/mo). Nothing here needs Lustre: lith gates are FUSE mounts on plain dirs.
+  # EBS is NFS-exported to compute nodes by ParallelCluster like /sw.
+  - Name: scratch-ebs
+    StorageType: Ebs
     MountDir: /scratch
-    FsxLustreSettings:
-      StorageCapacity: 1200
-      DeploymentType: SCRATCH_2
+    EbsSettings:
+      VolumeType: gp3
+      Size: 200
       DeletionPolicy: Delete
 
 Tags:
