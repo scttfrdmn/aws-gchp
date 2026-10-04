@@ -50,8 +50,11 @@ run_cell() {
     /^lith_s3_bytes_total /{b=$2} /^lith_s3_requests_total/{r+=$2} /^lith_distinct_bytes_read /{d=$2}
     /^lith_prefetch_issued_total /{s=$2} /^lith_prefetch_used_total /{u=$2}
     /^lith_readahead_evidence_ratio /{e=$2}
-    END{printf "s3_MB=%.1f GETs=%d distinct_MB=%.1f amp=%.2f issued=%d used=%d evidence_ratio_gauge=%s",
-        b/1e6, r, d/1e6, (d>0?b/d:0), s, u, (e==""?"NA":e)}')
+    /^lith_ttfb_median_seconds /{tm=$2} /^lith_ttfb_measured /{tf=$2}
+    /^lith_ttfb_seconds_bucket\{le="0.05"\}/{t5=$2} /^lith_ttfb_seconds_count /{tc=$2}
+    END{printf "s3_MB=%.1f GETs=%d distinct_MB=%.1f amp=%.2f issued=%d used=%d evidence_ratio_gauge=%s ttfb_median_ms=%s ttfb_measured=%s ttfb_le50=%s/%s",
+        b/1e6, r, d/1e6, (d>0?b/d:0), s, u, (e==""?"NA":e), (tm==""?"NA":sprintf("%.1f",tm*1000)),
+        (tf==""?"NA":tf), (t5==""?"NA":t5), (tc==""?"NA":tc)}')
   echo "CELL $tag wall=$(echo "$t1 - $t0" | bc) $met reader=[$rd]"
   umount_wait
 }

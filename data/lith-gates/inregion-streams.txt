@@ -1517,3 +1517,21 @@ Cost $0.
   prefetched; lag_ms is the working signal. Flagged, not relied on.
   dd walls (A3mstC): ratio 0 0.846/0.647/0.572, ratio 4 0.723/0.721/0.960. In line with P9f/P9g.
   Cost $0.
+
+--- 5f-P9i PRE-REGISTRATION (lith#340/#341 re-gate on v1.5.0, 2026-10-04; before any cell ran) ---
+Question: does v1.5.0's 50 ms nearEndpointTTFB bound engage the evidence gate on a DEFAULT
+  in-region mount, and stay off cross-region? Same harness and object as the v1.4.0 report on #340:
+  scripts/lith/gate-p9.sh, var1 slice of MERRA2.20190701.A3dyn.05x0625.nc4, head node c7g.4xlarge,
+  release lith_linux_arm64 v1.5.0 sha256-verified against checksums.txt, --nic-gbps 50.
+  Cells: IREPS=3 (I0 = default, I4 = forced 4, interleaved), XREPS=1 (us-west-2 copy, 58.6 ms RTT).
+  Added readouts (#341): lith_ttfb_median_seconds, lith_ttfb_measured, lith_ttfb_seconds bucket
+  le=0.05 / _count.
+Predictions (v1.4.0 baseline: I0 gauge 0, 1217.8 MB, 162 GETs, 54.02x; I4 59.8 MB, 24 GETs, 2.65x):
+  P1. I0 cells: evidence_ratio gauge > 0 (expect 4) and ttfb_measured = 1 in all 3 reps.
+  P2. I0 s3 bytes within 10% of I4 in the same rep (~60 MB, ~2.65x), i.e. the 54x is gone by
+      default. FAIL if any I0 cell is > 2x the I4 bytes.
+  P3. I0 ttfb median in [20, 45] ms, and >= 90% of ttfb samples in le=0.05.
+  P4. X0 cell: gauge 0 (gate off at distance) with ttfb median > 50 ms. Unscored if X0 median falls
+      in [45, 60] ms (inside the bound's stated gap).
+  P5. Wall: I0 within +-15% of I4 per rep. Informational; n=3 can't resolve less.
+Cost: ~$0.05 (one cross-region pair, ~1.3 GB at $0.02/GB plus requests); in-region $0.
