@@ -1535,3 +1535,38 @@ Predictions (v1.4.0 baseline: I0 gauge 0, 1217.8 MB, 162 GETs, 54.02x; I4 59.8 M
       in [45, 60] ms (inside the bound's stated gap).
   P5. Wall: I0 within +-15% of I4 per rep. Informational; n=3 can't resolve less.
 Cost: ~$0.05 (one cross-region pair, ~1.3 GB at $0.02/GB plus requests); in-region $0.
+
+--- 5f-P9i RESULTS (head node, 05:34:14-05:37:33Z + diagnostic ~05:45Z, lith v1.5.0 release md5 da9d93515ed9) ---
+  Raw: data/lith-gates/p9i/p9i.log (gate cells), p9i-seq.log + seq.*.prom (diagnostic, unscored).
+  cell   s3_MB  GETs  amp    gauge  ttfb_median(8)  le50/count  wall
+  I0-1   59.8   24    2.65x  0      102.3 ms        15/24       2.18 s
+  I4-1   59.8   24    2.65x  4       40.3 ms        22/24       1.88 s
+  I0-2   59.8   24    2.65x  4       30.1 ms        21/24       1.95 s
+  I4-2   59.8   24    2.65x  4       43.2 ms        21/24       2.06 s
+  I0-3   59.8   24    2.65x  4       45.0 ms        22/24       2.16 s
+  I4-3   59.8   24    2.65x  4       28.9 ms        24/24       2.18 s
+  X cells NOT RUN: s3://gchp-lith-xregion-usw2-942542972736 no longer exists ("bucket not found").
+  P1 FAIL as worded (I0-1 gauge 0 at scrape), but the behaviour engaged in all 3 reps (see P2), and
+     the gauge is a live end-of-read value, not the decision that was taken (see diagnostic).
+  P2 PASS: default = forced byte for byte, 59.8 MB / 24 GETs / 2.65x in 3/3 (v1.4.0: 1217.8 / 162 / 54.02x).
+  P3 FAIL: end-of-read median 102.3 / 30.1 / 45.0 ms (1 of 3 outside [20,45]); le50 fraction
+     62% / 87.5% / 91.7% (2 of 3 below 90%). My band came from P9h's n=84, which was SERIAL block-0
+     demand GETs. These counts include prefetch-burst fills, which take longer.
+  P4 UNSCORED (no cross-region bucket).
+  P5 PASS: I0/I4 wall within 16% / 5% / 1%. Rep 1 is 16%, just outside +-15%; n=3, informational.
+  Cost $0 (cross-region cells failed at mount, before any GET).
+DIAGNOSTIC (unscored): one default mount, var1 of A3dyn for 6 different days in sequence:
+  every open 59.8 MB / 23-24 GETs (no 54x on any), yet after EVERY open gauge = 0 and the 8-sample
+  median = 97.6-102.6 ms. Per open: 15-16 of 23-24 samples are <= 50 ms; per-open mean 45-54 ms.
+  Mechanism (v1.5.0 source): ttfbMax = 8 (fill.go:23); evidenceRatio() is re-evaluated PER READ
+  (fs.go:1335). A new handle's blocks 0+1 are ~16 serial demand GETs at ~28 ms, which refill the
+  8-window below 50 ms before prefetch commits at block 2, so the gate is ON when it matters. Then
+  the establishment burst (150-230 in flight, P9h) is served at ~100 ms and leaves the window
+  above the bound.
+  -> 1. The default works on this shape in-region. That is the #340 fix, verified on the real endpoint.
+     2. But the in-region distribution the bound is anchored on is not 28/42.7 ms once the mount is
+        busy. Under its own burst, the in-region 8-median is ~100 ms: above the 50 ms bound AND above
+        the 58.6 ms cross-region RTT. So a loaded in-region mount and an idle cross-region one are
+        not separable on TTFB. Engagement currently depends on each handle's serial demand prefix
+        refreshing the window. Concurrent readers (GCHP: 48+ ranks opening at init) may never see
+        a sub-50 ms window.
