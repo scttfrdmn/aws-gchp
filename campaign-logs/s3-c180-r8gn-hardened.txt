@@ -1,0 +1,40 @@
+C180 OFF-NODE on r8gn.24xl — the CLEAN NIC-up re-test (hardened) — 2026-07-27
+==============================================================================
+Cluster gchp-s3c180r8gn: r8gn.24xl (768GB Graviton4, SINGLE 300Gbps card = 3x m9g's 100Gbps),
+us-east-1a PUBLIC subnet (no private-subnet/NAT/multi-NIC/EFA-only mess), standing gcgrid FSx.
+Slurm HARDENED: SlurmdTimeout=900 (was 180 < stock 300), MessageTimeout=120, ReturnToService=2
+(confirmed live via scontrol show config). EFA off (single card, S3=plain TCP).
+
+config: 48 transport ranks, K=1 (48 slices/step), 48 co-located boto3 workers = 96 procs / 96 cores.
+
+BASELINE (inline): md5=9ea1a39d... == m9g EXACTLY.  RUN 13.0 d/d  wall 794s  mem ~65%/768 (fits).
+OFF-NODE (boto3 both sides, hardened):
+  md5=9ea1a39dcd0b04350288e79e06e35d58  == baseline  ✅ BYTE-IDENTICAL
+  RUN 12.8 d/d = 98.5% of baseline (active integration ~full speed)
+  wall 1559s (1.96x baseline)
+  PUT failures = 0   (m9g had 22!)        solve-fallbacks = 0
+  worker solves = 96/96 -> EVERY slice round-tripped through S3 (m9g: only 74/192)
+  node SURVIVED cleanly (m8gn's node-death chain is GONE — SlurmdTimeout=900 fix worked)
+
+WHAT THIS PROVES (the loop closes):
+  1. The 22 PUT failures on m9g were NIC-CONTENTION ARTIFACTS. 3x the NIC bandwidth -> 0 failures,
+     100% of slices through S3, RUN throughput back to baseline. The bandwidth thesis is CONFIRMED
+     with a clean single-card box.
+  2. The node-death that sank m8gn was a pure slurm-timeout artifact. SlurmdTimeout=900 (up from my
+     mistaken 180) -> the node survived the full run under S3 load. HARDENING WORKED.
+  3. r8gn.24xl is the RIGHT box for off-node S3 at C180: 768GB + 300Gbps single card + all the
+     multi-NIC pain avoided. Byte-identical, 0 fallback, complete.
+
+HONEST NUANCE ON WALL (do NOT cross-compare box-to-box naively):
+  r8gn off/baseline wall = 1.96x, WORSE than m9g's 1.31x -- but this is a CORE-COUNT artifact, not
+  bandwidth. r8gn=96 cores: 48 ranks + 48 workers = 96 procs EXACTLY saturate it -> ranks & workers
+  contend for CPU during handoff. m9g=192 cores had 96 IDLE cores absorbing the workers, so its wall
+  looked better even though it FAILED 22 PUTs and only pushed 74/192 slices through S3. The clean,
+  UNCONFOUNDED finding is WITHIN-box: on r8gn, off-node is byte-identical, 0 failures, 100% via S3,
+  RUN=98.5% of baseline. Wall overhead is now CPU-contention (fixable: fewer co-located workers, or a
+  separate worker fleet), NOT NIC-starvation and NOT node instability.
+
+BOTTOM LINE: the off-node S3 decoupling is CORRECT + ROBUST + throughput-viable at C180 on the right
+hardware. The m9g "0.75x + 22 failures" and the m8gn "node death" were both INSTANCE/CONFIG artifacts,
+now both eliminated. Remaining wall overhead at C180 on a 96-core box is worker/rank CPU contention ->
+the next lever (if pursued) is a separate worker fleet or fewer co-located workers, not more NIC.

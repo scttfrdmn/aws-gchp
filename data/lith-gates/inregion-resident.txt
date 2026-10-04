@@ -1,0 +1,256 @@
+GATE 5f-N — is the window x handles PROXY tight? (lith#301, instrument #303)
+in-region, head node already up, ~$0.01 of GETs
+PRE-REGISTERED 2026-10-01 BEFORE THE DECISIVE CELLS RAN
+
+WHY THIS GATE AND WHY ME
+  #303 landed the gauge that makes #301 answerable: lith_prefetch_resident_bytes, the
+  quantity --prefetch-budget actually bounds, as against the window x handles PROXY that
+  enforces it. Upstream stated the decision rule and then said it needs a box they had
+  been deferring, and explicitly asked me for nothing ("Nothing of yours... I'd rather
+  bank what you've found than ask for more"). I have the box up and the 5f-M harness, so
+  this is their experiment for ~$0.01 instead of a cluster.
+
+  Their rule, quoted: "If resident sits far below 4.128 GB at N=1, the proxy is
+  over-conservative and the divisor is costing 6.38x for nothing. If it sits near it,
+  candidate 1 is dangerous and candidate 2 is the answer."
+
+ARM   5f-M arm B shape, the netCDF/HEMCO shape: 1 streaming reader (dd, 3.78 GB object)
+      + (N-1) descriptors held open after a 4 KiB header read and never streamed.
+      N in 1, 2, 4, 16, 64, 256. Upstream's 1/16/256 plus trend points, free.
+      3 reps, fresh cold mount per cell, default flags (8 MiB blocks, auto window 223).
+
+ALL FOUR QUANTITIES ARE MEASURED FROM THE MOUNT'S OWN GAUGES, NONE DERIVED BY ME
+      lith_prefetch_resident_bytes    held       (#303)
+      lith_prefetch_budget_bytes      the limit  (#303)
+      lith_readahead_window_blocks    realized window (#302)
+      lith_open_handles               the divisor     (#302)
+  scraped at 10 Hz for the life of each cell, sampler started BEFORE the reader so the
+  establishment transient is in the series.
+  tightness = resident / (window x handles x block_size).
+  This matters because 5f-M's withdrawn result was a DERIVATION from a cumulative
+  counter and it returned the charge. Nothing here is cumulative and nothing is derived.
+
+SMOKE CELL ALREADY RUN (N=1, 1 rep) — reported here because it is what the predictions
+are calibrated against, and it must not be presented later as a confirmation:
+      budget gauge reads 4.127829504e9 EXACTLY  (= 33.022636032 GB x 25% x 50%,
+        confirming the arithmetic I asserted on #298 to the byte)
+      resident steps 0 -> 1870.7 MB in ONE 100 ms sample, then holds flat
+        223 blocks x 8 MiB = 1870.659584 MB -> the establishment burst of 5f-M seen by
+        a correct instrument, and the first independent confirmation of it
+      resident drains to 0 at unmount -> the add/remove paths balance in a REAL run.
+        #303's tests only assert this on constructed state.
+
+PREDICTIONS, AND WHAT EACH OUTCOME WOULD MEAN
+
+  H_headroom  resident peaks at ~1871 MB at N=1 = 45.3% of the 4127.8 MB budget, and
+              LOWER at every N > 1. Upstream's first branch fires: the proxy is
+              over-conservative, and even its tightest case leaves the budget 55% empty.
+              -> If instead resident approaches 4128 MB at any N, the proxy is tight,
+                 candidate 1 is dangerous, and H_oneover dies with it.
+
+  H_oneover   ONLY the streaming handle dispatches, so resident tracks ONE window while
+              the charge is window x N:
+                  resident(N) ~ window(N) x 8 MiB      and     tightness ~ 1/N
+              Point predictions, from window = clamp(492/N, 2, 223) measured in 5f-M:
+                  N=1    win 223  resident ~1871 MB  charge 1871 MB  tight ~1.00
+                  N=2    win 223  resident ~1871 MB  charge 3741 MB  tight ~0.50
+                  N=4    win 123  resident ~1032 MB  charge 4128 MB  tight ~0.25
+                  N=16   win  30  resident ~ 252 MB  charge 4027 MB  tight ~0.063
+                  N=64   win   7  resident ~  59 MB  charge 3758 MB  tight ~0.016
+                  N=256  win   2  resident ~  17 MB  charge 4295 MB  tight ~0.004
+              -> This is the quantitative form of 5f-M's "idle handles dispatch exactly
+                 zero". If it holds, the divisor throttles a mount to 186 MB/s while it
+                 holds 0.4% of the bytes it is allowed to hold, and the proxy's error is
+                 not a constant factor but LINEAR IN THE IDLE DESCRIPTOR COUNT.
+
+  REFUTER     resident within 2x of the budget at N=16 or N=256. That kills H_oneover and
+              H_headroom together, says the proxy is doing real work at high N, and makes
+              candidate 2 the answer. I will report it as the result if it fires.
+
+  SECOND REFUTER  resident EXCEEDS 4128 MB at any N. Then the budget is not enforced by
+              this path at all and something else bounds prefetch; the whole #301 framing
+              would need re-deriving.
+
+CAVEAT, STATED UP FRONT BECAUSE IT CUTS TOWARD THE FINDING RATHER THAN AWAY
+  blockstore.go:809 marks a chunk prefetched at DISPATCH (LoadOrStore before the fill);
+  dropPrefetched removes it on consume / evict-unread / failed-fill. So the gauge counts
+  dispatched-and-unconsumed, which INCLUDES bytes still in flight. It is an UPPER BOUND
+  on bytes resident in RAM. A finding that it sits far below the budget is therefore
+  conservative; a finding that it sits near the budget would NOT be, and I would have to
+  separate in-flight from arrived before claiming it.
+
+LIMITS KNOWN BEFORE RUNNING
+  In-region (2.2 ms), one box, one object family, contiguous dd, 8 MiB blocks, n=3.
+  Resident is sampled at 10 Hz, so a transient shorter than 100 ms is invisible; the
+  establishment burst is a single step and survives that, a drain spike might not.
+  This measures whether the proxy is tight, NOT whether candidate 1 is safe -- the
+  re-grant churn objection upstream raised from my own 5f-M result is untouched by it.
+
+================================================================================
+RESULTS — 18 cells, 6 handle counts x 3 reps, all predictions pre-registered above
+================================================================================
+
+RESULT 0 — THE INSTRUMENT VALIDATES IN A REAL RUN, NOT ONLY ON CONSTRUCTED STATE
+  #303's tests assert against state the test constructs. These are the same properties
+  under a real mount with a real streaming reader:
+      lith_prefetch_budget_bytes = 4.127829504e9 EXACTLY, every cell
+        (= 33.022636032 GB x 25% x 50%; confirms to the byte the arithmetic I asserted
+         on #298 from /proc/meminfo)
+      resident drains to 0 at unmount in 18/18 cells -> the three removal paths account
+        for everything the add path counted, in production conditions
+      lith_prefetch_issued_total == lith_prefetch_used_total == 3586 in 18/18
+      resident steps 0 -> 1870.659584 MB in ONE 100 ms sample at N=1 = 223 x 8 MiB to
+        the byte -> 5f-M's single-shot full-window establishment burst, independently
+        confirmed by an instrument that does not share its defect
+
+RESULT 1 — H_headroom CONFIRMED. The budget is never close to full, not even once.
+      N=1 is the proxy's TIGHTEST case (tightness exactly 1.000) and it holds
+      1870.7 MB of a 4127.8 MB budget = 45.3%. Every larger N holds less.
+      Upstream's FIRST branch fires: the proxy is over-conservative.
+
+RESULT 2 — H_oneover CONFIRMED to within 0.0-6.2% at every point
+    N  win  hnd   resident      charge   tight   %budget   pred res   ratio
+    1  223    1   1870.7 MB   1870.7 MB  1.000     45.3%   1870.7 MB  1.000
+    2  223    2   1870.7 MB   3741.3 MB  0.500     45.3%   1870.7 MB  1.000
+    4  123    4   1033.4 MB   4127.2 MB  0.250     25.0%   1031.8 MB  1.002
+   16   30   16    253.8 MB   4026.5 MB  0.063      6.1%    251.7 MB  1.008
+   64    7   64     60.8 MB   3758.1 MB  0.016      1.5%     58.7 MB  1.036
+  256    2  256     17.8 MB   4295.0 MB  0.004      0.4%     16.8 MB  1.062
+
+  Resident tracks ONE window regardless of how many descriptors are charged for it, so
+      tightness = 1/N
+  and the proxy's error is not a constant factor but LINEAR IN THE OPEN DESCRIPTOR COUNT.
+  At N=256 the mount is charged 4295.0 MB and holds 17.8 MB: a 241x overstatement.
+  This is the quantitative form of 5f-M's "idle handles dispatch exactly zero" -- same
+  conclusion, reached with an instrument that measures instead of deriving.
+
+RESULT 3 — WHAT THE OVER-CONSERVATISM COSTS
+      N=1   walls 2.98 / 3.24 / 3.16 s   median  3.158 s
+      N=256 walls 36.21 / 30.15 / 28.21 s median 30.151 s   =  9.5x
+  So the mount is throttled ~9.5x while holding 0.43% of the bytes it is permitted to
+  hold, on a budget that is 99.6% empty.
+
+  CORRECTION TO MY OWN PUBLISHED NUMBER, with the control that forced it: 5f-M reported
+  6.38x for this comparison (3.187 -> 20.343 s). The two gates agree at N=1 (3.16 vs
+  3.19) and disagree at N=256 (20.3 vs 30.2). I A/B'd the binary to find out -- the
+  pre-#299 build lith-new, re-run through THIS harness, gives 31.20 / 30.99 / 30.16 s,
+  median 30.99 s, statistically identical to lith-303's 30.151 s. So the binary is
+  cleared (no regression from #299/#302/#303) and the 20.3 s was between-gate variance.
+  The window-2 cell is LATENCY-BOUND -- 465 GETs with 2 in flight -- so it is sensitive
+  to per-GET latency drift, which makes it a poor cell to quote a precise multiple from.
+  The honest statement is 6-10x, and "6.38x", which upstream has now quoted twice,
+  should be read as the low end of a range rather than a measurement.
+
+RESULT 4 — THE THRASH THE DIVISOR EXISTS TO PREVENT DID NOT OCCUR AT ANY N
+      lith_prefetch_evicted_unread_total = 0 in 18/18 cells
+      issued == used == 3586 in 18/18 -> 100% of prefetched chunks were consumed
+  Including at N=1, where residency is highest at 1870.7 MB.
+  LIMIT, and it is the important one: this is ONE streaming reader. #55's thrash shape is
+  not represented here at all. This does NOT show the divisor is unnecessary in general.
+  It shows that on the shape that motivated #256 -- a netCDF reader holding many
+  descriptors -- the divisor's protection bought nothing and cost ~9.5x.
+
+RESULT 5 — A THIRD OPTION THAT DID NOT EXIST BEFORE #303
+  #301's candidates both ration the proxy: candidate 1 stops charging for idle handles
+  (which upstream argued against using my own 5f-M re-grant finding -- the divisor would
+  then change on every establish/de-establish, multiplying ded_W+1 bursts), candidate 2
+  charges per object rather than per descriptor (which only fixes double-open).
+  The gauge makes a third possible: ration on the MEASURED resident bytes.
+
+  What this gate contributes to weighing it, measured rather than argued:
+    - resident does not move when an idle descriptor opens or closes. At N=256, with 255
+      descriptors opening before the read, resident never left 15.7-24.1 MB. The churn
+      source that defeats candidate 1 is absent from this signal by construction.
+    - the signal is steady enough to govern on: middle-50% spread of the resident series
+      is 0.71% (N=4), 2.89% (N=16), 9.58% (N=1), 12.62% (N=2), 13.79% (N=64). At N=256
+      it is 47%, but there the magnitude is 2 blocks, so that is one block of jitter.
+  NOT claimed: that this is safe. Admission on resident bytes still has to choose a
+  window for a newly establishing handle, and 5f-M showed that commitment is a
+  single-shot full window -- so the open transient is unchanged. And per the caveat
+  above, the gauge counts bytes at dispatch, so using it for admission rations
+  dispatched-including-in-flight, which is arguably the right quantity for admission but
+  is NOT bytes-in-RAM. Both belong in the decision; neither is settled by this gate.
+
+COST  ~$0.01. 21 cells x 3.78 GB = 79 GB of in-region GETs (~10,400 requests), no egress,
+  head node already running. Campaign running total ~$4.22.
+
+ARCHIVE
+  data/lith-gates/inregion-resident.txt     this file
+  data/lith-gates/resident-samples.tgz      42 files, 16.9 kB
+      sha256 cc3a35708e84523146eb3892fe29e1081841432215db69259c171c2e72bf641b
+      the 18 sampled series, every mount log (all non-empty), the 3 old-binary control
+      logs, the gate log, and the sampler/holder as run
+  scripts/lith/gate-resident.sh             harness (sampler + holder embedded)
+  scripts/lith/parse-resident.py            Results 1-2
+
+================================================================================
+FOLLOW-ON, $0 — upstream's #55 gate is already half-answered by banked arm A, and
+as framed it cannot discriminate between the candidates
+2026-10-01
+================================================================================
+
+Upstream named the gate they want before changing policy -- the #55 shape, N concurrent
+readers over a combined working set well above --mem-cache, watching committed /
+evicted_unread / re-fetch together -- and asked me not to spend on it ("the remaining
+work is lith's to do on lith's shapes"). Respected. But 5f-M arm A WAS that shape, so
+part of it is already banked, and the arithmetic says their gate will not separate the
+options they are choosing between.
+
+THE BOX'S TIERS, for reference (all confirmed against the #303 budget gauge)
+  MemTotal 33.022636032 GB
+  --mem-cache       25%  =  8.255659008 GB
+  --prefetch-budget 50%  =  4.127829504 GB   (gauge reads 4.127829504e9 exactly)
+
+RESULT A — AT 7.28x OVER THE CACHE TIER, 16 CONCURRENT STREAMING READERS DID NOT THRASH
+  5f-M arm A, N readers each streaming a DIFFERENT object, N up to 16. The 16 objects
+  total 60.077 GB = 57,301 chunks of 1 MiB, against a 8.256 GB mem-cache tier: 7.28x.
+
+      issued == used in 17/18 arm A cells; the 18th is off by 1 chunk in 57,045
+      issued at N=16 = 57,045, and 57,301 - 57,045 = 256 = EXACTLY 16 objects x the
+        16 demand-filled chunks per object seen directly on object 0 (3602 - 3586)
+
+  So every chunk was dispatched exactly once and consumed exactly once. There is no
+  re-dispatch signature -- a chunk evicted unread and re-fetched would increment issued
+  a second time, and issued never exceeds (total chunks - demand-filled prefix).
+
+  WHY THIS IS NOT AN ACQUITTAL, and it reads the other way from what I first thought:
+  at N=16 the divisor held committed to 30 x 16 = 480 blocks = 4.027 GB, which is 97.5%
+  of the prefetch budget and 48.8% of the whole cache tier. Without the divisor, 16
+  handles at the full 223-block window would commit 3568 blocks = 29.93 GB = 3.63x the
+  ENTIRE mem-cache tier, which cannot be held and must evict prefetched-unread blocks by
+  definition. That counterfactual is ARITHMETIC, not a measurement -- I did not run it.
+  The reading this supports is that on the concurrent-reader shape the divisor's
+  protection may be WORKING rather than idle, which is the opposite of what it does on
+  the idle-descriptor shape where it holds 0.4% of the budget and costs 9.5x.
+
+RESULT B — THE GATE AS FRAMED CANNOT DISCRIMINATE, ONLY VALIDATE
+  On the all-active shape (#55's), the three options collapse:
+    status quo   divisor = 16 active handles -> window 30 -> committed 4.027 GB
+    candidate 1  "don't charge idle handles": at arm A every handle IS active, so the
+                 divisor is unchanged -> IDENTICAL to the status quo. A no-op here.
+    candidate 3  "ration committed bytes at the budget" -> caps at 4.128 GB, which is
+                 within 2.4% of what the divisor already realizes.
+  So a #55-shape gate can establish that candidate 3's cap is SAFE -- worth having, and
+  it is the question upstream actually needs answered -- but it cannot choose between the
+  three, because they only diverge where descriptors are IDLE, which is the shape already
+  measured in 5f-N. Candidate 3 is therefore a strict generalization: it coincides with
+  the divisor where the divisor is right (all handles active, within 2.4%) and fixes it
+  where it is wrong (idle handles, 241x). Half of that is now measured, not argued.
+
+THREE TRAPS IN THAT GATE, FROM HAVING RUN THE SHAPE
+  1. NIC BOUND. 5f-M arm A saturated this box's NIC at ~14 Gbps (aggregate 1290 -> 1769
+     MB/s across N). A NIC ceiling throttles DISPATCH, which SUPPRESSES thrash -- so a
+     small box can return a null that is about the NIC and not about eviction. The gate
+     needs headroom between aggregate fetch rate and the NIC, and should report both.
+  2. NON-STATIONARY DIVISOR. 5f-M Result C: as readers finish, survivors are re-granted
+     upward and dispatch dW+1 immediately, so committed RISES over the run (eleven such
+     bursts at N=16, 89-98% of the run). Correlating committed against evicted_unread
+     over a whole run will smear unless binned by live handle count.
+  3. DEFEATING THE DIVISOR NEEDS ONE FLAG, NOT A BIG BOX. To reach the regime where
+     committed exceeds the tier, raise --prefetch-budget to >= N x maxReadahead x
+     blockSize (29.93 GB at N=16, 223, 8 MiB) while holding --mem-cache fixed. That
+     makes the thrash regime reachable on any box and turns the gate into a 2-arm
+     intervention rather than a scaling exercise.
+
+COST  $0. Re-analysis of banked 5f-M counters plus one S3 LIST for object sizes.
+  Campaign running total unchanged at ~$4.22.

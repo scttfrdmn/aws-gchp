@@ -1,0 +1,75 @@
+# m9g TT HOLE-FILL (us-east-1c) — close the only Phase-2 TT gaps: m9g C24 + C48 TT @1N.
+# m9g.48xlarge has NO live capacity in us-east-1a (missed twice; the 3 standing FSx are all 1a).
+# Live m9g capacity CONFIRMED in 1b/1c/1d via launch+terminate probe 2026-07-16; picked 1c (the
+# known-good AZ from the C180 checkpoint work; subnet-f59636d4 + Lustre SG already in place).
+# Purpose-built input FSx fs-077b6db3455c361ae (Lustre 2.15, s3://gcgrid ImportPath only — no
+# AutoImportPolicy, which fails on the unowned gcgrid bucket). Tear it + the FSx down when done.
+# Also DE-RISKS the Phase-3 chase-AZ path (fullchem is m9g-heavy + m9g-only in use1) cheaply on TT.
+# Tiers: /sw EBS (aarch64 stack from S3) + /input FSx-by-ID (gcgrid, 1c) + /scratch FSx SCRATCH_2 (r/w).
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.2xlarge          # ARM login host; compute is the m9g
+  Networking:
+    SubnetId: subnet-f59636d4         # us-east-1c (m9g capacity + standing FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 3
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: m9g.48xlarge
+          MinCount: 0
+          MaxCount: 1                 # C24 + C48 are 1N only
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-f59636d4
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-077b6db3455c361ae   # gchp-input-1c-m9gholes (us-east-1c, gcgrid, Lustre 2.15)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: m9g-tt-holes-1c

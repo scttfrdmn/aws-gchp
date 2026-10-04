@@ -1,0 +1,88 @@
+### gate4 cold read 2026-09-18T01:11:05Z on ip-172-31-39-157  lith=1.1.2 P=8
+
+=== indexes ===
+  have  hemco (69420864 B)
+  built merra2-201907 in 0s (15896 B)
+  have  cheminp (342448 B)
+  have  restarts (50776 B)
+  manifest: 485 objects, 32409726478 bytes (30.2 GiB)
+
+=== ARM lith -- cold daemons, 8 readers ===
+  mounted HEMCO
+  mounted GEOS_0.5x0.625/MERRA2/2019/07
+  mounted CHEM_INPUTS
+xargs: warning: options --max-args and --replace/-I/-i are mutually exclusive, ignoring previous --max-args value
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+
+=== SUMMARY ===
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+### gate4 cold read 2026-09-18T01:12:36Z on ip-172-31-39-157  lith=1.1.2 P=8
+
+=== indexes ===
+  have  hemco (69420864 B)
+  have  merra2-201907 (15896 B)
+  have  cheminp (342448 B)
+  have  restarts (50776 B)
+  manifest: 485 objects, 32409726478 bytes (30.2 GiB)
+
+=== ARM fsx -- ONE-SHOT cold, 8 readers ===
+  hsm residency before (sample of 60):
+         60 archived
+         24 released
+xargs: warning: options --max-args and --replace/-I/-i are mutually exclusive, ignoring previous --max-args value
+FSX   wall=113.80s  284.8 MB/s
+
+=== SUMMARY ===
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+FSX   wall=113.80s  284.8 MB/s
+### gate4 cold read 2026-09-18T01:15:23Z on ip-172-31-39-157  lith=1.1.2 P=8
+
+=== indexes ===
+  have  hemco (69420864 B)
+  have  merra2-201907 (15896 B)
+  have  cheminp (342448 B)
+  have  restarts (50776 B)
+  manifest: 485 objects, 32409726478 bytes (30.2 GiB)
+
+=== ARM restart-lith -- C180 fullchem restart (13.1 GB) single stream ===
+  -r--r--r-- 1 ec2-user ec2-user 13105408465 Feb  9  2026 /mnt/lith-fc/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c180.nc4
+RESTART-LITH  wall=23.53s  556.9 MB/s  gets=1577
+
+=== ARM restart-fsx -- same file through FSx, ONE-SHOT cold ===
+  /input/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c180.nc4: (0x0000000d) released exists archived, archive_id:1
+RESTART-FSX   wall=115.73s  113.2 MB/s
+
+=== SUMMARY ===
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+FSX   wall=113.80s  284.8 MB/s
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+FSX   wall=113.80s  284.8 MB/s
+RESTART-LITH  wall=23.53s  556.9 MB/s  gets=1577
+RESTART-FSX   wall=115.73s  113.2 MB/s
+### gate4 cold read 2026-09-18T01:18:24Z on ip-172-31-39-157  lith=1.1.2 P=8
+
+=== indexes ===
+  have  hemco (69420864 B)
+  have  merra2-201907 (15896 B)
+  have  cheminp (342448 B)
+  have  restarts (50776 B)
+  manifest: 485 objects, 32409726478 bytes (30.2 GiB)
+
+=== ARM lith -- cold daemons, 8 readers ===
+  mounted HEMCO
+  mounted GEOS_0.5x0.625/MERRA2/2019/07
+  mounted CHEM_INPUTS
+LITH  wall=48.13s  673.4 MB/s  gets=8073  s3_MB=32422.4  ampl=1.000x
+
+=== SUMMARY ===
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+FSX   wall=113.80s  284.8 MB/s
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+LITH  wall=49.75s  651.5 MB/s  gets=8066  s3_MB=32422.4  ampl=1.000x
+FSX   wall=113.80s  284.8 MB/s
+RESTART-LITH  wall=23.53s  556.9 MB/s  gets=1577
+RESTART-FSX   wall=115.73s  113.2 MB/s
+LITH  wall=48.13s  673.4 MB/s  gets=8073  s3_MB=32422.4  ampl=1.000x

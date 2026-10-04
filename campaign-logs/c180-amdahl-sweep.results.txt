@@ -1,0 +1,4 @@
+RESULT_SWEEP label=on-node pool=0 RUN_dd=18.5 Avg_dd=4.7 reached=Time: 02:00:00 fallback=0 
+RESULT_SWEEP label=P96 pool=96 RUN_dd=18.6 Avg_dd=37.1 reached=Time: 00:10:00 fallback=0 
+RESULT_SWEEP label=P192 pool=192 RUN_dd=18.4 Avg_dd=36.7 reached=Time: 00:10:00 fallback=0 
+RESULT_SWEEP label=P384 pool=384 RUN_dd=NA Avg_dd=NA reached=? fallback=0 

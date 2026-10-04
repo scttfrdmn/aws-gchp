@@ -1,0 +1,12 @@
+{"time":"2026-10-02T18:27:55.096085082Z","level":"INFO","msg":"building index","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019","auto_index_limit":5000000}
+{"time":"2026-10-02T18:27:55.274496377Z","level":"INFO","msg":"listing complete","keys":2555,"seconds":0.178336596,"keys_per_sec":14326.840689501554}
+{"time":"2026-10-02T18:27:55.277165052Z","level":"INFO","msg":"index built","keys":2555,"dirs":13,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-02T18:27:55.310570857Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"imds-estimate"}
+{"time":"2026-10-02T18:27:55.310615764Z","level":"INFO","msg":"inflight-bytes budget","budget":"1250000000 bytes (2 × 50.0 Gbps baseline × 100 ms)"}
+{"time":"2026-10-02T18:27:55.310621598Z","level":"INFO","msg":"parts-max","bytes":67108864,"source":"device-derived (NIC baseline × TTFB, clamped)","nic_bytes_per_s":6250000000,"ttfb_seed":40000000}
+{"time":"2026-10-02T18:27:55.310699557Z","level":"INFO","msg":"coalesce gap","bytes":1953125,"source":"device-derived","nic_bytes_per_s":6250000000,"ttfb_seed":40000000,"concurrency":128}
+{"time":"2026-10-02T18:27:55.31070578Z","level":"INFO","msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+{"time":"2026-10-02T18:27:55.312204603Z","level":"INFO","msg":"mounted","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019","mountpoint":"/home/ec2-user/g/mnt-f2","root":"GEOS_0.25x0.3125/GEOS_FP/2019/","keys":2555}
+{"time":"2026-10-02T18:27:55.312218608Z","level":"INFO","msg":"s3 transport","info":"http2=off MaxConnsPerHost=0(unlimited) MaxIdleConnsPerHost=128 IdleConnTimeout=90s","s3_concurrency":128}
+{"time":"2026-10-02T18:27:55.312346212Z","level":"INFO","msg":"metrics endpoint","addr":":9113"}
+{"time":"2026-10-02T18:35:24.822315044Z","level":"INFO","msg":"unmounted","stale_objects":0}

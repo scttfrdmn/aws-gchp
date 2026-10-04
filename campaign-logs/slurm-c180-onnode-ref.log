@@ -1,0 +1,6 @@
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c180.nc4
+=== ON-NODE BASELINE: GCHP_USE_REMOTE_CHEM unset -> inline solve ===
+=== transport run: chemistry served by SEPARATE cluster via chemq/c180swp_on-node (no local pool) ===
+[2026-07-20T01:14:09.015] error: *** JOB 1 ON compute-dy-nodes-1 CANCELLED AT 2026-07-20T01:14:09 DUE TO TIME LIMIT ***

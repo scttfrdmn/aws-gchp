@@ -1,0 +1,89 @@
+# PHASE C2 C180 off-node THROUGHPUT test — transport cluster (r8gn.24xl, 768GB, us-east-1a).
+# THE CLEAN NIC-UP RE-TEST (2026-07): r8gn.24xl is 768GB Graviton4 with a SINGLE 300Gbps network card
+# = 3x m9g's 100Gbps NIC, but ONE card -> works on the standard PUBLIC subnet, NO private-subnet/NAT/
+# multi-NIC/EFA-only complexity that sank the m8gn attempt. Same aarch64 binary as m9g (no rebuild-arch
+# change). 96 vCPU (half m9g's 192): 48 transport ranks + 48 co-located workers = 96 procs exactly fill
+# it at K=1 (the plan anyway). Standing gcgrid FSx (1a) -> no FSx pre-creation.
+#
+# HARDENING (from the 2026-07 multi-NIC research, campaign-logs/multi-nic-research-2026-07.txt):
+#   - SlurmdTimeout 900 (was 180, BELOW stock 300!): S3 flood on the NIC delayed slurmd's ping reply ->
+#     node marked DOWN -> requeue-kill. A generous window survives the ~minutes-long S3 bursts.
+#   - MessageTimeout 120, ReturnToService 2 (auto-recover a briefly-stalled node).
+#   EFA off: single card, S3 doesn't use RDMA, and off avoids PC 3.15.0's efa-only secondary-ENI split.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.16xlarge         # 64c aarch64 build host
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (standing FSx AZ)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+    # HARDENING: keep slurm tolerant of transient control-channel stalls when the NIC is saturated by
+    # bulk S3 traffic (the m8gn node-death chain: SlurmdTimeout -> DOWN -> clustermgtd requeue-kill).
+    CustomSlurmSettings:
+      - SlurmdTimeout: 900
+      - MessageTimeout: 120
+      - ReturnToService: 2
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: r8gn.24xlarge  # 96c / 768GB Graviton4, SINGLE card 300Gbps (3x m9g's 100)
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: false            # single card; S3 path is plain TCP (no RDMA). Off -> clean single
+            #  ENA on the public subnet, no efa-only secondary ENI, no public-IP/multi-NIC conflict.
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # standing gcgrid (us-east-1a), proven-mountable
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 2400
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: s3-c180-transport-r8gn-1a

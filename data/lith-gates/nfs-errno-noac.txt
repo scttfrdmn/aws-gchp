@@ -1,0 +1,82 @@
+### errno probe 2026-09-17T17:36:44Z on ip-172-31-39-157
+
+=== start gateway ===
+  ok   gateway listening on :20494 (pid 100307)
+  ok   mounted
+
+=== concurrency ladder with errno capture ===
+ERRNO C=32   reads=640   fail=0     (  0.0%)  2.72s  gw_threads=14   gw_fds=10  
+      client rpc before: calls=22189 retrans=0 authrefresh=22224
+      client rpc after:  calls=27274 retrans=0 authrefresh=27317
+ERRNO C=48   reads=960   fail=63    (  6.6%)  0.60s  gw_threads=15   gw_fds=10  
+      client rpc before: calls=27274 retrans=0 authrefresh=27317
+      client rpc after:  calls=34894 retrans=0 authrefresh=34956
+      errno tally:
+             63 dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+      sample failures:
+        id=2 blk=15 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=33 blk=24 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=18 blk=5 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+ERRNO C=64   reads=1280  fail=221   ( 17.3%)  0.78s  gw_threads=15   gw_fds=10  
+      client rpc before: calls=34894 retrans=0 authrefresh=34956
+      client rpc after:  calls=44961 retrans=0 authrefresh=45038
+      errno tally:
+            221 dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+      sample failures:
+        id=6 blk=16 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=46 blk=21 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=41 blk=31 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+ERRNO C=96   reads=1920  fail=304   ( 15.8%)  1.20s  gw_threads=15   gw_fds=10  
+      client rpc before: calls=44961 retrans=0 authrefresh=45038
+      client rpc after:  calls=60381 retrans=0 authrefresh=60486
+      errno tally:
+            304 dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+      sample failures:
+        id=3 blk=9 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=51 blk=16 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=35 blk=32 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+ERRNO C=128  reads=2560  fail=542   ( 21.2%)  1.54s  gw_threads=15   gw_fds=10  
+      client rpc before: calls=60381 retrans=0 authrefresh=60486
+      client rpc after:  calls=80982 retrans=0 authrefresh=81124
+      errno tally:
+            542 dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+      sample failures:
+        id=28 blk=30 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=124 blk=25 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+        id=118 blk=23 rc=1 err=dd: cannot fstat '/mnt/lith-nfs/GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.c24.nc4': Stale file handle 
+
+=== gateway metrics ===
+lith_nfs_clients 1
+lith_nfs_ops_total{op="getattr"} 59068
+lith_nfs_ops_total{op="read"} 6230
+lith_nfs_read_bytes_total 6.53262848e+09
+lith_nfs_seq_states 1
+lith_s3_bytes_total 3.7748736e+07
+
+=== gateway log — server side of the story ===
+{"time":"2026-09-17T17:36:47.129093218Z","level":"INFO","msg":"lith NFSv3 gateway","listen":":20494","bucket":"gcgrid","prefix":"GEOSCHEM_RESTARTS","keys":547,"root_id":"c67bd9c2de856e61","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=20494,mountport=20494,nolock <host>:/ /mnt
+
+=== kernel ring — client side complaints (nfs: server ... not responding etc) ===
+[Thu Sep 17 04:50:57 2026] systemd[1]: Reached target rpcbind.target - RPC Port Mapper.
+[Thu Sep 17 04:50:57 2026] systemd[1]: Mounting proc-fs-nfsd.mount - NFSD configuration filesystem...
+[Thu Sep 17 04:50:57 2026] systemd[1]: auth-rpcgss-module.service - Kernel Module supporting RPCSEC_GSS was skipped because of an unmet condition check (ConditionPathExists=/etc/krb5.keytab).
+[Thu Sep 17 04:50:57 2026] systemd[1]: Starting nfs-convert.service - Preprocess NFS configuration convertion...
+[Thu Sep 17 04:50:57 2026] RPC: Registered named UNIX socket transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered udp transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered tcp transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered tcp-with-tls transport module.
+[Thu Sep 17 04:50:57 2026] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[Thu Sep 17 04:50:57 2026] systemd[1]: nfs-convert.service: Deactivated successfully.
+[Thu Sep 17 04:50:57 2026] systemd[1]: Finished nfs-convert.service - Preprocess NFS configuration convertion.
+[Thu Sep 17 04:51:01 2026] audit: type=1130 audit(1789620661.460:229): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=nfs-mountd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[Thu Sep 17 04:51:01 2026] audit: type=1130 audit(1789620661.460:230): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=rpc-statd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[Thu Sep 17 04:51:01 2026] NFSD: Using nfsdcld client tracking operations.
+[Thu Sep 17 04:51:01 2026] NFSD: no clients to reclaim, skipping NFSv4 grace period (net f0000000)
+
+=== ERRNO SUMMARY ===
+ERRNO C=32   reads=640   fail=0     (  0.0%)  2.72s  gw_threads=14   gw_fds=10  
+ERRNO C=48   reads=960   fail=63    (  6.6%)  0.60s  gw_threads=15   gw_fds=10  
+ERRNO C=64   reads=1280  fail=221   ( 17.3%)  0.78s  gw_threads=15   gw_fds=10  
+ERRNO C=96   reads=1920  fail=304   ( 15.8%)  1.20s  gw_threads=15   gw_fds=10  
+ERRNO C=128  reads=2560  fail=542   ( 21.2%)  1.54s  gw_threads=15   gw_fds=10  

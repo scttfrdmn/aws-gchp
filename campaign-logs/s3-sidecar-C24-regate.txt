@@ -1,0 +1,23 @@
+S3 TRANSPORT REWRITE — C24 RE-GATE (persistent boto3 sidecar)
+=============================================================
+Date: 2026-07-20    Cluster: gchp-s3gate2 (c7g.16xl, us-east-1a, FSx fs-0804c4d8e01897d21)
+Build: /scratch/gchp-instr/GCHP-decoupled (decoupled backend, chem_remote_s3 sidecar rewrite)
+
+WHAT CHANGED vs the timed-out C180 path:
+  - Per-object system("aws s3api ...") fork  ->  ONE persistent boto3 process/rank (crs3_sidecar.py)
+  - Line protocol over pipes (PUT/GET/HEAD/DEL/PING/QUIT), TransferConfig(max_concurrency=64)
+  - Big-endian shim (GCHP -fconvert=big-endian) in crs3_write_in/read_out
+  - Hash-prefixed keys chemq/<jobid>/<hh>/r<rank>_k<sub>_s<step>.{in,out,done}
+  - Two-phase atomic commit (poll ALL .done, THEN GET+read all .out)
+
+RESULT — BYTE-IDENTICAL:
+  baseline (inline,  K=1): md5=dd532a95539327633dddc98ba0a76897  bytes=763402691  wall=364s
+  s3-sidecar (remote, K=2): md5=dd532a95539327633dddc98ba0a76897  bytes=763402691  wall=379s   <-- ==
+  sidecar served chemistry: sidecar=/scratch/crs3_sidecar.py boto3=1.42.97  (NOT the aws fallback)
+  crs3 fallback/error lines: 0
+  hash-prefix keys present:  yes (new crs3_key scheme confirmed)
+  worker solves:             12  (6 ranks x K=2 slices x 1 chem step)
+  exit=134 = benign MAPL finalize double-free (checkpoint flushed before it)
+
+VERDICT: the rewritten transport is correct end-to-end at C24. Cleared to re-test C180 off-node
+throughput (the number the old per-object shim could not deliver). Est ~$150-250 (m9g 1c + build + pool).

@@ -1,0 +1,14 @@
+=== gate 5f-P9  2026-10-03T02:28:11Z  B=0cbe181ec7e6  MERRA2.20190701.A3dyn.05x0625.nc4
+CELL X0-1 wall=6.338267153 s3_MB=1217.8 GETs=175 distinct_MB=22.5 amp=54.02 issued=1146 used=7 evidence_ratio_gauge=0 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=4.5]
+CELL X4-1 wall=4.988011080 s3_MB=59.8 GETs=37 distinct_MB=22.5 amp=2.65 issued=40 used=6 evidence_ratio_gauge=4 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=3.8]
+CELL X0-2 wall=6.413407146 s3_MB=1217.8 GETs=175 distinct_MB=22.5 amp=54.02 issued=1146 used=7 evidence_ratio_gauge=0 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=5.2]
+CELL X4-2 wall=4.894395808 s3_MB=59.8 GETs=37 distinct_MB=22.5 amp=2.65 issued=40 used=6 evidence_ratio_gauge=4 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=3.7]
+CELL X0-3 wall=5.201875506 s3_MB=1217.8 GETs=175 distinct_MB=22.5 amp=54.02 issued=1146 used=7 evidence_ratio_gauge=0 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=4.0]
+CELL X4-3 wall=4.949827810 s3_MB=59.8 GETs=37 distinct_MB=22.5 amp=2.65 issued=40 used=6 evidence_ratio_gauge=4 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=3.7]
+CELL X0-4 wall=5.544933740 s3_MB=1217.8 GETs=175 distinct_MB=22.5 amp=54.02 issued=1146 used=7 evidence_ratio_gauge=0 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=4.4]
+CELL X4-4 wall=4.960043105 s3_MB=59.8 GETs=37 distinct_MB=22.5 amp=2.65 issued=40 used=6 evidence_ratio_gauge=4 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=3.9]
+CELL I0-1 wall=2.740697811 s3_MB=1217.8 GETs=175 distinct_MB=22.5 amp=54.02 issued=1146 used=7 evidence_ratio_gauge=0 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=2.3]
+CELL I4-1 wall=2.338106983 s3_MB=59.8 GETs=37 distinct_MB=22.5 amp=2.65 issued=40 used=6 evidence_ratio_gauge=4 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=2.0]
+CELL I0-2 wall=2.622527650 s3_MB=1217.8 GETs=175 distinct_MB=22.5 amp=54.02 issued=1146 used=7 evidence_ratio_gauge=0 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=2.2]
+CELL I4-2 wall=2.226055472 s3_MB=59.8 GETs=37 distinct_MB=22.5 amp=2.65 issued=40 used=6 evidence_ratio_gauge=4 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.9]
+=== done 2026-10-03T02:29:17Z

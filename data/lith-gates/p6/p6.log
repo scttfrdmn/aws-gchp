@@ -1,0 +1,129 @@
+######## P6b 2026-10-02T19:28:34Z
+=== gate 5f-P5  2026-10-02T19:28:34Z  B=ba06073b2c24  len=512MB reps=2
+CELL T1-1 readers=1 distinct=1 wall=1.785756995 sh_max=1 s3_GB=2.366 issued=2288 used=497 uncovered=16 low_coverage=0 dderr=0
+  trace: 4097 rows over 1 handles   reads-with-hole/handle: min 0.01 med 0.01 max 0.01
+  final state per handle: {'sequential': 1}   rows in Sequential: 98.4%
+  commonest positive gaps (bytes x count): [(131072, 38), (262144, 1)]
+  gaps > one block (8 MiB, the gap gate): 0 of 39 positive gaps
+CELL T2-1 readers=2 distinct=1 wall=1.805357455 sh_max=1 s3_GB=2.416 issued=2288 used=497 uncovered=29 low_coverage=0 dderr=0
+  trace: 4365 rows over 2 handles   reads-with-hole/handle: min 0.66 med 0.67 max 0.67
+  final state per handle: {'sequential': 2}   rows in Sequential: 55.1%
+  commonest positive gaps (bytes x count): [(131072, 1397), (262144, 555), (393216, 135), (126976, 48)]
+  gaps > one block (8 MiB, the gap gate): 0 of 2900 positive gaps
+CELL T4-1 readers=4 distinct=1 wall=37.177182141 sh_max=0 s3_GB=0.537 issued=0 used=0 uncovered=971 low_coverage=0 dderr=0
+  trace: 4980 rows over 4 handles   reads-with-hole/handle: min 0.85 med 0.87 max 0.88
+  final state per handle: {'cold': 4}   rows in Sequential: 0.0%
+  commonest positive gaps (bytes x count): [(131072, 741), (262144, 372), (393216, 200), (524288, 112)]
+  gaps > one block (8 MiB, the gap gate): 0 of 4310 positive gaps
+CELL T16-1 readers=16 distinct=1 wall=56.737486999 sh_max=0 s3_GB=0.538 issued=0 used=0 uncovered=1708 low_coverage=33 dderr=0
+  trace: 5200 rows over 16 handles   reads-with-hole/handle: min 0.93 med 0.96 max 0.97
+  final state per handle: {'random': 14, 'cold': 2}   rows in Sequential: 0.0%
+  commonest positive gaps (bytes x count): [(131072, 199), (262144, 133), (393216, 86), (655360, 38)]
+  gaps > one block (8 MiB, the gap gate): 33 of 4967 positive gaps
+CELL T16D-1 readers=16 distinct=1 wall=1.982329245 sh_max=16 s3_GB=2.340 issued=2280 used=496 uncovered=16 low_coverage=0 dderr=0
+  trace: 65536 rows over 16 handles   reads-with-hole/handle: min 0.00 med 0.00 max 0.00
+  final state per handle: {'sequential': 16}   rows in Sequential: 98.4%
+  commonest positive gaps (bytes x count): []
+  gaps > one block (8 MiB, the gap gate): 0 of 0 positive gaps
+CELL T1-2 readers=1 distinct=1 wall=1.687432056 sh_max=1 s3_GB=2.416 issued=2288 used=497 uncovered=16 low_coverage=0 dderr=0
+  trace: 4097 rows over 1 handles   reads-with-hole/handle: min 0.01 med 0.01 max 0.01
+  final state per handle: {'sequential': 1}   rows in Sequential: 98.4%
+  commonest positive gaps (bytes x count): [(131072, 40)]
+  gaps > one block (8 MiB, the gap gate): 0 of 40 positive gaps
+CELL T2-2 readers=2 distinct=1 wall=1.881306368 sh_max=2 s3_GB=2.416 issued=2288 used=497 uncovered=27 low_coverage=0 dderr=0
+  trace: 4322 rows over 2 handles   reads-with-hole/handle: min 0.65 med 0.71 max 0.71
+  final state per handle: {'cold': 1, 'sequential': 1}   rows in Sequential: 59.6%
+  commonest positive gaps (bytes x count): [(131072, 1486), (262144, 621), (393216, 106), (126976, 37)]
+  gaps > one block (8 MiB, the gap gate): 0 of 2933 positive gaps
+CELL T4-2 readers=4 distinct=1 wall=33.403862857 sh_max=0 s3_GB=0.538 issued=0 used=0 uncovered=971 low_coverage=0 dderr=0
+  trace: 4875 rows over 4 handles   reads-with-hole/handle: min 0.85 med 0.86 max 0.87
+  final state per handle: {'cold': 4}   rows in Sequential: 0.0%
+  commonest positive gaps (bytes x count): [(131072, 763), (262144, 411), (393216, 237), (524288, 142)]
+  gaps > one block (8 MiB, the gap gate): 0 of 4198 positive gaps
+CELL T16-2 readers=16 distinct=1 wall=44.579761460 sh_max=0 s3_GB=0.538 issued=0 used=0 uncovered=1335 low_coverage=19 dderr=0
+  trace: 5279 rows over 16 handles   reads-with-hole/handle: min 0.93 med 0.95 max 0.97
+  final state per handle: {'random': 11, 'cold': 5}   rows in Sequential: 0.0%
+  commonest positive gaps (bytes x count): [(131072, 184), (262144, 106), (393216, 51), (524288, 35)]
+  gaps > one block (8 MiB, the gap gate): 19 of 5019 positive gaps
+CELL T16D-2 readers=16 distinct=1 wall=2.136503873 sh_max=16 s3_GB=2.340 issued=2224 used=496 uncovered=16 low_coverage=0 dderr=0
+  trace: 65536 rows over 16 handles   reads-with-hole/handle: min 0.00 med 0.00 max 0.00
+  final state per handle: {'sequential': 16}   rows in Sequential: 98.4%
+  commonest positive gaps (bytes x count): []
+  gaps > one block (8 MiB, the gap gate): 0 of 0 positive gaps
+=== done 2026-10-02T19:31:50Z
+######## P6c ARM M043  2026-10-02T19:31:50Z
+=== gate 5f-P2  2026-10-02T19:31:50Z  reps=2 ===
+  B=/scratch/lith-gates/lith-318 md5 ba06073b2c24   readers=16  prefix=s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/01
+  objects: 16 distinct of 16  first=MERRA2.20190101.A3cld.05x0625.nc4
+CELL RM043-1 agg_wall=4.928720678 rmin=3.608 rmax=4.922 spread=1.364 peak_committed=5965404676 peak_window=223 peak_rss_GB=6.95 peak_unread_resident=3262815469 flags=none
+MET RM043-1 lith_distinct_bytes_read 6.854148096e+09
+MET RM043-1 lith_prefetch_evicted_unread_total 0
+MET RM043-1 lith_prefetch_issued_total 6287
+MET RM043-1 lith_prefetch_uncovered_total 256
+MET RM043-1 lith_prefetch_used_total 6287
+MET RM043-1 lith_prefetch_window_halved_total 0
+MET RM043-1 lith_readahead_window_blocks 223
+MET RM043-1 lith_s3_bytes_total 6.853616232e+09
+MET RM043-1 lith_s3_requests_total{op="get",status="ok"} 1050
+CELL RM043-2 agg_wall=4.461956948 rmin=3.267 rmax=4.454 spread=1.363 peak_committed=5948470687 peak_window=223 peak_rss_GB=6.97 peak_unread_resident=3446176357 flags=none
+MET RM043-2 lith_distinct_bytes_read 6.854148096e+09
+MET RM043-2 lith_prefetch_evicted_unread_total 0
+MET RM043-2 lith_prefetch_issued_total 6287
+MET RM043-2 lith_prefetch_uncovered_total 256
+MET RM043-2 lith_prefetch_used_total 6287
+MET RM043-2 lith_prefetch_window_halved_total 0
+MET RM043-2 lith_readahead_window_blocks 223
+MET RM043-2 lith_s3_bytes_total 6.853616232e+09
+MET RM043-2 lith_s3_requests_total{op="get",status="ok"} 1050
+=== done 2026-10-02T19:32:05Z ===
+######## P6c ARM M122  2026-10-02T19:32:05Z
+=== gate 5f-P2  2026-10-02T19:32:05Z  reps=2 ===
+  B=/scratch/lith-gates/lith-318 md5 ba06073b2c24   readers=16  prefix=s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/01
+  objects: 16 distinct of 16  first=MERRA2.20190101.A3dyn.05x0625.nc4
+CELL RM122-1 agg_wall=11.406064055 rmin=5.909 rmax=11.399 spread=1.929 peak_committed=9949709840 peak_window=223 peak_rss_GB=15.51 peak_unread_resident=5471241744 flags=none
+MET RM122-1 lith_distinct_bytes_read 1.953562624e+10
+MET RM122-1 lith_prefetch_evicted_unread_total 0
+MET RM122-1 lith_prefetch_issued_total 18382
+MET RM122-1 lith_prefetch_uncovered_total 263
+MET RM122-1 lith_prefetch_used_total 18382
+MET RM122-1 lith_prefetch_window_halved_total 0
+MET RM122-1 lith_readahead_window_blocks 223
+MET RM122-1 lith_s3_bytes_total 1.9542427689e+10
+MET RM122-1 lith_s3_requests_total{op="get",status="ok"} 2567
+CELL RM122-2 agg_wall=11.177578309 rmin=7.341 rmax=11.172 spread=1.521 peak_committed=9954127710 peak_window=223 peak_rss_GB=14.40 peak_unread_resident=6637481822 flags=none
+MET RM122-2 lith_distinct_bytes_read 1.953562624e+10
+MET RM122-2 lith_prefetch_evicted_unread_total 0
+MET RM122-2 lith_prefetch_issued_total 18382
+MET RM122-2 lith_prefetch_uncovered_total 306
+MET RM122-2 lith_prefetch_used_total 18382
+MET RM122-2 lith_prefetch_window_halved_total 0
+MET RM122-2 lith_readahead_window_blocks 223
+MET RM122-2 lith_s3_bytes_total 1.9587516457e+10
+MET RM122-2 lith_s3_requests_total{op="get",status="ok"} 2610
+=== done 2026-10-02T19:32:35Z ===
+######## P6c ARM D375  2026-10-02T19:32:35Z
+=== gate 5f-P2  2026-10-02T19:32:35Z  reps=2 ===
+  B=/scratch/lith-gates/lith-318 md5 ba06073b2c24   readers=16  prefix=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07
+  objects: 16 distinct of 16  first=GEOSFP.20190701.A3dyn.025x03125.nc
+CELL RD375-1 agg_wall=96.060629843 rmin=29.946 rmax=96.056 spread=3.207 peak_committed=11458838528 peak_window=223 peak_rss_GB=16.93 peak_unread_resident=8254390272 flags=none
+MET RD375-1 lith_distinct_bytes_read 6.0076982272e+10
+MET RD375-1 lith_prefetch_evicted_unread_total 2870
+MET RD375-1 lith_prefetch_issued_total 57045
+MET RD375-1 lith_prefetch_uncovered_total 3433
+MET RD375-1 lith_prefetch_used_total 54175
+MET RD375-1 lith_prefetch_window_halved_total 0
+MET RD375-1 lith_readahead_window_blocks 223
+MET RD375-1 lith_s3_bytes_total 6.3407861979e+10
+MET RD375-1 lith_s3_requests_total{op="get",status="ok"} 10573
+CELL RD375-2 agg_wall=99.905302394 rmin=29.462 rmax=99.900 spread=3.390 peak_committed=11457789952 peak_window=223 peak_rss_GB=16.89 peak_unread_resident=8254390272 flags=none
+MET RD375-2 lith_distinct_bytes_read 6.0076982272e+10
+MET RD375-2 lith_prefetch_evicted_unread_total 2868
+MET RD375-2 lith_prefetch_issued_total 57045
+MET RD375-2 lith_prefetch_uncovered_total 3403
+MET RD375-2 lith_prefetch_used_total 54177
+MET RD375-2 lith_prefetch_window_halved_total 0
+MET RD375-2 lith_readahead_window_blocks 223
+MET RD375-2 lith_s3_bytes_total 6.3376404699e+10
+MET RD375-2 lith_s3_requests_total{op="get",status="ok"} 10543
+=== done 2026-10-02T19:35:59Z ===
+######## P6 DONE 2026-10-02T19:35:59Z

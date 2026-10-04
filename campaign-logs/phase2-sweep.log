@@ -1,0 +1,109 @@
+############ INSTANCE c7g.16xlarge (arch=aarch64, maxnodes=1, cluster=gchp-sw-c7g) ############
+rendered: /tmp/gchp-sw-c7g.yaml (instance=c7g.16xlarge max=1 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=54.227.219.102
+=== cell c7g.16xlarge c24_n1x60_tt --warmup ===
+  job=1
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7g-c24_n1x60_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7g-c24_n1x60_tt.log --instance c7g.16xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c7g
+############ INSTANCE hpc7g.16xlarge (arch=aarch64, maxnodes=1, cluster=gchp-sw-hpc7g) ############
+rendered: /tmp/gchp-sw-hpc7g.yaml (instance=hpc7g.16xlarge max=1 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=98.81.209.169
+=== cell hpc7g.16xlarge c24_n1x60_tt --warmup ===
+  job=1
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-hpc7g-c24_n1x60_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-hpc7g-c24_n1x60_tt.log --instance hpc7g.16xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-hpc7g
+############ INSTANCE c8g.48xlarge (arch=aarch64, maxnodes=2, cluster=gchp-sw-c8g) ############
+rendered: /tmp/gchp-sw-c8g.yaml (instance=c8g.48xlarge max=2 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=34.207.140.201
+=== cell c8g.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c24_n1x96_tt.log --instance c8g.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c8g
+############ INSTANCE c8i.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c8i) ############
+rendered: /tmp/gchp-sw-c8i.yaml (instance=c8i.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh)
+=== dry-run ===
+msg: Invalid cluster configuration.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+  ERROR ComputeResourceLaunchTemplateValidator
+  ERROR InstanceArchitectureCompatibilityValidator
+  ERROR InstanceTypeBaseAMICompatibleValidator
+=== create ===
+status: Invalid cluster configuration.
+>>> gchp-sw-c8i did not create (status=); skipping instance
+############ INSTANCE c7i.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c7i) ############
+rendered: /tmp/gchp-sw-c7i.yaml (instance=c7i.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh)
+=== dry-run ===
+msg: Invalid cluster configuration.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+  ERROR ComputeResourceLaunchTemplateValidator
+  ERROR InstanceArchitectureCompatibilityValidator
+  ERROR InstanceTypeBaseAMICompatibleValidator
+=== create ===
+status: Invalid cluster configuration.
+>>> gchp-sw-c7i did not create (status=); skipping instance
+############ INSTANCE c7a.48xlarge (arch=x86_64, maxnodes=2, cluster=gchp-sw-c7a) ############
+rendered: /tmp/gchp-sw-c7a.yaml (instance=c7a.48xlarge max=2 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh)
+=== dry-run ===
+msg: Invalid cluster configuration.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+  ERROR ComputeResourceLaunchTemplateValidator
+  ERROR InstanceArchitectureCompatibilityValidator
+  ERROR InstanceTypeBaseAMICompatibleValidator
+=== create ===
+status: Invalid cluster configuration.
+>>> gchp-sw-c7a did not create (status=); skipping instance
+############ INSTANCE c8a.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c8a) ############
+rendered: /tmp/gchp-sw-c8a.yaml (instance=c8a.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh)
+=== dry-run ===
+msg: Invalid cluster configuration.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+  ERROR ComputeResourceLaunchTemplateValidator
+  ERROR InstanceArchitectureCompatibilityValidator
+  ERROR InstanceTypeBaseAMICompatibleValidator
+=== create ===
+status: Invalid cluster configuration.
+>>> gchp-sw-c8a did not create (status=); skipping instance
+############ INSTANCE m9g.48xlarge (arch=aarch64, maxnodes=2, cluster=gchp-sw-m9g) ############
+rendered: /tmp/gchp-sw-m9g.yaml (instance=m9g.48xlarge max=2 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=3.91.24.235
+=== cell m9g.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-m9g-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-m9g-c24_n1x96_tt.log --instance m9g.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-m9g
+############ SWEEP DONE. logs in /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs. Append the good ones to benchmarks.json, then re-run pytest + calculator. ############

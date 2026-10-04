@@ -1,0 +1,98 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 6938e70..b176786 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -112,6 +112,36 @@ if (${KPPSA})
+   endif()
+ endif()
+ 
++#-----------------------------------------------------------------------------
++# DECOUPLED_CHEM_WORKER (Phase 1a): a standalone kpp_worker executable that
++# reads the flat KPP-input buffers dumped by fullchem's DECOUPLED_CHEM path
++# and replays the per-cell solve, for the offline byte-identity proof. It
++# links the SAME KPP mechanism lib (transitively inheriting
++# GEOSChemBuildProperties + KPP_INTEGRATOR_AUTOREDUCE) and uses the SAME
++# -fdefault-real-8/-double-8 as KPPStandalone, so the compiled integrator is
++# bit-for-bit the one fullchem calls in-process.
++#-----------------------------------------------------------------------------
++if (${DECOUPLED_CHEM_WORKER})
++  if("${MECH}" STREQUAL fullchem OR "${MECH}" STREQUAL custom)
++    add_executable(kpp_worker
++      GCHP_GridComp/GEOSChem_GridComp/geos-chem/GeosCore/kpp_worker.F90
++      )
++    # KPP = the mechanism/integrator (bit-identity); ChemRemote = the Phase 1b
++    # shm transport module + POSIX shim (Phase 1b service mode). ChemRemote
++    # brings rt+pthread transitively. Both are built in this same configure so
++    # the compiled integrator is bit-for-bit the one fullchem calls in-process.
++    target_link_libraries(kpp_worker PUBLIC KPP ChemRemote)
++    target_compile_options(kpp_worker
++      PRIVATE
++      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
++      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
++      )
++    set_target_properties(kpp_worker
++      PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
++      )
++  endif()
++endif()
++
+ #-----------------------------------------------------------------------------
+ # Allow GCHP to be installed either to the path specified by -DRUNDIR or
+ # -DINSTALLCOPY.  In most instances, the build directory is a subdirectory
+diff --git a/src/GCHP_GridComp/GEOSChem_GridComp/CMakeLists.txt b/src/GCHP_GridComp/GEOSChem_GridComp/CMakeLists.txt
+index 709e417..1dbb0dc 100755
+--- a/src/GCHP_GridComp/GEOSChem_GridComp/CMakeLists.txt
++++ b/src/GCHP_GridComp/GEOSChem_GridComp/CMakeLists.txt
+@@ -41,13 +41,37 @@ if(${JACOBIAN})
+   endif()
+ endif()
+ 
+-# Load balancing on by default, but turn off if using KPP standalone
++# Decoupled-chemistry in-process backend (Phase 0 of decoupled-execution work).
++# Off by default. When ON, chemistry uses the same gather/solve/scatter seam as
++# MPI_LOAD_BALANCE but solves in-process (plain loop, no MPI windows) so the
++# refactor can be proven bitwise-identical to the stock per-cell solve. It is
++# mutually exclusive with MPI_LOAD_BALANCE (both drive the same code regions).
++set(DECOUPLED_CHEM OFF CACHE BOOL
++  "In-process gather/solve/scatter chemistry backend (decoupled-chem Phase 0)"
++)
++
++# Decoupled-chemistry Phase 1a offline worker. When ON, builds a standalone
++# kpp_worker executable (src/CMakeLists.txt) that replays the flat KPP buffers
++# fullchem's DECOUPLED_CHEM path dumps, for the byte-identity proof. Implies
++# DECOUPLED_CHEM (the worker consumes that path's dumps).
++set(DECOUPLED_CHEM_WORKER OFF CACHE BOOL
++  "Build the offline kpp_worker executable (decoupled-chem Phase 1a)"
++)
++if(${DECOUPLED_CHEM_WORKER})
++  set(DECOUPLED_CHEM ON)
++endif()
++
++# Load balancing on by default, but turn off if using KPP standalone or the
++# decoupled-chem in-process backend (either one owns the gather/solve/scatter path).
+ set(MPI_LOAD_BALANCE ON CACHE BOOL
+   "Switch to apply MPI load balance in chemistry if using GCHP"
+ )
+ if(${KPPSA})
+   set(MPI_LOAD_BALANCE OFF)
+ endif()
++if(${DECOUPLED_CHEM})
++  set(MPI_LOAD_BALANCE OFF)
++endif()
+ 
+ # Add directories to build
+ add_subdirectory(Cloud-J EXCLUDE_FROM_ALL)
+@@ -70,6 +94,7 @@ target_compile_definitions(GEOSChemBuildProperties INTERFACE
+   $<$<BOOL:${KPPSA}>:KPPSA>
+   $<$<BOOL:${JACOBIAN}>:JACOBIAN>
+   $<$<BOOL:${MPI_LOAD_BALANCE}>:MPI_LOAD_BALANCE>
++  $<$<BOOL:${DECOUPLED_CHEM}>:DECOUPLED_CHEM>
+ )
+ 
+ target_link_libraries(GEOSChemBuildProperties INTERFACE
+@@ -175,3 +200,5 @@ gc_pretty_print(VARIABLE FASTJX IS_BOOLEAN)
+ gc_pretty_print(VARIABLE KPPSA IS_BOOLEAN)
+ gc_pretty_print(VARIABLE JACOBIAN IS_BOOLEAN)
+ gc_pretty_print(VARIABLE MPI_LOAD_BALANCE IS_BOOLEAN)
++gc_pretty_print(VARIABLE DECOUPLED_CHEM IS_BOOLEAN)
++gc_pretty_print(VARIABLE DECOUPLED_CHEM_WORKER IS_BOOLEAN)

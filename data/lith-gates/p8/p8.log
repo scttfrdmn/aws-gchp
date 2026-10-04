@@ -1,0 +1,38 @@
+=== gate 5f-P5  2026-10-03T02:19:47Z  B=c62832b261d0  len=512MB reps=2
+CELL T16-1 readers=16 distinct=1 wall=49.530460641 sh_max=0 s3_GB=0.538 issued=0 used=0 uncovered=1336 low_coverage=16 coverage_held=1008 dderr=0
+  trace: 5334 rows over 16 handles   reads-with-hole/handle: min 0.94 med 0.95 max 0.97
+  handles ever Sequential: 0 of 16
+  final state per handle: {'random': 11, 'cold': 5}   rows in Sequential: 0.0%
+  commonest positive gaps (bytes x count): [(131072, 163), (262144, 106), (393216, 81), (524288, 45)]
+  gaps > one block (8 MiB, the gap gate): 16 of 5065 positive gaps
+CELL T16C-1 readers=16 distinct=1 wall=3.124259574 sh_max=15 s3_GB=1.887 issued=1784 used=497 uncovered=29 low_coverage=22 coverage_held=158 dderr=0
+  trace: 4825 rows over 16 handles   reads-with-hole/handle: min 0.92 med 0.95 max 0.97
+  handles ever Sequential: 16 of 16
+  final state per handle: {'cold': 3, 'sequential': 12, 'random': 1}   rows in Sequential: 82.4%
+  commonest positive gaps (bytes x count): [(131072, 178), (262144, 107), (393216, 47), (524288, 25)]
+  gaps > one block (8 MiB, the gap gate): 42 of 4575 positive gaps
+CELL T16D-1 readers=16 distinct=1 wall=2.168704330 sh_max=16 s3_GB=1.887 issued=1784 used=496 uncovered=16 low_coverage=0 coverage_held=16 dderr=0
+  trace: 65536 rows over 16 handles   reads-with-hole/handle: min 0.00 med 0.00 max 0.00
+  handles ever Sequential: 16 of 16
+  final state per handle: {'sequential': 16}   rows in Sequential: 98.4%
+  commonest positive gaps (bytes x count): []
+  gaps > one block (8 MiB, the gap gate): 0 of 0 positive gaps
+CELL T16-2 readers=16 distinct=1 wall=40.310105534 sh_max=0 s3_GB=0.539 issued=16 used=16 uncovered=1341 low_coverage=27 coverage_held=989 dderr=0
+  trace: 5351 rows over 16 handles   reads-with-hole/handle: min 0.93 med 0.95 max 0.96
+  handles ever Sequential: 0 of 16
+  final state per handle: {'random': 12, 'cold': 3, 'strided': 1}   rows in Sequential: 0.0%
+  commonest positive gaps (bytes x count): [(131072, 171), (262144, 112), (393216, 71), (524288, 47)]
+  gaps > one block (8 MiB, the gap gate): 29 of 5065 positive gaps
+CELL T16C-2 readers=16 distinct=1 wall=2.964910141 sh_max=15 s3_GB=1.887 issued=1784 used=497 uncovered=28 low_coverage=19 coverage_held=157 dderr=0
+  trace: 4856 rows over 16 handles   reads-with-hole/handle: min 0.93 med 0.95 max 0.97
+  handles ever Sequential: 16 of 16
+  final state per handle: {'random': 1, 'sequential': 14, 'cold': 1}   rows in Sequential: 83.6%
+  commonest positive gaps (bytes x count): [(131072, 190), (262144, 131), (393216, 60), (389120, 24)]
+  gaps > one block (8 MiB, the gap gate): 37 of 4591 positive gaps
+CELL T16D-2 readers=16 distinct=1 wall=2.110563437 sh_max=16 s3_GB=1.887 issued=1784 used=496 uncovered=16 low_coverage=0 coverage_held=16 dderr=0
+  trace: 65536 rows over 16 handles   reads-with-hole/handle: min 0.00 med 0.00 max 0.00
+  handles ever Sequential: 16 of 16
+  final state per handle: {'sequential': 16}   rows in Sequential: 98.4%
+  commonest positive gaps (bytes x count): []
+  gaps > one block (8 MiB, the gap gate): 0 of 0 positive gaps
+=== done 2026-10-03T02:21:36Z

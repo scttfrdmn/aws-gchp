@@ -1,0 +1,102 @@
+######## box c8gn.48xlarge  MemTotal 389184380 kB  nproc 192
+=== gate 5f-F1  2026-10-02T17:36:43Z  B=84ca5c81fe6e  GEOSFP.20190701.A3dyn.025x03125.nc /U 0,0,0,0/1,72,721,1152
+CELL N7.5-1 wall=3.223045505 slab=[0.316 2.607 239210496 d851be577f6e1b0e] s3_MB=399.6 distinct_MB=115.0 amp=3.48 window=33 issued=368 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":33,"window_bound":"--max-readahead","window_commit_bytes":276824064,"prefetch_budget_bytes":49815600640,"inflight_bytes":187500000,"binding":"--inflight-bytes","full_window_descriptors":179,"floor_at_descriptors":1980}
+CELL N15-1 wall=2.693535751 slab=[0.094 2.306 239210496 d851be577f6e1b0e] s3_MB=684.8 distinct_MB=115.0 amp=5.96 window=67 issued=640 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":15,"peak_gbps":15,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":67,"window_bound":"--max-readahead","window_commit_bytes":562036736,"prefetch_budget_bytes":49815600640,"inflight_bytes":375000000,"binding":"--inflight-bytes","full_window_descriptors":88,"floor_at_descriptors":1980}
+CELL N50-1 wall=2.580642600 slab=[0.092 2.195 239210496 d851be577f6e1b0e] s3_MB=1993.4 distinct_MB=115.0 amp=17.34 window=223 issued=1888 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+CELL N100-1 wall=2.729190729 slab=[0.130 2.307 239210496 d851be577f6e1b0e] s3_MB=2028.9 distinct_MB=115.0 amp=17.65 window=447 issued=1922 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":100,"peak_gbps":100,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":447,"window_bound":"--max-readahead","window_commit_bytes":3749707776,"prefetch_budget_bytes":49815600640,"inflight_bytes":2500000000,"binding":"--inflight-bytes","full_window_descriptors":13,"floor_at_descriptors":1980}
+CELL Nauto-1 wall=2.547414204 slab=[0.114 2.140 239210496 d851be577f6e1b0e] s3_MB=1993.4 distinct_MB=115.0 amp=17.34 window=223 issued=1888 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"imds-estimate"
+  "msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+CELL N7.5-2 wall=2.563375108 slab=[0.087 2.183 239210496 d851be577f6e1b0e] s3_MB=399.6 distinct_MB=115.0 amp=3.48 window=33 issued=368 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":33,"window_bound":"--max-readahead","window_commit_bytes":276824064,"prefetch_budget_bytes":49815600640,"inflight_bytes":187500000,"binding":"--inflight-bytes","full_window_descriptors":179,"floor_at_descriptors":1980}
+CELL N15-2 wall=2.649244954 slab=[0.129 2.227 239210496 d851be577f6e1b0e] s3_MB=684.8 distinct_MB=115.0 amp=5.96 window=67 issued=640 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":15,"peak_gbps":15,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":67,"window_bound":"--max-readahead","window_commit_bytes":562036736,"prefetch_budget_bytes":49815600640,"inflight_bytes":375000000,"binding":"--inflight-bytes","full_window_descriptors":88,"floor_at_descriptors":1980}
+CELL N50-2 wall=2.706852308 slab=[0.145 2.269 239210496 d851be577f6e1b0e] s3_MB=1993.5 distinct_MB=115.0 amp=17.34 window=223 issued=1888 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+CELL N100-2 wall=2.598574509 slab=[0.093 2.212 239210496 d851be577f6e1b0e] s3_MB=2028.9 distinct_MB=115.0 amp=17.65 window=447 issued=1922 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":100,"peak_gbps":100,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":447,"window_bound":"--max-readahead","window_commit_bytes":3749707776,"prefetch_budget_bytes":49815600640,"inflight_bytes":2500000000,"binding":"--inflight-bytes","full_window_descriptors":13,"floor_at_descriptors":1980}
+CELL Nauto-2 wall=2.609422071 slab=[0.118 2.199 239210496 d851be577f6e1b0e] s3_MB=1993.4 distinct_MB=115.0 amp=17.34 window=223 issued=1888 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"imds-estimate"
+  "msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+CELL N7.5-3 wall=2.466557203 slab=[0.086 2.087 239210496 d851be577f6e1b0e] s3_MB=399.6 distinct_MB=115.0 amp=3.48 window=33 issued=368 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":33,"window_bound":"--max-readahead","window_commit_bytes":276824064,"prefetch_budget_bytes":49815600640,"inflight_bytes":187500000,"binding":"--inflight-bytes","full_window_descriptors":179,"floor_at_descriptors":1980}
+CELL N15-3 wall=2.703660652 slab=[0.152 2.258 239210496 d851be577f6e1b0e] s3_MB=684.8 distinct_MB=115.0 amp=5.96 window=67 issued=640 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":15,"peak_gbps":15,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":67,"window_bound":"--max-readahead","window_commit_bytes":562036736,"prefetch_budget_bytes":49815600640,"inflight_bytes":375000000,"binding":"--inflight-bytes","full_window_descriptors":88,"floor_at_descriptors":1980}
+CELL N50-3 wall=2.663072348 slab=[0.103 2.268 239210496 d851be577f6e1b0e] s3_MB=1993.4 distinct_MB=115.0 amp=17.34 window=223 issued=1888 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+CELL N100-3 wall=2.511276341 slab=[0.102 2.115 239210496 d851be577f6e1b0e] s3_MB=2028.9 distinct_MB=115.0 amp=17.65 window=447 issued=1922 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":100,"peak_gbps":100,"source":"--nic-gbps"
+  "msg":"prefetch bounds","window_blocks":447,"window_bound":"--max-readahead","window_commit_bytes":3749707776,"prefetch_budget_bytes":49815600640,"inflight_bytes":2500000000,"binding":"--inflight-bytes","full_window_descriptors":13,"floor_at_descriptors":1980}
+CELL Nauto-3 wall=2.745106250 slab=[0.141 2.311 239210496 d851be577f6e1b0e] s3_MB=1993.4 distinct_MB=115.0 amp=17.34 window=223 issued=1888 evicted=0
+  "msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"imds-estimate"
+  "msg":"prefetch bounds","window_blocks":223,"window_bound":"--max-readahead","window_commit_bytes":1870659584,"prefetch_budget_bytes":49815600640,"inflight_bytes":1250000000,"binding":"--inflight-bytes","full_window_descriptors":26,"floor_at_descriptors":1980}
+=== done 2026-10-02T17:38:54Z
+######## ARM L8  2026-10-02T17:38:54Z
+=== gate 5f-P2  2026-10-02T17:38:54Z  reps=2 ===
+  B=/home/ec2-user/g/lith-315 md5 84ca5c81fe6e   readers=8  prefix=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019
+  objects: 8 distinct of 8  first=07/GEOSFP.20190701.A3dyn.025x03125.nc
+CELL RL8-1 agg_wall=5.778468896 rmin=4.287 rmax=5.773 spread=1.346 peak_committed=14982053888 peak_window=223 peak_rss_GB=30.32 flags=none
+MET RL8-1 lith_distinct_bytes_read 2.9945757696e+10
+MET RL8-1 lith_prefetch_evicted_unread_total 0
+MET RL8-1 lith_prefetch_issued_total 28434
+MET RL8-1 lith_prefetch_uncovered_total 128
+MET RL8-1 lith_prefetch_used_total 28434
+MET RL8-1 lith_prefetch_window_halved_total 0
+MET RL8-1 lith_readahead_window_blocks 223
+MET RL8-1 lith_s3_bytes_total 2.9945517322e+10
+MET RL8-1 lith_s3_requests_total{op="get",status="ok"} 3687
+CELL RL8-2 agg_wall=4.493497040 rmin=3.422 rmax=4.488 spread=1.311 peak_committed=14986248192 peak_window=223 peak_rss_GB=30.34 flags=none
+MET RL8-2 lith_distinct_bytes_read 2.9945757696e+10
+MET RL8-2 lith_prefetch_evicted_unread_total 0
+MET RL8-2 lith_prefetch_issued_total 28434
+MET RL8-2 lith_prefetch_uncovered_total 128
+MET RL8-2 lith_prefetch_used_total 28434
+MET RL8-2 lith_prefetch_window_halved_total 0
+MET RL8-2 lith_readahead_window_blocks 223
+MET RL8-2 lith_s3_bytes_total 2.9945517322e+10
+MET RL8-2 lith_s3_requests_total{op="get",status="ok"} 3687
+=== done 2026-10-02T17:39:13Z ===
+######## ARM L32  2026-10-02T17:39:13Z
+=== gate 5f-P2  2026-10-02T17:39:13Z  reps=2 ===
+  B=/home/ec2-user/g/lith-315 md5 84ca5c81fe6e   readers=32  prefix=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019
+  objects: 32 distinct of 32  first=07/GEOSFP.20190701.A3dyn.025x03125.nc
+CELL RL32-1 agg_wall=20.875207453 rmin=17.856 rmax=20.864 spread=1.168 peak_committed=58770587648 peak_window=223 peak_rss_GB=121.48 flags=none
+MET RL32-1 lith_distinct_bytes_read 1.20289558528e+11
+MET RL32-1 lith_prefetch_evicted_unread_total 0
+MET RL32-1 lith_prefetch_issued_total 114221
+MET RL32-1 lith_prefetch_uncovered_total 512
+MET RL32-1 lith_prefetch_used_total 114221
+MET RL32-1 lith_prefetch_window_halved_total 0
+MET RL32-1 lith_readahead_window_blocks 223
+MET RL32-1 lith_s3_bytes_total 1.202884949e+11
+MET RL32-1 lith_s3_requests_total{op="get",status="ok"} 14809
+CELL RL32-2 agg_wall=18.122451171 rmin=16.293 rmax=18.113 spread=1.111 peak_committed=58770587648 peak_window=223 peak_rss_GB=119.93 flags=none
+MET RL32-2 lith_distinct_bytes_read 1.20289558528e+11
+MET RL32-2 lith_prefetch_evicted_unread_total 0
+MET RL32-2 lith_prefetch_issued_total 114221
+MET RL32-2 lith_prefetch_uncovered_total 512
+MET RL32-2 lith_prefetch_used_total 114221
+MET RL32-2 lith_prefetch_window_halved_total 0
+MET RL32-2 lith_readahead_window_blocks 223
+MET RL32-2 lith_s3_bytes_total 1.202884949e+11
+MET RL32-2 lith_s3_requests_total{op="get",status="ok"} 14809
+=== done 2026-10-02T17:40:14Z ===
+######## ARM L64  2026-10-02T17:40:14Z
+=== gate 5f-P2  2026-10-02T17:40:14Z  reps=2 ===
+  B=/home/ec2-user/g/lith-315 md5 84ca5c81fe6e   readers=64  prefix=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019
+  objects: 64 distinct of 64  first=07/GEOSFP.20190701.A3dyn.025x03125.nc

@@ -1,0 +1,10 @@
+=== gate 5f-P9  2026-10-03T02:35:19Z  B=0cbe181ec7e6  GEOSFP.20190701.A3dyn.025x03125.nc
+CELL DX0-1 wall=8.708471344 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=0 reader=[mode=dd wall=8.68]
+CELL DX4-1 wall=15.573959988 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=4 reader=[mode=dd wall=15.55]
+CELL DX0-2 wall=7.648689078 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=0 reader=[mode=dd wall=7.62]
+CELL DX4-2 wall=19.202769738 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=4 reader=[mode=dd wall=19.18]
+CELL DX0-3 wall=8.146707223 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=0 reader=[mode=dd wall=8.12]
+CELL DX4-3 wall=19.263542301 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=4 reader=[mode=dd wall=19.24]
+CELL DX0-4 wall=7.553364687 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=0 reader=[mode=dd wall=7.53]
+CELL DX4-4 wall=17.944242904 s3_MB=3776.8 GETs=465 distinct_MB=3776.8 amp=1.00 issued=3586 used=3586 evidence_ratio_gauge=4 reader=[mode=dd wall=17.92]
+=== done 2026-10-03T02:37:14Z

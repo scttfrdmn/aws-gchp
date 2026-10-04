@@ -1,0 +1,160 @@
+THE SHARED-CACHE REPLAY — the unit was the finding
+==================================================
+2026-09-20. $0: offline replay of capture 2's four banked traces. No cluster run.
+
+WHAT WAS BUILT
+
+  cmd/lith-pfreplay/global.go (patches/lith/pfreplay-global.go) + nine additive edits to
+  main.go (patches/lith/pfreplay-global-wire.py, every edit asserted to match exactly
+  once). Built on upstream's #273 tree, `go vet` clean, gofmt clean. Deliberately inside
+  upstream's own tool rather than a reimplementation, so the features, the EOF clamp, the
+  cold-tax definition, the fidelity filter, the Spearman/AUC code and the verdict wording
+  are all theirs; the only thing that changes is the accounting unit.
+
+  Prerequisite nobody had noticed: `readTrace` never parsed the `key` column, and `row`
+  had no `key` field. Dedup is per object, so the shared unit was unbuildable until that
+  was added — the column has been in the format since #262 and went unused.
+
+    PER-HANDLE (all banked verdicts)   a dispatched block is followed through iff a later
+                                       read OF THE SAME HANDLE touches it.
+    SHARED (this)                      a (key, block) is charged ONCE, to whichever handle
+                                       dispatched it first in mount-wide decision order;
+                                       bytes are followed through if ANY handle on that key
+                                       reads them afterwards.
+
+  What does NOT become global: each handle's detector still sees only its own reads, as the
+  live code does. The cache is shared; the state machines are not. Possible only because of
+  #271's `seq` — a shared cache must be replayed in mount-wide decision order, and before
+  `seq` no such order was recorded. The pass refuses to run on a trace without `seq` or
+  `key` rather than invent one.
+
+  Stated bound: no eviction, so shared follow-through is an UPPER bound. Tight here —
+  distinct bytes read were 3.03 GiB (met) / 3.44 GiB (HEMCO) against --mem-cache 24/32 GB,
+  so nothing credited as resident could plausibly have been evicted.
+
+1. THE INDEPENDENT COUNTER ADJUDICATES THE UNIT
+
+  The mount counted the chunks it actually prefetched. Neither replay can argue with it.
+
+    mount     lith_prefetch_issued_total   shared replay        per-handle replay
+    met/a     2939 chunks                  3185  -> 1.08x       13403 -> 4.56x
+    met/b     2942 chunks                  3185  -> 1.08x       13308 -> 4.52x
+    hemco/a   4632 chunks                  4822  -> 1.04x        7074 -> 1.53x
+    hemco/b   4700 chunks                  4901  -> 1.04x        7049 -> 1.50x
+
+  The shared unit reproduces the mount's own fetch volume to within 4-8% on both mounts.
+  The per-handle unit overstates it by 1.5x on HEMCO and 4.5x on met. This is not an
+  argument about which unit is more interesting: one of them counts fetches that happened
+  and the other counts fetches that did not.
+
+  Why the asymmetry, and why it was invisible: met is 12 keys read by ~600 handles ->
+  4.2x dedup. HEMCO is 204 keys read by ~6200 handles -> 1.45x. The mount-wide 3.42x
+  figure was an average over both, which is why no single correction ever fit.
+
+2. WHAT PREFETCH ACTUALLY COSTS AND RETURNS, IN THE VALIDATED UNIT
+
+    mount     dispatched (MiB)    followed through     follow-through
+              shared/per-handle   shared/per-handle    shared   per-handle
+    met/a     3185 / 13404        2363 / 1256          0.742    0.094
+    met/b     3185 / 13308        2367 / 1241          0.743    0.093
+    hemco/a   4823 /  7074         607 /  122          0.126    0.017
+    hemco/b   4902 /  7050         615 /  118          0.125    0.017
+
+  met's prefetch is 74% useful. HEMCO's is 87% WASTED — 4.2 GB fetched and never read, on
+  a mount that reads 3.5 GB distinct. That is the thread's entire claim, stated for the
+  first time in a unit an independent counter agrees with.
+
+  84-85% of all redeemed bytes were read by a DIFFERENT handle than the one that fetched
+  them. On both mounts. Which is the deeper point: "did this handle's prefetch pay off" is
+  not a property of the handle. The per-handle instrument was blind to five sixths of the
+  payoff and charged 1.5-4.5x of a cost that was never paid.
+
+3. THE IMPOSSIBLE NUMBER RESOLVES ONTO THE PRE-REGISTERED PREDICTION
+
+  Per-handle NET cold waste was 8403 / 8513 MiB against a mount cache budget of 5.32 GB.
+  Two arms reproduced it, so it was a property of the unit, not noise. Cause: coldTax
+  dedupes chunks WITHIN a handle, so when ~121 handles each cold-start on the same object
+  it charges 121 whole-chunk fetches for one.
+
+  Deduped mount-wide, with "never read" meaning never read by ANY handle on that key:
+
+    mount     cold first-run small reads   suppressed as resident   NET waste
+    met/a     6065                          5087                     51.0 MB
+    met/b     5880                          4917                     52.2 MB
+    hemco/a   24801                        20610                   1318.4 MB
+    hemco/b   24578                        20407                   1320.6 MB
+
+  Against the pre-registration (gate 5f, docs line 2365), written before any of this:
+
+    "group by fh, count path=window rows with len <= byteExactThreshold and
+     state_before=cold, multiply by (chunk length - extents covered).
+     Prediction 1.0-1.4 GB; below 0.5 GB and the mechanism is wrong."
+
+  1318 / 1321 MB. Inside the band. And against the independently MEASURED mount residual
+  from gates 5c/5f — HEMCO 1224-1239 MB, met 55.6-59.9 MB — the replay lands 6.6-7.7%
+  high on HEMCO and 8-13% low on met, with nothing fitted. The met control matters as much
+  as the HEMCO number: the same instrument predicts the mount with a 1.8% residual as well
+  as the mount with a 33% one, and the 21x ratio between them comes out as 26x.
+
+  P5 CONFIRMED. The cold-start granularity tax at fs.go:778-786 IS the ~1.23 GB floor. Two
+  wholly independent paths — live mount counters across eight prefetch policies, and an
+  offline replay of the read trace — now agree on it to within 8%.
+
+4. AND THE #256 VERDICT FLIPS. IT IS THE UNIT, NOT THE POPULATION
+
+  Capture 2's banked verdict: SEPARATION on met, mean_abs_gap_blocks rho +0.635 / +0.634.
+  In the shared unit the best feature is frac_monotonic at +0.441 and the rule returns
+  PARTIAL (AUC 0.777 >= 0.7, no feature >= 0.5 on two qualifying arms).
+
+  A flip like that has a boring explanation available: the shared pass scores fewer handles
+  (met 141 -> 63), because a handle whose every dispatch was already resident caused no
+  fetch and has no follow-through to score. A population change alone can move a
+  correlation. So — scripts/lith/capture2-global-confound.py, and this is the same error
+  class capture 1 died of, a verdict computed over handles a filter had already rejected:
+
+    feature                class/arm    A: per-hd,  B: per-hd,  C: shared,   n_A  n_BC
+                                        all scored  shared subset  same subset
+    mean_abs_gap_blocks    met/a          +0.635      +0.609      +0.167      141   63
+    mean_abs_gap_blocks    met/b          +0.634      +0.634      +0.184      142   63
+    mean_abs_gap_blocks    hemco/a        +0.271      +0.366      +0.122      167  140
+    mean_abs_gap_blocks    hemco/b        +0.266      +0.329      +0.116      167  136
+
+  B is the control: the per-handle correlation SURVIVES on exactly the handles the shared
+  pass scores (+0.609/+0.634 vs +0.635/+0.634). C is the same handles, same feature, one
+  unit apart: +0.167/+0.184. The flip is the UNIT.
+
+  The two units barely agree on which handles did well: rho(per-handle FT, shared FT) =
+  +0.257/+0.263 on met, +0.448/+0.441 on HEMCO.
+
+  So the banked SEPARATION was a correlation with a quantity that mostly isn't the
+  handle's: `mean_abs_gap_blocks` predicted how much a handle re-asked for blocks its
+  siblings had already fetched, which in the per-handle unit reads as waste and in the
+  shared unit costs nothing.
+
+  What survives, and it is the more useful half: in the shared unit the two MOUNTS separate
+  much harder than before (AUC 0.651 -> 0.777, follow-through 0.74 vs 0.13). The
+  distinction that matters is between workloads, not between handles within one — which is
+  the same conclusion gate 5b reached from the flag side and the capture reached from the
+  sharing side. A per-handle governor has nothing to govern on.
+
+5. WHAT THIS DOES NOT SETTLE
+
+  - No eviction is assumed. Fine on these traces (3.0/3.4 GiB distinct vs 24/32 GB cache),
+    not fine in general; a trace whose distinct bytes approach the cache size needs an LRU
+    in the replay before any of these numbers mean anything.
+  - The residual 10/6229 and 9/6248 HEMCO fidelity mismatches are untouched and still
+    unlocalised (upstream has the ask: per-fh divergence output and --only-fh).
+  - The obvious next question is free and not yet asked: the #256 rule fit at the KEY
+    level. If follow-through is a property of the object rather than the handle -- which
+    is what 84% cross-handle redemption implies -- then the predictor, if one exists, is a
+    feature of the key's access pattern across all its readers. That needs per-key features
+    the tool does not compute yet.
+  - Offered upstream on #256 as a patch, not a claim: the accounting is their code, and if
+    they reject the unit the numbers above go with it.
+
+FILES
+  patches/lith/pfreplay-global.go          the shared-cache pass
+  patches/lith/pfreplay-global-wire.py     the nine additive edits to main.go
+  scripts/lith/capture2-global-confound.py unit-vs-population separation
+  data/lith-gates/shared-cache-replay.log  full scorer output, both units
+  data/lith-gates/capture2-global.csv.gz   per-handle scores, shared unit

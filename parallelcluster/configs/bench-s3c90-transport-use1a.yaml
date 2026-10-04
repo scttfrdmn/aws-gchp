@@ -1,0 +1,75 @@
+# PHASE C2 C90 AMDAHL SWEEP — transport cluster (c8g.48xl, 384GB, us-east-1a).
+# Runs C90 fullchem (needs ~200GB -> 384GB box; c8g is cheapest 384GB in-region + no chase-AZ, uses
+# the standing us-east-1a FSx). N=48 transport ranks; chemistry served by a SEPARATE elastic worker
+# cluster (bench-s3workerpool) via S3 chemq/. Sweep the worker-fleet size to find where off-node
+# throughput plateaus vs the on-node 2.23x cap / 3.78x Amdahl ceiling. c8g builds the decoupled binary.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.16xlarge         # 64c aarch64 build host
+  Networking:
+    SubnetId: subnet-2eec4a71
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          InstanceType: c8g.48xlarge  # 192c / 384GB — fits C90 fullchem (~200GB)
+          MinCount: 0
+          MaxCount: 1
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+      CapacityType: ONDEMAND
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::942542972736:policy/GCHP-ChemQueue-S3-chemq
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # standing gcgrid (us-east-1a)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: s3-c90-transport-1a

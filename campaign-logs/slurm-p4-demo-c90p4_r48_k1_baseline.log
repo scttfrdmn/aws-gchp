@@ -1,0 +1,15 @@
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c90.nc4
+=== BASELINE run: remote OFF (in-process Phase-0 solve) ===
+=== mpirun -n 48 gchp (REMOTE=0 K=1 MODE=baseline) ===
+RUN_DONE exit=134 wall=474s
+=== RESULT: checkpoint MD5 (PRIMARY gate) ===
+RESULT_P4_CAP tag=c90p4_r48_k1_baseline cap_restart=20190101 020000
+RESULT_P4_MD5 tag=c90p4_r48_k1_baseline k=1 file=gcchem_internal_checkpoint md5=3a03bda91cb71f3dbca12e39b5065821 bytes=10713862595
+=== RESULT: internal throughput (demo) ===
+ GCHP Date: 2019/01/01  Time: 02:00:00  Throughput(days/day)[Avg Tot Run]:         31.9        151.4        151.7  TimeRemaining(Est) 000:00:00   30.5% :  31.0% Mem Comm:Used  Wallclock: 2026/07/17 23:43
+=== RESULT: handoff cost + fan-out ===
+=== RESULT: double-failure count (byte-identity caveat) ===
+=== worker exit lines ===
+RESULT_P4_DONE tag=c90p4_r48_k1_baseline k=1 mpirc=134

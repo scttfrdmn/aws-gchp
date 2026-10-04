@@ -1,0 +1,12 @@
+{"time":"2026-10-02T17:38:11.001359304Z","level":"INFO","msg":"building index","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","auto_index_limit":5000000}
+{"time":"2026-10-02T17:38:11.054649354Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.053225552,"keys_per_sec":4076.9891874489153}
+{"time":"2026-10-02T17:38:11.056218313Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-02T17:38:11.056440491Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"--nic-gbps"}
+{"time":"2026-10-02T17:38:11.056469292Z","level":"INFO","msg":"inflight-bytes budget","budget":"187500000 bytes (2 × 7.5 Gbps baseline × 100 ms)"}
+{"time":"2026-10-02T17:38:11.056474148Z","level":"INFO","msg":"parts-max","bytes":37500000,"source":"device-derived (NIC baseline × TTFB, clamped)","nic_bytes_per_s":937500000,"ttfb_seed":40000000}
+{"time":"2026-10-02T17:38:11.056531547Z","level":"INFO","msg":"coalesce gap","bytes":292968,"source":"device-derived","nic_bytes_per_s":937500000,"ttfb_seed":40000000,"concurrency":128}
+{"time":"2026-10-02T17:38:11.056537176Z","level":"INFO","msg":"prefetch bounds","window_blocks":33,"window_bound":"--max-readahead","window_commit_bytes":276824064,"prefetch_budget_bytes":49815600640,"inflight_bytes":187500000,"binding":"--inflight-bytes","full_window_descriptors":179,"floor_at_descriptors":1980}
+{"time":"2026-10-02T17:38:11.058043245Z","level":"INFO","msg":"mounted","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","mountpoint":"/home/ec2-user/g/mnt-f1","root":"GEOS_0.25x0.3125/GEOS_FP/2019/07/","keys":217}
+{"time":"2026-10-02T17:38:11.058053493Z","level":"INFO","msg":"s3 transport","info":"http2=off MaxConnsPerHost=0(unlimited) MaxIdleConnsPerHost=128 IdleConnTimeout=90s","s3_concurrency":128}
+{"time":"2026-10-02T17:38:11.05816359Z","level":"INFO","msg":"metrics endpoint","addr":":9911"}
+{"time":"2026-10-02T17:38:19.417044087Z","level":"INFO","msg":"unmounted","stale_objects":0}

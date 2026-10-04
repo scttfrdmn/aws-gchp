@@ -1,0 +1,45 @@
+### lith#233 block-0 probe 2026-09-17T18:04:07Z on ip-172-31-39-157  lith=lith 1.1.1
+
+=== part A — cold-prefix ladder on MERRA2.20190112.A3dyn.05x0625.nc4 (fresh cold mount per rung) ===
+RUN_MiB  GETs   IDEAL  EXCESS   MB_S3    AMPL     PF_ISS   PF_UNREAD WALL
+8        8      1      +7       8.0      1.0x     0        0         0.49s
+16       49     2      +47      280.0    17.5x    272      0         0.98s
+32       49     4      +45      280.0    8.8x     288      0         0.63s
+64       50     8      +42      288.0    4.5x     320      0         0.72s
+
+=== part A interpretation aid — FUSE read sizes the kernel actually issued (last rung) ===
+  128K:513 
+
+=== part A2 — fine ladder across the block0->block1 boundary on MERRA2.20190112.A3dyn.05x0625.nc4 ===
+RUN_MiB  GETs   MB_S3    AMPL     PF_ISS   PF_UNREAD WALL
+7        7      7.0      1.0x     0        0         0.33s
+8        8      8.0      1.0x     0        0         0.25s
+9        9      9.0      1.0x     264      0         0.29s
+10       10     10.0     1.0x     264      0         0.35s
+12       22     116.0    9.7x     264      0         0.51s
+16       47     272.0    17.0x    272      0         0.57s
+24       50     288.0    12.0x    280      0         0.64s
+
+=== part B — cold FULL sequential read, three object sizes (size-decay claim) ===
+FILE                                       SIZE_MB   GETs   IDEAL  EXCESS  EXCESS_PCT MB_S3    WALL
+MERRA2.20190104.soil.05x0625.nc4           4.3       5      1      +4      +400.0%   4.3      0.53s
+MERRA2.20190116.A1.05x0625.nc4             292.5     51     37     +14     +37.8%    292.5    1.59s
+MERRA2.20190112.A3dyn.05x0625.nc4          1168.4    161    147    +14     +9.5%     1168.4   2.39s
+
+=== part C — what GCHP itself does, for contrast (from the gate 3c metric dump) ===
+  gate 3c, MERRA2 mount over a full GCHP init:
+    lith_s3_requests_total{get,ok} = 3647   lith_s3_bytes_total = 4105.4 MB
+    => 1125 KB per GET, and lith_fill_runs_total = 0
+  i.e. GCHP's own reads are ~1 MiB-granular for the WHOLE init, not just block 0.
+
+=== SUMMARY ===
+7        7      7.0      1.0x     0        0         0.33s
+8        8      8.0      1.0x     0        0         0.25s
+9        9      9.0      1.0x     264      0         0.29s
+10       10     10.0     1.0x     264      0         0.35s
+12       22     116.0    9.7x     264      0         0.51s
+16       47     272.0    17.0x    272      0         0.57s
+24       50     288.0    12.0x    280      0         0.64s
+MERRA2.20190104.soil.05x0625.nc4           4.3       5      1      +4      +400.0%   4.3      0.53s
+MERRA2.20190116.A1.05x0625.nc4             292.5     51     37     +14     +37.8%    292.5    1.59s
+MERRA2.20190112.A3dyn.05x0625.nc4          1168.4    161    147    +14     +9.5%     1168.4   2.39s

@@ -1,0 +1,23 @@
+T1/T2 -- on the real data
+
+arm           n  rho(D,W)  rho(D/S,D)  -rho(D/S,D)  null centre   obs rho
+hemco/a     204    +0.551      -0.287       +0.287      +0.1732    -0.689
+hemco/b     204    +0.546      -0.280       +0.280      +0.1722    -0.707
+met/a        12    -0.854      +0.804       -0.804      -0.2673    -0.920
+met/b        12    -0.854      +0.812       -0.812      -0.2726    -0.913
+
+T1 -- re-attach W to force rho(D,W) to its extremes (hemco arms only)
+
+  hemco/a  as measured    rho(D,W)= +0.551   null centre +0.1732  95% [+0.044,+0.304]
+  hemco/a  rho(D,W)=+1    rho(D,W)= +0.993   null centre +0.1730  95% [+0.040,+0.301]
+  hemco/a  rho(D,W)=-1    rho(D,W)= -0.993   null centre +0.1716  95% [+0.037,+0.299]
+  hemco/b  as measured    rho(D,W)= +0.546   null centre +0.1722  95% [+0.043,+0.309]
+  hemco/b  rho(D,W)=+1    rho(D,W)= +0.993   null centre +0.1722  95% [+0.038,+0.301]
+  hemco/b  rho(D,W)=-1    rho(D,W)= -0.993   null centre +0.1726  95% [+0.042,+0.304]
+
+T3 -- synthetic: same W multiset, DIAL rho(D/S,D) by construction
+
+   built for  rho(D/S,D)  -rho(D/S,D)  null centre
+D/S indep of D      -0.110       +0.110      +0.0609
+D/S rises with D      +1.000       -1.000      -0.5544
+D/S falls with D      -1.000       +1.000      +0.5483

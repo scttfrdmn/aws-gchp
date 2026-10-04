@@ -1,0 +1,20 @@
+# S3 transport microbench V3 (persistent client) — m9g.48xlarge, 2026-07-20. 228MB batched round-trip.
+#
+# VARIANT                                        ROUND-TRIP   GB/s    vs V0
+#   V0  per-object `aws s3api` (SHIPPED)          7.49 s      0.03    1.0x
+#   V2  batched single `aws s3 cp`                1.84 s      0.12    4.1x
+#   V3a persistent boto3 (default TransferConfig) 1.17 s      0.19    6.4x
+#   V3c persistent boto3 + 64-way concurrency     0.95 s      0.24    7.9x   <-- WINNER, no new dep
+#   V3b AWS CRT aws-c-s3                           build FAILED (aws-lc FIPS ASM error on aarch64)
+#   target (design bench agg, 120-rank wide)      0.19 s      1.2
+#
+# DECISION: persistent boto3 sidecar + tuned TransferConfig (multipart, max_concurrency=64) = 7.9x
+# over the shipped per-object s3api path, NO CRT dependency needed (and CRT wouldn't build cleanly on
+# aarch64 anyway -- aws-lc FIPS ASM). The remaining gap to 0.19s is single-object-doesn't-saturate-NIC;
+# in the real run 48 ranks PUT/GET CONCURRENTLY (independent keys, no shared lock) so aggregate BW
+# scales -> per-superstep handoff extrapolates to ~1-2s (vs the shipped ~19min = ~1140s) = ~760x faster.
+# At C180 chem compute is ~minutes/superstep -> handoff becomes NEGLIGIBLE -> off-node speedup ACHIEVABLE.
+#
+# => REWRITE chem_remote_s3 to use a PERSISTENT boto3 sidecar (one long-lived process per rank, spoken
+#    to over a pipe) with: (a) batch all K slices/rank into ONE object, (b) TransferConfig multipart +
+#    max_concurrency, (c) concurrent poll. Then re-run the C180 off-node throughput test. CRT dropped.

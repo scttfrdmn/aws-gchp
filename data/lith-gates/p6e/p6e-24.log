@@ -1,0 +1,224 @@
+instance: c8g.48xlarge  host compute-dy-nodes-1  cores 192  mem 371 GiB
+################ ARM T2G  2026-10-02T20:00:33Z
+[20:00:34] === gate 5f-P3  2026-10-02T20:00:33Z  ranks=48  lith=ba06073b2c24
+               total        used        free      shared  buff/cache   available
+Mem:             371          42         327           0           0         326
+[20:00:36]   stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 16448); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16565); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16680); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16796); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16910); logs: /tmp/lith-1000-mount.log
+[20:00:45]   fuse.lith mounts: 5   daemons answering: 5/5
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[20:00:48]   layout: NX=2 NY=24 CS_RES= ranks=48
+[20:00:48] launching mpirun -n 48 ./gchp
+[20:01:58]   checkpoint write reached at 70s -- all input reads complete, stopping
+[20:02:01] --- GCHP progress markers
+  heartbeat lines: 0
+[20:02:01] --- final per-mount metrics (P1/P3: where the bytes are, and whether the burst reaches GCHP)
+MET merra2-201901 lith_distinct_bytes_read 3.223257088e+09
+MET merra2-201901 lith_open_handles 0
+MET merra2-201901 lith_prefetch_evicted_unread_total 42
+MET merra2-201901 lith_prefetch_issued_total 2776
+MET merra2-201901 lith_prefetch_low_coverage_total 527
+MET merra2-201901 lith_prefetch_uncovered_total 3472
+MET merra2-201901 lith_prefetch_unread_resident_bytes 4.11041792e+08
+MET merra2-201901 lith_prefetch_used_total 2345
+MET merra2-201901 lith_readahead_window_blocks 119
+MET merra2-201901 lith_s3_bytes_total 3.864583058e+09
+MET merra2-201901 lith_streaming_handles 0
+MET merra2-201501 lith_distinct_bytes_read 851968
+MET merra2-201501 lith_open_handles 0
+MET merra2-201501 lith_prefetch_evicted_unread_total 0
+MET merra2-201501 lith_prefetch_issued_total 0
+MET merra2-201501 lith_prefetch_low_coverage_total 0
+MET merra2-201501 lith_prefetch_uncovered_total 1
+MET merra2-201501 lith_prefetch_unread_resident_bytes 0
+MET merra2-201501 lith_prefetch_used_total 0
+MET merra2-201501 lith_readahead_window_blocks 119
+MET merra2-201501 lith_s3_bytes_total 809084
+MET merra2-201501 lith_streaming_handles 0
+MET hemco lith_distinct_bytes_read 6.5601536e+07
+MET hemco lith_open_handles 0
+MET hemco lith_prefetch_evicted_unread_total 0
+MET hemco lith_prefetch_issued_total 136
+MET hemco lith_prefetch_low_coverage_total 0
+MET hemco lith_prefetch_uncovered_total 105
+MET hemco lith_prefetch_unread_resident_bytes 1.33175966e+08
+MET hemco lith_prefetch_used_total 8
+MET hemco lith_readahead_window_blocks 119
+MET hemco lith_s3_bytes_total 2.06901783e+08
+MET hemco lith_streaming_handles 0
+MET cheminputs lith_distinct_bytes_read 262144
+MET cheminputs lith_open_handles 0
+MET cheminputs lith_prefetch_evicted_unread_total 0
+MET cheminputs lith_prefetch_issued_total 2
+MET cheminputs lith_prefetch_low_coverage_total 0
+MET cheminputs lith_prefetch_uncovered_total 2
+MET cheminputs lith_prefetch_unread_resident_bytes 192434
+MET cheminputs lith_prefetch_used_total 0
+MET cheminputs lith_readahead_window_blocks 119
+MET cheminputs lith_s3_bytes_total 387496
+MET cheminputs lith_streaming_handles 0
+MET restarts lith_distinct_bytes_read 3.8797312e+07
+MET restarts lith_open_handles 0
+MET restarts lith_prefetch_evicted_unread_total 0
+MET restarts lith_prefetch_issued_total 18
+MET restarts lith_prefetch_low_coverage_total 1
+MET restarts lith_prefetch_uncovered_total 44
+MET restarts lith_prefetch_unread_resident_bytes 0
+MET restarts lith_prefetch_used_total 18
+MET restarts lith_readahead_window_blocks 119
+MET restarts lith_s3_bytes_total 3.893357e+07
+MET restarts lith_streaming_handles 0
+  mount                    GB   share requests uncovered   evicted
+  merra2-201901         3.865   94.0%        0      3472        42
+  merra2-201501         0.001    0.0%        0         1         0
+  hemco                 0.207    5.0%        0       105         0
+  cheminputs            0.000    0.0%        0         2         0
+  restarts              0.039    0.9%        0        44         0
+  TOTAL 4.112 GB   evicted_unread across all mounts: 42
+[20:02:01] --- input phase in time (t at which each mount reached 99% of its final bytes)
+  merra2-201901    final 3.865 GB   99% reached at   67.6 s   mean 57 MB/s to that point
+  merra2-201501    final 0.001 GB   99% reached at   12.1 s   mean 0 MB/s to that point
+  hemco            final 0.207 GB   99% reached at   30.8 s   mean 7 MB/s to that point
+  cheminputs       final 0.000 GB   99% reached at   12.1 s   mean 0 MB/s to that point
+  restarts         final 0.039 GB   99% reached at    6.6 s   mean 6 MB/s to that point
+[20:02:01] --- per-mount handle counts (max and median over the run)
+  mount            oh_max oh_med sh_max sh_med win_min  sh/oh at oh_max
+  merra2-201901       270    123    100     41      2  0.363
+  merra2-201501         6      6      0      0    119  0.000
+  hemco                48     24      4      4     29  0.000
+  cheminputs           48     48      0      0    119  0.000
+  restarts             48      0      1      0    119  0.000
+  TOTAL(peaks)        420                             105 0.250
+  samples: 695 over 70 s
+[20:02:01] --- E3/E4: peak unread_resident / tier per mount (tier = --mem-cache 2GB)
+  mount             peak_resident    /tier low_coverage   evicted
+  merra2-201901        1526815179    0.763            0        42
+  merra2-201501                 0    0.000            0         0
+  hemco                 135266304    0.068            0         0
+  cheminputs               192434    0.000            0         0
+  restarts                8388608    0.004            1         0
+[20:02:01] --- E2: same-object concurrency and per-handle coverage on the met mount (from --pf-trace)
+  trace rows 25330, handles 579, objects 12, objects with >1 handle 12
+  handles with an interleaving same-object sibling: 252   others: 10
+  interleaved median-coverage per handle: min 0.009 med 1.000 max 1.000  frac<0.5 0.32  (n=252)
+  solo        median-coverage per handle: min 1.000 med 1.000 max 1.000  frac<0.5 0.00  (n=10)
+  final states: {'cold': 414, 'random': 64, 'sequential': 100, 'strided': 1}
+[20:02:04]   stale fuse.lith mounts after cleanup: 0
+[20:02:04] === done 2026-10-02T20:02:04Z
+################ ARM T64G  2026-10-02T20:02:04Z
+[20:02:04] === gate 5f-P3  2026-10-02T20:02:04Z  ranks=48  lith=ba06073b2c24
+               total        used        free      shared  buff/cache   available
+Mem:             371          43         325           0           2         325
+[20:02:06]   stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 22411); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 22527); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 22643); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 22758); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 22875); logs: /tmp/lith-1000-mount.log
+[20:02:12]   fuse.lith mounts: 5   daemons answering: 5/5
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[20:02:14]   layout: NX=2 NY=24 CS_RES= ranks=48
+[20:02:14] launching mpirun -n 48 ./gchp
+[20:03:15]   checkpoint write reached at 61s -- all input reads complete, stopping
+[20:03:18] --- GCHP progress markers
+  heartbeat lines: 0
+[20:03:18] --- final per-mount metrics (P1/P3: where the bytes are, and whether the burst reaches GCHP)
+MET merra2-201901 lith_distinct_bytes_read 3.223584768e+09
+MET merra2-201901 lith_open_handles 0
+MET merra2-201901 lith_prefetch_evicted_unread_total 0
+MET merra2-201901 lith_prefetch_issued_total 4371
+MET merra2-201901 lith_prefetch_low_coverage_total 522
+MET merra2-201901 lith_prefetch_uncovered_total 2736
+MET merra2-201901 lith_prefetch_unread_resident_bytes 1.986470178e+09
+MET merra2-201901 lith_prefetch_used_total 2472
+MET merra2-201901 lith_readahead_window_blocks 223
+MET merra2-201901 lith_s3_bytes_total 5.274252179e+09
+MET merra2-201901 lith_streaming_handles 0
+MET merra2-201501 lith_distinct_bytes_read 851968
+MET merra2-201501 lith_open_handles 0
+MET merra2-201501 lith_prefetch_evicted_unread_total 0
+MET merra2-201501 lith_prefetch_issued_total 0
+MET merra2-201501 lith_prefetch_low_coverage_total 0
+MET merra2-201501 lith_prefetch_uncovered_total 1
+MET merra2-201501 lith_prefetch_unread_resident_bytes 0
+MET merra2-201501 lith_prefetch_used_total 0
+MET merra2-201501 lith_readahead_window_blocks 223
+MET merra2-201501 lith_s3_bytes_total 809084
+MET merra2-201501 lith_streaming_handles 0
+MET hemco lith_distinct_bytes_read 6.5732608e+07
+MET hemco lith_open_handles 0
+MET hemco lith_prefetch_evicted_unread_total 0
+MET hemco lith_prefetch_issued_total 134
+MET hemco lith_prefetch_low_coverage_total 0
+MET hemco lith_prefetch_uncovered_total 114
+MET hemco lith_prefetch_unread_resident_bytes 1.33175966e+08
+MET hemco lith_prefetch_used_total 6
+MET hemco lith_readahead_window_blocks 223
+MET hemco lith_s3_bytes_total 2.07884823e+08
+MET hemco lith_streaming_handles 0
+MET cheminputs lith_distinct_bytes_read 262144
+MET cheminputs lith_open_handles 0
+MET cheminputs lith_prefetch_evicted_unread_total 0
+MET cheminputs lith_prefetch_issued_total 2
+MET cheminputs lith_prefetch_low_coverage_total 0
+MET cheminputs lith_prefetch_uncovered_total 2
+MET cheminputs lith_prefetch_unread_resident_bytes 192434
+MET cheminputs lith_prefetch_used_total 0
+MET cheminputs lith_readahead_window_blocks 223
+MET cheminputs lith_s3_bytes_total 387496
+MET cheminputs lith_streaming_handles 0
+MET restarts lith_distinct_bytes_read 3.8797312e+07
+MET restarts lith_open_handles 0
+MET restarts lith_prefetch_evicted_unread_total 0
+MET restarts lith_prefetch_issued_total 18
+MET restarts lith_prefetch_low_coverage_total 1
+MET restarts lith_prefetch_uncovered_total 42
+MET restarts lith_prefetch_unread_resident_bytes 0
+MET restarts lith_prefetch_used_total 18
+MET restarts lith_readahead_window_blocks 223
+MET restarts lith_s3_bytes_total 3.893357e+07
+MET restarts lith_streaming_handles 0
+  mount                    GB   share requests uncovered   evicted
+  merra2-201901         5.274   95.5%        0      2736         0
+  merra2-201501         0.001    0.0%        0         1         0
+  hemco                 0.208    3.8%        0       114         0
+  cheminputs            0.000    0.0%        0         2         0
+  restarts              0.039    0.7%        0        42         0
+  TOTAL 5.522 GB   evicted_unread across all mounts: 0
+[20:03:18] --- input phase in time (t at which each mount reached 99% of its final bytes)
+  merra2-201901    final 5.274 GB   99% reached at   56.0 s   mean 94 MB/s to that point
+  merra2-201501    final 0.001 GB   99% reached at   10.6 s   mean 0 MB/s to that point
+  hemco            final 0.208 GB   99% reached at   27.7 s   mean 7 MB/s to that point
+  cheminputs       final 0.000 GB   99% reached at   10.6 s   mean 0 MB/s to that point
+  restarts         final 0.039 GB   99% reached at    5.6 s   mean 7 MB/s to that point
+[20:03:18] --- per-mount handle counts (max and median over the run)
+  mount            oh_max oh_med sh_max sh_med win_min  sh/oh at oh_max
+  merra2-201901       270    100     98     26     38  0.356
+  merra2-201501         6      6      0      0    223  0.000
+  hemco                48     24      3      3    223  0.000
+  cheminputs           48     48      0      0    223  0.000
+  restarts             48      0      1      0    223  0.000
+  TOTAL(peaks)        420                             102 0.243
+  samples: 600 over 60 s
+[20:03:18] --- E3/E4: peak unread_resident / tier per mount (tier = --mem-cache 64GB)
+  mount             peak_resident    /tier low_coverage   evicted
+  merra2-201901        2045190434    0.032            0         0
+  merra2-201501                 0    0.000            0         0
+  hemco                 135266304    0.002            0         0
+  cheminputs               192434    0.000            0         0
+  restarts                9437184    0.000            1         0
+[20:03:18] --- E2: same-object concurrency and per-handle coverage on the met mount (from --pf-trace)
+  trace rows 25405, handles 583, objects 12, objects with >1 handle 12
+  handles with an interleaving same-object sibling: 268   others: 8
+  interleaved median-coverage per handle: min 0.009 med 1.000 max 1.000  frac<0.5 0.35  (n=268)
+  solo        median-coverage per handle: min 0.683 med 1.000 max 1.000  frac<0.5 0.00  (n=8)
+  final states: {'cold': 419, 'random': 65, 'sequential': 98, 'strided': 1}
+[20:03:21]   stale fuse.lith mounts after cleanup: 0
+[20:03:21] === done 2026-10-02T20:03:21Z
+################ P6E DONE 2026-10-02T20:03:21Z

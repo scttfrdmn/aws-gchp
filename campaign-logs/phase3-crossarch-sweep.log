@@ -1,0 +1,47 @@
+############ INSTANCE c8g.48xlarge (arch=aarch64, maxnodes=1, cluster=gchp-sw-c8g) ############
+rendered: /tmp/gchp-sw-c8g.yaml (instance=c8g.48xlarge max=1 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh head=c7g.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=98.91.242.135
+=== cell c8g.48xlarge c48_n1x96_fullchem --warmup ===
+  job=1
+  RESULT_TAG=c48_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=48 RESULT_DAYS=0 RESULT_MECH=fullchem RESULT_SIMSECS=7200
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/01  Time: 02:00:00; internal Avg=238.8 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c48_n1x96_fullchem.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c48_n1x96_fullchem.log --instance c8g.48xlarge --mechanism fullchem)
+=== cell c8g.48xlarge c90_n1x96_fullchem --warmup ===
+  job=2
+  RESULT_TAG=c90_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=90 RESULT_DAYS=0 RESULT_MECH=fullchem RESULT_SIMSECS=7200
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/01  Time: 02:00:00; internal Avg=67.5 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c90_n1x96_fullchem.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c90_n1x96_fullchem.log --instance c8g.48xlarge --mechanism fullchem)
+>>> tearing down gchp-sw-c8g
+############ INSTANCE c7a.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c7a) ############
+rendered: /tmp/gchp-sw-c7a.yaml (instance=c7a.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh head=c7i.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=54.196.123.116
+=== cell c7a.48xlarge c48_n1x96_fullchem --warmup ===
+  job=1
+  RESULT_TAG=c48_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=48 RESULT_DAYS=0 RESULT_MECH=fullchem RESULT_SIMSECS=7200
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/01  Time: 02:00:00; internal Avg=126.5 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7a-c48_n1x96_fullchem.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7a-c48_n1x96_fullchem.log --instance c7a.48xlarge --mechanism fullchem)
+=== cell c7a.48xlarge c90_n1x96_fullchem --warmup ===
+  job=2
+  RESULT_TAG=c90_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=90 RESULT_DAYS=0 RESULT_MECH=fullchem RESULT_SIMSECS=7200
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/01  Time: 02:00:00; internal Avg=42.8 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7a-c90_n1x96_fullchem.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7a-c90_n1x96_fullchem.log --instance c7a.48xlarge --mechanism fullchem)
+>>> tearing down gchp-sw-c7a
+############ SWEEP DONE. logs in /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs. Append the good ones to benchmarks.json, then re-run pytest + calculator. ############

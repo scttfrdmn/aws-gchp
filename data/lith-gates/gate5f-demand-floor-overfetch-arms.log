@@ -1,0 +1,50 @@
+=== ARM b1-misalign-gapauto align=misaligned extra='' ===
+requested_bytes 8388608 aligned False
+b1-misalign-gapauto lith_cache_misses_total 97
+b1-misalign-gapauto lith_distinct_bytes_read 1.6777216e+07
+b1-misalign-gapauto lith_prefetch_issued_total 0
+b1-misalign-gapauto lith_prefetch_used_total 0
+b1-misalign-gapauto lith_read_straddle_total 15
+b1-misalign-gapauto lith_s3_bytes_total 3.0277632e+07
+b1-misalign-gapauto lith_s3_requests_total{op="get",status="ok"} 112
+b1-misalign-gapauto # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+=== ARM b2-align-gapauto align=aligned extra='' ===
+requested_bytes 8388608 aligned True
+b2-align-gapauto lith_cache_misses_total 112
+b2-align-gapauto lith_distinct_bytes_read 8.454144e+06
+b2-align-gapauto lith_prefetch_issued_total 0
+b2-align-gapauto lith_prefetch_used_total 0
+b2-align-gapauto lith_read_straddle_total 0
+b2-align-gapauto lith_s3_bytes_total 2.4051712e+07
+b2-align-gapauto lith_s3_requests_total{op="get",status="ok"} 112
+b2-align-gapauto # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+=== ARM b3-align-gap1 align=aligned extra='--coalesce-gap 1B' ===
+requested_bytes 8388608 aligned True
+b3-align-gap1 lith_cache_misses_total 112
+b3-align-gap1 lith_distinct_bytes_read 8.454144e+06
+b3-align-gap1 lith_prefetch_issued_total 0
+b3-align-gap1 lith_prefetch_used_total 0
+b3-align-gap1 lith_read_straddle_total 0
+b3-align-gap1 lith_s3_bytes_total 2.4051712e+07
+b3-align-gap1 lith_s3_requests_total{op="get",status="ok"} 112
+b3-align-gap1 # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+=== ARM b4-misalign-gap1 align=misaligned extra='--coalesce-gap 1B' ===
+requested_bytes 8388608 aligned False
+b4-misalign-gap1 lith_cache_misses_total 97
+b4-misalign-gap1 lith_distinct_bytes_read 1.6777216e+07
+b4-misalign-gap1 lith_prefetch_issued_total 0
+b4-misalign-gap1 lith_prefetch_used_total 0
+b4-misalign-gap1 lith_read_straddle_total 15
+b4-misalign-gap1 lith_s3_bytes_total 3.0277632e+07
+b4-misalign-gap1 lith_s3_requests_total{op="get",status="ok"} 112
+b4-misalign-gap1 # lith prefetch trace; block_size=8388608 max_readahead=223 parts_max=67108864 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+=== ARM b5-align-gap1-1gbps align=aligned extra='--coalesce-gap 1B --nic-gbps 1' ===
+requested_bytes 8388608 aligned True
+b5-align-gap1-1gbps lith_cache_misses_total 112
+b5-align-gap1-1gbps lith_distinct_bytes_read 8.454144e+06
+b5-align-gap1-1gbps lith_prefetch_issued_total 0
+b5-align-gap1-1gbps lith_prefetch_used_total 0
+b5-align-gap1-1gbps lith_read_straddle_total 0
+b5-align-gap1-1gbps lith_s3_bytes_total 2.4051712e+07
+b5-align-gap1-1gbps lith_s3_requests_total{op="get",status="ok"} 112
+b5-align-gap1-1gbps # lith prefetch trace; block_size=8388608 max_readahead=8 parts_max=5000000 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0

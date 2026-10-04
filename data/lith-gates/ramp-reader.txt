@@ -1,0 +1,95 @@
+GATE 5f-G — IS THE RAMP COST A PROPERTY OF THE FLAG OR OF THE READER? (lith#256)
+2026-09-30, $0 (head node only)
+================================================================================
+
+WHY: I reported --readahead-evidence-ratio 4 costing +22.3% GETs on a long
+sequential read. Upstream could not reproduce it: a pure `cat` stream over a
+1161 MiB object came back BIT-IDENTICAL in bytes and requests at ratio 0 vs 4.
+Their explanation was that netCDF4 walks the object variable by variable, so
+accrued evidence repeatedly lags the window and the ramp is paid more than once,
+while a contiguous stream never binds the evidence bound at all. Their question
+back was the right one: does the +22.3% hold if the reader streams, on MY box
+and the SAME object, with no confound of a different file or a different NIC?
+
+SETUP  same two objects as gates 5f-E/5f-F, same lith dev build
+  (v1.1.3-15-gb3d78d8), --nic-gbps 50, fresh mount + unique metrics port per cell.
+    met  s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07/MERRA2.20190701.A3dyn.05x0625.nc4
+    hco  s3://gcgrid/HEMCO/GT_Chlorine/v2024-05/GT_Chlorine_01_01_2000_V1.0.0.nc
+  five readers, each over the whole object at both ratios:
+    dd      one contiguous stream, 1 MiB reads          (3 reps)
+    dd128   one contiguous stream, 128 KiB reads        (4 reps)  = `cat`'s read size
+    cat     `cat` itself                                (4 reps)  = upstream's exact case
+    pread   python os.pread, 1 MiB, increasing offsets  (3 reps)  contiguous, but
+                                                                  NOT the netCDF4 process
+    nc      every data variable end to end via netCDF4  (3 reps)  met 5 vars, hco 12
+
+RESULT — MEDIAN OVER REPS
+  obj reader   wall r0  wall r4   dwall     d%     GETs r0 -> r4
+  met dd          1.38     1.62   +0.24   +17%     160 -> 160   (+0.0%)
+  met dd128       1.39     1.67   +0.28   +20%     160 -> 160   (+0.0%)
+  met cat         1.26     1.70   +0.44   +35%     160 -> 160   (+0.0%)
+  met pread       1.35     1.63   +0.28   +21%     160 -> 160   (+0.0%)
+  met nc         13.67    13.67   +0.01    +0%     175 -> 176   (+0.6%)
+  hco dd          1.03     1.35   +0.32   +31%     116 -> 116   (+0.0%)
+  hco dd128       1.47     1.96   +0.49   +33%     116 -> 116   (+0.0%)
+  hco cat         1.38     1.68   +0.30   +22%     116 -> 116   (+0.0%)
+  hco pread       1.15     1.64   +0.49   +42%     116 -> 116   (+0.0%)
+  hco nc         27.13    28.79   +1.67    +6%     131 -> 159  (+21.4%)
+
+  s3_bytes_total, distinct_bytes_read and prefetch_issued_total are IDENTICAL
+  across ratios on all eight streaming cells (met 1,217,808,214 B / 1146 issued;
+  hco 851,394,200 B / 796 issued) — not close, equal. On hco/nc r4 bytes rise
+  0.07% (851,984,024-852,049,560) and issued falls 796 -> 792.
+
+1. UPSTREAM'S READER EXPLANATION IS CONFIRMED, ON MY BOX, WITH MY OBJECTS
+   Every contiguous reader is +0.0% in requests and 0.00% in bytes at ratio 4,
+   including `cat` at its own 128 KiB read size. So READ SIZE IS NOT THE AXIS:
+   dd@1M, dd@128K and cat all agree at zero. The only arms that pay requests are
+   the netCDF4 arms, and they pay in proportion to DISCONTIGUITY:
+        1 stream      -> +0.0%   (dd, dd128, cat, pread)
+        5 variables   -> +0.6%   (met/nc)
+       12 variables   -> +21.4%  (hco/nc)
+   The evidence bound only bills a reader that makes it re-earn the window. My
+   +22.3% was real but it was never a property of the flag; it was a property of
+   the reader, exactly as upstream said.
+
+2. CORRECTION TO MY OWN PUBLISHED FIGURE: +22.3% -> +21.4%
+   That number came from n=1. With 3 reps, hco/nc r0 = {130,131,131} and
+   r4 = {159,159,159}, so the median-to-median cost is +21.4%. The figure in
+   data/lith-gates/second-workload.txt was the low end of r0, not its centre.
+
+3. WHAT UPSTREAM'S COUNTERS COULD NOT SEE: THE RAMP HAS A WALL COST
+   On all eight streaming cells the ramp is free in every counter and costs
+   +0.24 to +0.49 s of wall (+17% to +42%). Paired by rep, ratio 4 is slower in
+   27 of 34 pairs; the 7 exceptions are all reps whose ratio-0 wall is that arm's
+   OWN MAXIMUM (2.10, 1.81, 1.66, 3.56 s — cold-page/VM warmup), i.e. ratio 0
+   outliers rather than ratio 4 wins. By arm median, 8 of 8 streaming arms are
+   slower at ratio 4 with zero variance in bytes or requests.
+   The delta is roughly FIXED in seconds (mean +0.355 s, range 0.24-0.49) rather
+   than proportional, which is what a one-time ramp should look like: the window
+   starts at the floor and grows, so fewer blocks are in flight early and the
+   fixed cost is latency, not work. That is why it is 17-42% of a 1-2 s streaming
+   read and 0-6% of a 14-29 s decompression-bound read.
+   => "bytes and requests are byte-identical" is a true and insufficient
+      regression check for this flag. Request COUNT is conserved; request
+      CONCURRENCY during the ramp is not, and only wall clock shows it.
+
+4. AN INDEPENDENT CORROBORATION OF UPSTREAM'S REP-1 DISCARD
+   Upstream discarded their first rep as a warmup. Unprompted and on different
+   hardware, my rep 1 is the high outlier on both 3-rep dd arms (met 2.10 vs
+   1.29/1.38; hco 1.81 vs 1.02/1.03). Same artifact, same remedy.
+
+READING THE TWO GATES TOGETHER
+  5f-F priced the flag as "cheap on the sequential side, 95% of the bytes saved
+  on the low-coverage side". 5f-G narrows the first half: on a genuinely
+  contiguous reader the flag is free in bytes and requests but costs a fixed
+  ~0.35 s of ramp latency; on a discontiguous reader it costs up to +21% of
+  requests as well. Neither cost touches the cold-start floor (gate 5f-F
+  channel B, bit-identical). The flag is still cheap relative to what it saves,
+  but the price tag has a term in it that counters do not carry.
+
+ARTIFACTS
+  scripts/lith/gate-ramp-reader.sh              all cells (READERS=/REPS=/OUT= env)
+  data/lith-gates/ramp-reader-traces.tgz        both gate logs, per-cell mount logs,
+                                                the two reader scripts
+                                                sha256 7bbbc18b5566bae25c52dbae6a4025051c551486a480520158518808d21795e9

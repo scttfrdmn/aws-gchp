@@ -1,0 +1,26 @@
+# S3 transport microbench — m9g.48xlarge (REAL transport instance, real network), 2026-07-20.
+# Payload: 223 MB/rank = C180 K=4 (4 slices x 57MB). Round-trip = PUT + GET of that payload.
+# Ran on ONE bare m9g EC2 via user-data -> self-reported to S3 -> self-terminated (~$0.30, no cluster).
+#
+# VARIANT                                   ROUND-TRIP   vs shipped
+#   V0  per-object `aws s3api put/get`       7.49 s      1.0x   <- WHAT WE SHIPPED (chem_remote_s3.c)
+#   V1  per-object `aws s3 cp` (multipart)   5.23 s      1.4x
+#   V2  batched single `aws s3 cp`           1.84 s      4.1x   <- batch K slices into ONE object
+#   V3a persistent boto3 (SDK)               (n/a - boto3 not on bare AMI; needs install or CRT)
+#   target @ 1.2 GB/s (design bench agg)     0.19 s
+#
+# FORK COST (direct): aws CLI cold-start = 0.295 s on m9g -> C180's ~1920 aws invocations/superstep
+#   = ~9.4 MIN/superstep IN PROCESS-SPAWN ALONE (of the ~19 min observed). The rest = single-stream
+#   s3api transfers + 200ms serial polling. ALL implementation artifacts; NONE is S3 bandwidth.
+#
+# CONCLUSION (confirms user's hypothesis): the C180 off-node timeout was the DATA-MOVEMENT CODE,
+# not S3. Two stacked fixes get most of the win with NO new dependency:
+#   (1) batch all K slices/rank into ONE object  (V0 7.49s -> V2 1.84s, 4.1x)
+#   (2) persistent no-fork client (removes the 9.4min/superstep fork cost)
+#   (3) run the 48 ranks' handoffs CONCURRENTLY (my shim was sequential per rank)
+# Stacked: per-superstep handoff ~19min -> order of SECONDS (well under C180 chem compute) -> off-node
+# C180 speedup becomes achievable. To approach the 0.19s/rank ceiling would want the AWS CRT aws-c-s3
+# (auto multipart+parallel, in-process) OR boto3 transfer-manager -- measure V3a next (install boto3).
+#
+# NEXT: rewrite chem_remote_s3.c = (a) batch-per-rank object, (b) persistent client (boto3 sidecar or
+# aws-c-s3 CRT), (c) concurrent poll; re-microbench V3; THEN re-run the C180 off-node throughput test.

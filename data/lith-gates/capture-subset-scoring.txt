@@ -1,0 +1,37 @@
+== population, and where the fidelity mismatch lands
+class/arm     handles  mismatch  prefetching  pf&clean
+hemco/a          6272       178          168         4
+hemco/b          6279       175          166         3
+met/a             598       137          143         8
+met/b             603       137          143         8
+
+== the pre-registered rule, scored ONLY on handles whose replay is faithful
+class/arm        n  rho(mean_abs_gap)  median ft   mean ft
+hemco/a          4                nan      0.000    0.0000
+hemco/b          3                nan      0.000    0.0000
+met/a            8             -0.412      0.000    0.0040
+met/b            8             -0.082      0.000    0.0040
+
+AUC(hemco vs met) on the clean subset = 0.438  (n=7 vs 16)
+
+== how much cross-handle sharing is there? (the per-handle model's assumption)
+  met/a: 598 handles over 12 distinct obj_size values => 49.8 handles per object; sum(dispatched)=51.7 GiB
+  met/b: 603 handles over 12 distinct obj_size values => 50.2 handles per object; sum(dispatched)=51.4 GiB
+  hemco/a: 6272 handles over 196 distinct obj_size values => 32.0 handles per object; sum(dispatched)=17.2 GiB
+  hemco/b: 6279 handles over 196 distinct obj_size values => 32.0 handles per object; sum(dispatched)=17.1 GiB
+
+== cold tax (#256 floor) on the clean subset vs all handles
+  met/a: NET    652.2 MiB  gross   1303.5 MiB   (clean-only NET    540.8 MiB)
+  met/b: NET    650.6 MiB  gross   1334.8 MiB   (clean-only NET    549.5 MiB)
+  hemco/a: NET   8431.0 MiB  gross  10025.8 MiB   (clean-only NET   8208.2 MiB)
+  hemco/b: NET   8488.5 MiB  gross  10083.9 MiB   (clean-only NET   8281.9 MiB)
+met/a: 25666 rows, 598 handles, 12 DISTINCT KEYS
+   handles per key: mean 49.8  max 77   keys touched by >1 handle: 12/12 (100%)
+   handles that are the SOLE reader of every key they touch: 0/598
+   prefetching handles: 143; fidelity-clean: 8; of those clean, sole-reader: 0/8
+   of the MISMATCHING prefetchers, sole-reader: 0/135
+hemco/a: 33870 rows, 6272 handles, 204 DISTINCT KEYS
+   handles per key: mean 30.7  max 76   keys touched by >1 handle: 196/204 (96%)
+   handles that are the SOLE reader of every key they touch: 8/6272
+   prefetching handles: 168; fidelity-clean: 4; of those clean, sole-reader: 0/4
+   of the MISMATCHING prefetchers, sole-reader: 0/164

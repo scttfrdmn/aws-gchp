@@ -1,0 +1,75 @@
+MULTI-NIC + off-node-S3 RESEARCH (2026-07-27) — characterizing the m8gn failure + the solution space
+======================================================================================================
+Four parallel research agents vs current AWS docs / ParallelCluster GitHub / SchedMD. Every claim below
+was cited to a primary source in the agent reports. This file = the consolidated verdict.
+
+THE THREE THINGS THAT KILLED THE m8gn RUNS (all now explained, none is off-node-chemistry physics):
+
+1. m8gn's 2nd card is EFA-ONLY by default (ParallelCluster 3.15.0 behavior).
+   - PC 3.15.0 changed the default: EFA-enabled compute nodes get, per card: card0 = one ENA
+     (IP-bearing) + one efa-only; every SECONDARY card = efa-only ONLY (no IP, no TCP stack).
+     -> the 2nd 300Gbps card is reachable by EFA/MPI but NOT by a TCP writer to S3. Exactly what I saw
+     (card0 has IP, card1 attached w/ no IP). By DESIGN (IP conservation), not a bug.
+   - To get an IP-bearing ENA on card1 you must supply a LaunchTemplateOverrides (PC 3.15.0+) with
+     EC2 "Use case 2" NIC layout (ENA on card1 DeviceIndex1) -- AND PC does NOT set up the OS
+     policy-routing for it, so you'd script that in a bootstrap action yourself. Src: efa-v3.html,
+     Scheduling-v3.html, tutorial-network-customization-v3.html.
+
+2. The node went DOWN = a pure SLURM timeout I made TIGHTER than stock.
+   - Chain (source-verified in aws-parallelcluster-node): S3 flood saturates card0 -> slurmd's reply
+     to slurmctld's ping is queued behind bulk data -> no response within SlurmdTimeout -> node DOWN
+     -> running jobs killed + requeued (JobRequeue=1) -> clustermgtd's next 60s loop finalizes it with
+     "Scheduler health check failed" (NOT an independent EC2 check; it only amplifies slurm's decision).
+   - MY CONFIG WAS THE PROBLEM: SlurmdTimeout=180 (BELOW the stock default of 300!) + SlurmctldTimeout=300
+     (which is IRRELEVANT -- it's backup-controller failover, not node-down). I tightened the death
+     window and tuned the wrong knob.
+   - CLEAN OFFICIAL FIX (one line, no plumbing): CustomSlurmSettings raising SlurmdTimeout to 600-1200
+     + MessageTimeout>=60 + ReturnToService=2, applied via pcluster update-cluster. If slurm never marks
+     the node DOWN, clustermgtd never acts. Src: slurm.conf.5 (SchedMD), high_throughput.html,
+     slurm-configuration-settings-v3.html.
+
+3. Private subnet WITHOUT a NAT gateway (my setup) is not the documented pattern.
+   - Multi-NIC instances can't get an auto public IP -> AWS docs mandate PRIVATE SUBNET + NAT GATEWAY +
+     AssignPublicIp:false. I used a private subnet with NO NAT (relied on S3 gateway + interface
+     endpoints). SSM/S3 worked, but this is off-pattern and a plausible contributor to the instability.
+
+DEEPER TRUTHS ABOUT S3 THROUGHPUT (why chasing 600Gbps was misguided):
+- A SINGLE TCP flow to S3 is capped at 5 Gbps (10 in a cluster PG; 25 only w/ ENA Express which is
+  EC2<->EC2 and CANNOT reach S3). Big numbers ONLY come from MANY parallel connections. Src:
+  ec2-instance-network-bandwidth.html.
+- AWS frames the SINGLE-INSTANCE-to-S3 sweet spot as "up to 100 Gb/s on a single instance"; beyond that
+  the DOCUMENTED path is SCALE-OUT across instances ("aggregate throughput ... multiple terabits/s").
+  Src: S3 optimizing-performance.html.
+- A single logical S3 client straddling 2 cards needs either the AWS CRT client's EXPERIMENTAL/UNSTABLE
+  network_interface_names (--nic ens5,ens6; boto3's CRT path), or hand-rolled per-ENI policy routing +
+  per-connection source-IP binding boto3 doesn't expose. Multiple ENIs on the SAME card share its
+  bandwidth (no gain); only separate CARDS give separate budgets.
+- amazon-ec2-net-utils had a MULTI-CARD bug (two ENIs on different cards both computed network_card=0 ->
+  dup route tables -> secondary mis/unconfigured); FIXED in v2.7.4 (late May 2026). Want >=2.7.4 for
+  reliable multi-card auto-config. Plausibly a second reason card1 had no usable IP.
+
+THE ACTUAL BEST ANSWER (found by the strategy agent) -- r8gn.24xlarge:
+   768 GiB (exactly the floor), Graviton4 (arm64, SAME binary, neoverse-v1), SINGLE network card @ 300 Gbps.
+   = 3x the m9g NIC with ZERO multi-NIC/private-subnet/NAT/EFA-only complexity. Strictly better than
+   BOTH m8gn (2-card headache, 2nd card unusable for S3) and i8ge (1 card but only 150Gbps + 96c).
+   Ranked single-card TCP-to-S3 at >=768GB: r8gn.24xl 300 > i8ge.24xl 150 > m9g.48xl 100 > m8g/r8g 50.
+   Caveat: AWS's DOCUMENTED single-instance-to-S3 figure is ~100Gb/s; whether one r8gn.24xl truly pushes
+   300 to S3 (needs ~60 concurrent flows + CPU for TLS on 96 vCPU) is plausible but unproven -> benchmark.
+
+ARCHITECTURAL VERDICT (unchanged + reinforced): off-node S3 throughput is TRANSPORT-TIER-NIC bound.
+   The clean levers, in order:
+   (a) Bigger SINGLE-card NIC: r8gn.24xl (300Gbps, drop-in) -- the low-friction 3x.
+   (b) SCALE OUT: N transport nodes, each its own NIC + its own S3 prefix (S3 has no aggregate cap;
+       3500 PUT/5500 GET per prefix, unlimited prefixes). This is AWS's documented >100Gb/s path AND
+       matches GCHP's existing multi-node/EFA decomposition. S3 is never the wall; the per-node NIC is.
+   (c) Separate CARD for bulk vs control ONLY on true multi-card HPC parts (hpc7a/hpc6id/hpc8a: 2 cards,
+       150Gbps each) via LaunchTemplateOverrides -- gives S3 a physically separate lane from slurm/NFS.
+       Not available on single-card m9g/hpc7g/c7gn.
+   Plus two hardening fixes worth doing regardless: raise SlurmdTimeout (kills the node-death requeue),
+   and move /sw + slurm state OFF head-node NFS onto FSx (AWS best-practice; removes the shared-NIC NFS
+   stall that issue #4179 shows can down an entire fleet).
+
+IF WE RE-TEST THE C180 OFF-NODE NUMBER: use r8gn.24xlarge (single card, drop-in, 3x m9g bandwidth) +
+   SlurmdTimeout=900 via CustomSlurmSettings. No private subnet, no NAT, no multi-NIC, no EFA-only trap.
+   The 96 vs 192 cores means 48 ranks + 48 workers exactly fills it (tight but was the K=1 plan anyway).
+   This is the clean single-variable-ish bandwidth-up test, far simpler than the m8gn path.

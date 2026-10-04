@@ -1,0 +1,135 @@
+# LITH AS /input — A/B AGAINST FSx LUSTRE (us-east-1a, m9g.48xlarge).
+#
+# Purpose: run the gates in docs/lith-input-layer-analysis.md. Identical to
+# bench-fullchem-m9g-use1.yaml (the proven C180 fullchem config) in every respect
+# that touches the science, so the only variable is where ExtData reads from:
+#   /input      FSx Lustre by-ID (fs-0804c4d8e01897d21, gcgrid, us-east-1a)  <- CONTROL (gate 4)
+#   /input-lith lith v1.1.0 FUSE mounts over s3://gcgrid, per compute node    <- TREATMENT
+#
+# Gate 1 is already answered by source inspection (no collective MPI-IO in MAPL;
+# num_readers defaults to 1) so nothing here needs to keep restarts off lith.
+#
+# The control FSx is REUSED, not created: a fresh full-bucket ImportPath takes
+# ~33 min and times out the head-node WaitCondition (see memory
+# fsx_inline_import_waitcondition). Deleting it would forfeit the control.
+#
+# COST NOTE: MinCount 0 everywhere and ScaledownIdletime 5 so nothing compute
+# bills while the index builds. /scratch is created and deleted with the cluster.
+#
+# STATUS 2026-10-04: the A/B is complete. The /input control FSx is detached (see
+# SharedStorage); to re-run gate 4, re-add an /input FSx by ID.
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.4xlarge          # ARM login/index host; compute is the m9g
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (control FSx AZ + m9g availability)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Sequence:
+        - Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+        - Script: s3://gchp-shared-storage-us-east-1/bootstrap/install-lith.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      ComputeResources:
+        - Name: nodes
+          # Two SINGLE-NETWORK-CARD types, so EC2 can satisfy capacity: two
+          # m9g.48xlarge at once in us-east-1a returned InsufficientInstanceCapacity
+          # (job 5, 2026-09-17) — m9g scarcity is AZ-specific, and one node was
+          # obtainable while two were not. A capacity failure launches nothing and
+          # so costs nothing, which makes listing a fallback free insurance.
+          #
+          # WHY NOT the 600 Gbps 2-card boxes (c8gn/m8gn/m8gb.48xlarge): they are
+          # rejected outright here. This is the DEFAULT VPC, every subnet has
+          # MapPublicIpOnLaunch=true, and EC2 cannot attach a public IP to an
+          # instance with more than one NIC, so MultiNetworkInterfacesInstancesValidator
+          # fails the config. A queue-level AssignPublicIp: false does NOT satisfy it
+          # — the validator reads the subnet attribute. Fixing it properly needs a
+          # private subnet in us-east-1a, i.e. new shared network infrastructure in
+          # the user's default VPC, which is out of scope for this gate.
+          #
+          # And it does not matter for THIS workload: the C24 working set is ~3.3 GB
+          # over a ~26 s init, about 1 Gbps of real demand. Both types below exceed
+          # that by 50-100x, so the link is nowhere near binding and gate 2's
+          # shared-gateway cost will show up as request latency and NFSv3
+          # round-trips, not bandwidth. Baselines verified via DescribeInstanceTypes.
+          #
+          # Both are aarch64, 192 vCPU and EFA-capable (EFA is a hard requirement:
+          # GCHP multi-node aborts at MPI_Win_create over plain TCP).
+          Instances:
+            - InstanceType: c8g.48xlarge    # 384 GiB  1 card,  50 Gbps baseline
+            - InstanceType: m9g.48xlarge    # 768 GiB  1 card, 100 Gbps baseline (gate 3c's box)
+          MinCount: 0
+          MaxCount: 2                 # 1 node for gate 3; 2 for gate 2 (per-node mount vs serve nfs)
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false
+        # NOTE: a queue-level `AssignPublicIp: false` does NOT let multi-NIC
+        # instance types into this subnet — MultiNetworkInterfacesInstancesValidator
+        # inspects the subnet's MapPublicIpOnLaunch attribute, not this setting.
+        # Tried and rejected; see the ComputeResources comment above.
+      CapacityType: ONDEMAND
+      # REQUIRED, and easy to miss: a queue-level CustomAction script hosted in S3
+      # is downloaded by the COMPUTE node role, which is a different role from the
+      # head node's. Declaring AmazonS3ReadOnlyAccess under HeadNode/Iam does not
+      # grant it here. Without this block the compute node's OnNodeConfigured
+      # download fails with HeadObject 403, ParallelCluster treats that as a
+      # bootstrap failure, and the instance powers ITSELF off ~2 min in — which
+      # surfaces as EC2 StateReason "Client.InstanceInitiatedShutdown" and looks
+      # exactly like a capacity or AMI problem. Three m9g launches died this way.
+      # The breadcrumb is the CloudWatch stream <node>.bootstrap_error_msg.
+      # SSM is here so a compute node can be inspected directly instead of only
+      # through the head node.
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+          - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      CustomActions:
+        OnNodeConfigured:
+          Script: s3://gchp-shared-storage-us-east-1/bootstrap/install-lith.sh
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  # 2026-10-04: the A/B is finished, so /input (control FSx fs-0804) was dropped and
+  # /scratch moved from a 1200 GB SCRATCH_2 FSx (~$168/mo, 20 GB used) to gp3 EBS
+  # (~$16/mo). Nothing here needs Lustre: lith gates are FUSE mounts on plain dirs.
+  # EBS is NFS-exported to compute nodes by ParallelCluster like /sw.
+  - Name: scratch-ebs
+    StorageType: Ebs
+    MountDir: /scratch
+    EbsSettings:
+      VolumeType: gp3
+      Size: 200
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: lith-input-ab

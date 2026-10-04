@@ -1,0 +1,107 @@
+
+=== node facts 2026-09-18T22:10:04Z ===
+instance: c8g.48xlarge  host: compute-dy-nodes-2  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+domains_stack_size: absent (GCHP default)
+lith: lith 1.1.2   --nic-gbps 50
+
+=== preflight ===
+  all preflight checks passed
+
+=== ARM 1 — fullchem C24 through lith (live s3://gcgrid) ===
+  stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 35171); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 35288); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 35406); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 35522); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 35638); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  daemons answering on their metrics ports: 5/5
+  HEMCO ROOT -> /input-lith/HEMCO
+  MetDir  -> /input-lith/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /input-lith/HEMCO
+  ChemDir -> /input-lith/CHEM_INPUTS
+  restart -> /input-lith/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN lith ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /input-lith/HEMCO
+RESULT lith   init=188.98s sim_end=375.98s to_completion=397.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+=== lith metrics after lith ===
+-- merra2-2019-07 (:9110)
+   lith_cache_misses_total 3090
+   lith_distinct_bytes_read 3.254255616e+09
+   lith_fill_runs_total 0
+   lith_prefetch_issued_total 2951
+   lith_prefetch_uncovered_total 3138
+   lith_prefetch_used_total 2355
+   lith_read_straddle_total 2882
+   lith_s3_bytes_total 3.936605189e+09
+   lith_s3_requests_total{op="get",status="ok"} 3550
+-- merra2-2015 (:9111)
+   lith_cache_misses_total 3
+   lith_distinct_bytes_read 851968
+   lith_fill_runs_total 0
+   lith_prefetch_issued_total 0
+   lith_prefetch_uncovered_total 1
+   lith_prefetch_used_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 809084
+   lith_s3_requests_total{op="get",status="ok"} 1
+-- hemco (:9112)
+   lith_cache_misses_total 6959
+   lith_distinct_bytes_read 3.69819648e+09
+   lith_fill_runs_total 0
+   lith_prefetch_issued_total 4750
+   lith_prefetch_uncovered_total 7260
+   lith_prefetch_used_total 783
+   lith_read_straddle_total 3062
+   lith_s3_bytes_total 9.086894352e+09
+   lith_s3_requests_total{op="get",status="ok"} 8089
+-- chem-inputs (:9113)
+   lith_cache_misses_total 78
+   lith_distinct_bytes_read 5.636096e+06
+   lith_fill_runs_total 0
+   lith_prefetch_issued_total 2
+   lith_prefetch_uncovered_total 76
+   lith_prefetch_used_total 0
+   lith_read_straddle_total 0
+   lith_s3_bytes_total 4.372108e+06
+   lith_s3_requests_total{op="get",status="ok"} 78
+-- restarts (:9114)
+   lith_cache_misses_total 24
+   lith_distinct_bytes_read 7.67295488e+08
+   lith_fill_runs_total 0
+   lith_prefetch_issued_total 744
+   lith_prefetch_uncovered_total 16
+   lith_prefetch_used_total 716
+   lith_read_straddle_total 663
+   lith_s3_bytes_total 7.96700963e+08
+   lith_s3_requests_total{op="get",status="ok"} 109
+
+=== ARM 2 — same run dir through FSx /input + GMI overlay ===
+  skipped (ARMS=lith) — reusing stored md5 from an earlier run
+
+=== GATE 5 VERDICT ===
+  lith checkpoint md5: f3dd15b2191bbce63dadcbfc100196a6
+  fsx  checkpoint md5: f3dd15b2191bbce63dadcbfc100196a6
+  PASS — fullchem checkpoint is BYTE-IDENTICAL through lith and FSx.
+RESULT lith   init=188.98s sim_end=375.98s to_completion=397.2s cap_restart->20190702 md5=f3dd15b2191bbce63dadcbfc100196a6 SUCCEEDED
+
+### provenance
+ARM 1 (lith) = job 14, 2026-09-18, c8g.48xlarge, lith v1.1.2, ARMS=lith.
+ARM 2 (fsx)  = job 13 arm 2, same node/run dir/binary; md5 banked and reused
+               rather than re-burning 5 min of node time. Job 13's own lith arm
+               FAILED (inherited job 12's stale --daemon mounts) — its full
+               output is gate5-fullchem-ab-job13.txt.
+
+Earlier failures, kept because each is a distinct trap (see docs, Gate 5):
+  job 10  /input-lith mkdir missing on the compute node (node-local path)
+  job 11  TOTAL_CORES=96 vs 48 ranks; setup-script output was being discarded
+  job 12  Run_Duration "00000100 000000" = one MONTH, not one day
+  job 13  stale daemonized FUSE mounts survived scancel; verdict logic then
+          reported 'checkpoints DIFFER' for an arm that never ran

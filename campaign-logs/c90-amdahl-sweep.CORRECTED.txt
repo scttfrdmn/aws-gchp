@@ -1,0 +1,16 @@
+# C90 fullchem Amdahl fleet-sweep — CORRECTED (parse grabbed Avg not Run initially).
+# RUN (integration-rate, d/d) is the compute-tier metric; Avg is dragged by the ramp.
+# N=48 transport ranks, K=4 (192 slices/step). off-node = separate elastic worker cluster.
+# label     pool_cores   RUN_dd   reached    fallback
+  on-node       0        128.4    02:00:00      2       (inline reference)
+  P64          64        126.6    01:00:00      0
+  P128        128        126.3    01:00:00      0
+  P192        192        125.7    01:00:00      0
+  P384        384        125.4    01:00:00      0
+#
+# VERDICT: FLAT ~125-128 d/d across on-node AND all off-node fleet sizes. Off-node decoupling
+# does NOT accelerate C90 fullchem -- it preserves correctness (0 fallback, 48 ranks S3 mode)
+# but the S3 handoff latency (~seconds/superstep) dominates any fleet-parallelism gain at C90,
+# where chemistry is a smaller fraction of the wall than at C180 (74%). This is a HONEST NULL
+# result for the throughput headline at C90. Contrast: on-node M>N got 2.23x at C180.
+# (Off-node runs cut at 1 sim-hr by the watcher; RUN is instantaneous so still comparable.)

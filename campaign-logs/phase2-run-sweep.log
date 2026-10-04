@@ -1,0 +1,135 @@
+############ INSTANCE hpc7g.16xlarge (arch=aarch64, maxnodes=1, cluster=gchp-sw-hpc7g) ############
+rendered: /tmp/gchp-sw-hpc7g.yaml (instance=hpc7g.16xlarge max=1 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh head=c7g.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=54.146.51.124
+=== cell hpc7g.16xlarge c24_n1x60_tt --warmup ===
+  job=1
+  RESULT_TAG=c24_n1x60
+  RESULT_NODES=1 RESULT_RANKS=60 RESULT_CS=24 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=2963.1 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-hpc7g-c24_n1x60_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-hpc7g-c24_n1x60_tt.log --instance hpc7g.16xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-hpc7g
+############ INSTANCE c8g.48xlarge (arch=aarch64, maxnodes=2, cluster=gchp-sw-c8g) ############
+rendered: /tmp/gchp-sw-c8g.yaml (instance=c8g.48xlarge max=2 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh head=c7g.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=35.175.229.69
+=== cell c8g.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  RESULT_TAG=c24_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=24 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=4206.2 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8g-c24_n1x96_tt.log --instance c8g.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c8g
+############ INSTANCE c7i.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c7i) ############
+rendered: /tmp/gchp-sw-c7i.yaml (instance=c7i.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh head=c7i.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=100.54.233.217
+=== cell c7i.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  RESULT_TAG=c24_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=24 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=497.8 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7i-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7i-c24_n1x96_tt.log --instance c7i.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c7i
+############ INSTANCE c7a.48xlarge (arch=x86_64, maxnodes=2, cluster=gchp-sw-c7a) ############
+rendered: /tmp/gchp-sw-c7a.yaml (instance=c7a.48xlarge max=2 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh head=c7i.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=54.175.70.238
+=== cell c7a.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  RESULT_TAG=c24_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=24 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=446.8 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7a-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7a-c24_n1x96_tt.log --instance c7a.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c7a
+############ INSTANCE c8a.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c8a) ############
+rendered: /tmp/gchp-sw-c8a.yaml (instance=c8a.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh head=c7i.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=100.30.213.181
+=== cell c8a.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  RESULT_TAG=c24_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=24 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=528.9 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8a-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8a-c24_n1x96_tt.log --instance c8a.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c8a
+############ INSTANCE m9g.48xlarge (arch=aarch64, maxnodes=2, cluster=gchp-sw-m9g) ############
+rendered: /tmp/gchp-sw-m9g.yaml (instance=m9g.48xlarge max=2 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh head=c7g.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=3.81.75.10
+=== cell m9g.48xlarge c24_n1x96_tt --warmup ===
+  job=1
+  WARNING: empty log harvested for c24_n1x96 job 1
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-m9g-c24_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-m9g-c24_n1x96_tt.log --instance m9g.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-m9g
+############ INSTANCE c7g.16xlarge (arch=aarch64, maxnodes=1, cluster=gchp-sw-c7g) ############
+rendered: /tmp/gchp-sw-c7g.yaml (instance=c7g.16xlarge max=1 region=us-east-1 arch=aarch64 boot=sync-stack-arm.sh head=c7g.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=54.165.56.208
+=== cell c7g.16xlarge c48_n1x60_tt --warmup ===
+  job=1
+  RESULT_TAG=c48_n1x60
+  RESULT_NODES=1 RESULT_RANKS=60 RESULT_CS=48 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=1881.3 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7g-c48_n1x60_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c7g-c48_n1x60_tt.log --instance c7g.16xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c7g
+############ INSTANCE c8i.48xlarge (arch=x86_64, maxnodes=1, cluster=gchp-sw-c8i) ############
+rendered: /tmp/gchp-sw-c8i.yaml (instance=c8i.48xlarge max=1 region=us-east-1 arch=x86_64 boot=sync-stack-x86.sh head=c7i.2xlarge)
+=== dry-run ===
+msg: Request would have succeeded, but DryRun flag is set.
+  WARNING EfaPlacementGroupValidator
+  INFO DeletionPolicyValidator
+  INFO DeletionPolicyValidator
+=== create ===
+status: CREATE_IN_PROGRESS
+head=54.159.205.120
+=== cell c8i.48xlarge c48_n1x96_tt --warmup ===
+  job=1
+  RESULT_TAG=c48_n1x96
+  RESULT_NODES=1 RESULT_RANKS=96 RESULT_CS=48 RESULT_DAYS=1
+  RUN_STATUS=SUCCEEDED (sim reached 2019/01/02; internal Avg=734.4 d/d; killed mpirun pre-checkpoint to bound wall time)
+  saved -> /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8i-c48_n1x96_tt.log  (append with: python3 -m gchp_aws.append_benchmark --log /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs/slurm-c8i-c48_n1x96_tt.log --instance c8i.48xlarge --mechanism transporttracers)
+>>> tearing down gchp-sw-c8i
+############ SWEEP DONE. logs in /Users/scttfrdmn/src/aws-gchp/scripts/../campaign-logs. Append the good ones to benchmarks.json, then re-run pytest + calculator. ############

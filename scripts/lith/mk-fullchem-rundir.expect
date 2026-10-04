@@ -1,0 +1,56 @@
+#!/usr/bin/expect -f
+# Create a GCHP 14.7.1 **fullchem** run directory with the OFFICIAL createRunDir.sh.
+#
+# WHY THIS EXISTS. The lith /input analysis has one remaining gap: every number in
+# it is C24 TransportTracers, and fullchem touches ~48 of 50 gcgrid input families
+# against TT's handful. To measure that working set I need to know what fullchem
+# actually reads — and the only non-guessing source for that is a run directory
+# built by GCHP's own script. Per CLAUDE.md: never hand-roll a run directory.
+#
+# MET CHOICE IS DELIBERATE. createRunDir.sh offers MERRA-2 as either C180
+# cubed-sphere or 0.5x0.625 lat-lon. The existing TT run dir on this cluster used
+# 0.5x0.625 (MetDir -> /input/GEOS_0.5x0.625/MERRA2), so this picks the SAME thing.
+# Otherwise a fullchem-vs-TT working-set comparison would confound the mechanism
+# with a met-resolution change, and the whole point is to vary one thing.
+#
+# NOTE ON RESOLUTION: there is no resolution prompt, by design — createRunDir.sh
+# builds a resolution-agnostic run dir and CS_RES is set later in
+# setCommonRunSettings.sh. That is the same fact ExtData.rc shows directly (zero
+# c24/c48/c90/c180 tokens): only the restart file is resolution-specific. So this
+# ONE run dir serves the C24 and C180 manifests alike.
+#
+# Structured as a single expect loop with exp_continue rather than a fixed
+# sequence, because several prompts are conditional (the ExtData path prompt only
+# fires when ~/.geoschem/config is missing; the advection and discover prompts only
+# fire on the cubed-sphere and raw branches). A fixed sequence would hang on the
+# first branch that does not match.
+set timeout 900
+set rundir_name [lindex $argv 0]
+if {$rundir_name eq ""} { set rundir_name "gchp_lith_fullchem" }
+
+cd /scratch/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/run/GCHP
+spawn ./createRunDir.sh
+
+expect {
+    -re "Enter path for ExtData"                   { send "/input\r";        exp_continue }
+    -re "Choose simulation type"                   { send "1\r";             exp_continue }
+    -re "Choose additional simulation option"      { send "1\r";             exp_continue }
+    -re "Choose meteorology source"                { send "1\r";             exp_continue }
+    -re "Choose meteorology files"                 { send "3\r";             exp_continue }
+    -re "Choose meteorology for advection"         { send "1\r";             exp_continue }
+    -re "NASA discover cluster"                    { send "n\r";             exp_continue }
+    -re "Enter y to acknowledge"                   { send "y\r";             exp_continue }
+    -re "Enter path where the run directory"       { send "/scratch\r";      exp_continue }
+    -re "Enter a different run directory name"     { send "q\r";             exp_continue }
+    -re "run directory name"                       { send "$rundir_name\r";  exp_continue }
+    -re "track run directory changes"              { send "n\r";             exp_continue }
+    # FULLCHEM-ONLY PROMPT, and the reason the first attempt hung: TransportTracers
+    # never asks this, so it is absent from the existing rundir automation. "n" —
+    # the box model is a separate build target and nothing in a working-set probe
+    # needs it.
+    -re "build the KPP-Standalone Box Model"       { send "n\r";             exp_continue }
+    timeout                                        { puts "\nEXPECT TIMEOUT"; exit 2 }
+    eof                                            { }
+}
+catch wait result
+exit [lindex $result 3]

@@ -1,0 +1,12 @@
+{"time":"2026-10-02T17:41:40.740645687Z","level":"INFO","msg":"building index","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","auto_index_limit":5000000}
+{"time":"2026-10-02T17:41:40.783599855Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.042896971,"keys_per_sec":5058.632228368759}
+{"time":"2026-10-02T17:41:40.783711005Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-02T17:41:40.785045371Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":600,"peak_gbps":600,"source":"--nic-gbps"}
+{"time":"2026-10-02T17:41:40.785098295Z","level":"INFO","msg":"inflight-bytes budget","budget":"15000000000 bytes (2 × 600.0 Gbps baseline × 100 ms)"}
+{"time":"2026-10-02T17:41:40.785103506Z","level":"INFO","msg":"parts-max","bytes":67108864,"source":"device-derived (NIC baseline × TTFB, clamped)","nic_bytes_per_s":75000000000,"ttfb_seed":40000000}
+{"time":"2026-10-02T17:41:40.785157492Z","level":"INFO","msg":"coalesce gap","bytes":23437500,"source":"device-derived","nic_bytes_per_s":75000000000,"ttfb_seed":40000000,"concurrency":128}
+{"time":"2026-10-02T17:41:40.785163742Z","level":"INFO","msg":"prefetch bounds","window_blocks":1024,"window_bound":"--max-readahead","window_commit_bytes":8589934592,"prefetch_budget_bytes":49815600640,"inflight_bytes":15000000000,"binding":"--max-readahead x --block-size","full_window_descriptors":5,"floor_at_descriptors":1980}
+{"time":"2026-10-02T17:41:40.786857632Z","level":"INFO","msg":"mounted","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","mountpoint":"/home/ec2-user/g/mnt-f1","root":"GEOS_0.25x0.3125/GEOS_FP/2019/07/","keys":217}
+{"time":"2026-10-02T17:41:40.786875897Z","level":"INFO","msg":"s3 transport","info":"http2=off MaxConnsPerHost=0(unlimited) MaxIdleConnsPerHost=128 IdleConnTimeout=90s","s3_concurrency":128}
+{"time":"2026-10-02T17:41:40.787004067Z","level":"INFO","msg":"metrics endpoint","addr":":9951"}
+{"time":"2026-10-02T17:41:49.303712482Z","level":"INFO","msg":"unmounted","stale_objects":0}

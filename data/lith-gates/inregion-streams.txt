@@ -1,0 +1,1519 @@
+GATE 5f-P -- the stream divisor (lith#311 / 88d0c6f): does it restore arm A, fix the
+held-descriptor shape, and how large is the #312 residual it documents?
+
+PRE-REGISTERED 2026-10-02, before any cell ran. Committed before the harness was launched.
+
+================================================================================
+WHAT UPSTREAM ASKED FOR
+================================================================================
+
+5f-O measured byte-exact admission (ceeb2b7) at 5.66x slower on the arm they asked for and
+up to 11.03x elsewhere. They accepted it, reverted it (#309), added floor visibility (#310),
+and then repaired the divisor's INPUT rather than removing the division (#311, merged
+88d0c6f, #301 closed):
+
+    clamp(budgetBlocks / N, 2, maxReadahead)
+      N was  len(f.handles)            -- open DESCRIPTORS, cross-process, incl. never read
+      N is   streamingHandles.Load()   -- handles the detector is prefetching for
+
+maintained by +1/-1 deltas from each read's detector transition and from Release, not by a
+scan (perHandleWindow runs on every read; an O(handles) scan at 6229 handles would cost more
+than the misallocation it fixes).
+
+Their asks, verbatim in substance:
+
+  1. "Arm A. Prediction: unchanged from your pre-ceeb2b7 baseline on the concurrent-reader
+     arms, improved on the production shape. IF THE CONCURRENT ARMS MOVE AT ALL, THE DELTA
+     ACCOUNTING IS WRONG -- that is the falsifier, and I'd want it before anything else."
+  2. "lith_streaming_handles vs lith_open_handles on a production mount. Expect ~48 against
+     ~288. If streams come out near 288, then most of those descriptors establish and idle,
+     and the residual is the dominant term rather than a footnote."
+
+And one they volunteered as the thing they'd most want contradicted:
+
+  "N readers starting together each see a near-zero count and so a full window. What bounds
+   the burst is the geometric ramp -- a first dispatch is 2 blocks, not 223 -- so the count
+   settles long before any window is deep. I believe this is fine; it is the thing I'd most
+   want a real measurement to contradict."
+
+Also noted by them, deliberately unbuilt: #312, the handle that establishes, reads a little,
+and idles. It keeps its share until close or collapse to Random. They will not build an
+idle-out on speculation, because the divisor would then change on every idle and
+re-establish, and I already measured eleven dispatch bursts from the divisor merely DROPPING
+as handles closed.
+
+================================================================================
+THE SEPARATION THIS GATE BUYS, WHICH IS WHY IT IS WORTH RUNNING
+================================================================================
+
+5f-M's two held-descriptor arms are, exactly, the two issues:
+
+    arm C   descriptors opened and NEVER READ            = #301, closed, fixed by construction
+    arm B   descriptors opened + ONE 4 KiB pread, idle   = #312, open, magnitude unknown
+
+#311 drops never-read descriptors from the divisor as a matter of code. Whether it helps
+arm B turns on a question nobody has measured: DOES A SINGLE 4 KiB READ PUT THE DETECTOR IN
+prefetch.Sequential? The answer is not guessable from the patch -- establishment is a
+contiguity judgment, and one read has no second read to be contiguous with.
+
+  if a 4 KiB pread does NOT establish  ->  arm B is fixed too, #312 is a footnote
+  if it DOES establish                 ->  arm B stays at the floor, and the residual is the
+                                           DOMINANT term on every netCDF workload, which is
+                                           the finding they said would change what they
+                                           build next
+
+lith_streaming_handles reads out which branch is true directly, so the gauge decides it and
+the wall clock confirms it. Both branches are informative, which is the point: this is not a
+gate that can only pass.
+
+================================================================================
+ARMS -- scripts/lith/gate-streams.sh, --nic-gbps 50, fresh cold mount per cell
+================================================================================
+
+OLD = lith-304 = 52138ee, the descriptor divisor (the pre-ceeb2b7 baseline upstream names)
+NEW = lith-311 = 88d0c6f, the stream divisor
+
+  S           1 streamer alone, whole object          the ceiling; N=1 on both binaries
+  R    N=16   16 concurrent streamers, whole objects  ARM A -- upstream's falsifier
+  C8   N=8    1 streamer + 7 opened, never read
+  C256 N=256  1 streamer + 255 opened, never read     5f-M's 6.38x cell
+  B8   N=8    1 streamer + 7 header-read then idle
+  B64  N=64   "
+  B256 N=256  "                                       #312's magnitude
+
+REPS=2. Objects are the same 16 GEOSFP A3dyn days as 5f-M and 5f-O (3.72-3.81 GB each,
+444-454 blocks of 8 MiB, every one larger than the 223-block window) so the banked numbers
+are directly comparable. Holders take objects 1..15; the streamer owns object 0, so a held
+descriptor never shares a file with the reader under test.
+
+BANKED REFERENCE (5f-M, same box, same flags, same objects, whole-object reads)
+  1 streamer, window 223          3.19 s   1185 MB/s
+  1 streamer behind 255 held fds  20.34 s   186 MB/s   window 2
+  1 streamer, --max-readahead 2   25.67 s             (the causal control; min() composition)
+  knee at 30 blocks: 223->30 free, cliff 30->7
+BANKED REFERENCE (5f-O, same box, --nic-gbps 50, 16 concurrent whole objects)
+  arm C OLD (divisor)             33.58 s
+  arm C NEW (admission)          190.06 s   = the 5.66x that got ceeb2b7 reverted
+
+================================================================================
+PRE-REGISTERED PREDICTIONS
+================================================================================
+
+P1  UPSTREAM'S FALSIFIER, arm R.  NEW/OLD aggregate wall in [0.90, 1.10], and the realized
+    window identical on both binaries at 30 blocks (492/16 = 30, the cell 5f-O reported).
+    streaming_handles should equal open_handles to within 1 during the steady state, since
+    every reader streams.
+    BREACH: |ratio - 1| > 0.10 on the median of 2 reps. If it breaches I report it before
+    anything else in this gate and reopen #301, as they asked.
+
+P2  #301 IS FIXED, arms C8 and C256.  NEW pre-stream gauges: open_handles = 8 / 256,
+    streaming_handles = 0, window = 223 (nothing has established, so the first reader gets
+    everything -- upstream's own test asserts {0, 223}).
+    NEW C256 wall within 15% of NEW S wall. Point prediction 3.2-3.7 s against OLD's 20.3 s,
+    i.e. 5.5-6.4x faster, recovering the 6.38x 5f-M measured.
+    No floor warning in the NEW C cells; one in the OLD C256 cell is impossible (OLD has no
+    such warning -- #310 is newer), so the warning count is only informative on NEW.
+
+P3  #312's MAGNITUDE, arms B8/B64/B256.  I do not know which branch this takes, so both are
+    written down with their discriminator, and the discriminator is the GAUGE, not the wall:
+
+      B-null branch   NEW B256 streaming_handles <= 2 and wall within 15% of NEW S
+                      => one 4 KiB pread does not establish; #312 is a footnote; the
+                         production mount comes off the floor on descriptors alone
+      B-dominant      NEW B256 streaming_handles >= 128 and wall >= 3x NEW S
+                      => read-once-then-idle holds a share; on a 48-rank netCDF job the
+                         divisor is still ~288, not ~48, and #311 does NOT lift the
+                         production mount off the floor. #312 is the dominant term.
+      intermediate    streaming_handles between 3 and 127: report the number and the
+                         implied window clamp(492/sh, 2, 223) against the measured one
+
+    The B ladder's shape is itself a prediction: if establishment needs k>1 reads, B should
+    track C at every N, and the three N values discriminate a partial effect from a null.
+
+P4  THE BURST THEY WANT CONTRADICTED, arm R on NEW.  16 readers start within ~50 ms of each
+    other; each computes its window from a count that does not include itself, and
+    perHandleWindow runs BEFORE the Observe that establishes it. If the geometric ramp bounds
+    the burst as they argue, then:
+      - peak lith_prefetch_committed_bytes <= lith_prefetch_budget_bytes (4.127829504e9),
+      - the window gauge settles to 30 within the first ~5 s and stays,
+      - and s3_bytes_total is within 2% of OLD's.
+    CONTRADICTED IF: peak committed > 1.5x budget, OR the window gauge sits above 60 blocks
+    for more than 5 s with 16 readers live, OR NEW R bytes exceed OLD R bytes by > 5%.
+    Note the gauge is sampled at 5 Hz, so a burst shorter than 200 ms is invisible to this
+    instrument and a null here is bounded by that -- stated now, not after.
+
+P5  CONSERVATION, free, every cell.  committed <= streaming_handles x window_commit_bytes,
+    where window_commit_bytes = window x 8 MiB. Post-revert this is the invariant the divisor
+    is SUPPOSED to maintain, which is upstream's own framing of why it is now worth checking
+    rather than an identity. Separately: committed is still never released at handle close
+    (Release has no dropPrefetched path), so in the C and B arms -- working set well over the
+    8.256 GB tier -- eviction should reclaim it and the ratchet should NOT appear. The ratchet
+    needs working-set <= tier, which no arm here has, so its absence proves nothing and is
+    recorded only so that its presence would.
+
+================================================================================
+WHAT THIS GATE CANNOT DO
+================================================================================
+
+- It is not a production mount. Arms B and C are the netCDF descriptor shape distilled to one
+  variable; they are not GCHP. Ask 2 is answered properly by a GCHP run, which is the next
+  step and is separate from this file.
+- One box, one region, 2.2 ms RTT. The 5f-I bimodal stall was cross-region and is not probed.
+- 5 Hz sampling, as noted in P4.
+- No claim about #312's cost on a workload whose handles cycle (open, read, close, reopen).
+  The deltas are the thing that could drift there, and these arms hold descriptors still.
+
+COST  ~330 GB of in-region GETs at 8 MiB coalescing, on an already-running head node. The
+expensive arm is R (60 GB/cell x 4 cells). Expect ~$0.02-0.05 of requests, no egress.
+Estimate stated before running; actual reported with the results.
+
+================================================================================
+MID-GATE PRE-REGISTRATION (5f-P2): THE DISCRIMINATOR, written before rep 2 was read
+================================================================================
+
+Rep 1 arm R, the only cell read at the time of writing:
+
+    OLD  33.97 s   per-reader 32.25-33.97  spread 1.05x   evicted_unread 0     GETs 7396
+    NEW 106.53 s   per-reader 29.11-106.52 spread 3.66x   evicted_unread 4537  GETs 12275
+
+P1 IS BREACHED: 3.14x, far outside [0.90, 1.10]. P4 IS CONTRADICTED: peak committed
+12.9436 GB against a 4.1278 GB budget = 3.14x, where the threshold was 1.5x.
+
+But the cause upstream named is NOT what broke. The delta accounting is CORRECT:
+streaming_handles == open_handles == 16 exactly through the whole steady state, and the
+realized window is 30 = 492/16, which is the share the divisor is supposed to give. So the
+falsifier fired and the diagnosis attached to it ("if the concurrent arms move at all, the
+delta accounting is wrong") does not hold. Something else does.
+
+The sampled series says what, at 5 Hz:
+
+    t=6.05   16 streams, window 30,  committed 12.944 GB   <- 3.14x the budget, already
+    t=24.20  16 streams, window 30,  committed  4.351 GB
+    t=30.26  15 streams, window 32,  committed  2.906 GB
+    t=36.33   3 streams, window 164, committed  0.707 GB   <- 13 readers are DONE at ~33 s,
+    t=72.65   3 streams, window 164, committed  2.680 GB      the same time OLD took for all 16
+    t=78.71   2 streams, window 223, committed  2.611 GB
+    t=102.92  1 stream,  window 223, committed  1.787 GB   <- last reader finishes at 106.5 s
+
+So this is not a uniform slowdown, it is a FAIRNESS COLLAPSE: 13 of 16 readers finish on
+OLD's schedule and 3 become permanent losers. Two sub-mechanisms are consistent with every
+number above, and they have opposite fixes, so guessing between them is exactly what this
+project does not do.
+
+  H-BURST   The start transient makes permanent losers. All 16 readers start within ~50 ms,
+            each computes its window from a count that does not yet include itself
+            (perHandleWindow runs before the Observe that establishes), so each sees N~0 and
+            takes 223. 16 x 223 x 8 MiB = 29.9 GB potential against an 8.256 GB memory tier;
+            realized peak 12.94 GB, which is already 1.57x the tier. Blocks are therefore
+            evicted BEFORE being read (4537 of them), and an evicted-unread block returns as a
+            synchronous demand read, which is the 5f-O starvation rate. Whichever readers lose
+            that first cache race fall behind, and falling behind makes them lose it again.
+            Upstream's bound -- "the geometric ramp is what bounds the burst, a first dispatch
+            is 2 blocks not 223" -- bounds the FIRST dispatch and not the ramp's integral:
+            16 ramps running together reach 12.9 GB committed within 6 s.
+
+  H-QUEUE   The late window inflation starves the stragglers. As readers finish, N falls, so
+            every surviving reader's window GROWS: 30 -> 32 -> 164 -> 223. With 3 readers at
+            164 blocks the mount has up to 492 chunk requests outstanding against a fixed
+            --s3-concurrency of 128, so the block a reader needs next can queue behind
+            hundreds it will not need for seconds. That is 5f-L's bytes-per-slot result in a
+            new place. Committed RISING monotonically from 0.71 to 2.68 GB between t=36 and
+            t=73 while only 3 readers are live, at an aggregate ~115 MB/s against the 1185
+            MB/s this box does with one reader, is the signature.
+
+PRE-REGISTERED DISCRIMINATOR, three cells on NEW, 16 concurrent streamers, 2 reps:
+
+  R-CAP   --max-readahead 30.  Pins every reader at the share 16 readers are entitled to, so
+          no burst is possible and no late inflation either.
+          H-BURST predicts: wall within 10% of OLD (33-37 s), spread <= 1.2x,
+          evicted_unread <= 100, peak committed <= 4.2 GB. This is the cell that would show
+          the steady-state share is fine and only the TRANSIENT is wrong.
+  R-CONC  --s3-concurrency 512, --max-readahead default.
+          H-QUEUE predicts >= 20% faster than NEW baseline. H-BURST predicts no help or
+          harm, and 5f-L is the prior: at the 8 MiB unit, 128 -> 512 slowed BOTH arms there.
+  R-PB    --prefetch-budget 1GB (budgetBlocks 119, so 119/16 = 7 at steady state and 119 even
+          at N=1).  Caps the burst by the NUMERATOR instead of the window. If H-BURST holds,
+          this also restores fairness; if it does not restore while R-CAP does, then the
+          window ceiling and not the committed total is what matters, which is a third thing
+          and I will say so.
+
+INTERPRETATION RULE, fixed now: R-CAP restoring and R-CONC not helping => H-BURST, and the
+repair is to clamp a new handle's window by the count it is about to join (budget/(N+1)) or to
+refuse to inflate a window on a count DECREASE, neither of which needs a clock in the read
+path. R-CONC helping and R-CAP not => H-QUEUE, and the repair is to bound outstanding chunk
+requests rather than window depth. Both helping => the two are the same mechanism seen from
+two sides, and I will report it as unseparated rather than pick.
+
+What this cannot settle: whether the 3 stragglers are stable identities (the loser set) or
+whether the loss rotates. The per-reader walls give the distribution but not the trajectory,
+and --pf-trace at 16 readers over 60 GB is ~300 MB of CSV per cell, which is affordable if
+the above comes out ambiguous but is not worth it in advance.
+
+================================================================================
+SECOND MID-GATE PRE-REGISTRATION (5f-P2b): THE TIER CONTROL
+written after RBASE/RCAP/RCONC/RPB rep 1 and RBASE/RCAP rep 2, before any RTIER cell ran
+================================================================================
+
+Rep 1 of the discriminator came out H-BURST by the rule above, but it also broke the
+threshold I pre-registered in P4, and in a way that matters more than the pass/fail:
+
+    RBASE   101.97 s  spread 3.598  peak committed 13.078 GB  window 223   (NEW baseline)
+    RCAP     33.93 s  spread 1.012  peak committed  4.093 GB  window  30   --max-readahead 30
+    RCONC    85.77 s  spread 3.272  peak committed 13.078 GB  window 223   --s3-concurrency 512
+    RPB      35.22 s  spread 1.257  peak committed  4.236 GB  window 119   --prefetch-budget 1GB
+
+RPB restores -- and its peak committed is 4.236 GB against the 1 GB budget it was given, so
+it exceeded its OWN budget 4.2x and was fast anyway. P4 asked whether committed stays inside
+the BUDGET. That was the wrong denominator. Both restoring arms land at 0.50-0.51x the
+8.256 GB memory tier and both collapsing arms land at 1.58x it, across two different knobs
+that move the burst by different routes (window ceiling vs numerator). So the quantity that
+tracks the collapse is peak committed RELATIVE TO THE CACHE TIER, not relative to the budget,
+and the named mechanism is eviction: commit more than the tier holds and blocks are evicted
+before their reader arrives (evicted_unread 4537 in RBASE, 0 in OLD), and an evicted-unread
+block returns as a synchronous demand read.
+
+That is still only a correlation over four cells, and all four moved the burst. The causal
+control is to move the TIER and leave the burst alone, which is possible because
+--prefetch-budget is independent of --mem-cache:
+
+  R-TIER   --mem-cache 20GB --prefetch-budget 4.127829504GB
+           Budget, budgetBlocks (492), maxReadahead (223) and therefore every window this
+           mount can choose are BIT-IDENTICAL to RBASE. The only thing that changes is how
+           much the cache can hold: 20 GB against RBASE's realized 13.078 GB peak, so the
+           same burst now fits.
+
+PRE-REGISTERED, 2 reps, NEW binary, 16 concurrent streamers, everything else as RBASE:
+
+  H-EVICT (the claim above)   RTIER wall within 15% of OLD's 33.76 s median => 29-39 s,
+      spread <= 1.3, evicted_unread <= 100, AND peak committed still >= 10 GB (if committed
+      drops, the intervention did not do what it says and the cell is void).
+  H-EVICT IS FALSE IF  RTIER wall stays >= 80 s with evicted_unread >= 1000 removed, or
+      stays >= 80 s at all while committed stays >= 10 GB. Then the burst costs something
+      other than eviction -- in-flight contention that neither 512 slots nor a bigger cache
+      relieves -- and I will report the mechanism as UNRESOLVED rather than assert eviction,
+      because RCONC already failed to help and that would leave no measured cause standing.
+  INTERMEDIATE  39-80 s: eviction is a contributing term and not the whole cost; report the
+      fraction recovered, do not round it to a mechanism.
+
+Confound stated in advance: 20 GB of page-cache-backed tier on a 33.0 GB box leaves ~13 GB,
+and the readers are dd to /dev/null so they hold nothing. If the cell shows memory pressure
+(any swap activity, or the daemon's RSS near 20 GB with the wall degrading) the result is
+void and reported as void, not as a null.
+
+Why this is worth the money even though the rule already fired: the repair I offered upstream
+(size a new handle's window from budget/(N+1), refuse to inflate on a count DECREASE) follows
+from H-BURST either way. But if eviction is the proximate cost, then the sufficient condition
+is much simpler to state and to test in CI -- peak committed must stay under the tier, which
+is one inequality over two gauges they already export -- and it tells them the bound they
+need is on the SUM over handles, not on any one handle's window. That is a different patch
+from the one I proposed, so it is worth knowing which.
+
+COST  ~120 GB in-region GETs, ~15k requests, ~$0.006, on the already-running head node.
+
+--------------------------------------------------------------------------------
+R-TIER CAME OUT VOID, BY THE CONDITION WRITTEN ABOVE -- and the void is a finding
+--------------------------------------------------------------------------------
+
+Both R-TIER cells OOM-killed the mount:
+
+    oom-kill: task=lith-311, anon-rss 31,004,924 kB, total-vm 35,216,660 kB
+    MemAvailable floor 0.46 GB   lith RSS peak 30.56 GB   SwapTotal 0
+
+so the walls they printed (24.40 s, 27.50 s, spread 1.000 at three decimals -- all 16 readers
+terminating within 2 ms of each other is a daemon death, not a read) are time-to-OOM and are
+DISCARDED. This is the confound I wrote down before running, and it is reported as void rather
+than as the spectacular result it would otherwise look like.
+
+What the void measures instead, and it is worth more than the cell was:
+
+    lith RSS peak 30.56 GB  ~=  --mem-cache 20 GB  +  peak committed 13.078 GB  =  33.08 GB
+    MemTotal                                                                   =  33.02 GB
+
+The configured tier and the in-flight prefetch are ADDITIVE in RSS, to 0.2%. Prefetch bytes
+are committed and dispatched without being charged against the block cache they are about to
+land in, so a mount's true footprint is --mem-cache PLUS whatever the burst reaches, and
+--mem-cache alone does not bound it. On the DEFAULT configuration that is 8.256 + 13.078 =
+21.3 GB on this box -- survivable here, but the burst ceiling is 16 x 223 x 8 MiB = 29.9 GB,
+so a mount at defaults with enough concurrent readers can exceed system memory with no knob
+set wrongly by anyone. That is a different and more serious issue than the fairness collapse,
+and it cannot be deduced from the gauges, because committed_bytes is exported but is not
+compared to anything that constrains it.
+
+--------------------------------------------------------------------------------
+PRE-REGISTERED REPLACEMENT (5f-P2c): the reader-count ladder, which risks no memory at all
+written before any ladder cell ran
+--------------------------------------------------------------------------------
+
+The tier cannot be raised above the burst on a 33 GB box at 16 readers, because the two are
+additive. So move the BURST under the tier instead by varying the reader count, which needs no
+flag and no extra memory: peak committed scales with the number of concurrent readers, the
+8.256 GB tier is fixed, and H-EVICT therefore predicts a KNEE where one crosses the other --
+a sharper claim than the binary restore the void cell was going to test.
+
+From the measured 13.078 GB at N=16, peak committed per reader is ~0.817 GB, so the crossing
+is at N ~= 8.256/0.817 ~= 10.1 readers.
+
+  N=4   predicted committed ~3.3 GB  (0.40x tier)  no eviction, no collapse, spread <= 1.3
+  N=8   predicted committed ~6.5 GB  (0.79x tier)  no eviction, no collapse, spread <= 1.3
+  N=12  predicted committed ~9.8 GB  (1.19x tier)  eviction BEGINS, spread > 1.5
+  N=16  predicted committed ~13.1 GB (1.58x tier)  the known collapse, spread ~3.6
+
+H-EVICT PASSES IFF  evicted_unread == 0 at N=4 and N=8 and > 1000 at N=12 and N=16, AND the
+    spread stays <= 1.3 at N<=8 and exceeds 1.5 at N>=12, i.e. the knee sits between 8 and 12
+    where the arithmetic puts it and not somewhere else.
+H-EVICT IS FALSE IF  the spread is already > 1.5 at N=4 or N=8 with evicted_unread == 0. Then
+    concurrency per se degrades fairness without eviction, eviction is a consequence rather
+    than the cause, and the mechanism goes back to unresolved.
+GRADED OUTCOME  if eviction starts where predicted but the walls degrade earlier or later than
+    the eviction does, report the two curves separately. The interesting quantity is which one
+    the wall follows.
+
+One cell is added to bound the additive-RSS finding rather than infer it: N=16 with
+--mem-cache 15GB --prefetch-budget 4127829504 (15 + 13.1 = 28.1 GB predicted RSS, ~4.9 GB
+headroom on this box). It runs LAST, after the ladder is banked, so an OOM there costs nothing
+already earned; and if it OOMs too, the additive relation is confirmed a second time at a
+different tier, which is the stronger reading of a failure.
+
+COST  4 ladder N values + 1 tier cell, 2 reps, 15-60 GB per cell, ~$0.01 total, same box.
+
+--------------------------------------------------------------------------------
+PRE-REGISTERED (5f-P2d): IS THE BREACH CONDITIONAL ON MY OWN --nic-gbps?
+written after the ladder and the tier control, before the cell ran. This one is aimed at my
+own result, because if it comes out the way the arithmetic says, the regression I just
+reported upstream does not happen on a correctly configured mount.
+--------------------------------------------------------------------------------
+
+The ladder's aggregate rate saturates at 1811 MB/s = 14.5 Gbps, which is this box's real
+rating (c7g.4xlarge, up to 15 Gbps). I set --nic-gbps 50 in every cell, for comparability with
+5f-M, so the mount sized its in-flight allowance from a link 3.3x faster than it has:
+
+    --nic-gbps 50   inflight 1250 MB   window 223 blocks   burst at N=16 = 29.93 GB = 3.63x tier
+    --nic-gbps 15   inflight  375 MB   window  67 blocks   burst at N=16 =  8.99 GB = 1.09x tier
+
+The measured collapse threshold is between 1.44x (N=12, clean) and 1.58x (N=16, collapsed) of
+realized committed. At the HONEST rating the potential burst is 1.09x, below it. So the whole
+3.17x breach may be an artifact of a flag I set, and the honest reading would be that #311
+regresses only a mount that has been told it has 3.3x more bandwidth than it does.
+
+Second, and this bounds everything above: 60 GB at 1811 MB/s is a 33.1 s floor, and OLD's
+N=16 wall was 33.76 s. OLD WAS ALREADY AT THE NIC CEILING. There was never any throughput for
+#311 to win on this arm; the only axis available was fairness and overhead, so arm A on this
+box can detect harm and cannot detect benefit. I should have said that when I reported the
+breach and did not.
+
+CELLS, N=16, 2 reps, --nic-gbps 15, everything else as the baseline: NEW (lith-311) and
+OLD (lith-304), so the ratio is measured at the honest setting rather than inferred.
+
+  CONDITIONAL (what the arithmetic predicts)   NEW/OLD wall in [0.90, 1.15], spread <= 1.3,
+      evicted_unread <= 100 on NEW, both arms within a few percent of the 33.1 s NIC floor.
+      => The breach is REAL BUT CONDITIONAL on an overstated --nic-gbps, I say so at the top
+         of the follow-up, and the defect reduces to: the window ceiling is derived from a
+         user-supplied bandwidth claim, and overstating it is now much more expensive than it
+         was before #311, because the descriptor divisor used to cut it down.
+  UNCONDITIONAL   NEW/OLD >= 1.5 at --nic-gbps 15 as well. => The breach stands at honest
+      settings, which is worse than what I reported, and the burst-vs-tier threshold is not
+      the whole mechanism either, since 1.09x should be safe.
+  I will report whichever of these happens, and the first one is a partial retraction of my
+  own headline.
+
+COST  4 cells x ~60 GB in-region, ~$0.008.
+
+================================================================================
+RESULTS
+================================================================================
+
+HEADLINE, and it includes a correction to the one I posted on #301 first:
+
+  At --nic-gbps 50, #311 is 3.03x slower than #304 on upstream's arm A (n=2 each), their
+  falsifier breached. At --nic-gbps 15 -- this box's TRUE rating -- the same arm is 1.013x,
+  clean. The regression is REAL and CONDITIONAL, and the condition is a quantity nobody was
+  looking at: N concurrent readers x maxReadahead x blocksize against --mem-cache.
+
+  The cause is NOT the delta accounting they offered as the falsifier's diagnosis. It is the
+  start transient (H-BURST), and the proximate cost is eviction-before-read (H-EVICT). Both
+  are now established by intervention, not by correlation.
+
+5f-P ARM A (--nic-gbps 50, 16 concurrent whole-object readers, N=16, 2 reps)
+  OLD lith-304   33.97 / 33.55 s   spread 1.05   evicted_unread    0   GETs  7396
+  NEW lith-311  106.53 / 107.31 s  spread 3.66   evicted_unread 4537   GETs 12275
+  median ratio 3.17x on that pair, 3.03x against the 4 later baseline reps. OLD reproduced
+  5f-O's banked 33.58 s to 0.5%.
+  streaming_handles == open_handles == 16 and the realized window == 30 == 492/16 exactly,
+  through the whole steady state. The delta accounting is CORRECT. The falsifier fired and the
+  diagnosis attached to it does not hold.
+
+5f-P2 DISCRIMINATOR (NEW only, N=16, 2 reps each; tier = 8.256 GB)
+  arm    flags                    wall (s)         spread       peak committed /tier  evict
+  RBASE  none                     101.97 / 102.67  3.60 / 3.72  13.078 GB     1.58x  4537/4549
+  RCONC  --s3-concurrency 512      85.77 /  88.63  3.27 / 3.34  13.078 GB     1.58x  4483/4510
+  RCAP   --max-readahead 30        33.93 /  33.15  1.01 / 1.07   4.093 GB     0.50x     0/0
+  RPB    --prefetch-budget 1GB     35.22 /  34.30  1.26 / 1.27   4.236 GB     0.51x     0/0
+
+  By the rule fixed before rep 2 was read: R-CAP restores (33.93 s against OLD's 33.76 s
+  median, spread 1.012 against 1.05) and R-CONC gives 14.8% against a pre-set 20% bar, so
+  => H-BURST. Not H-QUEUE: 512 slots leave the spread and the peak committed untouched.
+  5f-L's prior held -- more concurrency at the 8 MiB unit is not the lever.
+
+  P4 WAS WRONG ABOUT THE DENOMINATOR, and that is the useful part. RPB restores while
+  exceeding its OWN 1 GB budget 4.24x. So "committed <= budget" is not the condition; both
+  restoring arms sit at 0.50x the MEMORY TIER and both collapsing arms at 1.58x it.
+
+  prefetch_issued_total == 57045 in ALL EIGHT CELLS while walls differ 3x. Third independent
+  instance of this: upstream's F1 chunk-form falsifier is blind in exactly the regime it was
+  written for, because evicted blocks return as uncovered DEMAND reads rather than as new
+  prefetch issues. uncovered is the counter that moves: 256 in the fast arms, ~5150 in the slow.
+
+5f-P2b TIER CONTROL -- VOID at 20 GB, and the void is a finding (see above): RSS 30.56 GB
+  ~= 20 GB tier + 13.08 GB committed ~= MemTotal 33.02 GB to 0.2%. Tier and in-flight prefetch
+  are ADDITIVE in RSS, so --mem-cache does not bound the daemon's footprint.
+  Re-run at a tier the arithmetic fits (15 GB; RSS peak 29.70 GB, 1.25 GB headroom, no OOM):
+
+  RTIER15  --mem-cache 15GB --prefetch-budget 4127829504 (budget/window/burst BIT-IDENTICAL
+           to RBASE: same 223-block bound, same 13.078 GB realized committed)
+             33.61 / 33.43 s   spread 1.49 / 1.41   evicted_unread 0 / 0   bytes 60.08 GB
+
+  3.05x recovered by moving ONLY the cache tier, landing on OLD's wall to within 1%, with
+  evicted_unread 4520 -> 0 and bytes back to the no-refetch figure. H-EVICT CONFIRMED CAUSALLY.
+  Residual: spread 1.45 against OLD's 1.05, so a little unfairness survives the tier fix; it
+  costs ~0 wall here because the arm is bandwidth-bound.
+
+5f-P2c READER LADDER (NEW, default flags, --nic-gbps 50, 2 reps)
+  N    peak committed /tier   evicted_unread   spread        agg wall   aggregate
+  4      6.94 GB      0.84x      0 /    0      1.14 / 1.15     8.87 s   1692 MB/s
+  8     10.08 GB      1.22x      0 /    0      1.29 / 1.23    17.0  s   1762 MB/s
+  12    11.86 GB      1.44x      0 /   10      1.56 / 1.40    24.9  s   1811 MB/s
+  16    13.08 GB      1.58x   4505 / 4540      3.65 / 3.64   104.3  s    624 MB/s
+
+  MY KNEE PREDICTION WAS WRONG, for a measurable reason. I predicted the knee at N~10 from a
+  linear per-reader committed model; committed is strongly SUBLINEAR (per-reader 1.74 -> 1.26
+  -> 0.99 -> 0.82 GB), so the knee is at 12-16. And N=8 sits at 1.22x the tier with ZERO
+  evicted-unread, which KILLS "peak committed > tier" as a sufficient condition -- the CI
+  check I was about to offer upstream would have fired falsely there. The usable empirical
+  threshold is realized committed >= ~1.5x tier, bracketed between 1.44x (clean) and 1.58x
+  (collapsed).
+  Also: the aggregate saturates at 1811 MB/s for every N <= 12. This box's link is the binding
+  resource in all of them.
+
+5f-P2d THE HONEST-NIC CELL, aimed at my own headline (N=16, 2 reps per binary, --nic-gbps 15,
+  realized window 67 blocks exactly as predicted)
+  NEW lith-311   33.90 / 34.41 s   spread 1.127 / 1.108   evicted_unread 0   bytes 60.08 GB
+  OLD lith-304   33.46 / 33.94 s   spread 1.107 / 1.115   evicted_unread 0   bytes 60.09 GB
+  NEW/OLD = 1.013, inside the pre-registered [0.90, 1.15]. CONDITIONAL branch confirmed.
+
+  And the bound I should have stated when I first reported the breach: 60 GB at 1811 MB/s is a
+  33.1 s floor, and OLD's N=16 wall was 33.76 s. OLD WAS ALREADY AT THE NIC CEILING. Arm A on
+  this box can detect harm and cannot detect benefit. 1.013x is "both at the ceiling", not
+  "equally good".
+
+--------------------------------------------------------------------------------
+THE CONDITION, STATED SO IT CAN BE CHECKED WITHOUT A BOX
+--------------------------------------------------------------------------------
+
+The transient burst is N readers each taking maxReadahead before the stream count rises, so
+the quantity that must fit in the cache is
+
+    N  x  maxReadahead  x  --block-size        vs        --mem-cache
+
+with maxReadahead = 1.5 x (nic_bytes_per_sec x 0.2) / block-size when --max-readahead is auto.
+Substituting and cancelling block-size, harm is expected when
+
+    N  >  mem_cache / (0.2 x nic_bytes_per_sec)                        [N_crit]
+
+and at defaults (--mem-cache = RAM/4) that is N_crit = 1.25 x RAM_bytes / nic_bytes_per_sec.
+The ladder puts the realized knee at ~2.4x N_crit, because committed is sublinear in N -- not
+every reader peaks at once -- so N_crit is conservative by about that factor.
+
+    this box, --nic-gbps 15 (honest)   N_crit = 22    ran 16   clean        <- matches
+    this box, --nic-gbps 50 (mine)     N_crit =  6.6  ran 16   collapsed    <- matches
+    c8gn.48xlarge  384 GB, 600 Gbps    N_crit =  6.4  at DEFAULTS, 192 vCPU
+    m8gn.48xlarge  768 GB, 600 Gbps    N_crit = 12.8  at DEFAULTS, 192 vCPU
+
+THIS IS WHY THE CONDITIONALITY IS NOT A DISMISSAL. I had to overstate my NIC 3.3x to enter the
+regime on a 15 Gbps box. A real fat-NIC instance is IN the regime at stock defaults with ~7-13
+concurrent readers, because N_crit falls as the NIC grows relative to RAM -- and those are
+exactly the instances this project runs GCHP on, with 48-192 ranks. The small box needed a
+flag; the big box needs nothing.
+
+--------------------------------------------------------------------------------
+WHAT I NOW THINK THE REPAIR IS, having been wrong once about the denominator
+--------------------------------------------------------------------------------
+
+Not "committed <= budget" (RPB violates it 4.2x and is fast). Not "committed <= tier" (N=8
+violates it 1.22x and is clean). The transient is the thing, so bound the transient:
+
+  1. Size a new handle's window from the count it is ABOUT TO JOIN, budget/(N+1), since
+     perHandleWindow runs before the Observe that establishes the handle. Clock-free.
+  2. Refuse to INFLATE a window on a count DECREASE. A reader already mid-stream has no need
+     of a deeper window, and this alone removes the measured 30 -> 32 -> 164 -> 223 climb.
+  3. The aggregate guard, if one is wanted, is on the SUM of windows against the TIER, not
+     against the budget, and it must tolerate 1.2x (N=8 is fine there) -- so ~1.4x tier is the
+     latest it can fire and still be ahead of the collapse.
+  4. Charge in-flight prefetch against --mem-cache, or document that RSS is tier + burst. The
+     20 GB cell OOM-killed a daemon on a 33 GB box with a 20 GB cache setting, which no user
+     would predict from the flag's name.
+
+LIMITS, stated rather than discovered later:
+- One box, 16 cores, 33 GB, 2.2 ms RTT, in-region. N=16 equals the core count, so reader CPU
+  and reader count move together in the ladder; the OLD/NEW comparison controls for it (same
+  16 dd processes, only the binary differs) but the LADDER does not.
+- The collapse threshold 1.44x-1.58x is bracketed by two ladder rungs, not resolved.
+- 5 Hz gauge sampling; a sub-200 ms burst is invisible, so the 13.078 GB peak is a lower bound
+  and the true transient may be larger.
+- peak_window in the P2 cells includes the t=0 pre-reader sample, where the gauge reads 223
+  with nothing open. peak COMMITTED is the burst evidence; peak window is not.
+
+COST  ~$0.03 for 5f-P (estimated $0.02-0.05), plus ~$0.02 for P2/P2b/P2c/P2d, all in-region
+GETs on the already-running gchp-lith-ab head node. No egress, no new instance.
+
+================================================================================
+GATE 5f-P3b  pre-registration        (written before the A/B cells are launched)
+================================================================================
+5f-P3 is measured at two rank counts and the thing I was counting on did NOT hold:
+sh/oh is not stable in rank count, it RISES.
+
+  ranks   descriptors(oh)  streams(sh)   sh/oh at the peak-oh tick
+     6         91              25            0.275
+    12        148              47            0.318
+
+Streams scale ~linearly in ranks (25 -> 47 = 1.88x for 2x ranks); descriptors scale
+sublinearly (91 -> 148 = 1.63x), because a chunk of the descriptor count is fixed per
+mount rather than per rank. So the fraction climbs, and a two-point exponent is not
+something I am willing to push to 48 ranks as a single number.
+
+Realized windows confirm the stream divisor is the live one (budget here is 1 GB per
+daemon = 119 blocks at 8 MiB, because I set --mem-cache 2GB x 5 daemons on a 33 GB box):
+  met  @6: 119/25 = 4.76 -> 4   observed 4      (#304 would give 119/65 = 1.83 -> floor 2)
+  met @12: 119/43 = 2.76 -> 2   observed 2      (#304 would give 119/110 = 1.08 -> floor 2)
+  hemco@12: 119/4 =  29.8 -> 29  observed 29     (#304 would give 119/20 = 5)
+
+That is the uncomfortable number: at 12 ranks the stream divisor gives the met mount
+NOTHING -- 2 blocks either way -- while it lifts the quiet mounts from 5-8 blocks to
+29-119. So #311's benefit on a real GCHP mount is concentrated on the mounts that are
+not doing the reading, and the question of whether it matters is entirely a question of
+where the bytes are.
+
+WHAT IS BEING TESTED, and what would make me wrong:
+
+  P1  met >= 80% of total s3_bytes_total across the five mounts.
+      If met is NOT dominant, the met floor is a curiosity and the headline is instead
+      that #311 lifted the mounts that matter. Captured as final per-mount metrics,
+      which 5f-P3 did not record -- that omission is why this re-run exists.
+
+  P2  GCHP input-phase wall, NEW (#311, 88d0c6f) vs OLD (#304, 52138ee), within +-10%.
+      Reason: at 12 ranks the met window is 2 under BOTH binaries, so the binary cannot
+      change the mount that moves the bytes.
+      FALSIFIER: NEW more than 10% faster => the quiet mounts matter more than I think
+      and #311 helps GCHP materially. I would rather be wrong this way and will say so.
+
+  P3  prefetch_evicted_unread_total = 0 on all five mounts in both arms.
+      Reason: budget 1 GB sits under the 2 GB tier and the windows are at or near the
+      floor, so the H-BURST over-commitment of 5f-P2 cannot arise here. A nonzero count
+      means the burst reaches real workloads too, which would be a bigger finding than
+      anything else in this gate.
+
+Honest scaling caveat, stated BEFORE the result so it cannot be tuned afterwards: the
+absolute windows above are a property of MY --mem-cache 2GB, not of lith's defaults. The
+dimensionless quantity is budgetBlocks/streams. Here 119/43 = 2.8. On an m8gn.48xlarge
+(768 GB, 600 Gbps) at stock defaults the budget is 96 GB = 11444 blocks and maxReadahead
+is 2682, so with somewhere between 125 and 188 streams at 48 ranks the realized window is
+60-91 blocks -- bracketing both ways of extrapolating, and in BOTH cases comfortably above
+the 30-block knee 5f-M measured (223 -> 30 free, 30 -> 7 a cliff). Under #304's descriptor
+divisor the same box lands at ~29, i.e. AT the knee. That is the real production claim and
+it does not depend on the fragile exponent: #311 moves GCHP from the knee to clear of it.
+
+================================================================================
+GATE 5f-P3 / 5f-P3b  RESULTS      2026-10-02, head node, in-region, ~$0.03
+================================================================================
+Seven GCHP cells at 12 ranks (plus one at 6) on the five prefix-scoped lith mounts.
+OLD = lith-304 (52138ee, descriptor divisor). NEW = lith-311 (88d0c6f, stream divisor).
+Run dir is a copy of the validated 48-rank TT dir with all three rank knobs set by
+setCommonRunSettings.sh and validated by checkRunSettings.sh; nothing hand-edited.
+
+--- the handle-count question upstream asked (5f-P3) ---------------------------
+
+  ranks   descriptors(oh)  streams(sh)   sh/oh at the peak-oh tick
+     6         91              25            0.275
+    12        148              47            0.318
+
+Directionally upstream is right and #312 is real: 68-72% of the descriptors GCHP holds
+open are NOT established streams. But the issue body's "~288 descriptors against ~48
+streams" (0.167) came from MY arithmetic -- 48 ranks x ~6 files -- not from a measurement,
+and the measured fraction is roughly twice that and RISING in rank count, because streams
+scale ~linearly in ranks (25 -> 47) while descriptors scale sublinearly (91 -> 148). Two
+points do not license an exponent, so no single 48-rank number is offered; see the bracket
+in the pre-registration.
+
+Realized windows confirm which divisor is live (budget 1 GB/daemon = 119 blocks here):
+  met  @6: 119/25 -> 4 observed 4      met @12: 119/43 -> 2 observed 2
+  hemco@12: 119/4 -> 29 observed 29
+Under #304 the met mount sits at the floor of 2 at both rank counts, so the stream divisor
+buys the busiest mount 2 -> 3 blocks and the quiet mounts 5-10 -> 29-119.
+
+--- P1: where the bytes are.  CONFIRMED (predicted met >= 80%) -----------------
+
+  met 93.7% of S3 bytes, identical share in both arms. hemco 5.3%, restarts 0.9-1.0%,
+  cheminputs and the 2015 met prefix ~0%. So the mount #311 helps least carries almost
+  all the traffic, which is why this gate exists.
+
+--- P2: wall.  NO EFFECT RESOLVABLE, and the harness cannot resolve one -------
+
+  OLD walls: 200, 125, 130, 191 s        NEW walls: 125, 120, 186 s
+
+  BOTH arms are bimodal, with the same two modes (~120-130 and ~186-200, a 1.5x stall),
+  and mode membership is independent of the binary (OLD 2/4 high, NEW 1/3 high). The first
+  OLD cell at 200 s against NEW's 125 s looked like a 1.60x breach of my own prediction in
+  the direction I had said I would rather be wrong in. I was one rep from publishing it.
+  It did not reproduce, its twin mode then appeared in NEW, and the two OLD cells at 200 s
+  and 125 s are byte-identical in every lith counter (3.691 vs 3.690 GB, issued 2589 vs
+  2591, uncovered 4282 vs 4296, evicted 0 both), so the 75 s lives entirely outside the
+  input layer. The GCHP log diff is only the known benign finalization backtrace, which is
+  present in three of four cells regardless of wall. RETRACTED before it was asserted.
+
+--- the counters, which ARE tight: 4 OLD vs 3 NEW, zero overlap on all five --
+
+  cell       s3_GB  distinct  amp    hit%  wasted%  evicted  win@busiest
+  ab-304     3.691    3.224   1.145  34.2    14.1       0        (no samples)
+  ab2-304    3.690    3.224   1.145  34.1    14.0       0         2
+  ab3-304    3.707    3.224   1.150  32.8    14.3       0         2
+  ab4-304    3.698    3.224   1.147  32.2    14.6       0         2
+  ab-311     3.848    3.224   1.194  36.2    17.1      10         3
+  ab2-311    3.873    3.224   1.202  36.8    17.4       9         3
+  ab3-311    3.919    3.224   1.215  37.3    18.3      25         3
+
+  hit% = used/(used+uncovered); wasted% = 1 - used/issued. Unit caveat: I have not
+  established whether these counters are reads or blocks, so they are reported as a
+  ratio within a fixed workload, not converted to bytes.
+  distinct_bytes_read is 3.224 GB in all seven cells -- the workload read exactly the
+  same data every time, which is the control that makes the rest interpretable.
+
+  So #311 on a real GCHP mount is a small, reproducible, two-sided trade:
+    + 3.6 points of prefetch hit fraction   (33.3 -> 36.8 mean)
+    + 4.6% more bytes off S3               (amp 1.147 -> 1.204)
+    + 3.9 points of wasted prefetch        (14.3 -> 17.6)
+  and no wall change this harness can see.
+
+--- P3: FALSIFIED.  The burst reaches a real workload -------------------------
+
+  I predicted evicted_unread = 0 everywhere, on the grounds that a 1 GB budget under a
+  2 GB tier with windows at the floor cannot over-commit. It is 0 in 4/4 OLD cells and
+  9, 10, 25 in 3/3 NEW cells, all on the met mount. Tiny in magnitude, but systematic,
+  one-sided, and present only where #311 granted the deeper window -- which is the 5f-P2
+  H-BURST mechanism showing up outside the synthetic arms for the first time.
+
+--- the thing that matters more than the divisor ------------------------------
+
+  63-68% of met reads are UNCOVERED in every cell, both binaries. Prefetch is missing
+  roughly two-thirds of GCHP's dominant read stream, and the divisor is tuning the other
+  third. Separately, met moved 3.85 GB in 120 s = 32 MB/s against a link that measured
+  1185-1437 MB/s in 5f-M/5f-L, so demand is ~2.7% of capacity: at 12 ranks on a 16-core
+  head node this workload is compute-bound and interleaved, and window DEPTH has almost
+  nothing to bind on. A workload that could resolve a depth effect is a cold C180 fullchem
+  start, where met + HEMCO + restarts land together -- that is a cluster job, not a free
+  head-node gate, and it is not claimed here.
+
+Costs: ~$0.03 of in-region GETs across nine GCHP cells on an already-running node,
+against a $0.02-0.05 estimate.
+
+Harness lessons banked (both cost real time this session):
+  - never scp over a script bash is executing: it shifts the running shell's byte offset
+    and hangs mid-file. Launch each revision from a distinct filename.
+  - `pkill -f <script>` matches the ssh command line running the pkill. Use character
+    classes and exclude $$.
+  - requiring ALL gauges in the sampler silenced it completely on OLD, which predates
+    lith_streaming_handles. An A/B sampler must require only the intersection.
+
+================================================================================
+GATE 5f-P4  pre-registration   (written before any cell runs)   binary lith-315 = 1f82fec
+================================================================================
+Upstream (#313/#301 close-out) asked for the fat-NIC cell at stock defaults and predicted:
+"one 192-vCPU box at stock defaults with 8 readers should collapse", from
+N_crit = mem_cache / (0.2 x nic_bytes_per_sec) = 6.4 on c8gn.48xlarge.
+
+That formula prices each reader's burst at maxReadahead x blockSize. The code bounds it
+twice more, and neither bound appears in N_crit:
+
+  (a) EOF. blockstore.Prefetch returns when c0*ChunkSize >= objSize, so no reader
+      commits past its own object.
+  (b) Dedup. Prefetch skips a chunk already in bs.prefetched, so N handles on ONE
+      object commit that object once. The aggregate is over DISTINCT objects.
+
+So the burst is  sum over distinct streamed objects of min(maxRA x bs, budget, objSize).
+On c8gn.48xlarge at stock defaults: maxRA = 1.5 x (75e9 x 0.2)/8 MiB = 2682 blocks
+= 22.5 GB, tier ~101 GB. A GEOS-FP 0.25 A3dyn is 3.76 GB, so the EOF bound binds 6x
+below the window, and 8 readers have a HARD ceiling of 8 x 3.76 = 30 GB = 0.30x tier.
+The proposed cell cannot collapse on GCHP's largest met object; a null there would read
+as a refutation of N_crit and would be neither. (Same shape as the GT_Chlorine confound:
+an object too small to exercise the mechanism.)
+
+Free test of both bounds, here, at the N=16 / --nic-gbps 50 / stock tier (8.256 GB) that
+collapsed in 5f-P2. NIC-only N_crit = 6.6 predicts ALL FOUR collapse.
+
+  arm   objects                                   hard bound    prediction
+  D375  16 distinct GEOS-FP A3dyn  (3.76 GB)      29.9 GB (win)  COLLAPSE: evicted >1000,
+                                                                  spread >2 (5f-P2 repro on 315)
+  S375  16 readers on ONE A3dyn    (3.76 GB)       3.76 GB 0.46x  CLEAN: peak committed
+                                                                  <= 3.76 GB, evicted 0
+  M043  16 distinct MERRA2 A3cld   (0.43 GB)       6.85 GB 0.83x  CLEAN: peak committed
+                                                                  <= 6.85 GB, evicted 0,
+                                                                  spread <= 1.3
+  M122  16 distinct MERRA2 A3dyn   (1.22 GB)      19.5 GB 2.36x  NOT PREDICTED -- neither
+                                                                  bound decides it; exploratory
+
+Refuter: any S375 or M043 cell with evicted_unread > 100 or peak committed above its hard
+bound means a bound I read from the code is not real, and I withdraw the correction.
+2 reps. ~180 GB in-region GETs, ~$0.01.
+
+--- 5f-P4 arm S375, rep 1 (rep 2 stopped by me: it would have repeated a 13-minute cell) ---
+  16 dd readers on ONE 3.76 GB object, lith-315, --nic-gbps 50, stock tier:
+    wall 776.3 s, spread 1.000          (one reader alone on this object: 3.19 s, 5f-M)
+    streaming_handles 0 throughout, peak committed 8 MiB (one block), issued 16 chunks
+    GETs 25,035 at a mean 151 KB; s3_bytes 3.780 GB vs distinct 3.777 GB (amp 1.001)
+  The pre-registered prediction ("peak committed <= 3.76 GB, evicted 0") is TRUE AND
+  VACUOUS: the dedup bound holds because nothing prefetches. 243x slower than a lone reader
+  on byte-perfect counters -- the fourth instance of "bytes+requests correct is an
+  insufficient gate", and the largest.
+
+================================================================================
+GATE 5f-P5  pre-registration   (before any cell)   lith-315, --nic-gbps 50, --pf-trace on
+================================================================================
+Hypothesis H-PAGECACHE (from code, unmeasured): lith opens with FOPEN_KEEP_CACHE, so the
+kernel page cache is shared by every descriptor on an inode. A block one reader faults in is
+served to the others from page cache and never reaches lith, so each handle's stream has
+holes, the byte-gap gate keeps it out of Sequential, and no handle ever prefetches.
+
+Arms (512 MB per reader from offset 0): T1, T2, T4, T16 same object; T16D same object with
+iflag=direct (O_DIRECT, bypasses the shared page cache); T16X 16 distinct objects.
+
+Predictions under H-PAGECACHE:
+  T1    sh_max 1, rows mostly Sequential, wall < 2 s
+  T16   sh_max 0-1, most handles end non-sequential, many reads with gap > 0, slow
+  T16D  sh_max >= 8, most handles Sequential, wall within 3x of T16X
+  T16X  sh_max >= 12 (5f-P2 shape)
+  T2/T4 exploratory: where does establishment break?
+Refuter: T16D fails to establish like T16 => the shared page cache is NOT the mechanism,
+and I say so rather than offering a second story.
+
+--- 5f-P5 results (2 reps, all cells dderr=0) ---
+  cell   rep  wall s   sh_max  s3 GB   issued  uncovered  final handle states          rows Seq
+  T1      1    1.82     1      2.416   2288      16       sequential 1                  98.4%
+  T1      2    1.51     1      2.416   2288      16       sequential 1                  98.4%
+  T2      1    1.73     2      2.416   2288      30       sequential 1, cold 1          58.5%
+  T2      2    1.68     1      2.416   2288      25       sequential 2                  52.9%
+  T4      1   29.7      0      0.537      0     972       cold 4                         0.0%
+  T4      2   31.7      0      0.538      0     974       cold 4                         0.0%
+  T16     1   38.8      0      0.538      0    1249       cold 7, random 9               0.0%
+  T16     2   40.6      0      0.538      0    1337       random 13, cold 3              0.0%
+  T16D    1    2.09    16      1.887   1784      16       sequential 16                 98.4%
+  T16D    2    2.26    16      1.887   2224      16       sequential 16                 98.4%
+  T16X    1   45.0     16     22.469  18872    2557       sequential 16                 98.4%
+  T16X    2   46.6     16     22.418  18624    2756       sequential 16                 98.4%
+
+  Hole sizes in T2/T4/T16 traces: every positive gap is a multiple of 131072 (128 KiB, the
+  kernel readahead unit); commonest 128K > 256K > 384K > 512K. T16D: no positive gaps.
+  T16X: 68-70 gaps per cell, ~0 per handle, all states Sequential.
+
+VERDICT: H-PAGECACHE CONFIRMED BY INTERVENTION, both reps.
+  - T16 vs T16D: same object, same binary, same flags; only O_DIRECT differs.
+    sh_max 0 -> 16, issued 0 -> ~2000, wall 39-41 s -> 2.1-2.3 s (~18x).
+  - Establishment breaks between 2 and 4 readers: T2 is marginal (1 of 2, then 2 of 2 at
+    53% Sequential rows), T4 never issues a prefetch.
+  - The S3 counters cannot see it: T16 moved 0.538 GB for 0.512 GB distinct (amp 1.05),
+    the cleanest bytes of any cell -- and the slowest per distinct byte.
+  - Refuter (T16D fails like T16) did not fire.
+  Pre-registered predictions: T1 PASS, T16 PASS, T16D PASS (sh 16, wall 0.05x of T16X --
+  "within 3x" holds, though T16X reads 16x the distinct bytes so it is not a speed
+  comparison), T16X PASS.
+  Mechanism: a block read by one descriptor lands in the shared inode page cache
+  (FOPEN_KEEP_CACHE), the other descriptors' reads of it never reach lith, so each handle's
+  offset stream has 128 KiB-multiple holes and the byte-gap gate holds it in Cold/Random.
+  GCHP's met reads are exactly this shape (many ranks, one file).
+
+--- 5f-P4 remaining arms (lith-315, --nic-gbps 50, stock tier 8.256 GB, 2 reps) ---
+  arm   rep  wall s  spread  peak committed  evicted_unread  issued  uncovered  s3 GB  hard bound
+  M043   1    4.67   1.458    5.954 GB          0             6287     256      6.854   6.85 GB 0.83x
+  M043   2    4.22   1.210    5.950 GB          0             6287     256      6.854
+  M122   1   11.62   1.490    9.924 GB          0            18382     296     19.577  19.5 GB 2.36x
+  M122   2   11.19   1.373    9.962 GB          0            18382     332     19.614
+  D375   1   87.22   2.765   11.459 GB       2003            57045    2543     62.475  29.9 GB(win)
+  D375   2   95.66   3.525   11.459 GB       2826            57045    3395     63.368
+  (S375 rep 1 above: 776 s, nothing prefetched.)
+
+Against the pre-registration:
+  D375  COLLAPSE    PASS  evicted 2003/2826 (>1000), spread 2.77/3.53 (>2). 5f-P2 reproduces
+                          on lith-315, so #315 does not fix the start transient.
+  S375  CLEAN       PASS, VACUOUS  (nothing prefetched; 5f-P5 gives the mechanism)
+  M043  CLEAN       PASS on evicted (0) and peak committed (5.95 <= 6.85 GB);
+                    FAIL on spread in rep 1 (1.458 > 1.3; rep 2 1.210). Spread without
+                    eviction is not the transient; the prediction was too tight.
+  M122  exploratory CLEAN: evicted 0 in both reps, though peak committed (9.9 GB) EXCEEDS
+                    the 8.256 GB tier. A burst above the tier is not by itself a collapse.
+  Refuter (S375/M043 evicted > 100, or peak committed above hard bound): NOT fired.
+
+  NIC-only N_crit = 6.6 predicted all four collapse; 1 of 4 did. The distinct-object,
+  EOF-bounded burst separates them: 0.46x / 0.83x / 2.36x clean, 3.62x collapsed. The
+  threshold on this box lies between 2.36x and 3.62x of tier (one box, one object family;
+  not a fitted constant). D375 peak committed is 11.459 GB to the byte in both reps
+  (1.39x tier) -- some cap I have not identified binds below the 29.9 GB bound; unexplained.
+
+================================================================================
+GATE 5f-F  pre-registration   (written before the box was staged; no cell run)
+================================================================================
+Box: c8gn.48xlarge (i-0e9f1bd2f53c3b59d, us-east-1c -- 1a had no capacity), 192 cores,
+384 GiB, 600 Gbps (2 cards; lith uses one ENI). lith-315 (1f82fec), STOCK defaults unless
+an arm says otherwise. In-region against s3://gcgrid. Approved by the user; on-demand
+$11.376/h, hard self-terminate at 150 min (cap ~$28), expected ~1 h.
+
+Expected derivation if lith resolves 600 Gbps (the mount log is read BEFORE any arm is
+scored; if it resolves something else every bound below is recomputed from the logged
+value and that recomputation is reported, not hidden):
+  maxRA = 1.5 x (75e9 x 0.2) / 8 MiB = 2682 blocks = 22.5 GB
+  tier  = 25% of MemTotal ~ 99 GB;  budget = 50% of tier ~ 49 GB;  inflight = 15 GB
+
+--- 5f-F1 (#239): one hyperslab reader, A3dyn /U one time slice (as #239), 3 reps ---
+  stated NIC 7.5 / 15 / 50 / 100 Gbps, and auto (stock detection)
+  Prior (#239, v1.1.0, c7g.4xl): 15 -> 6.0x amplification, 7.5 -> 3.5x, wall flat.
+  H239: amplification keeps rising with stated NIC through 100 and auto, while wall is
+        flat (max/min of medians across 50/100/auto < 1.3).
+  Hard ceiling: EOF -> amplification <= objSize/slab_bytes (~34x on 3.78 GB / ~110 MB).
+  Refuter: amplification flat (within 1.25x) from 50 to auto => something other than the
+  NIC (coverage sizing #229/#284, inflight bound) already caps the window, and #239's
+  deeper question is answered NO at this version.
+  Note: lith has changed a lot since v1.1.0, so the 7.5/15 cells are re-measured here and
+  compared only to each other, not to #239's numbers.
+
+--- 5f-F2 (#313/#314): distinct-object ladder, dd of whole objects, 2 reps, stock ---
+  arm    objects (GEOS-FP A3dyn, July 2019 first)   sum of sizes   / tier (~99 GB)
+  L8       8                                         29.9 GB        0.30
+  L32     32                                        120.3 GB        1.21
+  L64     64                                        241.6 GB        2.44
+  L112   112                                        422.3 GB        4.26
+  The 5f-P4 bracket (clean <= 2.36x, collapse at 3.62x; c7g.4xl) predicts:
+    L8   CLEAN    evicted_unread 0, spread < 1.5       <- upstream's 8-reader cell
+    L32  CLEAN    evicted_unread < 1% of issued
+    L64  EXPLORATORY (at the bracket edge)
+    L112 COLLAPSE evicted_unread > 1% of issued AND spread > 2
+  Refuters:  L8 or L32 collapses => the EOF/distinct-object bound is wrong and I withdraw
+             it on #313.  L112 clean => the 5f-P4 bracket does not transfer to a fat NIC
+             (something else -- inflight bytes, the real per-ENI rate -- binds first).
+  #314: lith peak RSS is sampled. Predicted RSS <= tier + peak committed (+ small heap).
+  If cache plus outstanding prefetch pass 384 GiB in L112, OOM is possible; that is
+  recorded as a #314 result, not retried around.
+
+--- 5f-F AMENDMENT (written after F1 auto/L8/L32-auto were seen, before any 600 Gbps cell) ---
+Stock detection on this box resolved 50 Gbps, source "imds-estimate", not 600:
+  ethtool: ENA exposes no speed (sysfs speed = EINVAL); DescribeInstanceTypes: the
+  borrowed gchp-lith-ab head-node role is DENIED ec2:DescribeInstanceTypes (my environment,
+  not lith); so the fallback ran, and lith's imds-estimate gives 50 for c8gn.48xlarge
+  (12x below the rated 600). The estimate is lith's; the denied call is mine.
+  Measured box: MemTotal 389184380 kB; tier (logged budget x2) 99.6 GB; budget 49.8 GB.
+
+Recomputed bounds, stock-as-resolved (50 Gbps): per-handle burst min(1.87 GB, 3.78) =
+  1.87 GB -> L8 15.0 GB 0.15x, L32 59.8 GB 0.60x, L64 120 GB 1.20x, L112 209 GB 2.10x.
+  Prediction (5f-P4 bracket, clean <= 2.36x): ALL CLEAN, L112 weakly (2.10x is near edge).
+  Observed before this amendment, already consistent: L8 peak committed 14.98 GB, L32
+  58.77 GB (the window bound, to 2%), evicted 0, spread 1.11-1.35.
+
+ADDED ARMS at --nic-gbps 600 (the derivation upstream's cell intended): maxRA 2682 = 22.5
+  GB > objSize, so the EOF bound binds: ratios 0.30 / 1.21 / 2.43 / 4.24 of tier, and the
+  ORIGINAL predictions stand (L8, L32 clean; L64 exploratory; L112 COLLAPSE). Plus F1 slab at
+  --nic-gbps 600, 3 reps: H239 predicts amp > 17.65 (the 100 Gbps value); refuter, flat.
+F1 already in (3 reps, identical counters each rep): 7.5 -> 3.48x, 15 -> 5.96x (#239 had
+  3.5x/6.0x -- reproduced), 50 -> 17.34x, 100 -> 17.65x (window 223 -> 447, issued 1888 ->
+  1922 chunks), auto(=50) -> 17.34x; wall 2.47-3.22 s across ALL cells.
+
+--- 5f-F RESULTS (c8gn.48xlarge, lith-315; ran 17:36-18:43Z; instance terminated after
+    FATNIC2 DONE; ~75 min = ~$14.2 + ~$0.4 of in-region GETs; logs data/lith-gates/fatnic/) ---
+tier 99.6 GB.  "x tier" = peak committed / tier.  All counters identical rep to rep to <1%.
+
+F2 ladder (2 reps each)
+ arm        sizing    wall s        spread      evicted_unread  issued  s3/distinct  pk commit  x tier  pk RSS GB
+ L8         auto=50   5.8, 4.5      1.35, 1.31      0, 0        28434    1.00       14.98 GB   0.15    30.3
+ L32        auto=50   20.9, 18.1    1.17, 1.11      0, 0       114221    1.00       58.77      0.59   121
+ L64        auto=50   58.2, 54.1    1.05, 1.08      0, 0       229439    1.01       92.77      0.93   199
+ L112       auto=50   447.6, 450.0  1.01, 1.01  19590, 19566   401030    1.18      120.29      1.21   201
+ L8         600       5.5, 5.7      1.43, 1.18      0, 0        (EOF)    1.00       29.81      0.30    30.4
+ L32        600       19.4, 19.2    1.06, 1.07      0, 0       114221    1.00       92.29      0.93   119-122
+ L64        600       281.0, 250.9  2.19, 2.02  25644, 25485   229439    1.15      126.5       1.27   189-194
+ L112       600       908.0, 1002.1 1.08, 1.08  51917, 51726   401030    1.41      154.0       1.55   189-197
+ (600 window clamps at 1024 blocks = 8.59 GB by "--max-readahead x --block-size", not my
+  derived 2682; still > objSize, so the EOF bound binds as pre-registered.)
+
+Scoring against the pre-registration and amendment:
+  L8  600  CLEAN  PASS -- upstream's 8-reader cell: peak committed 29.81 GB = sum of the 8
+                  object sizes (29.95) to 0.5%. The EOF bound is real and binds.
+  L32 600  CLEAN  PASS
+  L64 600  exploratory -> COLLAPSE by both criteria (11% evicted, spread 2.0-2.2, ~13x the
+                  wall of a clean 241 GB read on this box).
+  L112 600 COLLAPSE  PARTIAL: evicted 13% of issued (PASS), spread 1.08 (FAIL). The failure
+                  is uniform, not a fairness split: all 112 readers ~14x slow, 1.41x bytes.
+                  My spread criterion assumed the 5f-P2 winners/losers shape.
+  auto ladder (amendment: ALL CLEAN): L8/L32/L64 PASS, L112 FAIL (19.6k evicted, 4.6x the
+                  clean rate). A recorded failed prediction.
+  Bracket transfer: FAILED. On c7g.4xl objects-bound/tier separated clean <=2.36 from collapse
+                  at 3.62; here L112-auto at 2.10 collapsed and the clean ceiling is 1.21.
+                  The objects-bound ratio orders cells within a box but its threshold is not
+                  box-invariant.
+  POST HOC (not pre-registered; offered as a hypothesis, not a finding): peak committed /
+                  tier separates EVERY cell on BOTH boxes -- clean <= 1.20 (M122 c7g 1.20,
+                  L32-600/L64-auto 0.93), collapse >= 1.21 (L112-auto 1.21, L64-600 1.27,
+                  D375 c7g 1.39, L112-600 1.55). The knife edge 1.20 vs 1.21 is one cell each.
+  Under-detection helped: 50-Gbps sizing (lith's wrong imds-estimate) is ~5x FASTER than the
+                  true 600 on L64 (56 vs 251-281 s) and ~2x on L112, with fewer bytes.
+#314: peak RSS ~190-201 GB = ~2.0x the 99.6 GB --mem-cache in every cell from L64 up,
+                  both sizings; no OOM (dmesg clean). RSS = tier + burst holds at fat-NIC scale.
+
+F1 #239 (A3dyn /U slice, 115 MB distinct, 3 reps, every rep identical)
+  stated   7.5    15     50     100    600    auto(=50)
+  amp      3.48   5.96   17.34  17.65  17.65  17.34
+  window   33     67     223    447    1024   223
+  issued   368    640    1888   1922   1922   1888        wall 2.47-3.22 s in all cells
+  7.5/15 reproduce #239 (3.5x/6.0x) exactly. H239 REFUTER FIRED from 50 up: amplification is
+  flat (1.02x) while the window grows 4.6x; issued saturates at 1922 chunks. Something other
+  than the window bounds a hyperslab reader above ~50 Gbps; not identified (no trace taken).
+  The cost #239 describes is real below 50 (3.5x -> 17.3x, wall flat) and absent above it.
+
+================================================================================
+GATE 5f-P6  pre-registration (before computing anything)  -- $0, offline + head node
+================================================================================
+Upstream (#316) re-attributes 5f-P5: not the byte-gap gate (gap max = 1 block = 8 MiB; my
+holes are 128-512 KiB) but the #221 coverage gate, coverage = union(last 16 reads)/span,
+Random below 0.5 (internal/fuse/prefetch.go:50-51, prefetch.go:254-293). They predict
+coverage ~ 1/N for N readers sharing the page cache.
+
+P6a (offline, from the existing 5f-P5 --pf-trace CSVs; recordRead re-implemented exactly,
+W=16, first 2 reads skipped as the code does): per-handle median coverage.
+  Their prediction: T1 ~1.0, T2 ~0.5, T4 ~0.25, T16 ~0.06; T16D and T16X ~1.0.
+  Refuter (their attribution): T4 or T16 median >= 0.5 => the coverage gate is not what
+  holds them Random. A partial: if T4/T16 are < 0.5 but far from 1/N, the gate is the
+  mechanism and 1/N is not the law.
+P6b (head node, lith main 35daae9 = #318): rerun T1/T2/T4/T16/T16D with the new
+  lith_prefetch_low_coverage_total. Prediction: ~0 in T1/T16D, large in T4/T16.
+P6c (head node): upstream's own pre-registration on #313 --
+  unread_resident_bytes / tier  < 0.9 in every clean cell, >= ~0.95 in every collapsed one.
+  Cells available free on c7g.4xl: M043, M122 (clean), D375 (collapsed), 2 reps, the new
+  gauge sampled at 5 Hz. Refuter (theirs): collapsed D375 with peak resident-unread well
+  below tier. The c8gn cells would need a new instance and are NOT run without approval.
+
+--- 5f-P6 RESULTS (head node, $0 instance; lith main 35daae9 = #318, md5 ba06073b2c24) ---
+P6a offline coverage (recordRead re-implemented, W=16), median per handle, 2 reps:
+  T1 1.000/1.000  T2 0.578, 0.532 (41-48% of reads < 0.5)  T4 0.267, 0.270  T16 0.068, 0.068
+  T16D 1.000  T16X 1.000.       1/N = 1, 0.5, 0.25, 0.0625.
+  => Upstream's attribution PASSES, and 1/N is the law to within ~8%. My "byte-gap gate"
+     attribution on #316 was WRONG: T4 has 0 of 4198-4310 gaps over one block.
+P6b counters on #318:
+  cell  rep wall s  sh_max  low_coverage  gaps>8MiB / positive gaps  final states
+  T1    1,2  1.79,1.69  1     0, 0          0/39, 0/40                 seq
+  T2    1,2  1.81,1.88  1,2   0, 0          0/2900, 0/2933             seq 2; cold 1+seq 1
+  T4    1,2  37.2,33.4  0     0, 0          0/4310, 0/4198             cold 4, cold 4
+  T16   1,2  56.7,44.6  0     33, 19        33/4967, 19/5019           random 14+cold 2; 11+5
+  T16D  1,2  1.98,2.14  16    0, 0          0/0                         seq 16
+  => NEW: the new counter reads 0 where the defect is purest (T4). low_coverage counts ONLY
+     the #221 seek-path rejection (prefetch.go:484-488), and equals the over-block gap count
+     exactly (33=33, 19=19). The rejection that actually holds T2/T4/T16 is the #229
+     contiguous-branch check, `if !p.coverageOK(cov) { deEstablish; Cold; return nil }`
+     (prefetch.go:436-444), which increments nothing. That is why T4 ends COLD, not Random.
+P6c upstream's #313 pre-registration (tier 8.2557 GB = 2 x budget 4127829504):
+  cell  rep  peak unread_resident   / tier   evicted_unread  spread  peak committed
+  M043  1,2  3.263, 3.446 GB        0.40, 0.42    0, 0        1.36    5.95-5.97 GB
+  M122  1,2  5.471, 6.637 GB        0.66, 0.80    0, 0        1.93, 1.52  9.95 GB
+  D375  1,2  8.254, 8.254 GB        1.000, 1.000  2870, 2868  3.21, 3.39  11.46 GB
+  => PASS for upstream's prediction (clean < 0.9, collapsed >= ~0.95): clean max 0.80,
+     collapsed 1.000 -- the tier is FULL of unread bytes, to 0.02%. Separation 0.80 -> 1.00,
+     vs committed/tier 1.20 -> 1.39 on the same box. Three cells, one box: c8gn not rerun.
+  Upstream's decomposition (#313: committed ~= resident-unread + in-flight) checked against D375:
+     committed - resident = 11.458 - 8.254 = 3.20 GB, against the mount's binding
+     --inflight-bytes 1.25 GB. So it does NOT close unless in-flight can exceed that bound.
+     ~1.95 GB is unaccounted for. Candidate (NOT tested): the never-released commitment ratchet.
+     Peak committed is identical to 1 MB across reps (11.4588 / 11.4578 GB).
+  (M122 spread 1.93 in rep 1 with evicted 0: spread alone is not the transient, again.)
+
+GATE 5f-P6d  pre-registration (written before the instance is launched) -- c8gn.48xlarge, ~$12
+Question: does upstream's #313 prediction (resident-unread/tier < 0.9 in every clean cell,
+>= ~0.95 in every collapsed one, wider gap than committed/tier 1.20/1.21) hold on the box where
+committed/tier sat on its knife edge? c7g passed (P6c: 0.80 -> 1.000).
+Binary: lith-318 (main 35daae9, md5 ba06073b2c24). NOTE this is a change from 5f-F (lith-315):
+#318 adds gauges/counters only, but if any 5f-F cell flips clean<->collapse, that is reported as
+a binary difference first, not as a test of the prediction.
+Harness: gate-streams2.sh with RESIDENT=1 (sampler column 7), whole-object dd, distinct A3dyn
+objects (fatnic-a3dyn-objects.txt order), 2 reps, fresh mount per cell.
+  cell        5f-F verdict   5f-F committed/tier   PREDICTION (upstream's)
+  auto L64    clean          0.93                  resident/tier < 0.9
+  auto L112   collapse       1.21                  resident/tier >= 0.95
+  600  L32    clean          0.93                  resident/tier < 0.9
+  600  L64    collapse       1.27                  resident/tier >= 0.95
+Scoring: PASS iff all 8 cell-reps fall on the predicted side. Any clean cell-rep >= 0.9 or any
+collapsed one < 0.95 is a FAIL, reported per cell. Verdict (clean/collapse) is assigned by
+evicted_unread (0 vs > 1000), as in 5f-F, BEFORE reading resident.
+Secondary (no prediction, upstream's decomposition): report committed - resident against the
+mount's inflight_bytes bound per collapsed cell; on c7g it did not close (3.20 vs 1.25 GB).
+Hard cost cap: shutdown -h +120 in user-data; instance terminated on "P6D DONE".
+
+GATE 5f-P6e  pre-registration (written before the job is submitted) -- the 48-rank GCHP gauges
+Upstream (#313/#316): "the 48-rank run is the discriminator between #313 and #316".
+Job: one compute node (c8g.48xlarge or m9g.48xlarge, whichever Slurm gives -- recorded),
+48 ranks, the validated TT run dir via setCommonRunSettings.sh/checkRunSettings.sh exactly as
+5f-P3 (nothing hand-edited), the same five prefix-scoped mounts, lith-318 (35daae9),
+--nic-gbps 50, met mount traced (--pf-trace). Two arms, same node, one job:
+  T2G   --mem-cache 2GB per daemon   (the 5f-P3 setting -> third point on the 6/12 ladder)
+  T64G  --mem-cache 64GB per daemon  (5 x 64 = 320 GB < node RAM; tier >> GCHP's ~4 GB of input)
+Estimated cost: ~25 min of one node incl. boot, ~$3-4.
+PREDICTIONS:
+  E1 (5f-P3 ladder) sh/oh at the peak-oh tick > 0.318 in T2G (it rose 0.275 -> 0.318 from 6 to
+     12 ranks). Direction only; no magnitude claimed.
+  E2 (#316 on GCHP) met trace: objects with >= 2 handles open in the same 1 s window exist, and
+     on those handles median per-handle coverage is < 0.5 while single-handle objects' is >= 0.9.
+     FALSIFIER: no multi-handle objects (=> #316 shape absent from GCHP's met reads at 48 ranks),
+     or multi-handle coverage >= 0.9 (=> the page-cache sharing does not bite here).
+  E3 (#313 on GCHP) T2G met: evicted_unread > 0 (12-rank NEW was 9-25), and per upstream's rule
+     peak unread_resident/tier >= 0.95 on every mount with evicted_unread > 1000; < 0.9 on every
+     mount with evicted_unread = 0. (Mounts with 1..1000 evictions are reported, not scored.)
+  E4 (predicted null) T64G: evicted_unread = 0 on all five mounts and peak resident/tier < 0.1,
+     because total input bytes (~4 GB) are far below a 64 GB tier.
+  Discriminator reading, fixed now: E2 true + E3 false => GCHP at 48 ranks is #316-shaped;
+     E3 true + E2 false => #313-shaped; both => the mix upstream predicted; neither => neither
+     defect is load-bearing for GCHP at this scale, and that is what gets reported.
+
+--- 5f-P6e RESULTS (Slurm job 24, c8g.48xlarge, 48 ranks, lith-318; job 20:00-20:03Z; node
+    i-06520dc61e392a3e8 up 19:56:35-20:09:15Z incl. boot + idle scale-down = 12.7 min, ~$1.60, under the $3-4 estimate). ONE rep per arm. ---
+  arm   wall*  met s3_GB  distinct  amp   evicted  peak resident/tier  win_min  sh/oh@peak-oh
+  T2G    70 s   3.865     3.223    1.20     42       0.763              2      0.363
+  T64G   61 s   5.274     3.224    1.64      0       0.032             38      0.356
+  (*wall = launch to checkpoint-write marker; 1 rep, and 5f-P3 walls were bimodal 1.5x, so no
+   wall difference is claimed.)
+  E1 PASS: sh/oh 0.275 (6) -> 0.318 (12) -> 0.363 (48 ranks), still rising.
+  E2 FAIL as worded: all 12 met objects have >1 handle, and 252/262 handles with >=3 reads have
+     an interleaving same-object sibling, but their MEDIAN coverage is 1.000, not < 0.5. 32% (T2G)
+     / 35% (T64G) of them are < 0.5 (min 0.009). Solo handles: 1.000 (>= 0.9 as predicted).
+  E3 PASS on its scored parts: met evicted_unread 42 > 0; every mount with evicted 0 has
+     resident/tier < 0.9 (max 0.068). No mount reached >1000 evictions, so the >= 0.95 arm of
+     upstream's rule is UNTESTED here. The 42-eviction met mount (reported, not scored) peaked
+     at 0.763 sampled at 2 Hz -- evictions at a sampled resident well below capacity, which
+     either the sampling rate missed or the rule does not cover at small counts.
+  E4 PASS: T64G evicted 0 on all five mounts, peak resident/tier 0.032.
+  Discriminator, read by the rule fixed in advance: E3 true + E2 false => "#313-shaped".
+     Magnitude caveat, also stated: 42 evictions, only under a 2 GB tier I imposed, and 0 at 64 GB.
+  EXPLORATORY (not pre-registered), from the met trace, both arms within 0.3 pt:
+     handles <3 reads (open/metadata only): 307-317, 1.2-1.3% of bytes, all end cold
+     handles coverage < 0.5:                 80-93,  8.8-9.0% of bytes
+     handles coverage >= 0.5:               182-183, 89.8% of bytes (98-100 end sequential)
+     => #316's shape is present on every met object at 48 ranks but carries ~9% of the bytes.
+  COUNTER TIMING: lith_prefetch_low_coverage_total read 0 in every 2 Hz sample during the run and
+     527 / 522 in the final scrape, taken after GCHP was killed and its handles closed. Consistent
+     with the counter being folded in at handle release -- CONFIRMED from code at 35daae9:
+     fs.go:1109 calls PrefetchLowCoverage once per handle in Release (documented, metrics.go:382).
+     So it cannot show the defect on a running job (GCHP holds met handles for the whole run).
+     Also from code: deEstablish() (prefetch.go:223) counts only an establishment that existed,
+     so the line-436 rejection of a NEVER-established handle (every T4 handle) is counted by
+     neither low_coverage nor de_established.
+
+--- 5f-P6d RESULTS (c8gn.48xlarge i-0d01f0ad609e65bf4, us-east-1c, lith-318; driver 19:51-20:19Z;
+    instance 19:48:44-20:22:33Z = 34 min, ~$6.30, under the ~$12 estimate; terminated) ---
+tier = 2 x prefetch_budget 49815600640 = 99.631 GB.  Verdict by evicted_unread first (rule).
+  cell          evicted   verdict   resident/tier   committed/tier   committed-resident   wall s
+  auto L64 -1        0    clean      0.8352          0.931            9.56 GB             55.1
+  auto L64 -2        0    clean      0.8378          0.931            9.30 GB             52.8
+  auto L112-1    19605    collapse   0.9996          1.207           20.70 GB            430.1
+  auto L112-2    19595    collapse   0.9996          1.207           20.70 GB            445.6
+  600  L32 -1        0    clean      0.7214          0.926           20.37 GB             21.7
+  600  L32 -2        0    clean      0.7589          0.925           16.60 GB             21.7
+  600  L64 -1    25544    collapse   0.9996          1.270           26.92 GB            264.5
+  600  L64 -2    25469    collapse   0.9996          1.269           26.85 GB            255.6
+  Binary check: all four verdicts identical to 5f-F (lith-315), evictions within 0.5%. No flip.
+  SCORE: PASS, 8/8 cell-reps on the predicted side. Clean max 0.838, collapsed min 0.9996.
+  Pooled over both boxes (P6c + P6d, 14 cell-reps): resident/tier clean <= 0.838, collapse
+     >= 0.9996 (gap 0.16); committed/tier clean <= 1.205 (c7g M122), collapse >= 1.207 (gap
+     0.002). Upstream's "wider gap than committed" holds by ~80x.
+  In every collapse the tier is full of unread bytes to 0.04%, on both boxes, at both sizings.
+  Decomposition (secondary, no prediction): committed - resident is 9.3-26.9 GB against
+     inflight bounds of 1.25 GB (auto) and 15 GB (600). It does not close on c8gn either, in
+     clean cells as well as collapsed ones. auto peak committed identical to the BYTE across
+     reps (92769615872, 120292638720).
+
+--- 5f-P7 PRE-REGISTRATION (lith#320): what holds committed above unread-resident with nothing
+    in flight?  Written 2026-10-02 BEFORE any cell ran. Head node c7g.4xlarge, lith-main b801706. ---
+CORRECTION FIRST: every "committed - resident" figure in 5f-P6c/P6d is PEAK committed minus PEAK
+  unread_resident, two maxima taken separately (gate-streams2.sh), not a simultaneous difference.
+  A peak-minus-peak gap can come from in-flight bytes at a moment resident was lower, so P6d did
+  NOT refute committed ~= resident + in-flight. This gate measures them together, with
+  lith_fill_inflight sampled on the same scrape, after readers finish and fills settle.
+Candidate from code (b801706), not yet measured -- call it LEAK-D:
+  Prefetch() commits a chunk (pfCommittedBytes.Add + prefetched.LoadOrStore, blockstore.go:856)
+  whenever the tier does not already cover it -- including a chunk a DEMAND fill owns in flight,
+  or one a demand fill completed between Prefetch's lookup and ensureChunks'. That chunk lands
+  via complete(blocking=false) -> Merge, no unread flag; the demand owner's fetchExtents/
+  ensureChunks path never calls notePrefetchHit; and the reader has already consumed it, so no
+  later read drops it. Committed holds its bytes forever; the tier never counts them unread.
+  Also from code: the straddle path (GetRange -> ensureChunks) never calls notePrefetchHit on a
+  tier hit or join, so a straddle-consumed prefetch chunk stays in BOTH sets (no gap, but unread
+  is overstated).
+Arms (fresh mount per cell, --mem-cache 16GB so nothing evicts, stock otherwise; A3dyn objects of
+  ~3.76 GB; 20 s settle after readers exit; 5 Hz sampler of committed, unread_resident,
+  fill_inflight, issued, used, uncovered, evicted_unread, straddle; REPS=2):
+  F    1 dd bs=1M, one whole object
+  FX   F with --max-readahead 1 (window barely ahead: demand should race prefetch often)
+  H    python reader: first 1024 MiB in 1 MiB reads, handle HELD 20 s, close, 15 s more
+  M3   3 dd on 3 distinct objects concurrently
+Quantities at end of settle: G = committed - unread_resident (bytes); I = fill_inflight;
+  K = issued - used - evicted_unread (chunks still charged per the counters); U = uncovered.
+Predictions:
+  P-IF (upstream: committed ~= resident + in-flight): every cell with I = 0 has G <= 8 MiB.
+  P-LD (LEAK-D): G > 8 MiB with I = 0 in at least F/FX/M3; G flat (+-1 MiB) across the settle;
+       G/1MiB <= U in every cell (a leaked chunk was demand-filled, so it was counted uncovered);
+       G(FX) > G(F) in both reps.
+  P-REL (Release): in H, closing the handle changes committed by <= 8 MiB and unread_resident by
+       <= 8 MiB (close releases nothing -- both stay; Release is not what OPENS a gap).
+  Consistency check, no prediction: committed/1MiB vs K.
+Rule: P-IF holds in every cell -> the decomposition stands, P6c/P6d's "refutation" was a
+  peak-misalignment artifact, and I retract it upstream. P-LD holds -> LEAK-D is the gap; reported
+  with the U bound. Neither -> the gap is real and unexplained; reported as such.
+Cost: ~40 GB in-region GETs, ~$0.003 of requests. No instance.
+
+--- 5f-P7 RESULTS (head node c7g.4xlarge, lith-main b801706 md5 c62832b261d0, 01:15-01:19Z, $0) ---
+INSTRUMENT DEFECT, disclosed first: lith_fill_inflight counts only the fill-batch path (fill.go:410,
+  #31), not prefetch fills (Prefetch -> ensureChunks -> fillRun). It read 0 on every scrape of every
+  cell. So I could not be measured for prefetch, and no shipped gauge measures prefetch bytes
+  dispatched-but-not-landed (bs.inflightN exists but is maintained only when timeline != nil).
+  cell    settle G   committed=resident at rest   K vs committed/MiB   max simultaneous G during run
+  F  -1/-2   0 / 0     0 / 0 MiB                   equal                264 / 264 MiB
+  FX -1/-2   0 / 0     0 / 0                       equal                 23 /  23
+  H  -1/-2   0 / 0     271 = 271 (held AND closed)  equal (271)          251 / 257
+  M3 -1/-2   0 / 0     0 / 0                       equal                763 / 685
+  uncovered U = 16 per object in every cell; straddle 0; evicted 0.
+  F-1's max G is at t=0.41 s: committed 264 MiB, resident 0 -- the first window dispatched, nothing
+  landed. M3-1's at t=5.4 s: 794 vs 31 MiB.
+SCORE
+  P-IF  PASS where measurable: G = 0 at rest in all 8 cells (16 snapshots). Its "I = 0" leg was
+        unmeasurable (above), so the in-run gap is CONSISTENT with dispatched-not-landed, not shown
+        to be it.
+  P-LD  FAIL. No leak: committed returns to exactly resident; FX (23) < F (264), not >. LEAK-D's
+        code path was not provoked (U = 16 = the pre-window first block in every cell), so it is
+        unobserved, not ruled out.
+  P-REL PASS. Closing H changed neither committed nor resident (271 -> 271 both). Release does
+        ratchet committed, but the same chunks stay unread-resident, so it opens NO gap.
+  Rule: P-IF holds -> retract the P6d "refutation" upstream. Corrected reason: NOT peak
+        misalignment (peak - peak is a LOWER bound on the max simultaneous gap, so the 9-27 GB
+        gaps did exist at some instant). The error was the bound I compared them against:
+        committed is charged in Prefetch BEFORE fillRun's semaphore waits, and Prefetch runs as one
+        goroutine per block (fs.go:883), so it includes chunks queued for a slot, not only GETs on
+        the wire. --inflight-bytes bounds the wire, not the queue.
+  For #320 option 1 ("derive committed := unread_resident + in_flight, both already tracked"):
+        in_flight is NOT tracked for prefetch in a shipped gauge.
+  Not shown: the c8gn end state. The P6d sample CSVs went with the instance; only p6d.log kept.
+  Artifacts: data/lith-gates/p7/ (p7.log + 8 sample CSVs), scripts/lith/gate-p7.sh.
+
+--- 5f-P8 PRE-REGISTRATION (lith#316 attribution check, requested 2026-10-03 01:46Z). Written
+    BEFORE any cell ran. Head node c7g.4xlarge, lith-main b801706 (has --prefetch-coverage-min and
+    lith_prefetch_coverage_held_total), gate-samefile.sh, 512 MiB per reader, REPS=2. ---
+Upstream's claim: the #221 COVERAGE gate (covMin 0.5), not the byte-gap gate, holds same-object
+  readers provisional; trailing coverage ~1/N, so lowering covMin below 1/16 = 0.0625 admits T16.
+  (P6b measured T16 per-handle coverage 0.068, above 0.05.)
+Arms, one object (GEOSFP.20190701.A3dyn), 16 dd readers, page cache untouched unless stated:
+  T16   default covMin              control: expect the P5 shape (0 handles Sequential)
+  T16C  --prefetch-coverage-min 0.05, NO O_DIRECT        the test
+  T16D  iflag=direct, default covMin                     positive control (P5: 16/16)
+Observable: handles ever Sequential per --pf-trace (primary), sh_max, coverage_held, wall.
+Rule (upstream's, verbatim in effect):
+  CONFIRMS  T16C has 16 of 16 handles reach Sequential in BOTH reps.
+  REFUTES   T16C fails that in either rep -> the attribution is wrong.
+  Void if T16 is not held (control) or T16D does not establish 16/16 (positive control).
+  Wall and amplification are reported, not scored (this is attribution, not benefit).
+Cost: ~3 arms x 2 reps x 8 GB logical (deduped by page cache for T16/T16C), $0 instance.
+
+--- 5f-P8 RESULTS (head node, lith-main b801706 md5 c62832b261d0, 02:19:47-02:21:36Z, $0) ---
+  cell     ever-Seq  sh_max  wall s        coverage_held  low_cov  uncovered  s3_GB  issued/used
+  T16 -1    0/16       0     49.53         1008            16       1336       0.538  0/0
+  T16 -2    0/16       0     40.31          989            27       1341       0.539  16/16
+  T16C-1   16/16      15      3.12          158            22         29       1.887  1784/497
+  T16C-2   16/16      15      2.96          157            19         28       1.887  1784/497
+  T16D-1   16/16      16      2.17           16             0         16       1.887  1784/496
+  T16D-2   16/16      16      2.11           16             0         16       1.887  1784/496
+SCORE: CONFIRMS, both reps. Controls valid (T16 held 0/16; T16D 16/16). The #221 coverage gate is
+  what holds same-object readers; lowering covMin to 0.05 admits them with the page cache untouched.
+  Holes are unchanged by the flag (reads-with-hole/handle med 0.95 in T16 and T16C).
+Not scored: wall T16C 3.0 s vs T16 40-50 s (~15x) vs O_DIRECT 2.1 s. s3 1.887 GB in BOTH T16C and
+  T16D for 0.537 GB read: window ran past dd's 512 MiB stop (used ~497 of 1784), a short-read
+  artifact common to both, not covMin's. T16C final states 12/14 sequential, 1 random each rep
+  (ever-Sequential was the criterion). sh_max 15 is the 5 Hz sampler, trace says 16.
+coverage_held on T16 = 1008 / 989 vs upstream's bytes/--block-size = 16 x 512 MiB / 8 MiB = 1024:
+  matches their block-boundary magnitude note to 2-3.5%. low_coverage is now live (16/27 at end).
+
+--- 5f-P9 PRE-REGISTRATION (lith#284, asked 2026-10-02 23:32Z): #284's slice shape cross-region,
+    evidence gate off vs on. Written BEFORE any cell ran. ---
+Setup: head node c7g.4xlarge us-east-1. lith main 49c1c54 (incl. #322 plumbing, #323 credit fix;
+  latencyDerivedEvidenceRatio returns 0, so flag 0 = gate off). Object MERRA2.20190701.A3dyn.05x0625.nc4
+  (1,217,808,214 B), server-side copied to s3://gchp-lith-xregion-usw2-942542972736/merra2/ (the same
+  58.6 ms path as 5f-H). Reader: gate2nd reader.py mode var1 (netCDF4 1.7.2, one process, first
+  data variable end to end -- #284's 54x arm). Fresh cold mount per cell, --nic-gbps 50, unique port.
+Cells (scored): X0 = cross-region --readahead-evidence-ratio 0; X4 = cross-region ratio 4.
+  n=4 each, interleaved X0,X4 within rep (no time-of-day confound). n=4 rather than the 2 asked
+  because 5f-H walls at this distance spread 7.2-12.5 s within one cell.
+Anchor (not scored): I0/I4 = same object in-region from gcgrid, n=2 each, same binary.
+Upstream's prediction: gate wins on both axes cross-region -- bytes ~50x down, wall down or flat.
+Rule:
+  r = median wall(X4) / median wall(X0), wall = reader's process wall (open + read + close).
+  CONFIRMS   r <= 1.10 AND bytes(X4) <= bytes(X0)/10 in every rep AND not (all 4 X4 walls >
+             all 4 X0 walls).
+  FALSIFIES  r > 1.10, or all 4 X4 walls > all 4 X0 walls (exact one-sided p = 1/70).
+  Bytes are reported as measured; if the byte cut is < 10x the CONFIRMS leg fails on bytes and I
+  say so separately from wall.
+Cost: ~1.2 GB copy + ~4 x 1.2 GB cross-region GETs (X0) + small X4 = ~6 GB x $0.02 = ~$0.12;
+  bucket deleted after. No instance.
+
+--- 5f-P9 RESULTS (head node, lith 49c1c54 md5 0cbe181ec7e6, 02:28:11-02:29:17Z) ---
+  cell  walls s (rep 1..n)            median  s3_MB   GETs  amp    issued/used
+  X0    6.34 6.41 5.20 5.54            5.87   1217.8  175   54.02  1146/7   (every rep)
+  X4    4.99 4.89 4.95 4.96            4.955    59.8   37    2.65    40/6   (every rep)
+  I0    2.74 2.62                      2.68   1217.8  175   54.02  (anchor)
+  I4    2.34 2.23                      2.28     59.8   37    2.65  (anchor)
+SCORE: CONFIRMS. r = 4.955/5.87 = 0.844 (<= 1.10); bytes cut 20.4x in every rep (>= 10x); and the
+  separation runs the OTHER way -- all 4 X4 walls < all 4 X0 walls (16/16 pairs, p = 1/70 in the
+  gate's FAVOUR). Gate on is ALSO faster in-region (r = 0.85, n=2).
+  Bytes and GETs are byte-identical to #284's in-region numbers (1217.8 -> 59.8 MB, 175 -> 37), and
+  identical across all 12 cells: distance changes wall, not what is fetched.
+  Correction to the prediction's wording, not its verdict: bytes fell 20.4x, not ~50x. 54x -> 2.65x
+  is the AMPLIFICATION; the gate still over-fetches 2.65x of the 22.5 MB wanted.
+  Gauge check: lith_readahead_evidence_ratio = 0 / 4 as set, in every cell.
+
+--- 5f-P9b PRE-REGISTRATION (written after P9 results, before any P9b cell ran) ---
+Why: upstream's stated consequence of a P9 confirm is "the gate can go on everywhere". The one
+  measurement against that is 5f-H: ratio 4 cost 2.56x wall on a WHOLE-object read at 58.6 ms --
+  but on lith v1.1.3, with dd, on a 3.78 GB GEOS-FP object. Not re-measured on current main.
+Cells: WX0 / WX4 = same MERRA2 object, cross-region, reader.py mode whole (every data variable),
+  ratio 0 vs 4, n=4 interleaved; same binary, flags, cold mounts as P9.
+Prediction (from 5f-H): the gate COSTS wall on a whole read at distance: r = median(WX4)/median(WX0)
+  > 1.10, bytes within 1%.
+Rule: r > 1.10 -> 5f-H stands on current main; "on everywhere" carries a whole-read penalty at
+  distance. r <= 1.10 -> 5f-H does not reproduce on this object/binary/reader; reported as such, and
+  whether it is the object size (1.2 vs 3.8 GB) or the binary is NOT separated by this cell.
+Cost: 8 x ~1.2 GB cross-region = ~$0.20.
+
+--- 5f-P9b RESULTS (02:30:37-02:32:57Z, same binary) ---
+  WX0 walls 16.42 16.19 16.44 16.52  median 16.43   1217.8 MB  175 GETs  used 1146/1146
+  WX4 walls 16.56 16.55 16.33 16.02  median 16.44   1217.8 MB  176 GETs  used 1145/1145
+  r = 1.0006. Rule -> 5f-H does NOT reproduce on this cell. But the reader is the bottleneck:
+  netCDF4 inflates 2.4 GB from 1.2 GB in ~15 s (~80 MB/s of S3 bytes), against 5f-H's dd at
+  ~440 MB/s. A consumer this slow hides any window-ramp cost, so this cell cannot speak to it.
+  Pre-registered caveat applies: object size vs binary vs (now) reader speed are not separated.
+
+--- 5f-P9c PRE-REGISTRATION (written after P9b, before any P9c cell ran) ---
+Purpose: separate BINARY from object/reader -- re-run 5f-H's exact shape on current main.
+Cells: DX0 / DX4 = GEOSFP.20190701.A3dyn.025x03125.nc (3,776,834,855 B) server-side copied to the
+  same us-west-2 bucket; dd bs=1M whole object; ratio 0 vs 4; n=4 interleaved; cold mounts,
+  --nic-gbps 50; lith 49c1c54.
+Prediction (5f-H, v1.1.3): r = median(DX4)/median(DX0) ~= 2.56, zero overlap.
+Rule: r > 1.10 -> the whole-read penalty at distance stands on current main and "gate on
+  everywhere" would cost it; r <= 1.10 -> 5f-H no longer reproduces (binary changed it).
+Cost: 3.78 GB copy + ~8 x 3.78 GB cross-region = ~34 GB x $0.02 = ~$0.68.
+
+--- 5f-P9c RESULTS (02:35:19-02:37:14Z, same binary 49c1c54) ---
+  DX0 walls 8.71 7.65 8.15 7.55   median 7.90    3776.8 MB  465 GETs
+  DX4 walls 15.57 19.20 19.26 17.94  median 18.57  3776.8 MB  465 GETs (identical bytes+GETs)
+  r = 2.35, zero overlap (min DX4 15.57 > max DX0 8.71; p = 1/70). 5f-H (2.56x, v1.1.3) STANDS on
+  current main. The counters cannot see it: bytes and requests identical in all 8 cells.
+TOGETHER (P9/P9b/P9c, all cross-region 58.6 ms, same binary, n=4):
+  slice, netCDF4           gate r = 0.84  (wins, 20.4x fewer bytes)
+  whole, netCDF4 (~80MB/s) gate r = 1.00  (consumer-bound, nothing to lose or save)
+  whole, dd (~480 MB/s)    gate r = 2.35  (loses; no bytes to save)
+  The trade is not 1-D in coverage: it depends on coverage AND on whether the consumer is fast
+  enough for the ramp to be the bottleneck (in-region 5f-? not re-measured here).
+Cost: ~50 GB cross-region (5 GB copies + 45 GB reads) = ~$1.00 (estimates summed $1.00).
+  Bucket gchp-lith-xregion-usw2-942542972736 emptied and deleted after.
+
+--- 5f-P9d PRE-REGISTRATION (lith#284, asked 2026-10-03 02:43Z; before any cell ran) ---
+Row 3 in-region: GEOSFP.20190701.A3dyn.025x03125.nc (3,776,834,855 B) from s3://gcgrid in-region
+  (2.2 ms), dd bs=1M whole object, --readahead-evidence-ratio 0 vs 4, n=4 interleaved, cold mount
+  per cell, --nic-gbps 50, lith 49c1c54 (md5 0cbe181ec7e6) -- identical to P9c except distance.
+Upstream's prediction: r = median(ratio 4)/median(ratio 0) <= 1.10 (from bench/evidence-ratio/ +7.5%).
+Rule: r <= 1.10 -> CONFIRMS (penalty is RTT-driven; default-on in-region is safe for this shape).
+      r > 1.10 -> FALSIFIES (ramp is a bottleneck even at 2 ms; needs the consumer-rate term).
+Separation (all 4 on > all 4 off) is reported, not scored. Cost: in-region GETs only, $0.
+
+--- 5f-P9d RESULTS (02:47:43-02:48:18Z, same binary) ---
+  DI0 walls 3.09 2.82 3.05 2.87   median 2.96   3776.8 MB  465 GETs
+  DI4 walls 3.05 3.02 3.25 3.15   median 3.10   3776.8 MB  465 GETs (identical)
+  r = 1.047 -> CONFIRMS (<= 1.10). Not separated: 13/16 pairs have on > off; overlap at 3.02-3.09.
+  Same shape cross-region (P9c) r = 2.35. Penalty +0.14 s (+5%) at 2.2 ms vs +10.7 s (+135%) at 58.6 ms.
+  Consistent with bench/evidence-ratio/ +7.5%. Throughput off: 1.28 GB/s in-region, 0.48 GB/s xregion.
+  Also fixes a placeholder in the P9c record: "in-region 5f-? not re-measured" = this cell.
+
+--- 5f-P9e PRE-REGISTRATION (lith#284 blocker for the in-region default flip; spend approved by
+    user 2026-10-03; written BEFORE the instance is launched) ---
+P9d unchanged on a c8gn.48xlarge (600 Gbps): GEOSFP.20190701.A3dyn.025x03125.nc from s3://gcgrid
+  in-region, dd bs=1M whole object, --readahead-evidence-ratio 0 vs 4, n=4 interleaved, cold mount
+  per cell, lith 49c1c54 (md5 0cbe181ec7e6, the same aarch64 binary), same gate-p9c.sh/p9c-dd.py.
+  ONE deliberate difference, kept identical to P9d anyway: --nic-gbps 50 (as P9d). A second pass
+  with NIC auto-detection is NOT added (#317: auto resolves 50 Gbps on c8gn, so it is the same).
+Upstream's prediction: r = median(4)/median(0) <= 1.10.
+Rule: r <= 1.10 -> CONFIRMS on a fast consumer box; r > 1.10 -> FALSIFIES (ramp binds on a fat box,
+  default flip needs the consumer-rate term). Separation reported, not scored.
+Cost estimate: ~15 min instance life at ~$11/h = ~$3; hard cap shutdown -h +45 (~$8.30 worst case).
+
+--- 5f-P9e RESULTS (c8gn.48xlarge i-0b917683ff85d6d2b us-east-1c, 03:44:00-03:44:26Z, same binary) ---
+  DI0 walls 2.17 1.91 1.85 1.77   median 1.883   3776.8 MB  465 GETs
+  DI4 walls 2.05 2.06 2.23 1.68   median 2.055   3776.8 MB  465 GETs (identical bytes/GETs/issued/used)
+  r = 1.091 -> CONFIRMS (<= 1.10), with a THIN margin. Not separated: the fastest cell of all is a
+  ratio-4 cell (1.68) and the ranges overlap completely; n=4 cannot resolve 0.17 s at ~2 s walls.
+  Off throughput 2.01 GB/s (vs 1.28 GB/s on c7g in P9d): the consumer got 1.57x faster.
+  Absolute penalty ~constant: +0.14 s (c7g) -> +0.17 s (c8gn); the FRACTION grew 4.7% -> 9.1% only
+  because the baseline shrank. Reading: a roughly fixed ramp cost per cold whole read, not a rate
+  term, so the fraction scales as 1/consumer-rate and a faster box or smaller object crosses 1.10.
+  This is an inference from two boxes, not separately tested.
+  Cost: launch 03:38:03, terminate 03:44:38 (+~1 min shutting-down) = ~7.6 min at ~$11/h = ~$1.40
+  vs $3 estimated.
+
+--- 5f-P9f PRE-REGISTRATION (lith#284, upstream asked 2026-10-03 03:56Z; before any cell ran) ---
+Is the evidence-gate penalty on a whole read a FIXED ramp cost or proportional to the read?
+Head node c7g.4xlarge, in-region s3://gcgrid, dd bs=1M whole object, --readahead-evidence-ratio 0 vs 4,
+  n=6 interleaved (up from 4: walls are ~0.2 s), cold mount per cell, --nic-gbps 50, lith 49c1c54
+  (md5 0cbe181ec7e6), scripts/lith/gate-p9.sh with OBJ/IPREFIX overrides.
+  SCORED:   MERRA2.20190701.A3mstC.05x0625.nc4   259,688,793 B  (upstream's ~256 MB point)
+  UNSCORED: MERRA2.20190701.A3cld.05x0625.nc4    423,855,882 B
+            GEOSFP.20190701.A3mstE.025x03125.nc  733,423,842 B   (3.78 GB already: P9d r=1.047)
+  All sizes are > --parts-max (auto, <= 64 MiB), so all take the windowed path.
+Metric: the dd-only wall (reader=[mode=dd wall=]), not the cell wall, so python start-up does not
+  dilute a fixed cost at ~0.2 s. Median over 6.
+Upstream's prediction (mechanism, not ratio): r >= 1.4 at 260 MB -> CONFIRMS fixed ramp (their
+  earlier ratio gate was unsound). r <= 1.15 -> FALSIFIES (ramp scales with the read; 3.78 GB
+  generalizes). 1.15 < r < 1.4 -> AMBIGUOUS, reported as such.
+Recomputed for THIS box (upstream's table used c8gn's 2.01 GB/s): fixed +0.14 s at 1.28 GB/s ->
+  baselines 0.20 / 0.33 / 0.57 s -> fixed-model r ~1.69 / 1.42 / 1.24; proportional ~1.05 at all.
+  Also reported: absolute penalty (median on - median off) per size; fixed model says ~0.14 s flat.
+Cost: in-region GETs only, $0.
+
+--- 5f-P11 PRE-REGISTRATION (lith#232, upstream asked 2026-10-03 03:56Z; before any cell ran) ---
+Per-fault cost of a serial random mmap page-fault stream, in-region vs cross-region.
+Head node c7g.4xlarge, lith 49c1c54 (md5 0cbe181ec7e6) at stock flags (no --nic-gbps), cold mount
+  per cell. scripts/lith/gate-mmap.sh: mmap PROT_READ / MADV_NORMAL, 3000 distinct random 4 KiB
+  pages (seed 232, identical page set in every cell), touched serially, each fault timed.
+Object: GEOSFP.20190701.A3mstC.025x03125.nc (876,229,026 B), a stand-in for #232's 892 MB
+  human_g1k_v37.fasta.gz (not in any bucket of ours). The page-fault shape doesn't depend on the contents.
+  I = s3://gcgrid in-region; X = server-side copy to a throwaway us-west-2 bucket (58.6 ms), deleted
+  after. n=2 each, interleaved I,X.
+Upstream's prediction: in-region 15-30 ms/fault, cross-region 70-120 ms/fault; bytes ~220 KiB/fault
+  (~660 MB for 3000).
+Rule: both inside their bands -> #232 EXPLAINED as one round trip per miss (re-scope: no lith
+  lever). Either cell well above its band (> 2x the upper bound: in-region > 60 ms, xregion
+  > 240 ms) -> UNEXPLAINED serialization, the interesting number. In between -> reported as is.
+  Which band the original 109 ms matches is reported, not scored.
+max_background (#326): no lith flag exists for it, so no second arm.
+Cost: copy ~0.9 GB to us-west-2 (~$0.02) + ~1.4 GB cross-region reads (~$0.03); est. < $0.10.
+
+--- 5f-P9f RESULTS (head node c7g.4xlarge, 04:01:10-04:02:22Z, same binary; dd-only wall, n=6) ---
+                    off median  on median   r      abs     pairs on>off   r drop-rep1
+  260 MB (SCORED)     0.655       0.790    1.206  +0.135     30/36          1.219
+  424 MB              0.795       0.865    1.088  +0.070     27/36          1.063
+  733 MB              0.975       1.100    1.128  +0.125     24/36          1.207
+  3.78 GB (P9d)       2.96        3.10     1.047  +0.14      13/16           -
+  Bytes, GETs, issued == used are identical across arms at every size; amp 1.00.
+  SCORED r = 1.206 -> AMBIGUOUS (1.15 < r < 1.4). Neither ratio prediction holds.
+  But the absolute penalty is flat (+0.07..+0.14 s) over a 14.5x size range. A proportional ramp
+  would have scaled +0.135 s at 260 MB to ~+2.0 s at 3.78 GB, and measured is +0.14 s.
+  -> MECHANISM: fixed ramp, as upstream predicted. The r prediction missed because its
+  baseline model (size / throughput) is wrong. The off arm has its own fixed cost:
+  4-point fit off = 0.50 s + size / 1.55 GB/s. So on this box worst-case r in the exposed band
+  is ~1.24 at 64 MiB, ~1.19 at 256 MB, not 2.2-3.4.
+  Caveats: (1) the 0.50 s intercept is per cold mount + first open; whether a long-lived WARM
+  mount opening a new file keeps it is untested. If it doesn't, r moves back toward upstream's
+  table. (2) Rep 1 off is slow at every size (1.19/1.10/1.74 s: first touch of the object, and
+  off always runs first). Medians absorb it, and drop-rep1 r is shown. (3) c8gn intercept not measured.
+  Cost $0.
+
+--- 5f-P11 RESULTS (head node, 04:02:49-04:16:16Z; stock flags -> nic 7.5 Gbps imds-estimate) ---
+  cell   wall s   ms/fault  p50   p90    p99    max    hits<1ms  s3_MB  GETs  KiB/fault
+  MI-1    99.35    33.12   25.88  79.31 157.56 287.32    598     444.4  2419   145
+  MX-1   315.64   105.21  101.08 181.10 306.80 545.57    598     444.4  2419   145
+  MI-2    94.09    31.36   25.69  70.12 144.31 307.24    598     444.4  2419   145
+  MX-2   293.92    97.97   94.13 165.78 283.99 527.46    598     444.4  2419   145
+  Bytes, GETs and hits are identical across all 4 cells (same page set; deterministic).
+  Cross-region 101.6 ms/fault (mean of 2) -> INSIDE 70-120. In-region 32.2 ms/fault -> just ABOVE
+  the 15-30 band (p50 25.8 inside), well under 60 -> "in between", reported as is.
+  Original #232 (109 ms/fault, 326 s) matches the cross-region cells (98-105 ms, 294-316 s)
+  and is 3.4x the in-region ones. The original was almost certainly cross-region, and #232 is
+  EXPLAINED: one GET round trip per miss. X-I = 69 ms/fault = 86 ms/miss = ~1.5 RTT at 58.6 ms.
+  2402 misses / 2419 GETs = ~1 GET per miss; 181 KiB per MISS (upstream's 220 KiB assumed no
+  hits; 598 of 3000 faults (20%) were served from an earlier fault's read-around).
+  FUSE reads: 2471, 2030 of them 128 KiB.
+  Side finding: the random walk is not 100% Random. 7/2471 reads flipped Random -> Strided on
+  large coincidental gaps, dispatching prefetch 3 times (prefetch_issued=24, s3 444.4 vs
+  distinct 416.9 MB = +27 MB, amp 1.07). Small, but it violates #316's "a random mmap walk must
+  not start prefetching" constraint via the STRIDE detector, not the coverage gate.
+  Cost: ~0.9 GB server-side copy to us-west-2 + ~0.9 GB cross-region reads = ~$0.04. Bucket deleted.
+
+--- 5f-P9g PRE-REGISTRATION (lith#284, upstream asked 2026-10-03 04:33Z; before any cell ran) ---
+Does a WARM mount keep P9f's 0.50 s whole-read intercept? Head node c7g.4xlarge, in-region,
+  lith 49c1c54 (md5 0cbe181ec7e6), --nic-gbps 50, --readahead-evidence-ratio 0 vs 4, dd bs=1M whole,
+  dd-only wall. scripts/lith/gate-warm.sh. One mount per (ratio, rep), n=6, arm order ABBA by rep
+  (upstream's caveat-2 suggestion). Prefix s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07 (one prefix so
+  one mount holds all objects). Per mount, in order:
+    pos0 COLD primer  MERRA2 A3mstE  226,859,495 B   unscored; measures the cold intercept directly
+    pos1 WARM SCORED  MERRA2 A3mstC  259,688,793 B   (same object as P9f's scored cold cell)
+    pos2 WARM         MERRA2 A3cld   423,855,882 B
+    pos3 WARM         MERRA2 I3      708,758,316 B
+Upstream's prediction: the warm baseline loses most of the intercept, r >= 1.5 at 260 MB warm.
+Rule (thresholds mine where upstream said "~1.2"): r >= 1.5 -> CONFIRMS (intercept is per-mount;
+  the +24% bound does not hold in production; ramp term needed before any flip). r <= 1.3 ->
+  FALSIFIES (intercept is per-open; the bound holds warm). Between -> AMBIGUOUS.
+Also reported: warm off baseline at 260 MB vs P9f cold 0.655 s, vs the fit's 0.67 s, vs 0.17 s
+  (no intercept); absolute penalty per position; and the warm 4-point fit's intercept.
+Cost: in-region GETs only, $0.
+
+--- 5f-P9g RESULTS (head node, 04:56:23-04:57:20Z, same binary; dd-only wall, n=6, ABBA) ---
+  pos  object         state  off median  on median   r      abs     pairs on>off
+   0   A3mstE 227 MB  COLD     0.650      0.735    1.131  +0.085     24/36
+   1   A3mstC 260 MB  WARM     0.650      0.715    1.100  +0.065     24/36   (SCORED)
+   2   A3cld  424 MB  WARM     0.745      0.835    1.121  +0.090     26/36
+   3   I3     709 MB  WARM     0.945      1.120    1.185  +0.175     29/36
+  SCORED r = 1.100 -> FALSIFIES (<= 1.3). The warm 260 MB off baseline is 0.650 s, the same as
+  P9f's cold 0.655 s. The cold primer (0.650 s at 227 MB) is no slower than the warm reads: the
+  mount itself adds nothing measurable. Warm 3-point fit: off = 0.47 s + size / 1.51 GB/s
+  (cold P9f: 0.50 s + size / 1.55 GB/s).
+  -> The intercept is per-OPEN/per-object, not per-mount; the ~+24% bound holds on a warm mount.
+  Absolute penalty +0.065..+0.175 s, again ~flat (fixed ramp, as P9f).
+  Instrument fault, disclosed: the per-object s3_MB delta column is EMPTY (bc can't parse the
+  exponent-notation counter values). Bytes were not verified in this gate; P9f showed identical
+  bytes across arms at amp 1.00 on these shapes. The walls (the pre-registered metric) are unaffected.
+  Unscored hypothesis, not tested: the 0.47 s per-open intercept and the 0.13 s gate penalty may be
+  the same thing (window establishment/ramp on each new handle), present in both arms and lengthened
+  by the gate.
+  Cost $0.
+
+--- 5f-P9h PRE-REGISTRATION (lith#284, upstream asked 2026-10-03 21:16Z; before any cell ran) ---
+DIAGNOSTIC, no numeric prediction from either side: where does the ~0.47 s per-open intercept
+  (P9f/P9g fits) go? Head node c7g.4xlarge, in-region, lith d0ca3eb (#331: timeline kind=open row;
+  md5 1a78f75b8b81), --nic-gbps 50, --readahead-evidence-ratio pinned 0 and 4 (main now defaults it
+  on in-region, #330), --timeline-csv per mount. scripts/lith/gate-open.sh: one mount per (ratio,
+  rep), n=3, ABBA; per mount dd A3mstC 260 MB whole (cold) then dd A3cld 424 MB (warm, new object).
+Readouts, upstream's order:
+  1. ms from the open row to the first chunk row for that key. ~0.47 s -> the cost is BEFORE any
+     fetch (the open path).
+  2. If (1) is small: sum of wait_ms over the early chunk rows (join-wait spread across the ramp).
+  3. lag_ms on the early rows (negative = never prefetched -> demand-fill TTFB is the floor).
+  4. inflight on the first few reads (a cold burst competing for bandwidth).
+Also, mine: dd wall vs P9f/P9g on the new binary, and dd start/end epochs. That tells me whether
+  any of the intercept sits OUTSIDE the timeline (before the open row, or after the last chunk).
+Cost $0.
+
+--- 5f-P9h RESULTS (head node, 21:36:26-21:36:43Z, lith d0ca3eb md5 1a78f75b8b81; 12 opens) ---
+  1. open -> first chunk row: 0.08-0.15 ms. dd wall - lith span (open to last row) = 3 ms in every
+     open. -> NOT the open path; nothing measurable happens before the first fetch or after the last.
+  2. Raw wait_ms sums (967-1744 ms) EXCEED the wall: concurrent kernel reads wait on the same chunk
+     and each is a row. Scored on the UNION of [ms, ms+wait] over uncovered rows instead:
+     stall = 498-890 ms of 569-957 ms walls (~85-90% of the read is blocked on demand fills).
+     Phase-resolved, ratio 0: block 0 (chunks 0-7) stall 206-431 ms, block 1 (8-15) 245-389 ms,
+     rest 0-41 ms. Reader goes 16 MiB -> 32 MiB in ~4 ms; the rest of the object in 55-140 ms.
+     Ratio 4: blocks 0 and 1 the same, plus 'rest' stalls of 123-360 ms. THAT is the gate's penalty, and it sits after block 1.
+  3. lag_ms = -1 on chunks 0-15 in every open (never prefetched); chunk 16's lag is 218-329 ms, i.e.
+     dispatched when the reader crossed into block 1. Prefetch establishes at the block-1 crossing
+     and starts at BLOCK 2: block 1 is served as 8 more uncovered chunk GETs.
+  4. inflight is 0 through block 0, then 146-232 at chunk 9's entry (the establishment burst),
+     so block 1's demand GETs compete with it: chunks 9-10 wait 50-103 ms vs 28 ms median.
+  Per-GET: block-0 chunks 1-7 wait median 28.2 ms (p10 22.6, p90 42.7, n=84); chunk 0 24-46 ms
+  (121-127 on the first open of rep 1).
+  -> The ~0.47 s intercept = 16 serial demand chunk GETs (blocks 0+1) x ~28 ms S3 first-byte
+     = ~0.45 s, vs fitted 0.47-0.50 s. Upstream's "22 GETs ~ 48 ms" used the 2.2 ms network RTT;
+     an in-region 1 MiB S3 GET takes ~28 ms to first byte. #233 (block 0) is ~225 ms here, not ~15 ms,
+     and block 1 repeats it.
+  The 'prefetched' column is false on every row, including hits that the lag shows were
+  prefetched; lag_ms is the working signal. Flagged, not relied on.
+  dd walls (A3mstC): ratio 0 0.846/0.647/0.572, ratio 4 0.723/0.721/0.960. In line with P9f/P9g.
+  Cost $0.

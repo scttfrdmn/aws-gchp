@@ -1,0 +1,76 @@
+# FABRIC TEST + INSTRUMENTATION BUILD (us-east-1a, hpc7g Graviton3E).
+# Purpose: build instrumented GCHP 14.7.1 (KPP timer + shard probe patches) against the
+# aarch64 validated stack, then run C180 fullchem EFA-vs-TCP A/B at 2 (and 4 if capacity) nodes.
+# EFA is ENABLED on compute; the TCP run forces TCP at RUNTIME via mpirun --mca (not a config change),
+# so both fabrics are selectable on the same cluster. PlacementGroup OFF (ablation §6f: free to drop;
+# eases capacity). Three tiers: /sw (EBS ARM stack), /input (FSx by-ID gcgrid), /scratch (Lustre r/w).
+
+Region: us-east-1
+Image:
+  Os: alinux2023
+
+HeadNode:
+  InstanceType: c7g.4xlarge          # ARM, 16 cores — native aarch64 build host (compile is heavy)
+  Networking:
+    SubnetId: subnet-2eec4a71         # us-east-1a (hpc7g AZ; MapPublicIpOnLaunch=True -> free public IP)
+  Ssh:
+    KeyName: aws-gchp
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - Policy: arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  CustomActions:
+    OnNodeConfigured:
+      Script: s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh
+
+Scheduling:
+  Scheduler: slurm
+  SlurmSettings:
+    ScaledownIdletime: 5
+  SlurmQueues:
+    - Name: compute
+      Iam:
+        AdditionalIamPolicies:
+          - Policy: arn:aws:iam::aws:policy/AmazonS3FullAccess
+      ComputeResources:
+        - Name: nodes
+          InstanceType: hpc7g.16xlarge
+          MinCount: 0
+          MaxCount: 4
+          DisableSimultaneousMultithreading: true
+          Efa:
+            Enabled: true             # EFA ON; TCP run forces tcp at runtime via --mca
+            GdrSupport: false
+      Networking:
+        SubnetIds:
+          - subnet-2eec4a71
+        PlacementGroup:
+          Enabled: false              # ablation §6f: PG adds ~nothing on EFA; off eases capacity
+      CapacityType: ONDEMAND
+
+SharedStorage:
+  - Name: software
+    StorageType: Ebs
+    MountDir: /sw
+    EbsSettings:
+      VolumeType: gp3
+      Size: 120
+      DeletionPolicy: Delete
+  - Name: input
+    StorageType: FsxLustre
+    MountDir: /input
+    FsxLustreSettings:
+      FileSystemId: fs-0804c4d8e01897d21   # gchp-input-fabrictest (us-east-1a, gcgrid, Lustre 2.15)
+  - Name: scratch
+    StorageType: FsxLustre
+    MountDir: /scratch
+    FsxLustreSettings:
+      StorageCapacity: 1200
+      DeploymentType: SCRATCH_2
+      DeletionPolicy: Delete
+
+Tags:
+  - Key: Project
+    Value: GCHP-Benchmark
+  - Key: Benchmark
+    Value: s3-handoff

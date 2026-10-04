@@ -1,0 +1,4 @@
+# x86 path validation — one cheap cell. Proves: arch-matched head creates, x86 stack
+# bootstrap (sync-stack-x86.sh, never run in us-east-1) works, run produces RESULT lines,
+# and the fixed exact-filename harvest captures them. If green -> run the full Phase-2 sweep.
+c8i.48xlarge   24 1 96 tt

@@ -1,0 +1,182 @@
+=== node facts ===
+instance:  m9g.48xlarge   host: compute-dy-nodes-1   cores: 192
+lith:      lith 1.1.1  [node rpm: lith 1.1.1]
+               total        used        free      shared  buff/cache   available
+Mem:             742          43         697           0           0         695
+=== lith#237 datapoint: IMDS estimate on a 100 Gbps node (authoritative baseline 100.0) ===
+[INFO] nic                    50.0 Gbps (source=imds-estimate) → parts-max 64 MiB, inflight 1192 MiB — estimated from m9g.48xlarge size (DescribeInstanceTypes denied); pass --nic-gbps for the exact baseline
+=== releasing FSx met blocks to force a genuine cold read ===
+released 0 files
+state check (want 'released exists archived'):
+/input/GEOS_0.5x0.625/MERRA2/2019/01/MERRA2.20190101.A1.05x0625.nc4: (0x00000009) exists archived, archive_id:1
+=== FSx HSM state before fsx-cold ===
+     15 archived
+      2 released
+=== RUN fsx-cold  (/scratch/gchp_merra2_TransportTracers) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+RESULT fsx-cold   init=22.34s  sim_end=38.34s  to_completion=42.2s  cap_restart->20190102  SUCCEEDED
+  log: /scratch/lith-gates/gate3c-fsx-cold.log (3015 lines)
+=== FSx HSM state after fsx-cold (everything read should now be archived+resident) ===
+     15 archived
+      2 released
+=== RUN fsx-warm  (/scratch/gchp_merra2_TransportTracers) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+RESULT fsx-warm   init=16.66s  sim_end=30.66s  to_completion=34.2s  cap_restart->20190102  SUCCEEDED
+  log: /scratch/lith-gates/gate3c-fsx-warm.log (3015 lines)
+=== mounting lith prefixes (--nic-gbps 100) ===
+lith mounted in the background (pid 34083); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 34199); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 34316); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 34435); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 34554); logs: /tmp/lith-1000-mount.log
+5
+lith paths resolve OK
+=== RUN lith-cold  (/scratch/gchp_lith_TransportTracers) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+RESULT lith-cold  init=26.02s  sim_end=51.02s  to_completion=55.3s  cap_restart->20190102  SUCCEEDED
+  log: /scratch/lith-gates/gate3c-lith-cold.log (3015 lines)
+=== lith metrics after lith-cold ===
+-- merra2-2019 (:9110)
+lith_cache_misses_total 3064
+lith_distinct_bytes_read 3.222929408e+09
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 3118
+lith_prefetch_uncovered_total 3219
+lith_prefetch_used_total 2338
+lith_read_straddle_total 3033
+lith_s3_bytes_total 4.105409137e+09
+lith_s3_requests_total{op="get",status="ok"} 3647
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+-- merra2-2015 (:9111)
+lith_cache_misses_total 4
+lith_distinct_bytes_read 851968
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 0
+lith_prefetch_uncovered_total 1
+lith_prefetch_used_total 0
+lith_read_straddle_total 0
+lith_s3_bytes_total 809084
+lith_s3_requests_total{op="get",status="ok"} 1
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+-- hemco (:9112)
+lith_cache_misses_total 148
+lith_distinct_bytes_read 6.5404928e+07
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 150
+lith_prefetch_uncovered_total 98
+lith_prefetch_used_total 12
+lith_read_straddle_total 50
+lith_s3_bytes_total 2.16404503e+08
+lith_s3_requests_total{op="get",status="ok"} 124
+lith_sibling_prefetch_total 1
+lith_sibling_prefetch_unread_total 0
+-- chem-inputs (:9113)
+lith_cache_misses_total 2
+lith_distinct_bytes_read 262144
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 2
+lith_prefetch_uncovered_total 2
+lith_prefetch_used_total 0
+lith_read_straddle_total 0
+lith_s3_bytes_total 387496
+lith_s3_requests_total{op="get",status="ok"} 4
+lith_sibling_prefetch_total 2
+lith_sibling_prefetch_unread_total 0
+-- restarts (:9114)
+lith_cache_misses_total 59
+lith_distinct_bytes_read 3.8797312e+07
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 18
+lith_prefetch_uncovered_total 42
+lith_prefetch_used_total 18
+lith_read_straddle_total 32
+lith_s3_bytes_total 3.893357e+07
+lith_s3_requests_total{op="get",status="ok"} 46
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+=== RUN lith-warm  (/scratch/gchp_lith_TransportTracers) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+Restart symlink gchp_restart.nc4 set to ./Restarts/GEOSChem.Restart.20190101_0000z.c24.nc4
+RESULT lith-warm  init=15.94s  sim_end=29.94s  to_completion=34.2s  cap_restart->20190102  SUCCEEDED
+  log: /scratch/lith-gates/gate3c-lith-warm.log (3015 lines)
+=== lith metrics after lith-warm ===
+-- merra2-2019 (:9110)
+lith_cache_misses_total 3064
+lith_distinct_bytes_read 3.222929408e+09
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 3118
+lith_prefetch_uncovered_total 3219
+lith_prefetch_used_total 2338
+lith_read_straddle_total 3033
+lith_s3_bytes_total 4.105409137e+09
+lith_s3_requests_total{op="get",status="ok"} 3647
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+-- merra2-2015 (:9111)
+lith_cache_misses_total 4
+lith_distinct_bytes_read 851968
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 0
+lith_prefetch_uncovered_total 1
+lith_prefetch_used_total 0
+lith_read_straddle_total 0
+lith_s3_bytes_total 809084
+lith_s3_requests_total{op="get",status="ok"} 1
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+-- hemco (:9112)
+lith_cache_misses_total 148
+lith_distinct_bytes_read 6.5404928e+07
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 150
+lith_prefetch_uncovered_total 98
+lith_prefetch_used_total 12
+lith_read_straddle_total 50
+lith_s3_bytes_total 2.16404503e+08
+lith_s3_requests_total{op="get",status="ok"} 124
+lith_sibling_prefetch_total 1
+lith_sibling_prefetch_unread_total 0
+-- chem-inputs (:9113)
+lith_cache_misses_total 2
+lith_distinct_bytes_read 262144
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 2
+lith_prefetch_uncovered_total 2
+lith_prefetch_used_total 0
+lith_read_straddle_total 0
+lith_s3_bytes_total 387496
+lith_s3_requests_total{op="get",status="ok"} 4
+lith_sibling_prefetch_total 2
+lith_sibling_prefetch_unread_total 0
+-- restarts (:9114)
+lith_cache_misses_total 59
+lith_distinct_bytes_read 3.8797312e+07
+lith_fill_runs_total 0
+lith_prefetch_evicted_unread_total 0
+lith_prefetch_issued_total 18
+lith_prefetch_uncovered_total 42
+lith_prefetch_used_total 18
+lith_read_straddle_total 32
+lith_s3_bytes_total 3.893357e+07
+lith_s3_requests_total{op="get",status="ok"} 46
+lith_sibling_prefetch_total 0
+lith_sibling_prefetch_unread_total 0
+=== done — results in /scratch/lith-gates/gate3c-results.txt ===

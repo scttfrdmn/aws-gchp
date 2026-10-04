@@ -1,0 +1,145 @@
+
+=== gate 2 preflight — abort before spending if anything is missing ===
+nodes: compute-dy-nodes-1 compute-dy-nodes-2   ranks: 96
+  ok   ssh compute-dy-nodes-1
+  ok   ssh compute-dy-nodes-2
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+instance types: compute-dy-nodes-1=c8g.48xlarge  compute-dy-nodes-2=c8g.48xlarge
+  ok   both nodes are c8g.48xlarge
+  ok   --nic-gbps 50 (per-card baseline for c8g.48xlarge)
+lith:
+  [compute-dy-nodes-1] Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts. lith 1.1.1 
+  [compute-dy-nodes-2] Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts. lith 1.1.1 
+fusermount3:
+  [compute-dy-nodes-1] Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts. /usr/bin/fusermount3 
+  [compute-dy-nodes-2] Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts. /usr/bin/fusermount3 
+mount.nfs:
+  [compute-dy-nodes-1] Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts. /usr/sbin/mount.nfs 
+  [compute-dy-nodes-2] Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts. /usr/sbin/mount.nfs 
+mounts:
+  [compute-dy-nodes-1] Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts. /input=ok /scratch=ok /sw=ok 
+  [compute-dy-nodes-2] Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts. /input=ok /scratch=ok /sw=ok 
+memory:
+  [compute-dy-nodes-1] Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts. 371 GiB 
+  [compute-dy-nodes-2] Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts. 371 GiB 
+  ok   index merra2.lithidx
+  ok   index merra2-2015.lithidx
+  ok   index hemco.lithidx
+  ok   index cheminp.lithidx
+  ok   index restarts.lithidx
+gateway ports free on compute-dy-nodes-1:
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  [compute-dy-nodes-1] 20490=free 20491=free 20492=free 20493=free 20494=free 
+
+=== 2-node MPI smoke test (gates every arm below) ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+     48 compute-dy-nodes-1
+     48 compute-dy-nodes-2
+  ok   MPI spans 2 nodes at 96 ranks
+
+=== retuning both run directories to 2 nodes x 48 = 96 cores ===
+  gchp_merra2_TransportTracers: TOTAL_CORES=96 NUM_NODES=2 NUM_CORES_PER_NODE=48 
+  gchp_lith_TransportTracers: TOTAL_CORES=96 NUM_NODES=2 NUM_CORES_PER_NODE=48 
+  Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  compute-dy-nodes-1 procs=0 fuse=0 nfs=4
+  Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  compute-dy-nodes-2 procs=0 fuse=0 nfs=4
+
+=== ARM 1/5 — FSx Lustre anchor (also the 2-node GCHP smoke test) ===
+
+=== RUN fsx-r1   dir=gchp_merra2_TransportTracers   NUM_READERS=1 ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  NX=4 NY=24 NUM_READERS=1
+RESULT fsx-r1       readers=1   init=33.13s  sim_end=69.13s  wall=70.2s  steps=144/144  SIM_COMPLETE
+
+=== ARM 2/5 — per-node lith mounts, stock NUM_READERS=1 ===
+  Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  compute-dy-nodes-1 procs=0 fuse=0 nfs=4
+  Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  compute-dy-nodes-2 procs=0 fuse=0 nfs=4
+
+=== arm setup: PER-NODE FUSE mounts (5 daemons on each of 2 nodes) ===
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  ok   compute-dy-nodes-1: 5 fuse.lith mounts
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  ok   compute-dy-nodes-2: 5 fuse.lith mounts
+
+=== RUN mount-r1   dir=gchp_lith_TransportTracers   NUM_READERS=1 ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  NX=4 NY=24 NUM_READERS=1
+RESULT mount-r1     readers=1   init=41.43s  sim_end=88.43s  wall=89.5s  steps=144/144  SIM_COMPLETE
+
+=== read topology after mount-r1 — bytes fetched from S3, per node ===
+TOPOLOGY mount-r1     compute-dy-nodes-1           s3_bytes=4353817326 (4152.1 MB)
+TOPOLOGY mount-r1     compute-dy-nodes-2           s3_bytes=4328192750 (4127.7 MB)
+
+=== ARM 3/5 — shared lith serve nfs gateway, stock NUM_READERS=1 ===
+  Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  compute-dy-nodes-1 procs=0 fuse=0 nfs=4
+  Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  compute-dy-nodes-2 procs=0 fuse=0 nfs=4
+
+=== arm setup: ONE SHARED GATEWAY — 5 lith serve nfs on compute-dy-nodes-1, both nodes mount it ===
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  ok   gateway processes on compute-dy-nodes-1: 15/5
+  FAIL not all gateways started
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+{"time":"2026-09-17T16:48:58.803428961Z","level":"INFO","msg":"lith NFSv3 gateway","listen":":20490","bucket":"gcgrid","prefix":"GEOS_0.5x0.625/MERRA2/2019/01","keys":217,"root_id":"a1a5fc356b6cc334","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=20490,mountport=20490,nolock <host>:/ /mnt
+  FAIL skipping nfs-r1: gateway not healthy
+
+=== ARM 4/5 — per-node lith mounts, NUM_READERS=24 ===
+  Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  compute-dy-nodes-1 procs=0 fuse=0 nfs=4
+  Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  compute-dy-nodes-2 procs=0 fuse=0 nfs=4
+
+=== arm setup: PER-NODE FUSE mounts (5 daemons on each of 2 nodes) ===
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  ok   compute-dy-nodes-1: 5 fuse.lith mounts
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  ok   compute-dy-nodes-2: 5 fuse.lith mounts
+
+=== RUN mount-r24   dir=gchp_lith_TransportTracers   NUM_READERS=24 ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  NX=4 NY=24 NUM_READERS=24
+RESULT mount-r24    readers=24  init=41.88s  sim_end=93.88s  wall=94.6s  steps=144/144  SIM_COMPLETE
+
+=== read topology after mount-r24 — bytes fetched from S3, per node ===
+TOPOLOGY mount-r24    compute-dy-nodes-1           s3_bytes=4358339310 (4156.4 MB)
+TOPOLOGY mount-r24    compute-dy-nodes-2           s3_bytes=4352113390 (4150.5 MB)
+
+=== ARM 5/5 — shared lith serve nfs gateway, NUM_READERS=24 ===
+  Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  compute-dy-nodes-1 procs=0 fuse=0 nfs=4
+  Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  compute-dy-nodes-2 procs=0 fuse=0 nfs=4
+
+=== arm setup: ONE SHARED GATEWAY — 5 lith serve nfs on compute-dy-nodes-1, both nodes mount it ===
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  ok   gateway processes on compute-dy-nodes-1: 15/5
+  FAIL not all gateways started
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+{"time":"2026-09-17T16:51:19.572896072Z","level":"INFO","msg":"lith NFSv3 gateway","listen":":20490","bucket":"gcgrid","prefix":"GEOS_0.5x0.625/MERRA2/2019/01","keys":217,"root_id":"a1a5fc356b6cc334","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=20490,mountport=20490,nolock <host>:/ /mnt
+  FAIL skipping nfs-r24: gateway not healthy
+
+=== cleanup ===
+  Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+  compute-dy-nodes-1 procs=0 fuse=0 nfs=4
+  Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+  compute-dy-nodes-2 procs=0 fuse=0 nfs=4
+
+=== GATE 2 SUMMARY ===
+RESULT fsx-r1       readers=1   init=33.13s  sim_end=69.13s  wall=70.2s  steps=144/144  SIM_COMPLETE
+RESULT mount-r1     readers=1   init=41.43s  sim_end=88.43s  wall=89.5s  steps=144/144  SIM_COMPLETE
+TOPOLOGY mount-r1     compute-dy-nodes-1           s3_bytes=4353817326 (4152.1 MB)
+TOPOLOGY mount-r1     compute-dy-nodes-2           s3_bytes=4328192750 (4127.7 MB)
+RESULT mount-r24    readers=24  init=41.88s  sim_end=93.88s  wall=94.6s  steps=144/144  SIM_COMPLETE
+TOPOLOGY mount-r24    compute-dy-nodes-1           s3_bytes=4358339310 (4156.4 MB)
+TOPOLOGY mount-r24    compute-dy-nodes-2           s3_bytes=4352113390 (4150.5 MB)

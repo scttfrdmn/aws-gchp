@@ -1,0 +1,340 @@
+GATE 5f-M — IS THE WINDOW DIVISOR CHARGED FOR IDLE OPEN HANDLES? (lith#298)
+2026-10-01, in-region, ~$0.02 of GET requests (no egress, head node already up)
+================================================================================
+
+WHY: upstream handed #298 over explicitly — "#298 is the live thread and it's yours:
+the budget line reading 1250000000 bytes identically at c32, c128 and c512 means the
+third bound is computed with no reference to how many slots will consume it. Three
+bounds, three derivations, and now demonstrably no composition in that direction
+either." They also closed #256 and parked the default block-size change in #300 on
+the strength of 5f-L, so the unit question is settled and the DEPTH SIZING question
+is what remains.
+
+Of the three bounds, exactly one has never been exercised in this entire campaign:
+the per-handle divisor.
+
+  perHandleWindow() = clamp(budgetBlocks / openHandles, 2, maxReadahead)
+  budgetBlocks()    = prefetchBudget / blockSize            (fs.go:1252, :1279)
+
+Every gate from 5f-G through 5f-L ran ONE open handle, where budgetBlocks/1 = 492 >
+maxReadahead = 223, so the declared depth bound won and the divisor was invisible.
+It can only bind with more handles. And whether it counts handles that are merely
+OPEN, versus handles that are actively streaming, decides whether `--max-readahead`
+means anything at all to a real scientific reader — because netCDF/HEMCO workloads
+hold a great many files open and read them one at a time.
+
+There is a banked observation this would explain. In the original GCHP production
+measurement BOTH mounts ran at the window FLOOR of 2. Rank count alone does not
+explain it: 492/48 = 10, not 2. Hundreds of simultaneously-OPEN files would.
+
+SETUP  in-region (2.2 ms), DEFAULT flags (8 MiB block, auto max_readahead -> 223),
+  fresh cold mount + unique metrics port + --pf-trace per cell, --log-level info,
+  n=3. 16 distinct GEOSFP A3dyn days, 3.72-3.81 GB each = 444-454 blocks of 8 MiB,
+  so every object is larger than the 223-block window and can realize it in full.
+
+  ARM A  N processes each streaming a DIFFERENT object concurrently
+           N in {1, 2, 3, 4, 8, 16}
+  ARM B  1 streaming reader + (N-1) handles held OPEN after a single 4 KiB header
+           read, never streamed.  N in {2, 3, 4, 8, 16, 64, 256}
+           This is the netCDF/HEMCO shape, and N=256 is the only cell that can
+           reach the clamp FLOOR of 2 (492/256 = 1.92).
+  ARM C  1 streaming reader + 7 handles opened with NO read at all (N=8)
+           Separates "open() registers the handle" from "the first read does".
+
+  Observable is the window lith actually computed, from the trace's `window` column,
+  not a summary: per streaming handle, wmax = max over its fetches and wsteady =
+  median over the last 80% of its fetches. Arm A's readers do not start
+  simultaneously, so the first reader's early fetches legitimately see fewer open
+  handles; THE PREDICTION IS ABOUT wsteady and wmax is reported as an upper bound.
+
+PRE-REGISTERED, WRITTEN AND COMMITTED BEFORE THE RUN
+  H_charge: openHandles counts every OPEN handle regardless of activity. Then the
+    steady-state window is clamp(492/N, 2, 223) in BOTH arms:
+      N:        1    2    3    4    8   16   64  256
+      window: 223  223  164  123   61   30    7    2
+    Note the shape is not monotone-from-the-start: N=2 gives 246 > 223, so the
+    prediction is NO CHANGE at N=2 and a 26% drop at N=3. A threshold at a named
+    place is a much stronger test than "decreasing".
+    Arm C also drops (open() alone registers).
+  H_active: only handles with outstanding reads are counted. Then ARM A follows the
+    table above but ARM B STAYS AT 223 FOR EVERY N, including 256, and arm C stays
+    at 223.
+  H_firstread: open() alone does not register, the first read does. Then arm B
+    follows the table and ARM C STAYS AT 223 while arm B at N=8 does not.
+
+  These differ in sign on cheap decisive cells: B at N=8 (61 vs 223) and B at N=256
+  (2 vs 223) separate H_charge from H_active; C at N=8 separates H_charge from
+  H_firstread.
+
+  WHAT EACH OUTCOME WOULD MEAN
+  - H_charge: `--max-readahead` is unreachable for any multi-file reader, and the
+    headline knob of this entire issue is silently governed by how many files the
+    application happens to have open — which is not a property anyone tunes, log,
+    or documents. That makes the banked window-of-2 a bug rather than a mystery, and
+    it makes the divisor, not the unit and not the evidence ratio, the thing with the
+    largest reach into real workloads.
+  - H_active: the divisor is doing something defensible and #298 is purely a
+    reporting/derivation-disagreement issue, not a behavioural one.
+  - H_firstread: both, and the fix is scoped to accounting at open().
+
+  SECOND, INDEPENDENT PREDICTION (the one that makes it matter)
+  Aggregate in-flight commitment = (streaming handles) x window x 8 MiB. Under
+  H_charge: 1.87 GB at N=1, 3.74 GB at N=2, then ~4.13 GB flat for N>=3 in arm A.
+  The budget line in the mount log says 1,250,000,000 bytes. So the logged budget
+  would be EXCEEDED AT EVERY HANDLE COUNT — 1.5x at N=1 and 3.3x at N>=3 — which is
+  the concrete demonstration #298 is missing: not that three derivations disagree on
+  paper, but that the one printed as "the budget" is never the one enforced.
+
+  REFUTER, stated in advance: if arm A's wsteady does not fall at N=3 (where 492/3 =
+  164 first drops below 223), then budgetBlocks is not 492 on this box under
+  multi-handle load and the whole derivation I verified at one handle does not
+  generalize. I would report that and stop, rather than reach for a fourth bound.
+
+COST  in-region, so no egress. ~475 GB of GETs is ~$0.02 of request charges on a head
+  node that is already up. Upstream declined the $0.60 cross-region concurrency cells
+  on the grounds that no decision hung on them; this one is both cheaper and attached
+  to a live issue they just assigned to me.
+
+================================================================================
+RESULTS
+
+RESULT 0 — H_charge CONFIRMED, INTEGER-EXACT, IN EVERY CELL
+  Realized steady-state window vs clamp(492/N, 2, 223), median of 3 reps:
+
+    N          1    2    3    4    8   16   64  256
+    predicted 223  223  164  123   61   30    7    2
+    ARM A     223  223  164  123   61   30    -    -     (N streaming readers)
+    ARM B      -   223  164  123   61   30    7    2     (1 reader + N-1 held OPEN)
+    ARM C      -    -    -    -    61    -    -    -     (1 reader + 7 opened, NO read)
+
+  42/42 cells exact, every rep, both arms. Not one off-by-one. The threshold lands
+  exactly where predicted: NO change at N=2 (492/2 = 246 > 223, so maxReadahead still
+  binds) and a 26% drop at N=3 (164). H_active is refuted — arm B does not stay at
+  223 — and H_firstread is refuted by arm C: 7 handles that were opened and NEVER
+  read drive the window from 223 to 61 exactly as 7 header-reading handles do.
+
+  So: openHandles counts every OPEN file descriptor, mount-wide, whether or not it
+  has ever been read.
+
+  Three consequences that were not in the prediction and fall straight out:
+  (a) CROSS-PROCESS. The holder is a separate process from the reader. One
+      process's open files shrink another process's prefetch depth, with no
+      isolation and nothing in either process's view to show it.
+  (b) PER-DESCRIPTOR, NOT PER-OBJECT. Arm B at N=64 held 63 fds spread over only 16
+      distinct objects and realized 7 = 492/64, not 492/17 = 28. Opening the same
+      file twice halves your prefetch depth.
+  (c) THE LOG IS WRONG BY 111x. The mount log line "readahead window blocks=223" is
+      printed identically in the N=64 and N=256 cells, where the realized window is
+      7 and 2. Nothing else in the log corrects it. That is #297 with a number on it.
+
+RESULT 1 — IT COSTS WALL TIME, AND THE COUNTERS CANNOT SEE IT
+  Arm B only: ONE streaming reader, SAME object, every cell. The only thing that
+  changes across the row is how many OTHER files are sitting open.
+
+    N           2      3      4      8     16      64     256
+    window    223    164    123     61     30       7       2
+    wall s  3.187  3.110  3.161  3.366  3.239   7.739  20.343   (median of 3)
+    MB/s     1185   1214   1195   1122   1166     488     186
+    GETs      480    481  481/2  485/6    494     495     495
+    fetched  3776.8 3777.9 3778.9 3783.1 3791.5 3792.6  3792.6  MB
+
+  6.38x THE WALL for holding 255 files open, on fetched bytes that differ by +0.4%
+  and a GET count that differs by +3%. Complete separation: B-n64's fastest rep
+  (7.655 s) is slower than B-n16's slowest (3.674 s), and B-n256's fastest (20.090 s)
+  is slower than B-n64's slowest (7.837 s).
+
+  This is the THIRD independent instance on this issue of the same lesson: bytes and
+  requests being near-identical is a true and insufficient regression gate. 5f-G/5f-I
+  found it for --readahead-evidence-ratio; this is a 6.4x version of it.
+
+  THERE IS A KNEE, AND IT IS NOT WHERE THE KNOB IS. From 223 down to 30 blocks the
+  cost is not measurable (1185 / 1214 / 1195 / 1122 / 1166 MB/s — unordered inside
+  noise). The cliff is between 30 and 7. So 30 blocks = 252 MiB in flight already
+  saturates this path in-region, and the shipping 223 is ~7x deeper than it needs to
+  be — while the regime that actually hurts is the one no one is tuning.
+
+RESULT 2 — CAUSAL CONTROL: IT IS THE DEPTH, NOT THE DESCRIPTORS
+  The obvious alternative is that holding 255 descriptors is itself expensive. So the
+  same shallow windows were produced a second way, with ONE handle and no holders at
+  all, by forcing --max-readahead. 4 forced depths x 8 handle counts, n=3, 32 cells:
+
+    realized window == clamp(492/N, 2, forced_max_readahead) in 32/32 CELLS.
+    The two bounds compose exactly as min(), with no interaction term.
+
+  Pooling every cell by the window it actually realized:
+
+    window   cells    med s    MB/s    spread
+      223        3     2.92    1293    2.90-3.01   (auto, 1 handle, main gate)
+       61       15     3.12    1212    2.72-4.23
+       30       21     3.61    1047    3.28-5.44
+        7       27     9.47     399    7.00-24.80
+        2       33    25.50     148   16.06-51.34
+
+  At ONE handle with no holders, --max-readahead 2 gives 25.67 s — SLOWER than the
+  20.34 s reached at window 2 via 255 held descriptors. So holding descriptors is not
+  a cost in itself; the entire penalty is the depth they cause. And at forced
+  --max-readahead 2 the wall is flat across N = 1..256 (23.8-27.5 s, no trend),
+  confirming handle count has no effect of its own once the window is pinned.
+
+  WHAT I WILL NOT CLAIM: that wall is a function of realized window ALONE. The
+  window-2 row spans 16.06-51.34 s, and the spread is not random — the
+  mra=61/N=256 cell (16.1-18.4 s) is systematically ~1.5x faster than every other
+  way of reaching window 2. Same realized steady-state window, different wall. I do
+  not know what the residual is; it is not monotone in forced max_readahead
+  (mra=30/N=256 is the slowest of all). Window sets the magnitude CLASS and the sign;
+  something else sets ~1.5x inside it, and I am handing that over rather than fitting
+  it.
+
+RESULT 3 — THE LOGGED BUDGET IS NEVER THE ENFORCED ONE (the #298 point)
+  The mount log says, verbatim and in every one of the 150 cells:
+    "inflight-bytes budget" budget="1250000000 bytes (2 × 50.0 Gbps baseline × 100 ms)"
+  = 1192 MiB. Realized aggregate commitment in arm A, (streaming handles) x window x
+  8 MiB:
+
+    N              1     2     3     4     8    16
+    aggregate   1871  3741  4127  4127  4094  4027   MiB
+    vs logged   1.57x 3.14x 3.46x 3.46x 3.43x 3.38x
+
+  Exceeded at EVERY handle count, by 1.57x at one handle and ~3.46x once the divisor
+  takes over. So the three bounds of #298 do not merely disagree on paper: the one
+  printed as "the budget" is not a budget. What the divisor actually conserves is the
+  RAM fraction (4.128 GB), which holds flat to within 2.4% for all N >= 3 — that part
+  is working exactly as designed and arm A is the control that shows it.
+
+RESULT 4 — THE BANKED GCHP FLOOR OF 2, EXPLAINED
+  The original production measurement had BOTH mounts running at the window floor of
+  2, which 48 ranks alone could not explain (492/48 = 10). The floor needs N >= 246
+  open descriptors. A 48-rank GCHP run holding ~6 met/HEMCO files open per rank is
+  288. Arm B at N=256 reproduces the floor exactly, and Result 1 prices it: that run
+  was reading at 186 MB/s where 1293 was available, through no flag anyone set.
+
+  This also explains, retroactively, why `--max-readahead` did nothing in the earliest
+  gates of this campaign and why the whole investigation had to move to single-handle
+  microbenchmarks to see any window effect at all. The knob was never reachable.
+
+LIMITS, STATED RATHER THAN BURIED
+  - IN-REGION ONLY (2.2 ms), one box, one object family, contiguous dd, 8 MiB blocks.
+    At higher RTT the knee almost certainly moves deeper, so the 30-block knee is a
+    number for this path, not a recommendation.
+  - Arm A's aggregate throughput is NIC-BOUND (1290 -> 1769 MB/s, saturating ~14 Gbps
+    on a c7g.4xlarge) and therefore says nothing about the divisor's cost. Arm A is
+    here for the window observable and the aggregate-commitment arithmetic only. All
+    wall claims come from arm B and the forced-window control, which stream ONE
+    object and never approach the NIC.
+  - n=3 throughout. Every wall claim above rests on complete separation between
+    adjacent cells rather than on the magnitudes, which are soft.
+  - The ~1.5x residual inside window 2 is unexplained (Result 2).
+
+COST  ~$0.02 of GET requests. In-region, so no egress; head node already up. 475 GB
+  read across 182 cells.
+
+ARCHIVE — no zero-byte logs this time
+  All 150 mount logs non-empty (--log-level info, default in the harness now). The raw
+  --pf-trace CSVs total 194 MB uncompressed, which is wildly out of line with the
+  1-2 MB archives banked for every other gate on this issue, so the archive keeps
+  windows.csv — the decision observable for all 150 cells, 1134 rows, one per handle —
+  plus the full raw CSV for the 12 decisive cells, and every mount log and wall file
+  untrimmed.
+
+  data/lith-gates/inregion-openhandles.txt   this file
+  data/lith-gates/openhandles-traces.tgz     438 files, 3.08 MB
+      sha256 63f1e960f74ecdc48a424ce72399098d0d5ca5b1b0ec5e4ca6d86a156ad3bfc9
+  scripts/lith/gate-openhandles.sh           harness
+  scripts/lith/parse-openhandles.py          window per cell (Result 0)
+  scripts/lith/walls-openhandles.py          wall/GETs per cell (Result 1)
+  scripts/lith/grid-openhandles.py           composition grid (Result 2)
+  scripts/lith/pack-openhandles.py           archive packer
+
+================================================================================
+FOLLOW-ON, $0, FROM THE BANKED TRACES — #301's "measure the invariant" step
+2026-10-01
+================================================================================
+
+#301/#298 asked for the one thing the gate did not produce: resident prefetched-but-
+unread BYTES, to decide whether the window x handles proxy is tight. Upstream's plan is
+a new gauge over `bs.prefetched`. Before they spend effort on it I tried to answer it
+from the 194 MB of --pf-trace already banked, at $0.
+
+RESULT A — THE DERIVATION IS IMPOSSIBLE, AND THE FAILURE MODE IS A TRAP
+  The obvious estimator, per handle, is
+
+      lead_i = cumsum(dispatched)_i - (blk_i + 1)
+
+  "blocks dispatched but not yet consumed". It does not close. For A-n1 (one handle,
+  window 223, a 451-block object):
+
+      distinct blocks read  451
+      sum(dispatched)       672        overshoot 221 = window - 2
+
+  Structure, read off the rows: ONE establishment burst of exactly 223 at blk 1, then
+  +1 at every subsequent block boundary — 449 of them — including the ~221 boundaries
+  after the frontier has already passed EOF and there is nothing left to dispatch. So
+  the counter overruns the object by the standing window, and across ALL 50 streaming
+  cells (6 window values, 2 arms, 4 forced-max controls):
+
+      overshoot == FINAL window - 2   in 50/50 cells, exactly
+
+  including the 3 cells whose window CHANGED mid-run, where it tracks the final window
+  (A-n16 med 30 -> final 223, overshoot 221) and not the median. No exceptions.
+
+  Therefore the estimator returns the standing window - 2 at any point BY CONSTRUCTION.
+  Divide it by the charge (window x handles) and you get ~1.0 and conclude the proxy is
+  tight. I had 0.93-0.99 across every cell and was one commit from posting it as the
+  answer to #301's decision criterion. It is window x handles / window x handles.
+
+  Stated for upstream's benefit, not mine: the new gauge must not be validated against
+  this identity. `--pf-trace` has no completion or eviction events, so the only bound it
+  can support is "resident <= window per handle", which IS the charge. The quantity is
+  knowable at `bs.prefetched` and nowhere else.
+
+RESULT B — WHAT THE TRACE *CAN* ANSWER: THE ESTABLISHMENT TRANSIENT, MEASURED
+  #301: "transient over-commitment is bounded by (newly establishing handles x their
+  window) and that wants measuring, not reasoning." This is one row per cell, no
+  cumulation, so it survives Result A:
+
+      establishment = exactly ONE burst, at the first block boundary, of size exactly
+      equal to the window, at state cold->sequential, in 50/50 cells
+      (223, 164, 123, 61, 30, 7, 2 — each matching its own clamp(492/N, 2, mra))
+
+  So the bound is not merely a bound: a handle commits its full window in a single shot
+  the moment it is classified sequential. #301's formulation is tight, not conservative.
+
+RESULT C — A SECOND TRANSIENT #301 DOES NOT ACCOUNT FOR: RE-GRANT AT handle CLOSE
+  Re-grant bursts appear late in the run, and the arm contrast makes them causal:
+
+      A-n3   win 164  one later burst at  92% of run, size 60
+      A-n8   win  61  one later burst at 100% of run, size 10
+      A-n16  win  30  ELEVEN later bursts, 89-98%: 3,4,15,6,8,10,13,17,26,42,60
+      A-n1, A-n2, A-n4           none
+      every B cell, every C cell none
+
+  Arm A runs N concurrent readers that FINISH and close; arm B holds N-1 descriptors
+  open for the whole run. Only the arm where handles close shows the bursts. A-n2 has 2
+  concurrent readers and shows none because 492/2 = 246 is already clamped to 223, so
+  there is no upward room. The sizes are exact: a close takes 492/N up by dW and the
+  survivor immediately dispatches dW + 1 (A-n3 164->223, dW 59, burst 60; A-n8 61->70,
+  dW 9, burst 10). A-n16's eleven bursts sum to 204 = the 30->223 climb (193) + 11.
+
+  So there are two transients, not one: open (full window, once) and close ((N-1)
+  survivors x dW each, repeated for every close). The second is unbounded by the first's
+  formula and lands at the END of a run, when the aggregate charge is at its highest.
+
+RECONCILIATION OF A CLAIM I DID NOT PUBLISH
+  My broken estimator peaked at 92.8-99.9% of the run and I read that as a 2.7x
+  transient breach of the #55 invariant (11.19 GB against a 4.128 GB budget). The
+  POSITION was a real signal — Result C, visible in single rows. The MAGNITUDE was the
+  Result A artifact. The 2.7x is withdrawn before it was ever asserted; what remains is
+  "re-grant bursts cluster at the end of the run", which is weaker and is observed.
+
+LIMIT
+  Results B and C are dispatch-side only. Whether a dispatched block is still RESIDENT
+  when the next one is dispatched is exactly what the trace cannot see, so none of this
+  converts into a bytes-resident number. It constrains the shape of the transient and
+  nothing about its decay.
+
+COST  $0. No mounts, no GETs; re-analysis of openhandles-traces.tgz on the running head
+  node. Campaign running total unchanged at ~$4.21.
+
+  scripts/lith/dispatch-closure.py   Results A/B/C; prints the closure defect rather
+                                     than a residency number, deliberately
+  scripts/lith/establish-burst.py    first-pass burst finder

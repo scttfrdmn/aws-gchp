@@ -1,0 +1,54 @@
+=== gate 5f-P7  2026-10-03T01:15:06Z  B=c62832b261d0  memc=16GB reps=2
+CELL F-1 flags=none objects=1
+  readers done in 4.991568580 s
+  SNAP exit+0s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+5s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+20s   G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=264.0 max_G_at_inflight0_MiB=264.0 peak_committed-peak_resident_MiB=10.0 rows=124
+CELL FX-1 flags=--max-readahead 1 objects=1
+  readers done in 24.760269201 s
+  SNAP exit+0s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+5s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+20s   G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=23.0 max_G_at_inflight0_MiB=23.0 peak_committed-peak_resident_MiB=7.0 rows=223
+CELL H-1 flags=none objects=1
+  read 1024 MiB in 1.423901782 s; holding
+  SNAP held+1s    G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=1
+  SNAP held+18s   G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=1
+  closed
+  SNAP closed+1s  G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=0
+  SNAP closed+15s G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=251.0 max_G_at_inflight0_MiB=251.0 peak_committed-peak_resident_MiB=0.0 rows=181
+CELL M3-1 flags=none objects=3
+  readers done in 9.265999638 s
+  SNAP exit+0s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=48 issued=10691 used=10691 evicted=0 straddle=0 open=0
+  SNAP exit+5s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=48 issued=10691 used=10691 evicted=0 straddle=0 open=0
+  SNAP exit+20s   G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=48 issued=10691 used=10691 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=763.0 max_G_at_inflight0_MiB=763.0 peak_committed-peak_resident_MiB=135.0 rows=146
+CELL F-2 flags=none objects=1
+  readers done in 3.323832107 s
+  SNAP exit+0s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+5s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+20s   G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=264.0 max_G_at_inflight0_MiB=264.0 peak_committed-peak_resident_MiB=77.0 rows=116
+CELL FX-2 flags=--max-readahead 1 objects=1
+  readers done in 24.070753460 s
+  SNAP exit+0s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+5s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SNAP exit+20s   G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=16 issued=3586 used=3586 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=23.0 max_G_at_inflight0_MiB=23.0 peak_committed-peak_resident_MiB=15.0 rows=219
+CELL H-2 flags=none objects=1
+  read 1024 MiB in 1.424271050 s; holding
+  SNAP held+1s    G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=1
+  SNAP held+18s   G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=1
+  closed
+  SNAP closed+1s  G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=0
+  SNAP closed+15s G_MiB=0.0 committed_MiB=271.0 resident_MiB=271.0 inflight=0 K=271 U=16 issued=1280 used=1009 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=257.0 max_G_at_inflight0_MiB=257.0 peak_committed-peak_resident_MiB=0.0 rows=181
+CELL M3-2 flags=none objects=3
+  readers done in 8.664728491 s
+  SNAP exit+0s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=48 issued=10691 used=10691 evicted=0 straddle=0 open=0
+  SNAP exit+5s    G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=48 issued=10691 used=10691 evicted=0 straddle=0 open=0
+  SNAP exit+20s   G_MiB=0.0 committed_MiB=0.0 resident_MiB=0.0 inflight=0 K=0 U=48 issued=10691 used=10691 evicted=0 straddle=0 open=0
+  SERIES max_G_MiB=685.0 max_G_at_inflight0_MiB=685.0 peak_committed-peak_resident_MiB=121.0 rows=143
+=== done 2026-10-03T01:19:46Z

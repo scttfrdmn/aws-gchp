@@ -1,0 +1,56 @@
+=== ARM solo k=1 mode=whole jitter=0 ===
+wall .412473422
+solo lith_cache_hits_total{tier="mem"} 99
+solo lith_cache_misses_total 8
+solo lith_distinct_bytes_read 1.11869952e+08
+solo lith_nfs_read_bytes_total 1.11810271e+08
+solo lith_prefetch_issued_total 99
+solo lith_prefetch_used_total 99
+solo lith_read_straddle_total 0
+solo lith_s3_bytes_total 1.11810271e+08
+solo lith_s3_requests_total{op="get",status="ok"} 21
+=== ARM k8-same k=8 mode=whole jitter=0 ===
+wall .555367044
+k8-same lith_cache_hits_total{tier="mem"} 848
+k8-same lith_cache_misses_total 8
+k8-same lith_distinct_bytes_read 1.11869952e+08
+k8-same lith_nfs_read_bytes_total 8.94482168e+08
+k8-same lith_prefetch_issued_total 99
+k8-same lith_prefetch_used_total 99
+k8-same lith_read_straddle_total 0
+k8-same lith_s3_bytes_total 1.11810271e+08
+k8-same lith_s3_requests_total{op="get",status="ok"} 21
+=== ARM k8-jitter k=8 mode=whole jitter=1 ===
+wall 1.784069301
+k8-jitter lith_cache_hits_total{tier="mem"} 848
+k8-jitter lith_cache_misses_total 8
+k8-jitter lith_distinct_bytes_read 1.11869952e+08
+k8-jitter lith_nfs_read_bytes_total 8.94482168e+08
+k8-jitter lith_prefetch_issued_total 99
+k8-jitter lith_prefetch_used_total 99
+k8-jitter lith_read_straddle_total 0
+k8-jitter lith_s3_bytes_total 1.11810271e+08
+k8-jitter lith_s3_requests_total{op="get",status="ok"} 21
+=== ARM k8-stripe k=8 mode=stripe jitter=0 ===
+wall .334884024
+k8-stripe lith_cache_hits_total{tier="mem"} 99
+k8-stripe lith_cache_misses_total 8
+k8-stripe lith_distinct_bytes_read 1.11869952e+08
+k8-stripe lith_nfs_read_bytes_total 1.11810271e+08
+k8-stripe lith_prefetch_issued_total 99
+k8-stripe lith_prefetch_used_total 99
+k8-stripe lith_read_straddle_total 0
+k8-stripe lith_s3_bytes_total 1.11810271e+08
+k8-stripe lith_s3_requests_total{op="get",status="ok"} 21
+=== ARM k48-same k=48 mode=whole jitter=0 ===
+wall 1.770052165
+k48-same lith_cache_hits_total{tier="mem"} 5128
+k48-same lith_cache_misses_total 8
+k48-same lith_distinct_bytes_read 1.11869952e+08
+k48-same lith_nfs_read_bytes_total 5.366893008e+09
+k48-same lith_prefetch_issued_total 99
+k48-same lith_prefetch_used_total 99
+k48-same lith_read_straddle_total 0
+k48-same lith_s3_bytes_total 1.11810271e+08
+k48-same lith_s3_requests_total{op="get",status="ok"} 21
+OBJECT_SIZE 111810271

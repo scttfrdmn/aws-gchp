@@ -1,0 +1,29 @@
+
+=== node facts 2026-09-18T21:49:43Z ===
+instance: c8g.48xlarge  host: compute-dy-nodes-2  cores: 192  mem: 371 GiB
+/dev/shm: 186G size, 186G avail
+domains_stack_size: absent (GCHP default)
+lith: lith 1.1.2   --nic-gbps 50
+
+=== preflight ===
+  all preflight checks passed
+
+=== ARM 1 — fullchem C24 through lith (live s3://gcgrid) ===
+lith mounted in the background (pid 16500); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16617); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16733); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16847); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 16965); logs: /tmp/lith-1000-mount.log
+  fuse.lith mounts: 5
+  HEMCO ROOT -> /input-lith/HEMCO
+  MetDir  -> /input-lith/GEOS_0.5x0.625/MERRA2
+  HcoDir  -> /input-lith/HEMCO
+  ChemDir -> /input-lith/CHEM_INPUTS
+  restart -> /input-lith/GEOSCHEM_RESTARTS/GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.c24.nc4
+  entry points resolve OK
+
+=== RUN lith ===
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+  layout: NX=2 NY=24 ranks=48
+  at launch: HcoDir -> /input-lith/HEMCO  MetDir -> /input-lith/GEOS_0.5x0.625/MERRA2  HEMCO ROOT -> /input-lith/HEMCO
