@@ -1599,3 +1599,31 @@ Predictions (mine, from P9i): C1 le025 fraction 40-65% (seq.07 cumulative 13/23 
   ticks falls below 10%. If T < 10% and H >= 10%, the floor's survival depends on the demand prefix
   just as the median's did, and I'll say so rather than call O1 confirmed.
 Cost: $0 (in-region, head node).
+
+--- 5f-P9j RESULTS (head node, 2026-10-04 16:4x UTC, lith v1.5.0 release md5 da9d93515ed9) ---
+  Raw: data/lith-gates/p9j/ (idle/seq.*.prom, rep{1,2}/ttfb.csv + final.{9210,9212}.prom, p9j.log).
+  C1 in-region idle (6 sequential var1 opens, one default mount):
+     cumulative le025 50/140 = 35.7%, le060 90/140 = 64.3%. Every open 59.8 MB / 23-24 GETs; the
+     8-median after each open 98-108 ms (P9i reproduced).
+  C2 in-region loaded, 12-rank GCHP C24 TT, full simulated day each (144 steps to 2019/01/02, then the
+     known finalization abort), cap_restart advanced at ~120 s:
+     mount            rep  count  le025%  le060%  gauge>0 ticks  inflight max (2 Hz)
+     merra2-201901     1   4245   49.5%   87.0%   54%            31
+     merra2-201901     2   4160   53.5%   87.8%   50%            16
+     POOLED(5 mounts)  1   4492   49.4%   86.8%
+     POOLED(5 mounts)  2   4342   52.6%   87.3%
+  H (headline): in-region-loaded le025 = 49.5% / 53.5% on the met mount >= 10% -> O1's in-region half
+     HOLDS at 12 ranks. O1 is NOT confirmed overall: its cross-region half (C3 = 0%) is unmeasured.
+  T (pre-registered, inflight >= 64): UNSCOREABLE. lith_s3_inflight never exceeded 31 at 2 Hz; 12 ranks
+     do not put a mount under the load the question is about. Post-hoc at inflight >= 16 (2 ticks/rep,
+     n=253/277): 30.8% / 37.9%. Labelled post-hoc, direction only.
+  My predictions: C1 40-65% MISSED (35.7%). C2 H >= 10% held. "T < 10%" unscoreable, and the post-hoc
+     reading points the other way.
+  Side observation (unscored): under GCHP the met mount's gauge is > 0 on only ~half the ticks, and its
+     end-of-run 8-median is 26.6 / 73.0 ms across reps. The median gate flaps under real load; the le025
+     fraction is stable (49.5 / 53.5%).
+  -> At 12 ranks the floor statistic sits 3-5x above upstream's 10% line, and GCHP's mix of small
+     demand reads keeps it higher than the single-reader burst case (C1). But 12 ranks never reached
+     inflight 64, so the saturation question (cell 2 as upstream framed it) is still open. It needs 48
+     ranks (compute node, paid). C3/C4 need a bucket outside us-east-1.
+  Cost $0.

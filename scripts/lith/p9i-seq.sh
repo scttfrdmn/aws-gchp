@@ -1,7 +1,7 @@
 #!/bin/bash
 # 5f-P9i diagnostic (unscored): does the evidence gate stay engaged across successive opens on one
 # default v1.5.0 mount? var1 slice of A3dyn for 6 different days in one mount; scrape after each.
-G=/scratch/lith-gates; B=$G/v150/lith_linux_arm64; MNT=/scratch/mnt/p9; PORT=9950; OUT=$G/p9i
+G=/scratch/lith-gates; B=$G/v150/lith_linux_arm64; MNT=/scratch/mnt/p9; PORT=9950; OUT=${OUT:-$G/p9i}
 PYX=/scratch/ncenv/bin/python; READER=$G/gate2nd/reader.py
 mkdir -p "$MNT" "$OUT"
 "$B" mount s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07 "$MNT" --metrics ":$PORT" --nic-gbps 50 \

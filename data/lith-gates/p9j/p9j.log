@@ -1,0 +1,56 @@
+[16:44:30] === gate 5f-P9j  2026-10-04T16:44:30Z  ranks=12 reps=2 lith=da9d93515ed9
+[16:44:30] === rep 1
+[16:44:32]   stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 2260191); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+lith mounted in the background (pid 2260224); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+lith mounted in the background (pid 2260255); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+chown: cannot access '/input-lith/HEMCO': Permission denied
+lith mounted in the background (pid 2260287); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+chown: cannot access '/input-lith/HEMCO': Permission denied
+chown: cannot access '/input-lith/CHEM_INPUTS': Permission denied
+lith mounted in the background (pid 2260318); logs: /tmp/lith-1000-mount.log
+[16:44:39]   fuse.lith mounts: 5  daemons answering: 5/5
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[16:44:39]   layout: NX=2 NY=6 ranks=12
+[16:46:39]   cap_restart advanced at 120s
+[16:46:43]   heartbeat lines: 0
+Backtrace for this error:
+Backtrace for this error:
+Backtrace for this error:
+[16:46:46]   stale fuse.lith mounts after cleanup: 0
+[16:46:46] === rep 2
+[16:46:48]   stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 2261327); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+lith mounted in the background (pid 2261366); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+lith mounted in the background (pid 2261398); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+chown: cannot access '/input-lith/HEMCO': Permission denied
+lith mounted in the background (pid 2261433); logs: /tmp/lith-1000-mount.log
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2019/01': Permission denied
+chown: cannot access '/input-lith/GEOS_0.5x0.625/MERRA2/2015/01': Permission denied
+chown: cannot access '/input-lith/HEMCO': Permission denied
+chown: cannot access '/input-lith/CHEM_INPUTS': Permission denied
+lith mounted in the background (pid 2261462); logs: /tmp/lith-1000-mount.log
+[16:46:55]   fuse.lith mounts: 5  daemons answering: 5/5
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[16:46:55]   layout: NX=2 NY=6 ranks=12
+[16:50:16]   cap_restart advanced at 201s
+[16:50:19]   heartbeat lines: 0
+Backtrace for this error:
+Backtrace for this error:
+Backtrace for this error:
+[16:50:21]   stale fuse.lith mounts after cleanup: 0
+[16:50:21] === done 2026-10-04T16:50:21Z
