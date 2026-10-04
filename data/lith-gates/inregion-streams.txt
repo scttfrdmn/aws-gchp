@@ -1698,3 +1698,33 @@ Cost: c8g.48xlarge $7.657/hr x ~0.5 h (boot + 2 reps + teardown idle) ~ $4. Node
         separated from the far side only because the far floor (also burst-queued, gate off) sat at ~125 ms.
         Gauge tracked the median, not the floor (as designed: nothing reads the floor).
      Also: bytes vary across the two concurrent in-region runs (5967 vs 3683 MB); both far above 359 MB engaged.
+
+--- 5f-P9l RESULTS (job 25, compute-dy-nodes-1 c8g.48xlarge, 18:00:07-18:02:53Z, lith v1.6.0 md5 39ebae8ab0c3) ---
+  Raw: data/lith-gates/p9l/. Layout NX=2 NY=24 (official scripts), 144 timesteps per rep, checkpoint
+  write reached at 65 s both reps. Node boot 3.5 min (CONFIGURING 17:56:20-17:59:50).
+  met mount (merra2-201901)   rep1         rep2         (12-rank P9j rep1/rep2 for reference)
+    fills (ttfb count)        4001         3961         4245 / 4160
+    le025 / count             49.1%        51.7%        49.5% / 53.5%
+    le060 / count             86.6%        88.3%        87.0% / 87.8%
+    s3_inflight max (2 Hz)    27           21           31 / 16
+    s3 MB (distinct MB)       3776.6 (3223.4)  3774.8 (3223.0)   3764.1 / 3757.8
+    floor gauge, all ticks    p50 19.2, max 20.9 ms   p50 19.1, max 21.2 ms
+    floor <= 25 ms            112/112 ticks           114/114 ticks
+    8-median <= 50 ms         91/112 (81%)            86/114 (75%)
+    gauge > 0                 91/112                  86/114
+    gauge == (median <= 50)   112/112                 114/114
+    end-of-run floor/median   19.6 / 95.1 ms          19.1 / 93.9 ms
+  F1 PASS: 49.1% / 51.7% >= 10%. The floor survives 48-rank GCHP C24 TT.
+  F2 UNSCOREABLE again: inflight never reached 64 (max 27/21). 48 ranks did not load the mount more than
+     12 did: same fill count (~4000), same bytes (3.77 GB), same inflight range. Rank count is not the
+     knob for mount concurrency on this workload. The mechanism is not measured here; not claimed.
+  F3: floor <= 25 ms on 100% of ticks in both reps, inside a 2 ms band (19.1-21.2 ms); the median was
+     above the 50 ms bound on 19-25% of ticks and ended each run at ~94 ms. The gauge tracked the median
+     on every tick (226/226). Floor steady, median flapping, on the real workload.
+  Predictions: "inflight >= 64" FAILED. "F1 >= 10% but lower than 12-rank" -> >= 10% held, "lower" did
+     not (equal within 2 points). "Floor steadier than median" held.
+  #350: not answerable with GCHP C24 TT at any rank count on one node -- it never builds the ~128-deep
+     burst. The only cell that reached 128 was the synthetic concurrent-reader control (P9k C4i), and there
+     the floor rose to ~70 ms. So: on GCHP the floor separates cleanly; at real burst saturation (synthetic)
+     it does not. Which regime production (C90/C180, multi-node) lives in is unmeasured.
+  Cost: c8g.48xlarge $7.657/hr; job 2.8 min + boot 3.5 min + idle until scale-down.
