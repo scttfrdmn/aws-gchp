@@ -31,8 +31,11 @@ clean_lith() {
 
 mount_lith() {
   local m i p alive=0; set -- $IDX; p=9210
+  # mkdir + chown every mount point BEFORE the first mount: a chown -R after a mount descends into
+  # the FUSE mount, which root cannot traverse without allow_other (harmless "Permission denied").
+  for m in $MNTS; do sudo mkdir -p "/input-lith/$m"; done
+  sudo chown -R "$(id -u):$(id -g)" /input-lith
   for m in $MNTS; do
-    sudo mkdir -p "/input-lith/$m"; sudo chown -R "$(id -u):$(id -g)" /input-lith
     "$LITH" mount "s3://gcgrid/$m" "/input-lith/$m" --index-file "$GATES/idx/$1.lithidx" \
         --no-sign-request --nic-gbps 50 --mem-cache "$MEMC" --metrics ":$p" --daemon
     shift; p=$((p + 1))
