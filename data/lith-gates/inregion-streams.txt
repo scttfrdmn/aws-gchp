@@ -1627,3 +1627,23 @@ Cost: $0 (in-region, head node).
      inflight 64, so the saturation question (cell 2 as upstream framed it) is still open. It needs 48
      ranks (compute node, paid). C3/C4 need a bucket outside us-east-1.
   Cost $0.
+
+--- 5f-P9k PRE-REGISTRATION (lith#349 cells C3/C4, approved on #349 17:03Z; before any cell ran) ---
+Upstream ruling 17:03Z: the 48-rank C2 waits for v1.6.0 (floor gauge, #352). C3/C4 run now on v1.5.0,
+  scored on the histogram, which is upstream's pre-registered statistic (le025/count >= 10% <=> p10 <= 25 ms).
+Setup: bucket s3://gchp-lith-xregion-usw2-942542972736 (us-west-2, recreated) holding
+  MERRA2.201907{02..07}.A3dyn.05x0625.nc4 (~7.3 GB), server-side copied from gcgrid. Head node
+  c7g.4xlarge us-east-1, release v1.5.0 md5 da9d93515ed9, --nic-gbps 50, default flags.
+Cells:
+  C3 cross-region idle   = p9i-seq (one mount, 6 sequential var1 opens), prefix in us-west-2.
+  C4 cross-region loaded = one mount, the same 6 var1 reads launched CONCURRENTLY (6 netCDF readers).
+  C4i in-region control  = C4 against gcgrid 2019/07 (unscored context: does concurrency move in-region le025?).
+  2 Hz scrape of le025/le060/count/median/gauge/s3_inflight per cell; final scrape scored.
+Scoring (upstream O1/O3 as written):
+  O3: C3 has ANY sample <= 25 ms -> the "first byte cannot beat one RTT" anchor is wrong.
+  O1 far half: C3 le025 = 0 (and C4 le025 = 0: load cannot push the far floor DOWN).
+  Context: C3/C4 le060 fraction (expect ~0: RTT 58.6 ms + server time).
+Predictions: C3 le025 = 0/n, C4 le025 = 0/n, C3 le060 < 5%. C4i le025 < C1's 35.7% (concurrency
+  queues first bytes in-region) -- weak, n=1.
+Cost: ~7.3 GB copy + ~15 GB cross-region reads (gate off at distance -> up to ~1.2 GB/open) ~ $0.45.
+  Bucket emptied and deleted after.
