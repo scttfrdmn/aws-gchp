@@ -68,7 +68,8 @@ targets = [a.split("=", 1) for a in sys.argv[4:]]
 KEYS = {"lith_ttfb_seconds_bucket{le=\"0.025\"}": "le025", "lith_ttfb_seconds_bucket{le=\"0.06\"}": "le060",
         "lith_ttfb_seconds_count": "count", "lith_ttfb_median_seconds": "median",
         "lith_ttfb_measured": "measured", "lith_readahead_evidence_ratio": "gauge",
-        "lith_s3_inflight": "inflight", "lith_s3_bytes_total": "s3bytes", "lith_open_handles": "open"}
+        "lith_s3_inflight": "inflight", "lith_s3_bytes_total": "s3bytes", "lith_open_handles": "open",
+        "lith_ttfb_floor_seconds": "floor"}   # v1.6.0+; NA on older binaries
 cols = list(KEYS.values())
 f = open(out, "w"); f.write("t,mount," + ",".join(cols) + "\n"); t0 = time.time()
 while not os.path.exists(stop):
@@ -80,8 +81,8 @@ while not os.path.exists(stop):
             if ln.startswith("#"): continue
             k, _, val = ln.rpartition(" ")
             if k in KEYS: v[KEYS[k]] = val
-        if len(v) == len(cols):
-            f.write("%.2f,%s,%s\n" % (time.time() - t0, name, ",".join(v[c] for c in cols)))
+        if len(v) >= len(cols) - 1:
+            f.write("%.2f,%s,%s\n" % (time.time() - t0, name, ",".join(v.get(c, "NA") for c in cols)))
     f.flush(); time.sleep(1.0 / hz)
 f.close()
 PY
@@ -108,7 +109,7 @@ run_rep() {
   for p in $PORTS; do curl -s "http://127.0.0.1:$p/metrics" > "$R/final.$p.prom"; done
   touch "$R/stop"; wait "$spid" 2>/dev/null
   pkill -f "mpirun -n $RANKS ./gchp" >/dev/null 2>&1; pkill -x gchp >/dev/null 2>&1; sleep 3
-  say "  heartbeat lines: $(grep -cE 'AGCM Date' "$R/gchp.log")"
+  say "  timesteps: $(grep -c 'GCHP Date' "$R/gchp.log")"
   grep -iE "ERROR|forrtl" "$R/gchp.log" | head -3
   clean_lith
 }

@@ -1647,3 +1647,42 @@ Predictions: C3 le025 = 0/n, C4 le025 = 0/n, C3 le060 < 5%. C4i le025 < C1's 35.
   queues first bytes in-region) -- weak, n=1.
 Cost: ~7.3 GB copy + ~15 GB cross-region reads (gate off at distance -> up to ~1.2 GB/open) ~ $0.45.
   Bucket emptied and deleted after.
+
+--- 5f-P9k RESULTS (head node 17:26-17:33Z, v1.5.0 md5 da9d93515ed9) ---
+  Raw: data/lith-gates/p9k/. Six var1 reads of A3dyn 2019-07-02..07 per cell, one fresh default mount.
+  cell                 n    le025        le060        le100        8-median  s3_MB   inflight max  gauge>0 ticks
+  C3  x-region idle    961  0 (0.0%)     0 (0.0%)     87 (9.1%)    144.9 ms  7270.6  128           0/61
+  C4  x-region 6-conc  961  0 (0.0%)     0 (0.0%)    101 (10.5%)   135.6 ms  7270.6   35 (2 Hz)    0/651
+  C4i in-region 6-conc 807 58 (7.2%)    92 (11.4%)  310 (38.4%)   140.1 ms  5967.2  128           1/9
+  O3: NOT triggered. 0 of 1922 cross-region first bytes <= 25 ms (none <= 60 ms either). Anchor holds.
+  O1 far half: HOLDS. C3 = 0% and C4 = 0%; load did not push the far floor down.
+  Predictions: C3/C4 le025 = 0 held; C3 le060 < 5% held (0%); C4i < 35.7% held (7.2%).
+  C4i (unscored context, n=1) is the notable cell. In-region, 6 concurrent var1 readers on one default
+     mount: the gate essentially never engaged (5967 MB vs 6 x 59.8 = 359 MB engaged, i.e. the 54x class
+     of over-fetch back by concurrency alone), inflight hit 128, and the le025 fraction fell to 7.2%,
+     BELOW upstream's 10% falsifier line. Caveat: burst-dominated read mix (C1 vs C2 showed the mix moves
+     this fraction), n=1, v1.5.0 (no floor gauge). It is the bistable loop observed directly: gate off ->
+     full-depth burst -> queued first bytes -> floor up. Whether real GCHP at 48 ranks gets there is P9l.
+  Script note: the first C4 run hung at a bare `wait` that included the backgrounded mount; the C4
+     scrape was taken by hand after the readers had finished (all 6 .reader files complete), then fixed.
+  Cost: ~7.3 GB copy + ~14.5 GB cross-region reads ~ $0.44.
+
+--- 5f-P9l PRE-REGISTRATION (lith#349 cell 2 + #350; approved on #349 17:03Z; before the job was submitted) ---
+Setup: gate-p9j.sh unchanged except the binary and rank count: RANKS=48, REPS=2, lith v1.6.0 release
+  (md5 39ebae8ab0c3, sha256-verified tarball), one c8g.48xlarge compute node of gchp-lith-ab (192 cores,
+  50 Gbps), same 5 prefix mounts/indexes, --nic-gbps 50 --mem-cache 2GB, C24 TT 1 simulated day.
+  2 Hz per mount: le025/le060/count, median, measured, gauge, s3_inflight, s3_bytes, open, FLOOR (new).
+Scoring (upstream's falsifier, restated 17:28Z):
+  F1 (headline): met-mount whole-run le025/count. >= 10% -> floor survives 48-rank GCHP load;
+     < 10% -> floor refuted at this depth, p10 is the wrong quantile, fallback = a signal not
+     downstream of lith's own behaviour.
+  F2 (pre-registered T, now hopefully scoreable): delta-histogram le025 fraction over ticks with
+     inflight >= 64. Same 10% line. Unscoreable again if inflight never reaches 64.
+  F3 (floor vs median on loaded ticks): fraction of loaded ticks with floor <= 25 ms vs median <= 50 ms;
+     and whether gauge > 0 tracks median <= 50 ms (expected: yes, nothing reads the floor).
+  #350 context: max inflight and median at that depth.
+Predictions: inflight reaches >= 64 on the met mount (48 ranks open ~4x the files of 12). F1 >= 10%
+  but lower than the 12-rank 49.5/53.5%; given C4i (7.2%) I put F1 >= 10% at only ~60%. F2 < F1.
+  Gauge flaps as at 12 ranks; floor steadier than median.
+Cost: c8g.48xlarge $7.657/hr x ~0.5 h (boot + 2 reps + teardown idle) ~ $4. Node scales down via PC
+  idle timeout; job time limit 1 h.
