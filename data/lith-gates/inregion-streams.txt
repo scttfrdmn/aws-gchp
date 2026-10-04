@@ -1570,3 +1570,32 @@ DIAGNOSTIC (unscored): one default mount, var1 of A3dyn for 6 different days in 
         not separable on TTFB. Engagement currently depends on each handle's serial demand prefix
         refreshing the window. Concurrent readers (GCHP: 48+ ranks opening at init) may never see
         a sub-50 ms window.
+
+--- 5f-P9j PRE-REGISTRATION (lith#349, upstream's 4-cell TTFB-floor experiment, 2026-10-04; before any cell ran) ---
+Question (upstream, #349): does any statistic of the TTFB distribution separate in-region-under-load
+  from cross-region-idle? Scored by upstream's own pre-registration, held as written:
+  O1. in-region-loaded has >= 10% of samples <= 25 ms AND cross-region-idle has 0%  -> floor separates.
+  O2. in-region-loaded has < 10% <= 25 ms                                           -> option 2 refuted.
+  O3. cross-region-idle has ANY sample <= 25 ms                                     -> physics claim wrong.
+  Statistic: lith_ttfb_seconds bucket{le="0.025"}/_count (and le="0.06"/_count as context), v1.5.0.
+CORRECTION to my #349 offer: the head node is a 16-core c7g.4xlarge, so the $0 "loaded" cell is
+  12 GCHP ranks, not 48 (gate-streams-gchp has only ever run 6/12 here). Run at 12; 48 needs a
+  compute node (paid, asked separately). A 12-rank PASS of O1 is weaker than a 48-rank one; a 12-rank
+  O2 is already decisive (more ranks can only add load).
+Cells run now ($0, head node, release v1.5.0 md5 da9d93515ed9, --nic-gbps 50, --mem-cache 2GB):
+  C1 in-region idle: one default mount of s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07, var1 of A3dyn
+     for 6 days in sequence (= p9i-seq). Cumulative histogram at the end.
+  C2 in-region loaded: scripts/lith/gate-p9j.sh = gate-streams-gchp harness (C24 TT, 5 prefix mounts,
+     official setCommonRunSettings/checkRunSettings) at RANKS=12, 2 reps. 2 Hz scrape per mount of
+     the histogram, median, measured, gauge, lith_s3_inflight.
+  C3/C4 cross-region: NOT RUN here (no bucket outside us-east-1; creating one needs a go).
+Scoring for C2 (two readings, both reported; the HEADLINE is upstream's):
+  H (headline): whole-run le025/count on the met mount (merra2-201901, where the bytes are) and pooled
+     over all 5 mounts. >= 10% -> O1's in-region half holds at 12 ranks; < 10% -> O2.
+  T (time-resolved, stricter): per-tick delta-histogram fraction <= 25 ms restricted to ticks where
+     that mount's lith_s3_inflight >= 64 (loaded phases only). Reported, not used to override H.
+Predictions (mine, from P9i): C1 le025 fraction 40-65% (seq.07 cumulative 13/23 = 57%). C2 headline:
+  >= 10% on the met mount (the ~16 serial demand GETs per open are frequent at init), but T on loaded
+  ticks falls below 10%. If T < 10% and H >= 10%, the floor's survival depends on the demand prefix
+  just as the median's did, and I'll say so rather than call O1 confirmed.
+Cost: $0 (in-region, head node).
