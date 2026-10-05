@@ -1889,3 +1889,21 @@ Which change bounded committed (#320's credit fixes vs another #313-adjacent cha
 Open: the c8gn.48xlarge cells (5f-P6d: 19.6k-25.5k evictions at 1.21-1.27 tier on lith-318) are where the
   collapse was largest; whether it is also gone there needs that box (~$6.30, 34 min last time).
 Cost $0.
+
+--- 5f-P6g PRE-REGISTRATION (lith#313 c8gn half on v1.7.0; approved by user 2026-10-05; before launch) ---
+Box: c8gn.48xlarge on-demand $11.376/h, us-east-1c (subnet-f59636d4, as 5f-P6d), AL2023 arm64
+  ami-0ae8605ed708e3c3e, self-terminate `shutdown -h +120` (InstanceInitiatedShutdownBehavior=terminate),
+  hard cap ~$23, expected ~35 min (~$6.60). Binary lith v1.7.0 (d38624715a8f). Harness gate-p6f.sh +
+  sampler-p6f.py (RESIDENT=1 PRESSURE=1), cells EXACTLY 5f-P6d's: auto L64, auto L112, 600 L32, 600 L64,
+  whole-object dd of distinct GEOS-FP A3dyn (fatnic-a3dyn-objects.txt order), 2 reps, fresh mount per cell.
+Verdict by evicted_unread (0 vs > 1000) first. 5f-P6d on lith-318: L64 clean / L112 collapse (19.6k) /
+  600 L32 clean / 600 L64 collapse (25.5k); committed/tier 0.93 / 1.21 / 0.93 / 1.27.
+Question: is the collapse also gone on the fat-NIC box (as on the head node, 5f-P6f)?
+  GONE   -> L112 and 600 L64 evicted 0 (or < 1000) and committed/tier <= 1.0 in both reps.
+  STAYS  -> either collapses again (evicted > 1000); then cell 1 is scoreable: report committed/tier clean max
+            vs collapse min (upstream: confirm if widened from 0.002; refute if still ~0.002).
+  Also: committed_at_rest_3s == 0 in all 8; pressure peak + held (pressure-max off by default, so held 0).
+  If STAYS, a third arm is run only if time is under 60 min: L112 with --prefetch-pressure-max 1.0 (upstream's
+  "try ~1.0 on a fat-NIC box"), 1 rep, unscored.
+My prediction: GONE on both collapse cells (committed capped at budget as on the head node), wall per cell
+  near 5f-P6d's clean walls; ~60% confidence (the fat-NIC regime had a 12x larger tier and budget).
