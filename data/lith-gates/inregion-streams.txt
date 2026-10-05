@@ -1849,3 +1849,23 @@ P9p (#350): mount TTFB over the s3bench window vs s3bench at the same moment (8 
   W1 is between thresholds in every arm (bounded burst, inflight <= 15): not ~25, not ~100.
   Predictions: P9o PASS held. W1 O3 FAILED (between, not >= 80% <= 50 ms). W2 O1 with CPU < 40% held 2/3.
 Cost $0.
+
+--- 5f-P6f PRE-REGISTRATION (lith#313 01:00Z asks, on v1.7.0 = post-#320 + #367; before any cell ran) ---
+Head node c7g.4xlarge (tier 2 x budget, as 5f-P6c), lith v1.7.0 d38624715a8f, harness gate-p6f.sh = 5f-P6c's
+  gate-p6c.sh + pressure series + committed-at-rest scrape 3 s after readers; RESIDENT=1, 16 readers, whole-object
+  dd, fresh mount per cell, 2 reps. Cells as 5f-P6c: M043 (A3cld x16, clean), M122 (A3dyn x16, clean),
+  D375 (GEOSFP A3dyn x16, collapsed), plus D375P13 = D375 with --prefetch-pressure-max 1.3, interleaved.
+Verdict per cell assigned by evicted_unread (0 vs > 1000) BEFORE reading committed or resident (rule as P6c/P6d).
+Upstream cell 1 (re-score committed/tier post-#320):
+  confirm  separation widened: clean committed/tier max well under collapsed min (P6c: clean <= 1.205 vs
+           collapsed 1.39 on this box; pooled gap was 0.002 on c8gn).
+  refute   gap still ~0.002 (here: clean max within 0.02 of collapsed min) -> committed can't carry a default.
+  Also: committed_at_rest_3s == 0 in every cell (upstream: #320 made it return to zero at rest).
+  NOTE: only the head-node half. The c8gn half (5f-P6d, where the 0.002 knife edge lives) needs a paid box.
+Upstream cell 2 (16-reader arm at --prefetch-pressure-max 1.3):
+  confirm  D375P13 evicted_unread drops toward 0 and spread returns toward 1.0 without wall-clock loss vs D375.
+  refute   wall regresses (overcommit was buying throughput).
+  Also report lith_prefetch_pressure peak and pressure_held_total (did it bind).
+My predictions: committed_at_rest 0 in 10/10; clean committed/tier < 1.0 and collapsed > 1.3 (gap widens);
+  D375 collapses again (evicted > 1000); D375P13 evicted < 100, spread < 1.5, agg wall <= D375's.
+Cost $0.
