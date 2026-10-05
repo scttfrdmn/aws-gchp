@@ -1975,3 +1975,32 @@ Questions: does the spread come under 1.5 (fairness), do evictions reach ~0, and
 My predictions: 0.85: evicted < 50, wall 38-45 s, spread 1.5-2.5. 0.5: evicted 0, wall 45-70 s (over-throttled),
   spread < 2. Peak pressure ~= threshold (+0.01) in both.
 Cost $0.
+
+--- 5f-P9q RESULTS (head node 16:29:50-16:30:25Z, v1.8.0 87248fd3ed2f; raw data/lith-gates/p9q/) ---
+  (gate-p9q.sh's awk crashed scoring WB, which has no wire histogram; WB re-scored from the same final.prom files;
+   scorer fixed afterwards.)
+  arm     rep  fill n  wire n  fill <=25/<=50/<=100        wire <=25/<=50/<=100
+  WB      1-3  153     --      2.6/4.6/17.0, 2.0/8.5/50.3, 3.9/19.0/75.2 %   (no --wire-ttfb; control)
+  WT      1    153     153     2.6/13.1/58.2               2.6/13.7/58.2
+  WT      2    153     153     3.3/18.3/66.7               3.3/18.3/66.7
+  WT      3    153     153     11.8/34.0/83.7              12.4/34.0/83.7
+  W1T     1-3  140     140     fill <=50 61.4/67.1/72.9    wire <=50 61.4/67.1/72.9
+  Counts equal in 9/9 -> no retries. Wire == fill bucket-for-bucket to within 1 sample (full ladder in WT-1).
+  OUTCOME (upstream's): both ~slow -> the delay is AT THE WIRE: the HTTP transport itself receives lith's first
+    bytes late. Not above the wire (not SDK middleware/deserialization/rescheduling). WB (default client path) is
+    as slow or slower than WT, so the plain-*http.Client path did not change it.
+  Prediction "above the wire" FAILED. Combined with P9p (s3bench ~30 ms at the same moment, same part size):
+    lith's requests differ from s3bench's AS REQUESTS -- the next question per upstream.
+  Cost $0.
+
+--- 5f-P6i RESULTS (head node 16:30-16:39:44Z, v1.8.0; raw data/lith-gates/p6i/) ---
+  arm (all gate -1)  rep  evicted   agg wall s   spread      held   peak pressure  peak committed
+  G0 (control)       1,2  2853, 2983  116.0, 112.3  3.93, 4.06  0, 0   1.402, 1.401   11.57 GB
+  G0P13 (1.3)        1,2  2051, 2235  106.8, 100.1  4.32, 4.10  100, 94  1.300, 1.306  10.74-10.78 GB
+  G0P10 (1.0)        1,2  119, 71     40.3, 41.5    2.60, 2.63  394, 393  1.004, 1.004  8.29 GB
+  @1.3 REFUTED by upstream's criterion: held > 0 (100/94) but evictions still in the thousands. The gate is not
+    advisory -- peak pressure is held AT 1.30 -- it bounds committed at 1.3 x tier, which is above the tier, so the
+    tier still overflows with unread bytes (resident 1.000).
+  @1.0 better than 1.3 (upstream's "more interesting" branch): evictions low hundreds (119/71), wall 40-42 s (~2.8x
+    faster than control, upstream's "good substitute" band), BUT spread 2.6 (criterion < 1.5 not met).
+  Predictions: G0 held; 1.3 "evicted < 300, wall 35-50 s" FAILED; 1.0 "within +-10% of 1.3" FAILED (2.6x faster).

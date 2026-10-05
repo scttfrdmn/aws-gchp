@@ -1,0 +1,89 @@
+=== gate 5f-P2  2026-10-05T16:30:25Z  reps=2 ===
+  B=/scratch/lith-gates/v180/lith_linux_arm64 md5 87248fd3ed2f   readers=16  prefix=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07
+  objects: 16 distinct of 16  first=GEOSFP.20190701.A3dyn.025x03125.nc
+CELL RG0-1 agg_wall=115.958637739 rmin=29.523 rmax=115.952 spread=3.927 peak_committed=11572084736 peak_window=223 peak_rss_GB=16.92 peak_unread_resident=8254390272 flags=--readahead-evidence-ratio -1
+MET RG0-1 lith_distinct_bytes_read 6.0076982272e+10
+MET RG0-1 lith_prefetch_committed_bytes 0
+MET RG0-1 lith_prefetch_evicted_unread_total 2853
+MET RG0-1 lith_prefetch_issued_total 57157
+MET RG0-1 lith_prefetch_pressure 0
+MET RG0-1 lith_prefetch_pressure_held_total 0
+MET RG0-1 lith_prefetch_uncovered_total 3351
+MET RG0-1 lith_prefetch_used_total 54304
+MET RG0-1 lith_prefetch_window_halved_total 0
+MET RG0-1 lith_readahead_window_blocks 223
+MET RG0-1 lith_s3_bytes_total 6.3439319259e+10
+MET RG0-1 lith_s3_requests_total{op="get",status="ok"} 10507
+MET RG0-1 committed_at_rest_3s 0
+CELL RG0P13-1 agg_wall=106.807340848 rmin=24.714 rmax=106.800 spread=4.321 peak_committed=10735321088 peak_window=223 peak_rss_GB=16.88 peak_unread_resident=8251244544 flags=--readahead-evidence-ratio -1 --prefetch-pressure-max 1.3
+MET RG0P13-1 lith_distinct_bytes_read 6.0076982272e+10
+MET RG0P13-1 lith_prefetch_committed_bytes 0
+MET RG0P13-1 lith_prefetch_evicted_unread_total 2051
+MET RG0P13-1 lith_prefetch_issued_total 56360
+MET RG0P13-1 lith_prefetch_pressure 0
+MET RG0P13-1 lith_prefetch_pressure_held_total 100
+MET RG0P13-1 lith_prefetch_uncovered_total 3282
+MET RG0P13-1 lith_prefetch_used_total 54309
+MET RG0P13-1 lith_prefetch_window_halved_total 0
+MET RG0P13-1 lith_readahead_window_blocks 223
+MET RG0P13-1 lith_s3_bytes_total 6.2531252443e+10
+MET RG0P13-1 lith_s3_requests_total{op="get",status="ok"} 10338
+MET RG0P13-1 committed_at_rest_3s 0
+CELL RG0P10-1 agg_wall=40.315671015 rmin=15.521 rmax=40.310 spread=2.597 peak_committed=8288993280 peak_window=223 peak_rss_GB=16.95 peak_unread_resident=7643070464 flags=--readahead-evidence-ratio -1 --prefetch-pressure-max 1.0
+MET RG0P10-1 lith_distinct_bytes_read 6.0076982272e+10
+MET RG0P10-1 lith_prefetch_committed_bytes 0
+MET RG0P10-1 lith_prefetch_evicted_unread_total 119
+MET RG0P10-1 lith_prefetch_issued_total 54014
+MET RG0P10-1 lith_prefetch_pressure 0
+MET RG0P10-1 lith_prefetch_pressure_held_total 394
+MET RG0P10-1 lith_prefetch_uncovered_total 3544
+MET RG0P10-1 lith_prefetch_used_total 53895
+MET RG0P10-1 lith_prefetch_window_halved_total 0
+MET RG0P10-1 lith_readahead_window_blocks 223
+MET RG0P10-1 lith_s3_bytes_total 6.0346020059e+10
+MET RG0P10-1 lith_s3_requests_total{op="get",status="ok"} 10306
+MET RG0P10-1 committed_at_rest_3s 0
+CELL RG0-2 agg_wall=112.296506122 rmin=27.651 rmax=112.290 spread=4.060 peak_committed=11568939008 peak_window=223 peak_rss_GB=16.89 peak_unread_resident=8254390272 flags=--readahead-evidence-ratio -1
+MET RG0-2 lith_distinct_bytes_read 6.0076982272e+10
+MET RG0-2 lith_prefetch_committed_bytes 0
+MET RG0-2 lith_prefetch_evicted_unread_total 2983
+MET RG0-2 lith_prefetch_issued_total 57157
+MET RG0-2 lith_prefetch_pressure 0
+MET RG0-2 lith_prefetch_pressure_held_total 0
+MET RG0-2 lith_prefetch_uncovered_total 3463
+MET RG0-2 lith_prefetch_used_total 54174
+MET RG0-2 lith_prefetch_window_halved_total 0
+MET RG0-2 lith_readahead_window_blocks 223
+MET RG0-2 lith_s3_bytes_total 6.3556759771e+10
+MET RG0-2 lith_s3_requests_total{op="get",status="ok"} 10619
+MET RG0-2 committed_at_rest_3s 0
+CELL RG0P13-2 agg_wall=100.079367632 rmin=24.410 rmax=100.072 spread=4.099 peak_committed=10779361280 peak_window=223 peak_rss_GB=16.87 peak_unread_resident=8254390272 flags=--readahead-evidence-ratio -1 --prefetch-pressure-max 1.3
+MET RG0P13-2 lith_distinct_bytes_read 6.0076982272e+10
+MET RG0P13-2 lith_prefetch_committed_bytes 0
+MET RG0P13-2 lith_prefetch_evicted_unread_total 2235
+MET RG0P13-2 lith_prefetch_issued_total 56407
+MET RG0P13-2 lith_prefetch_pressure 0
+MET RG0P13-2 lith_prefetch_pressure_held_total 94
+MET RG0P13-2 lith_prefetch_uncovered_total 3414
+MET RG0P13-2 lith_prefetch_used_total 54172
+MET RG0P13-2 lith_prefetch_window_halved_total 0
+MET RG0P13-2 lith_readahead_window_blocks 223
+MET RG0P13-2 lith_s3_bytes_total 6.2718947547e+10
+MET RG0P13-2 lith_s3_requests_total{op="get",status="ok"} 10476
+MET RG0P13-2 committed_at_rest_3s 0
+CELL RG0P10-2 agg_wall=41.533639233 rmin=15.763 rmax=41.529 spread=2.634 peak_committed=8286896128 peak_window=223 peak_rss_GB=16.95 peak_unread_resident=7587495936 flags=--readahead-evidence-ratio -1 --prefetch-pressure-max 1.0
+MET RG0P10-2 lith_distinct_bytes_read 6.0076982272e+10
+MET RG0P10-2 lith_prefetch_committed_bytes 0
+MET RG0P10-2 lith_prefetch_evicted_unread_total 71
+MET RG0P10-2 lith_prefetch_issued_total 54022
+MET RG0P10-2 lith_prefetch_pressure 0
+MET RG0P10-2 lith_prefetch_pressure_held_total 393
+MET RG0P10-2 lith_prefetch_uncovered_total 3453
+MET RG0P10-2 lith_prefetch_used_total 53951
+MET RG0P10-2 lith_prefetch_window_halved_total 0
+MET RG0P10-2 lith_readahead_window_blocks 223
+MET RG0P10-2 lith_s3_bytes_total 6.0258988251e+10
+MET RG0P10-2 lith_s3_requests_total{op="get",status="ok"} 10216
+MET RG0P10-2 committed_at_rest_3s 0
+=== done 2026-10-05T16:39:44Z ===
+######## P6i DONE 2026-10-05T16:39:44Z
