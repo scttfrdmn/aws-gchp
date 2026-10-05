@@ -2004,3 +2004,17 @@ Cost $0.
   @1.0 better than 1.3 (upstream's "more interesting" branch): evictions low hundreds (119/71), wall 40-42 s (~2.8x
     faster than control, upstream's "good substitute" band), BUT spread 2.6 (criterion < 1.5 not met).
   Predictions: G0 held; 1.3 "evicted < 300, wall 35-50 s" FAILED; 1.0 "within +-10% of 1.3" FAILED (2.6x faster).
+
+--- 5f-P6j RESULTS (head node 16:40-16:45:28Z, v1.8.0; raw data/lith-gates/p6j/) ---
+  arm (gate -1)   rep  evicted  agg wall s   spread      held      peak pressure  peak committed
+  G0P085 (0.85)   1,2  0, 4     46.5, 43.9   2.28, 3.06  581, 540  0.855, 0.854   7.05 GB
+  G0P05  (0.5)    1,2  0, 0     63.0, 62.6   2.31, 2.32  885, 881  0.505, 0.510   4.17-4.21 GB
+  LADDER (gate off, D375, v1.8.0; P6i + P6j):  none 116/112 s 2.9k ev | 1.3 107/100 s 2.1k ev | 1.0 40.3/41.5 s 71-119 ev
+    | 0.85 46.5/43.9 s 0-4 ev | 0.5 63.0/62.6 s 0 ev.   Region gate on (P6h): 33.6 s, 0 ev, spread ~1.05.
+  -> Wall minimum at 1.0; evictions ~0 from 0.85 down at +10% wall; 0.5 over-throttles (+55% vs 1.0).
+     Peak pressure tracks the threshold to +0.01 in every arm: the admission check is NOT advisory on real S3.
+     Spread never < 1.5 (2.3-3.1 at every threshold): the pressure gate bounds bytes and evictions but does not
+     restore per-reader fairness, which the region gate does (~1.05).
+  Predictions: 0.85 evicted < 50 held; wall 38-45 1/2; spread 1.5-2.5 1/2. 0.5 evicted 0 held; wall 45-70 held;
+     spread < 2 FAILED. Peak ~= threshold held.
+Cost $0.
