@@ -1869,3 +1869,23 @@ Upstream cell 2 (16-reader arm at --prefetch-pressure-max 1.3):
 My predictions: committed_at_rest 0 in 10/10; clean committed/tier < 1.0 and collapsed > 1.3 (gap widens);
   D375 collapses again (evicted > 1000); D375P13 evicted < 100, spread < 1.5, agg wall <= D375's.
 Cost $0.
+
+--- 5f-P6f RESULTS (head node 05:14:41-05:18:19Z, lith v1.7.0 d38624715a8f; raw data/lith-gates/p6f/) ---
+Bounds identical to 5f-P6c (lith-318): budget 4127829504, window 223, inflight 1.25 GB (binding), tier 8.256 GB.
+  cell       rep  evicted  verdict  agg wall  spread  peak committed  /tier   peak resident /tier  at-rest(3s)
+  M043       1,2  0, 0     clean    4.5, 4.2  1.09, 1.07  3.70, 3.32 GB  0.45, 0.40   0.24, 0.29        0, 0
+  M122       1,2  0, 0     clean    11.6, 11.1 1.11, 1.10 4.09, 4.09 GB  0.50, 0.50   0.30, 0.36        0, 0
+  D375       1,2  0, 0     CLEAN    34.1, 33.3 1.05, 1.19 4.10, 4.10 GB  0.50, 0.50   0.42, 0.44        0, 0
+  D375P13    1,2  0, 0     clean    33.4, 33.4 1.07, 1.04 4.10, 4.10 GB  0.50, 0.50   0.38, 0.44        0, 0
+  pressure_held_total 0 everywhere; peak lith_prefetch_pressure 0.496.
+  5f-P6c on lith-318, same box/cells: D375 evicted 2870/2868, spread 3.21/3.39, peak committed 11.46 GB (1.39 tier).
+HEADLINE: the head-node collapse does NOT reproduce on v1.7.0. Peak committed now stops at 0.993 x the prefetch
+  budget in every 16-reader cell (11.46 GB before), D375 runs at the ~33 s NIC floor with spread ~1.1 and 0 evictions.
+Cell 1 (re-score committed/tier): UNSCOREABLE on this box as framed -- there is no collapsed cell left to separate
+  from. committed/tier <= 0.50 in all 8 cells. committed_at_rest_3s == 0 in 8/8 (upstream's #320 claim HOLDS).
+Cell 2 (pressure-max 1.3): MOOT -- pressure peaked at 0.496 < 1.3, held 0; D375P13 == D375 (33.4 vs 33.3-34.1 s).
+Predictions: at-rest 0 held; "D375 collapses again" FAILED; "P13 binds and fixes it" FAILED (nothing to fix).
+Which change bounded committed (#320's credit fixes vs another #313-adjacent change) is not attributed here.
+Open: the c8gn.48xlarge cells (5f-P6d: 19.6k-25.5k evictions at 1.21-1.27 tier on lith-318) are where the
+  collapse was largest; whether it is also gone there needs that box (~$6.30, 34 min last time).
+Cost $0.
