@@ -1942,3 +1942,27 @@ Bounds identical to 5f-P6d: budget 49816376832, tier 99.63 GB; auto: window 223 
   -> The vanished collapse is #368's region gate bounding the start transient (window floored at 2 blocks until
      a handle earns it), not #320's accounting and not the pressure gate. Prediction CONFIRM held.
   Remaining #313 exposure (upstream): mounts where the gate is OFF -- cross-region and region-unknown.
+
+--- 5f-P6i (#313 pressure-max on the gate-off population) + 5f-P9q (#350 --wire-ttfb) PRE-REGISTRATION
+    (2026-10-05, lith v1.8.0 release sha256 2984a089...cb2a1 md5 87248fd3ed2f; before any cell ran) ---
+P6i: head node, gate-p6f.sh (RESIDENT=1 PRESSURE=1), D375 (16 x GEOSFP A3dyn), all arms --readahead-evidence-ratio -1,
+  2 reps interleaved: G0 (control), G0P13 (--prefetch-pressure-max 1.3), G0P10 (--prefetch-pressure-max 1.0).
+  Upstream's criteria, as written:
+    confirm @1.3  evictions low hundreds or 0, spread < 1.5, wall from ~107 s toward ~33 s, AND held_total > 0.
+    refute  @1.3  held > 0 but evictions still in the thousands (gate fires without bounding).
+    report  peak lith_prefetch_pressure (advisory if it sails well past the threshold).
+    1.0 arm = cost probe: wall vs 1.3's; if 1.0 is better, ask for a value below it.
+    quality: ~40 s = good substitute for the gate-off population; ~70 s = bounds the collapse without fixing it.
+  My predictions: G0 collapses (~3000 evicted, ~107 s). 1.3: holds > 0, evictions < 300, wall 35-50 s, peak
+    pressure 1.3-1.45. 1.0: wall within +-10% of 1.3, peak ~1.0-1.1.
+P9q: head node, in-region gcgrid MERRA2/2019/07, fresh default mount per arm, 3 reps interleaved:
+  WB = W2 (dd bs=1M of A3dyn 07-02, 1.21 GB) without --wire-ttfb (control, comparable to P9p MA-W2);
+  WT = W2 with --wire-ttfb;  W1T = W1 (6 concurrent var1) with --wire-ttfb (context, unscored).
+  Final scrape: lith_ttfb_seconds and lith_s3_wire_ttfb_seconds, all buckets, counts.
+  Read FIRST: wire_count vs fill_count (difference = retries, per upstream).
+  Then for WT: wire <=50 ms >= 80% while fill <=50 ms < 30% -> delay is ABOVE the wire.
+               both < 30% <=50 ms -> lith's requests really are slower at the endpoint.
+               anything else -> reported as between, no outcome claimed.
+  My predictions: counts equal (no retries) to within 1%; WT wire <=50 ms >= 80% with fill < 40% -> above the
+    wire (moderate confidence); WB matches P9p MA-W2 (fill <=50 ms 19-41%).
+Cost $0.
