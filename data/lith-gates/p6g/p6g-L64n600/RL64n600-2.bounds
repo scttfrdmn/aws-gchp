@@ -1,0 +1,1 @@
+"msg":"prefetch bounds","window_blocks":1024,"window_bound":"--max-readahead","window_commit_bytes":8589934592,"prefetch_budget_bytes":49816376832,"inflight_bytes":15000000000,"binding":"--max-readahead x --block-size","full_window_descriptors":5,"floor_at_descriptors":1980}

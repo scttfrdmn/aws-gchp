@@ -1917,3 +1917,18 @@ Upstream's criteria: CONFIRM = D375G0 collapses: evicted_unread in the thousands
   > 1.2 x tier. REFUTE = D375G0 stays clean -> something else between lith-318 and v1.7.0 did it.
 My prediction: CONFIRM (lith-318 = gate off by default in-region for this shape gave 2870 evictions, 1.39 tier).
 Cost $0.
+
+--- 5f-P6g RESULTS (c8gn.48xlarge i-0cfbe770c0dc28a16 us-east-1c, v1.7.0; driver 15:19:03-15:28:26Z; instance
+    15:04:34-15:30:24Z = 26 min ~$4.90; terminated; temp SSH SG sg-0e311868344e60913 created+deleted because my
+    public IP was no longer in cluster-access; raw data/lith-gates/p6g/) ---
+LAUNCHED AGAINST UPSTREAM'S HOLD (14:59Z, unread at launch). Result is a re-measure of the fix, not a test.
+Bounds identical to 5f-P6d: budget 49816376832, tier 99.63 GB; auto: window 223 inflight 1.25 GB binding;
+  600: window 1024 inflight 15 GB, binding --max-readahead x --block-size. No OOM.
+  cell        rep  evicted  verdict  agg wall s     spread       peak committed / tier   at rest
+  auto L64    1,2  0, 0     clean    49.4, 47.0     1.07, 1.06   0.498, 0.498           0, 0   (P6d 55.1/52.8 clean)
+  auto L112   1,2  0, 0     CLEAN    81.7, 79.6     1.04, 1.04   0.504, 0.504           0, 0   (P6d 430/446 COLLAPSE 19.6k)
+  600  L32    1,2  0, 0     clean    21.2, 21.1     1.19, 1.24   0.499, 0.485           0, 0   (P6d 21.7/21.7 clean)
+  600  L64    1,2  0, 0     CLEAN    41.3, 40.8     1.08, 1.07   0.498, 0.499           0, 0   (P6d 265/256 COLLAPSE 25.5k)
+  -> GONE on the fat-NIC box too: the two collapse cells are 5.4x (L112) and 6.3x (600 L64) faster, 0 evictions,
+     peak committed capped at ~1.0 x budget (0.50 tier) where lith-318 reached 1.21-1.27 tier.
+  Predictions: GONE held (2/2 cells, 4/4 reps). Conditional third arm not run (no collapse).
