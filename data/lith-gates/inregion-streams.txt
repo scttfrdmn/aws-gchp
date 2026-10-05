@@ -1728,3 +1728,36 @@ Cost: c8g.48xlarge $7.657/hr x ~0.5 h (boot + 2 reps + teardown idle) ~ $4. Node
      the floor rose to ~70 ms. So: on GCHP the floor separates cleanly; at real burst saturation (synthetic)
      it does not. Which regime production (C90/C180, multi-node) lives in is unmeasured.
   Cost: c8g.48xlarge $7.657/hr; job 2.8 min + boot 3.5 min + idle until scale-down.
+
+--- 5f-P9m / #350-sweep / 5f-P9n PRE-REGISTRATION (lith#349 18:21Z+18:27Z, #350 02:21Z; spend approved
+    by user 2026-10-05; written before any cell ran) ---
+Upstream ruling: floor refuted as a policy input (statistics of our own fills are downstream of the
+  decision). Proposed replacement: region pair (ratio 4 iff bucket region == instance region).
+P9m (head node c7g.4xlarge, v1.6.0 md5 39ebae8ab0c3, in-region gcgrid 2019/07, 6 concurrent var1 readers
+  of A3dyn 07-02..07, one fresh mount per cell, --nic-gbps 50): arms
+    D  default (gate decides from 8-median)
+    F  --readahead-evidence-ratio 4 (forced)
+    B  default gate + --inflight-bytes 350MB (separates "gate fixes it" from "byte budget fixes it")
+  3 reps, interleaved D,F,B within rep. Engaged reference: 6 x 59.8 = 359 MB.
+  Upstream's criteria, held as written:
+    confirm  F s3 bytes ~359-400 MB (r ~1.0-1.1) vs D 3.7-6.0 GB; floor/median stay low under F.
+    refute   F still >> 400 MB (gate does not hold under concurrency even when on).
+    watch    wall: if F costs > ~20% wall vs D, state the trade.
+    B arm    B ~359-400 MB with gate at default -> the byte budget alone fixes it.
+  My predictions: F 359-420 MB in 3/3; D 3.5-6 GB; F wall within +-20% of D; B between (1-3 GB).
+#350 sweep (head node, in-region, lith-s3bench from main >= #354 9d7bc8c6): one large object
+  (s3://gcgrid MERRA2.20190702.A3dyn.05x0625.nc4, 1.21 GB), -workers 128, -part 64KiB/256KiB/1MiB/8MiB,
+  -duration 20s, 2 passes in ascending then descending order. Upstream's criteria:
+    confirm  TTFB rises with part size at fixed depth -> bytes in flight is the quantity.
+    refute   flat across part size -> no mechanism for the ~100 ms.
+  NOTE: head node NIC is c7g.4xlarge (up to 15 Gbps burst, not 50); 128 x 8 MiB = 1.07 GB in flight
+  drains in ~0.57 s at 15 Gbps, so if the hypothesis holds the 8 MiB TTFB should be LARGER here than
+  upstream's 50 Gbps estimate (~86 ms). My prediction: monotone rise, 8 MiB p50 > 150 ms.
+P9n (cross-region falsifier of the region-pair approach; bucket recreated in us-west-2 with A3dyn 07-01):
+  whole-object fast consumer (reader MODE=whole), --readahead-evidence-ratio 4 vs -1 (off), 3 reps
+  interleaved, fresh mount per cell. r = wall(4)/wall(-1).
+    upstream: r ~2.35 reproduces the cost the gate exists to avoid -> region pair is needed.
+              r ~1.0 -> region gate unnecessary; option B (cheaper ramp, gate on everywhere) is the answer.
+  My prediction: r in [1.8, 2.8] (5f-P9b measured 2.35 on this path).
+Cost: P9m/#350 $0 (in-region). P9n ~1.3 GB copy + 3 x (1.2 GB + 1.2 GB) reads ~7.5 GB ~ $0.16. Bucket
+  deleted after.
