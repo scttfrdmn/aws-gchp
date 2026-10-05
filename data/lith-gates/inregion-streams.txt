@@ -1932,3 +1932,13 @@ Bounds identical to 5f-P6d: budget 49816376832, tier 99.63 GB; auto: window 223 
   -> GONE on the fat-NIC box too: the two collapse cells are 5.4x (L112) and 6.3x (600 L64) faster, 0 evictions,
      peak committed capped at ~1.0 x budget (0.50 tier) where lith-318 reached 1.21-1.27 tier.
   Predictions: GONE held (2/2 cells, 4/4 reps). Conditional third arm not run (no collapse).
+
+--- 5f-P6h RESULTS (head node 15:3x-15:37:57Z, v1.7.0; raw data/lith-gates/p6h/) ---
+  arm      rep  evicted  agg wall s   spread  peak committed (/tier)   peak resident /tier  at rest
+  D375     1,2  0, 0     33.6, 33.7   1.09, 1.02  4.10 GB (0.50)        0.35, 0.29          0, 0
+  D375G0   1,2  3033, 3013  107.0, 106.6  3.94, 3.81  11.57 GB (1.40)   1.000, 1.000        0, 0
+  CONFIRM (upstream's criteria, all three): evictions in the thousands, spread > 3, peak committed > 1.2 x tier.
+  D375G0 reproduces lith-318's P6c collapse almost exactly (2870/2868, 3.21/3.39, 11.46 GB, resident 1.000).
+  -> The vanished collapse is #368's region gate bounding the start transient (window floored at 2 blocks until
+     a handle earns it), not #320's accounting and not the pressure gate. Prediction CONFIRM held.
+  Remaining #313 exposure (upstream): mounts where the gate is OFF -- cross-region and region-unknown.
