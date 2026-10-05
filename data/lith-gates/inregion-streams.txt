@@ -1802,3 +1802,27 @@ Cost: P9m/#350 $0 (in-region). P9n ~1.3 GB copy + 3 x (1.2 GB + 1.2 GB) reads ~7
      NOT simply default on everywhere; region pair (or a cheaper ramp) is needed. r 1.96 vs P9c 2.35: same
      direction, smaller; within my [1.8, 2.8] prediction.
   Cost: ~5 GB copies + ~34 GB cross-region reads ~ $0.80. Bucket emptied and deleted after.
+
+--- 5f-P9o (#349 v1.7.0 verify) + 5f-P9p (#350 differential probe) PRE-REGISTRATION (2026-10-05; before any cell ran) ---
+Binary: lith v1.7.0 release lith_linux_arm64 sha256 a43139a2...c00c7 (md5 d38624715a8f), verified against
+  checksums.txt. lith-s3bench: main 5e47bd6 build (md5 960dc6b249fd; s3bench's TTFB seam is #354, unchanged).
+  Head node c7g.4xlarge, in-region gcgrid MERRA2/2019/07, --nic-gbps 50, default flags otherwise, fresh mount/arm.
+Workloads: W1 = 6 concurrent var1 readers of A3dyn 07-02..07 (P9m shape); W2 = dd bs=1M of A3dyn 07-02 (1.21 GB,
+  sequential, deepest burst). s3bench: -workers 128 -part 8388608 -duration 3s on A3dyn 07-08 (a different key),
+  started 0.5 s after the workload. Arms per rep: MA-W1, MS-W1, MA-W2, MS-W2, SA (s3bench alone). 3 reps.
+  2 Hz scrape: ttfb hist (le .025/.05/.06/.1/.2), median, floor, measured, gauge, s3_inflight,
+  prefetch_committed_bytes, s3_bytes, box CPU busy % (/proc/stat).
+P9o scoring (upstream's ask): gauge == 4 on EVERY tick (after measured) of every in-region mount arm -> PASS;
+  any tick 0 -> bug, scrape posted. And W1 s3 bytes = 358.6 MB (+-2%) on the default mount in 3/3.
+P9p scoring (upstream's three outcomes, my thresholds fixed now):
+  mount TTFB over the s3bench window = delta of the cumulative histogram between the ticks bracketing it;
+  "mount ~100" = < 30% of window fills <= 50 ms; "mount ~25" = >= 80% <= 50 ms.
+  s3bench "stays" = TTFB p50 <= 40 ms; "rises" = p50 >= 60 ms.
+  O1 s3bench stays while mount ~100 -> gap inside lith (report CPU both arms).
+  O2 s3bench rises -> box-wide degradation during the burst.
+  O3 mount ~25 too (mount-alone arms) -> ~100 ms not reproducible on v1.7.0 (#369/#368); then compare
+     committed bytes/inflight vs P9k to say whether it is the gate bounding the burst or the #369 seam.
+  Mixed/between thresholds -> reported as such, no outcome claimed.
+Predictions: P9o PASS. P9p: O3 for W1 (gate now bounds the 6-reader burst, like P9m F: ~359 MB, inflight <=10);
+  W2 (dd) reaches depth; for W2 I predict O1 with box CPU < 40% (i.e. not CPU saturation), low confidence.
+Cost $0.
