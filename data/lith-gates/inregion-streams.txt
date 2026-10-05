@@ -1826,3 +1826,26 @@ P9p scoring (upstream's three outcomes, my thresholds fixed now):
 Predictions: P9o PASS. P9p: O3 for W1 (gate now bounds the 6-reader burst, like P9m F: ~359 MB, inflight <=10);
   W2 (dd) reaches depth; for W2 I predict O1 with box CPU < 40% (i.e. not CPU saturation), low confidence.
 Cost $0.
+
+--- 5f-P9o / 5f-P9p RESULTS (head node 05:08:54-05:10:09Z, lith v1.7.0 d38624715a8f, s3bench 960dc6b249fd;
+    raw data/lith-gates/p9p/, scored by scripts/lith/p9p-score.py -> p9p/score.txt) ---
+P9o PASS: lith_readahead_evidence_ratio == 4 on 115/115 ticks across all 12 in-region default mount arms;
+  W1 (6 concurrent var1) = 358.6 MB in 6/6 default mounts (was 3281/1827/375 MB on v1.6.0 default).
+P9p (#350): mount TTFB over the s3bench window vs s3bench at the same moment (8 MiB parts both sides --
+  W2 is 153 GETs / 1.21 GB = 7.9 MB per fill):
+  arm       mount window <=50ms   s3bench p50/p90 (ms)  outcome      box CPU mean/max   mount inflight max
+  MS-W2-1   14.7% (n=95)          30.6 / 61.9           O1           20.5 / 30.3%       66
+  MS-W2-2   19.6% (n=143)         30.4 / 71.0           O1           20.9 / 28.6%       30
+  MS-W2-3   42.9% (n=98)          28.3 / 56.2           between      33.7 / 43.3%       29
+  MS-W1-1/2/3  56.0 / 58.8 / 67.1%  31.0 / 31.1 / 27.1    between      34-46 / 44-72%     3-7
+  SA-1/2/3 s3bench alone p50 25.5 / 27.9 / 28.8 ms, p90 52-56 ms.
+  Mount-alone (whole arm): W2 <=50ms 19.0 / 37.9 / 41.2% (end 8-median 146 / 71 / 125 ms, inflight max 29-64);
+    W1 63.6 / 70.0 / 72.1% (inflight max 6-15).
+  Verdict: W2 (deep sequential burst) = upstream O1 in 2/3 reps, the third between: at the SAME moment, on the
+    same box and part size, s3bench gets first bytes at ~30 ms (only +2-4 ms over alone) while the mount's
+    fills are mostly > 50 ms. The gap is inside lith. Box CPU was NOT saturated (mean 20-34% of 16 cores), so
+    box-level CPU saturation is not the explanation; goroutine/scheduling effects inside one process are not
+    ruled out by a box-wide number. O3 does not hold for W2: the ~100 ms reproduces on v1.7.0 mount-alone.
+  W1 is between thresholds in every arm (bounded burst, inflight <= 15): not ~25, not ~100.
+  Predictions: P9o PASS held. W1 O3 FAILED (between, not >= 80% <= 50 ms). W2 O1 with CPU < 40% held 2/3.
+Cost $0.

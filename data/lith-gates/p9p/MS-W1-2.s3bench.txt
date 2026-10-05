@@ -1,0 +1,4 @@
+# 1 keys, 1.1 GiB total, 145 ranges of 8 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=8MiB  n=681  p10=23.3ms p50=31.1ms p90=57.5ms p99=87.7ms  <=25ms=16.7% <=50ms=84.6% <=60ms=92.1%
+RESULT workers=128 part=8MiB http=false rbuf=0  agg=1628 MB/s  reqs=681  p50=462.4ms p99=3129.3ms  maxconns=150  cpu=12.1s (23% of 16 cores)
+s3bench_start=1791176966.795167676 s3bench_end=1791176970.294705821
