@@ -19,9 +19,9 @@ arm() {  # arm TAG W1|W2 [flags]
     /^lith_ttfb_seconds_bucket\{le="0.025"\}/{f25=$2} /^lith_ttfb_seconds_bucket\{le="0.05"\}/{f50=$2} /^lith_ttfb_seconds_bucket\{le="0.1"\}/{f100=$2}
     /^lith_s3_wire_ttfb_seconds_bucket\{le="0.025"\}/{w25=$2} /^lith_s3_wire_ttfb_seconds_bucket\{le="0.05"\}/{w50=$2} /^lith_s3_wire_ttfb_seconds_bucket\{le="0.1"\}/{w100=$2}
     /^lith_s3_bytes_total /{b=$2} /^lith_s3_requests_total/{r+=$2}
-    END{printf "CELL %s wall=%.2f s3_MB=%.1f GETs=%d | fill n=%d <=25 %.1f%% <=50 %.1f%% <=100 %.1f%% | wire n=%s <=25 %s <=50 %s <=100 %s\n",
-      tag, w, b/1e6, r, fc, 100*f25/fc, 100*f50/fc, 100*f100/fc, (wc==""?"NA":wc),
-      (wc==""?"NA":sprintf("%.1f%%",100*w25/wc)), (wc==""?"NA":sprintf("%.1f%%",100*w50/wc)), (wc==""?"NA":sprintf("%.1f%%",100*w100/wc))}' "$OUT/$tag.final.prom"
+    END{ws="wire NA"; if (wc > 0) ws=sprintf("wire n=%d <=25 %.1f%% <=50 %.1f%% <=100 %.1f%%", wc, 100*w25/wc, 100*w50/wc, 100*w100/wc)
+        printf "CELL %s wall=%.2f s3_MB=%.1f GETs=%d | fill n=%d <=25 %.1f%% <=50 %.1f%% <=100 %.1f%% | %s\n",
+          tag, w, b/1e6, r, fc, 100*f25/fc, 100*f50/fc, 100*f100/fc, ws}' "$OUT/$tag.final.prom"
 }
 echo "=== gate 5f-P9q  $(date -u +%FT%TZ)  lith=$(md5sum "$B" | cut -c1-12)"
 for r in 1 2 3; do arm WB-$r W2; arm WT-$r W2 --wire-ttfb; arm W1T-$r W1 --wire-ttfb; done

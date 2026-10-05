@@ -1966,3 +1966,12 @@ P9q: head node, in-region gcgrid MERRA2/2019/07, fresh default mount per arm, 3 
   My predictions: counts equal (no retries) to within 1%; WT wire <=50 ms >= 80% with fill < 40% -> above the
     wire (moderate confidence); WB matches P9p MA-W2 (fill <=50 ms 19-41%).
 Cost $0.
+
+--- 5f-P6j PRE-REGISTRATION (upstream's conditional "if 1.0 is better, a value below it"; written after P6i scored,
+    before any P6j cell ran) ---
+Same harness/binary/box as P6i, gate off (-1), D375, 2 reps interleaved: G0P085 (0.85), G0P05 (0.5) -- the two values
+  upstream measured locally (0.85 -> peak 0.94, 0.5 -> peak 0.56). No control rerun (P6i G0 is the control).
+Questions: does the spread come under 1.5 (fairness), do evictions reach ~0, and what does throttling cost in wall?
+My predictions: 0.85: evicted < 50, wall 38-45 s, spread 1.5-2.5. 0.5: evicted 0, wall 45-70 s (over-throttled),
+  spread < 2. Peak pressure ~= threshold (+0.01) in both.
+Cost $0.
