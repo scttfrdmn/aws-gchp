@@ -1,0 +1,10 @@
+=== gate 5f-P9  2026-10-05T03:20:16Z  B=39ebae8ab0c3  GEOSFP.20190701.A3dyn.025x03125.nc
+CELL DX-1-1 wall=8.936804889 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=0 ttfb_median_ms=119.0 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=8.92]
+CELL DX4-1 wall=21.388284022 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=4 ttfb_median_ms=284.4 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=21.37]
+CELL DX-1-2 wall=12.072921936 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=0 ttfb_median_ms=146.1 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=12.05]
+CELL DX4-2 wall=18.731897179 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=4 ttfb_median_ms=143.4 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=18.71]
+CELL DX-1-3 wall=8.066903216 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=0 ttfb_median_ms=120.4 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=8.04]
+CELL DX4-3 wall=15.796191269 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=4 ttfb_median_ms=290.9 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=15.77]
+CELL DX-1-4 wall=10.865468131 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=0 ttfb_median_ms=136.6 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=10.84]
+CELL DX4-4 wall=20.018040051 s3_MB=3776.8 GETs=459 distinct_MB=3776.8 amp=1.00 issued=3593 used=3593 evidence_ratio_gauge=4 ttfb_median_ms=151.7 ttfb_measured=1 ttfb_le50=0/459 reader=[mode=dd wall=20.00]
+=== done 2026-10-05T03:22:22Z

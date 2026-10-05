@@ -1761,3 +1761,44 @@ P9n (cross-region falsifier of the region-pair approach; bucket recreated in us-
   My prediction: r in [1.8, 2.8] (5f-P9b measured 2.35 on this path).
 Cost: P9m/#350 $0 (in-region). P9n ~1.3 GB copy + 3 x (1.2 GB + 1.2 GB) reads ~7.5 GB ~ $0.16. Bucket
   deleted after.
+
+--- 5f-P9m RESULTS (head node 03:08:47-03:09:21Z, v1.6.0 39ebae8ab0c3; raw data/lith-gates/p9m/) ---
+  arm                       rep1 MB   rep2 MB   rep3 MB   walls (s)        gauge>0 ticks  evidence clamps
+  D default                 3281.4    1826.6    375.4     3.4 / 2.3 / 2.2   2/7 2/5 4/5    11 / 13 / 19
+  F forced ratio 4          358.6     358.6     358.6     2.3 / 2.3 / 2.3   5/5 5/5 5/5    22 / 22 / 20
+  B default + 350MB budget  358.6     358.6     358.6     2.2 / 2.2 / 2.2   2/5 4/5 4/5    20 / 22 / 22
+  CONFIRM (upstream): F = 358.6 MB in 3/3 = the 6 x 59.8 MB engaged reference (r 1.00); the gate holds under
+     concurrency when it is on. Wall: F within the D range, no cost (no >20% trade to state).
+  Default is not reproducible: 9.1x / 5.1x / 1.05x over-fetch on three identical cells.
+  B: 358.6 MB in 3/3 with the gate at default. Does NOT cleanly separate budget from gate: readahead window
+     cap fell 223 -> 62 blocks, and clamp counts (20-22) match F rather than D (11-19), i.e. the gate was
+     engaged when it mattered. Consistent with "smaller burst keeps TTFB low so the gate stays on"; not proof.
+  My predictions: F 359-420 held; D 3.5-6 GB held in 2/3 (rep 3 375 MB); F wall +-20% held; B "1-3 GB" FAILED.
+
+--- #350 sweep RESULTS (head node 03:11:27Z, lith-s3bench @ main 5e47bd6 (incl #354), md5 960dc6b249fd;
+    raw data/lith-gates/s3bench350/sweep.log) ---
+  one key gcgrid MERRA2.20190702.A3dyn (1.21 GB), -workers 128, 20 s, ascending then descending:
+  part     TTFB p50 (pass1/pass2)  p90           p99            <=25ms         agg MB/s
+  64KiB    30.5 / 23.5             113.4 / 29.5  160.8 / 47.1   31.9 / 63.3%   130 / 295
+  256KiB   23.9 / 23.5             30.4 / 29.6   47.2 / 46.0    59.4 / 63.3%   1152 / 1172
+  1MiB     25.9 / 25.2             33.2 / 31.8   57.1 / 56.3    42.7 / 48.6%   1728 / 1717
+  8MiB     25.6 / 25.0             33.1 / 31.5   203.2 / 138.2  44.9 / 50.0%   1720 / 1734
+  REFUTE (upstream criterion): TTFB p50/p90 FLAT across part size at fixed depth 128, including 8 MiB with
+     ~1.07 GB in flight and the link saturated (1.72 GB/s = this box's ~15 Gbps ceiling). Only p99 rises at
+     8 MiB. Bytes in flight does not delay first bytes at the client seam. My prediction (8MiB p50 > 150 ms)
+     FAILED. Pass-1 64KiB tail (p90 113 ms, not repeated in pass 2) unexplained; each run is a fresh process.
+  -> No mechanism for lith's in-mount ~100 ms TTFB under its own burst is left standing from these sweeps.
+
+--- 5f-P9n RESULTS (head node, cross-region us-west-2 58.6 ms, v1.6.0; raw data/lith-gates/p9n/) ---
+  CORRECTION to the pre-registration: "whole-object fast consumer (reader MODE=whole)" was wrong. reader.py
+     whole is a netCDF decompress at ~89 MB/s, the SLOW-consumer cell (P9b, r 1.00). Ran it as written, then
+     the real fast-consumer cell (P9c shape: GEOSFP A3dyn 3.78 GB, dd bs=1M, n=4 interleaved).
+  netCDF whole (as pre-registered, slow consumer): off 15.10/15.38/20.56, forced 15.83/14.96/15.42 s;
+     r = 1.00. Reproduces P9b; uninformative about the ramp cost.
+  dd fast consumer (P9c shape):  off (-1) 8.94 / 12.07 / 8.07 / 10.87 s  median 9.90
+                                 forced 4 21.39 / 18.73 / 15.80 / 20.02 s median 19.38
+     r = 1.96, zero overlap (min forced 15.80 > max off 12.07; p = 1/70). 3776.8 MB / 459 GETs in all 8 cells.
+  Upstream criterion: r ~2.35 reproduces -> the cross-region ramp penalty stands on v1.6.0 -> the gate can
+     NOT simply default on everywhere; region pair (or a cheaper ramp) is needed. r 1.96 vs P9c 2.35: same
+     direction, smaller; within my [1.8, 2.8] prediction.
+  Cost: ~5 GB copies + ~34 GB cross-region reads ~ $0.80. Bucket emptied and deleted after.

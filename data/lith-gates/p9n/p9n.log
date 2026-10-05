@@ -1,0 +1,8 @@
+=== gate 5f-P9  2026-10-05T03:15:42Z  B=39ebae8ab0c3  MERRA2.20190701.A3dyn.05x0625.nc4
+CELL NX-1-1 wall=15.096678279 s3_MB=1217.8 GETs=162 distinct_MB=1217.9 amp=1.00 issued=1153 used=1153 evidence_ratio_gauge=0 ttfb_median_ms=163.1 ttfb_measured=1 ttfb_le50=0/162 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=13.7]
+CELL NX4-1 wall=15.834219224 s3_MB=1217.8 GETs=163 distinct_MB=1217.9 amp=1.00 issued=1152 used=1152 evidence_ratio_gauge=4 ttfb_median_ms=149.6 ttfb_measured=1 ttfb_le50=0/163 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=14.6]
+CELL NX-1-2 wall=15.381282430 s3_MB=1217.8 GETs=162 distinct_MB=1217.9 amp=1.00 issued=1153 used=1153 evidence_ratio_gauge=0 ttfb_median_ms=149.2 ttfb_measured=1 ttfb_le50=0/162 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=14.1]
+CELL NX4-2 wall=14.963136721 s3_MB=1217.8 GETs=163 distinct_MB=1217.9 amp=1.00 issued=1152 used=1152 evidence_ratio_gauge=4 ttfb_median_ms=149.7 ttfb_measured=1 ttfb_le50=0/163 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=13.6]
+CELL NX-1-3 wall=20.558955297 s3_MB=1217.8 GETs=162 distinct_MB=1217.9 amp=1.00 issued=1153 used=1153 evidence_ratio_gauge=0 ttfb_median_ms=149.2 ttfb_measured=1 ttfb_le50=0/162 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=19.3]
+CELL NX4-3 wall=15.415178037 s3_MB=1217.8 GETs=163 distinct_MB=1217.9 amp=1.00 issued=1152 used=1152 evidence_ratio_gauge=4 ttfb_median_ms=146.4 ttfb_measured=1 ttfb_le50=0/163 reader=[mode=whole vars=5 elem_bytes=2395422720 wall=14.3]
+=== done 2026-10-05T03:17:26Z

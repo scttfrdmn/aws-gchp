@@ -1,0 +1,33 @@
+=== #350 sweep 2026-10-05T03:11:27Z 960dc6b249fd head node c7g.4xlarge
+--- part=65536 workers=128
+# 1 keys, 1.1 GiB total, 18520 ranges of 0 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=0MiB  n=41722  p10=20.1ms p50=30.5ms p90=113.4ms p99=160.8ms  <=25ms=31.9% <=50ms=58.7% <=60ms=62.1%
+RESULT workers=128 part=0MiB http=false rbuf=0  agg=130 MB/s  reqs=41722  p50=34.5ms p99=175.1ms  maxconns=172  cpu=12.0s (4% of 16 cores)
+--- part=262144 workers=128
+# 1 keys, 1.1 GiB total, 4630 ranges of 0 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=0MiB  n=92594  p10=18.5ms p50=23.9ms p90=30.4ms p99=47.2ms  <=25ms=59.4% <=50ms=99.2% <=60ms=99.6%
+RESULT workers=128 part=0MiB http=false rbuf=0  agg=1152 MB/s  reqs=92594  p50=26.4ms p99=56.0ms  maxconns=235  cpu=48.0s (15% of 16 cores)
+--- part=1048576 workers=128
+# 1 keys, 1.1 GiB total, 1158 ranges of 1 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=1MiB  n=34854  p10=20.1ms p50=25.9ms p90=33.2ms p99=57.1ms  <=25ms=42.7% <=50ms=98.5% <=60ms=99.2%
+RESULT workers=128 part=1MiB http=false rbuf=0  agg=1728 MB/s  reqs=34854  p50=56.1ms p99=278.3ms  maxconns=185  cpu=90.2s (28% of 16 cores)
+--- part=8388608 workers=128
+# 1 keys, 1.1 GiB total, 145 ranges of 8 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=8MiB  n=4397  p10=20.1ms p50=25.6ms p90=33.1ms p99=203.2ms  <=25ms=44.9% <=50ms=96.6% <=60ms=97.7%
+RESULT workers=128 part=8MiB http=false rbuf=0  agg=1720 MB/s  reqs=4397  p50=487.3ms p99=1663.6ms  maxconns=148  cpu=116.4s (36% of 16 cores)
+--- part=8388608 workers=128
+# 1 keys, 1.1 GiB total, 145 ranges of 8 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=8MiB  n=4412  p10=19.7ms p50=25.0ms p90=31.5ms p99=138.2ms  <=25ms=50.0% <=50ms=95.4% <=60ms=95.9%
+RESULT workers=128 part=8MiB http=false rbuf=0  agg=1734 MB/s  reqs=4412  p50=308.5ms p99=2058.6ms  maxconns=140  cpu=110.7s (34% of 16 cores)
+--- part=1048576 workers=128
+# 1 keys, 1.1 GiB total, 1158 ranges of 1 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=1MiB  n=34572  p10=19.6ms p50=25.2ms p90=31.8ms p99=56.3ms  <=25ms=48.6% <=50ms=98.5% <=60ms=99.2%
+RESULT workers=128 part=1MiB http=false rbuf=0  agg=1717 MB/s  reqs=34572  p50=59.4ms p99=263.8ms  maxconns=258  cpu=95.9s (30% of 16 cores)
+--- part=262144 workers=128
+# 1 keys, 1.1 GiB total, 4630 ranges of 0 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=0MiB  n=94877  p10=18.1ms p50=23.5ms p90=29.6ms p99=46.0ms  <=25ms=63.3% <=50ms=99.2% <=60ms=99.6%
+RESULT workers=128 part=0MiB http=false rbuf=0  agg=1172 MB/s  reqs=94877  p50=25.8ms p99=55.0ms  maxconns=216  cpu=48.7s (15% of 16 cores)
+--- part=65536 workers=128
+# 1 keys, 1.1 GiB total, 18520 ranges of 0 MiB, 128 workers, pool=128, http=false, read-buffer=0
+TTFB   workers=128 part=0MiB  n=94799  p10=18.2ms p50=23.5ms p90=29.5ms p99=47.1ms  <=25ms=63.3% <=50ms=99.2% <=60ms=99.5%
+RESULT workers=128 part=0MiB http=false rbuf=0  agg=295 MB/s  reqs=94799  p50=25.5ms p99=56.8ms  maxconns=154  cpu=27.0s (8% of 16 cores)

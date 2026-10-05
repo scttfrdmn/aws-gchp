@@ -3,14 +3,14 @@
 # plus the same concurrent read in-region as a control. Pre-registered in data/lith-gates/inregion-streams.txt.
 # Each cell: one fresh default v1.5.0 mount, 2 Hz scrape (p9j sampler), final scrape.
 G=/scratch/lith-gates; B=${B:-$G/v150/lith_linux_arm64}; MNT=/scratch/mnt/p9k; OUT=${OUT:-$G/p9k}
-PYX=/scratch/ncenv/bin/python; READER=$G/gate2nd/reader.py; SAMPLER=$G/p9j/sampler.py
+PYX=/scratch/ncenv/bin/python; READER=$G/gate2nd/reader.py; SAMPLER=${SAMPLER:-$G/p9j/sampler.py}
 X=s3://gchp-lith-xregion-usw2-942542972736/merra2; I=s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07
-DAYS="02 03 04 05 06 07"; PORT=9960
+DAYS="02 03 04 05 06 07"; PORT=${PORT:-9960}
 mkdir -p "$MNT" "$OUT"
 
-cell() {  # cell TAG PREFIX seq|conc
-  local tag=$1 prefix=$2 mode=$3 d t0 t1; PORT=$((PORT + 1))
-  "$B" mount "$prefix" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level warn > "$OUT/$tag.mount.log" 2>&1 &
+cell() {  # cell TAG PREFIX seq|conc [extra mount args]
+  local tag=$1 prefix=$2 mode=$3 extra=${4:-} d t0 t1; PORT=$((PORT + 1))
+  "$B" mount "$prefix" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level warn $extra > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
   mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED"; tail -3 "$OUT/$tag.mount.log"; return 1; }
   rm -f "$OUT/$tag.stop"
@@ -38,7 +38,7 @@ cell() {  # cell TAG PREFIX seq|conc
 
 echo "=== gate 5f-P9k  $(date -u +%FT%TZ)  B=$(md5sum "$B" | cut -c1-12)"
 for c in ${CELLS:-C3-xidle:X:seq C4-xconc:X:conc C4i-iconc:I:conc}; do
-  IFS=: read -r tag where mode <<< "$c"; [ "$where" = X ] && pre=$X || pre=$I
-  cell "$tag" "$pre" "$mode"
+  IFS=: read -r tag where mode extra <<< "$c"; [ "$where" = X ] && pre=$X || pre=$I
+  cell "$tag" "$pre" "$mode" "${extra//,/ }"   # extra mount args, comma-separated
 done
 echo "=== done $(date -u +%FT%TZ)"
