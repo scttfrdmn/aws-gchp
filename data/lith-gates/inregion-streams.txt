@@ -1907,3 +1907,13 @@ Question: is the collapse also gone on the fat-NIC box (as on the head node, 5f-
   "try ~1.0 on a fat-NIC box"), 1 rep, unscored.
 My prediction: GONE on both collapse cells (committed capped at budget as on the head node), wall per cell
   near 5f-P6d's clean walls; ~60% confidence (the fat-NIC regime had a 12x larger tier and budget).
+
+--- 5f-P6h PRE-REGISTRATION (lith#313 14:59Z: attribute the vanished collapse to #368; before any cell ran) ---
+NOTE: upstream asked (14:59Z) to hold the c8gn cell until this one ran. I launched the c8gn (5f-P6g) at 15:04Z
+  without re-reading the thread; its results are recorded below this cell and are a re-measure, not a test.
+Head node, v1.7.0 d38624715a8f, gate-p6f.sh (RESIDENT=1 PRESSURE=1), D375 (16 x GEOSFP A3dyn), 2 reps,
+  arms interleaved within rep: D375 (default, region gate on) and D375G0 (--readahead-evidence-ratio -1).
+Upstream's criteria: CONFIRM = D375G0 collapses: evicted_unread in the thousands, spread > 3, peak committed
+  > 1.2 x tier. REFUTE = D375G0 stays clean -> something else between lith-318 and v1.7.0 did it.
+My prediction: CONFIRM (lith-318 = gate off by default in-region for this shape gave 2870 evictions, 1.39 tier).
+Cost $0.
