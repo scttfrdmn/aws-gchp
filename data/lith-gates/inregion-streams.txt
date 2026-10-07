@@ -2018,3 +2018,21 @@ Cost $0.
   Predictions: 0.85 evicted < 50 held; wall 38-45 1/2; spread 1.5-2.5 1/2. 0.5 evicted 0 held; wall 45-70 held;
      spread < 2 FAILED. Peak ~= threshold held.
 Cost $0.
+
+--- 5f-P9r PRE-REGISTRATION (lith#350 connection split, v1.9.0 sha256 0b165bbe...e0f6 md5 e9c2ce7cff6e; before the cell)
+DISCLOSURE: one unscored 64 MiB dd probe was run first only to confirm the labelled metric names; it read wire
+  conn=new 0/20 <= 50 ms vs reused 7/17, acquire(new) 20/20 <= 50 ms. Seen before writing this; criteria below are
+  upstream's, as written, so the probe cannot move them.
+Cell: head node, in-region gcgrid MERRA2/2019/07, fresh mount per arm, --wire-ttfb, 3 reps interleaved:
+  WT = W2 (dd bs=1M of A3dyn 07-02, 1.21 GB);  W1T = W1 (6 concurrent var1), context.
+Read per label (conn=new / reused): wire_ttfb count, <=25/<=50/<=100 ms, mean (sum/count);
+  conn_acquire count, <=10/<=25/<=50 ms, mean. Also the fill histogram as before.
+Upstream's criteria:
+  CONFIRM  conn=new slow and conn=reused fast, with conn_acquire{new} carrying most of the difference.
+  REFUTE   both labels slow.
+  My operationalization: "slow" = < 30% <= 50 ms, "fast" = >= 80% <= 50 ms (as P9p/P9q); "carrying most" =
+    mean acquire(new) - mean acquire(reused) >= 50% of mean wire(new) - mean wire(reused).
+My prediction (informed by the probe): new slow / reused NOT fast (between), and acquire(new) NOT carrying most of the
+  difference (the probe had acquire(new) all < 50 ms) -> a third outcome neither of upstream's two names: first-use
+  connections are slow AFTER acquisition. Low confidence.
+Cost $0.
