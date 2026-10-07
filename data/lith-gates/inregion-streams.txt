@@ -2085,3 +2085,21 @@ Cost $0.
     every rep, so it does not explain lith. Unexplained; not claimed.
   Predictions: B64 between held 2/3; B32 fast-ish held 2/3 (rep1 slow); S64 fast held; W2 slow held.
 Cost $0.
+
+--- 5f-P9t (#350 allocation arm, causal) + 5f-P9u (#350 runtime metrics, descriptive) PRE-REGISTRATION
+    (2026-10-07; s3bench built from lith main 28c7612 incl #378, md5 dd8c47c57a2e; lith v1.10.0 sha256 46c66605...69f9
+    md5 b39e1702e01f; before any cell ran) ---
+P9t: head node, in-region, key A3dyn 07-08, -part 8388608 -duration 1s, every arm a fresh process. One WARM-UP s3bench
+  arm first, DISCARDED (session-first effect, P9s). Then 3 reps interleaved: R32 (-workers 32), F32 (-workers 32
+  -fresh-buffers), R64, F64, and W2 (lith v1.10.0 mount, dd A3dyn 07-02, same-session reference).
+  Upstream's criteria: CONFIRM = -fresh-buffers drops toward lith's ~5% while reused stays at 61-93% <= 50 ms.
+                       REFUTE  = both arms alike.
+  Operationalized: CONFIRM iff F arms slow (< 30% <= 50 ms) in >= 2/3 reps at a depth where R is between/fast;
+    REFUTE iff |F - R| <= 15 points in >= 2/3 reps at both depths; else between, no outcome claimed.
+  My prediction: REFUTE (allocating 1200 x 8 MiB in 1 s = ~10 GB/s alloc may raise GC cost, but a sub-ms STW does not
+    make 60-100 ms first bytes). Low-moderate confidence.
+P9u (descriptive; upstream: correlate only): W2 mount-alone on v1.10.0 with --metrics, 3 reps; full /metrics scrape
+  saved every 0.5 s. Report per rep over the burst: GC cycles and total pause (go_gc_duration_seconds count/sum delta),
+  go_sched_latencies_seconds high buckets, alloc bytes delta, process CPU seconds delta (cores used), goroutine peak,
+  alongside the fill TTFB fractions. No outcome claimed.
+Cost $0.
