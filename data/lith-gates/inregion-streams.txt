@@ -2203,3 +2203,20 @@ Cost $0.
     (18:01-18:05) ENDED within ~3 min for every object: it was temporal, not repetition-driven.
   Residual: endpoint mean ~40 ms higher on the cold objects (145 vs 101-105) -- descriptive only.
   NEW: connection acquisition 17-88 ms mean in 3 of 4 arms (1-5 ms in every earlier cell). Unexplained.
+
+--- 5f-P9y PRE-REGISTRATION (lith#350 19:04Z: the SIMULTANEOUS same-auth cell; before any scored arm ran) ---
+DISCLOSURE: the s3bench build check (session's first s3bench process, -workers 8, key 07-03) read endpoint 139-168 ms,
+  0% <= 50 ms. Seen before writing this.
+Binaries: lith v1.11.0 (51234db1e082) mount, --no-sign-request --wire-ttfb; lith-s3bench main a7c6a2b (#383, md5
+  8ca8da27fac6), default anonymous (auth=anon printed). Same key: MERRA2.20190702.A3dyn.05x0625.nc4, 8 MiB sequential.
+Per rep: fresh mount; then START TOGETHER (same instant, both backgrounded): dd bs=1M of the object through the mount
+  (W2, 153 fills) and s3bench -workers 64 -part 8388608 -duration 1.5s on the same key. Wait both. Rep 0 = warm-up,
+  DISCARDED (#381). Then 5 scored reps.
+Read: lith endpoint mean (pooled over conn labels, from lith_s3_endpoint_ttfb_seconds sum/count) and s3bench
+  endpoint mean (pooled from its SPLIT lines); also wire, acquire, and both <=50 ms fractions.
+Scoring per rep: R = lith_endpoint_mean / s3bench_endpoint_mean.
+  MATCH  iff 0.80 <= R <= 1.25 in >= 3/5 reps -> S3 answers both the same; gap is in what lith does after (1 MiB cell next).
+  DIFFER iff R >= 1.5 in >= 3/5 reps -> S3 answers lith's requests slower at the same instant/auth/ranges.
+  Else between, per rep reported.
+My prediction: DIFFER (P9p, simultaneous: s3bench ~30 ms vs mount mostly > 50 ms), moderate confidence.
+Cost $0.
