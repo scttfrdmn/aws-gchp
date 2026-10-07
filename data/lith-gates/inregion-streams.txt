@@ -2220,3 +2220,25 @@ Scoring per rep: R = lith_endpoint_mean / s3bench_endpoint_mean.
   Else between, per rep reported.
 My prediction: DIFFER (P9p, simultaneous: s3bench ~30 ms vs mount mostly > 50 ms), moderate confidence.
 Cost $0.
+
+--- 5f-P9y RESULTS (head node 2026-10-07 19:09:25Z+; raw + score data/lith-gates/p9y/) ---
+  rep  lith endpoint / wire / acq / fill (ms)   lith <=50   s3bench endpoint / wire / acq   s3b <=50   R     verdict
+  R1   41.3 / 50.3 / 9.0 / 50.6                 51.0%       37.3 / 38.8 / 1.4               78.5%      1.11  MATCH
+  R2   37.3 / 41.8 / 4.5 / 42.1                 65.4%       35.9 / 37.1 / 1.1               82.2%      1.04  MATCH
+  R3   33.2 / 36.2 / 3.0 / 36.5                 78.4%       31.8 / 33.3 / 1.5               86.6%      1.04  MATCH
+  R4   37.1 / 43.2 / 6.1 / 43.4                 66.7%       32.7 / 33.9 / 1.1               86.4%      1.13  MATCH
+  R5   36.4 / 41.4 / 5.0 / 41.7                 69.3%       30.1 / 31.5 / 1.3               84.1%      1.21  MATCH
+  WARMUP (discarded): lith endpoint 41.2 (72.5% <=50) vs s3bench 97.7 (36.0%) AT THE SAME INSTANT, same key -> the
+    #381 first-process effect is in the s3bench PROCESS, not the endpoint/path (lith, simultaneous, was fast).
+  SCORE: MATCH in 5/5 (R 1.04-1.21). Prediction DIFFER FAILED. Fill == wire (+0.2-0.3 ms) -> nothing after the response.
+  lith's residual vs s3bench: acquisition +2-8 ms and endpoint +3-10%.
+  CAVEAT: the whole cell ran in a FAST window (lith fill 36-51 ms, not the ~100-150 ms of slow sessions). It shows S3
+    treats both alike in this regime; it cannot speak to a slow window.
+
+--- 5f-P9z PRE-REGISTRATION (written after P9y scored) ---
+Repeat P9y unchanged (warm-up discarded + 5 simultaneous reps) every 20 min, 6 times (~2 h), to catch a SLOW window.
+Classify each rep by regime from the s3bench side (independent of lith): slow = s3bench endpoint mean >= 70 ms.
+Scoring over all slow-regime reps (if >= 5 exist): MATCH iff R in [0.80, 1.25] in >= 60% of them; DIFFER iff R >= 1.5
+  in >= 60%; else between. If < 5 slow reps occur: unscored, report what was seen.
+Prediction: MATCH in slow windows too (both programs ride the same endpoint conditions), low-moderate confidence.
+Cost $0.
