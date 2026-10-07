@@ -1,0 +1,23 @@
+=== gate 5f-P9s 2026-10-07T14:25:48Z s3bench=960dc6b249fd lith=e9c2ce7cff6e
+ARM B32-1 TTFB   workers=32 part=8MiB  n=167  p10=45.9ms p50=125.2ms p90=184.0ms p99=260.7ms  <=25ms=3.0% <=50ms=10.8% <=60ms=12.0%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1039 MB/s  reqs=167  p50=185.5ms p99=474.5ms  maxconns=37  cpu=2.0s (10% of 16 cores)
+ARM B64-1 TTFB   workers=64 part=8MiB  n=245  p10=26.0ms p50=41.2ms p90=78.6ms p99=108.3ms  <=25ms=7.3% <=50ms=60.8% <=60ms=76.3%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1685 MB/s  reqs=245  p50=253.5ms p99=809.9ms  maxconns=68  cpu=3.6s (19% of 16 cores)
+ARM S64-1 TTFB   workers=64 part=8MiB  n=1320  p10=20.0ms p50=25.4ms p90=38.3ms p99=64.9ms  <=25ms=46.4% <=50ms=96.3% <=60ms=98.6%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1710 MB/s  reqs=1320  p50=256.0ms p99=691.0ms  maxconns=68  cpu=31.4s (32% of 16 cores)
+ARM W2-1 fill n=153 <=25ms=2.0% <=50ms=4.6% mean=150.2ms
+ARM B32-2 TTFB   workers=32 part=8MiB  n=229  p10=20.2ms p50=26.2ms p90=45.8ms p99=68.7ms  <=25ms=41.5% <=50ms=93.0% <=60ms=97.4%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1633 MB/s  reqs=229  p50=116.9ms p99=667.2ms  maxconns=35  cpu=3.2s (18% of 16 cores)
+ARM B64-2 TTFB   workers=64 part=8MiB  n=244  p10=21.1ms p50=29.9ms p90=57.2ms p99=78.1ms  <=25ms=28.7% <=50ms=76.6% <=60ms=94.3%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1639 MB/s  reqs=244  p50=223.8ms p99=1169.6ms  maxconns=67  cpu=4.8s (25% of 16 cores)
+ARM S64-2 TTFB   workers=64 part=8MiB  n=1356  p10=21.8ms p50=28.3ms p90=42.5ms p99=68.5ms  <=25ms=25.7% <=50ms=94.9% <=60ms=97.9%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1747 MB/s  reqs=1356  p50=213.7ms p99=1336.5ms  maxconns=68  cpu=21.5s (22% of 16 cores)
+ARM W2-2 fill n=153 <=25ms=3.3% <=50ms=5.2% mean=125.0ms
+ARM B32-3 TTFB   workers=32 part=8MiB  n=230  p10=21.2ms p50=27.8ms p90=52.7ms p99=75.7ms  <=25ms=31.7% <=50ms=88.3% <=60ms=94.3%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1567 MB/s  reqs=230  p50=124.0ms p99=602.2ms  maxconns=36  cpu=3.7s (20% of 16 cores)
+ARM B64-3 TTFB   workers=64 part=8MiB  n=247  p10=23.6ms p50=34.6ms p90=62.2ms p99=80.5ms  <=25ms=15.4% <=50ms=81.0% <=60ms=87.9%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1651 MB/s  reqs=247  p50=224.0ms p99=1069.3ms  maxconns=68  cpu=3.9s (20% of 16 cores)
+ARM S64-3 TTFB   workers=64 part=8MiB  n=1331  p10=20.0ms p50=25.7ms p90=35.3ms p99=65.0ms  <=25ms=44.6% <=50ms=96.3% <=60ms=98.6%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1718 MB/s  reqs=1331  p50=232.5ms p99=806.7ms  maxconns=68  cpu=29.4s (30% of 16 cores)
+ARM W2-3 fill n=153 <=25ms=2.6% <=50ms=5.2% mean=129.3ms
+=== done 2026-10-07T14:26:30Z

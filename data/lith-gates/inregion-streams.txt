@@ -2070,3 +2070,18 @@ Scoring (thresholds as P9p/P9q): slow = < 30% <= 50 ms; fast = >= 80% <= 50 ms; 
 My prediction: B64 between (the 1 s window includes the cold first-wave on 64 new connections), B32 fast-ish, S64 fast
   (~85% <= 50 ms as P9p SA), W2 slow. Low confidence on B64.
 Cost $0.
+
+--- 5f-P9s RESULTS (head node 2026-10-07 14:25:48-14:26:30Z; s3bench 960dc6b249fd, lith v1.9.0 e9c2ce7cff6e; raw data/lith-gates/p9s/) ---
+  arm   rep1                         rep2                         rep3                        (<=50 ms, p50, n)
+  B32   10.8% p50 125.2 n=167 SLOW   93.0% p50 26.2 n=229 fast    88.3% p50 27.8 n=230 fast
+  B64   60.8% p50 41.2 n=245 betw    76.6% p50 29.9 n=244 betw    81.0% p50 34.6 n=247 fast
+  S64   96.3% p50 25.4 n=1320 fast   94.9% p50 28.3 n=1356 fast   96.3% p50 25.7 n=1331 fast
+  W2    4.6% mean 150.2 n=153 SLOW   5.2% mean 125.0 SLOW         5.2% mean 129.3 SLOW   (lith fill)
+  OUTCOME: lith-specific. s3bench at W2's burst shape is between/fast in 5 of 6 burst arms while lith is slow in 3/3.
+    Burst-vs-steady is a real but smaller effect on s3bench (61-93% vs 95-96% <= 50 ms); it does not reach lith's 5%.
+    -> upstream's branch: the runtime cell (#377) is next.
+  Anomaly: B32-1 (the FIRST arm of the session) was slow (10.8%, p50 125 ms), like pass-1 64 KiB in the #350 part sweep
+    (first run, p90 113 ms). A session-first effect exists for s3bench; W2 arms were never session-first and were slow
+    every rep, so it does not explain lith. Unexplained; not claimed.
+  Predictions: B64 between held 2/3; B32 fast-ish held 2/3 (rep1 slow); S64 fast held; W2 slow held.
+Cost $0.
