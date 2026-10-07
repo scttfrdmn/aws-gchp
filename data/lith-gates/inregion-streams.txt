@@ -2103,3 +2103,23 @@ P9u (descriptive; upstream: correlate only): W2 mount-alone on v1.10.0 with --me
   go_sched_latencies_seconds high buckets, alloc bytes delta, process CPU seconds delta (cores used), goroutine peak,
   alongside the fill TTFB fractions. No outcome claimed.
 Cost $0.
+
+--- 5f-P9t RESULTS (head node 2026-10-07 16:10:56-16:11:30Z; raw data/lith-gates/p9t/) ---
+  WARMUP (discarded, session-first): 8.2% <= 50 ms, p50 126 ms -- third sighting of the session-first effect.
+  arm   <=50 ms rep1/2/3        p50 ms
+  R32   80.7 / 94.0 / 96.5      30.7 / 27.9 / 26.3
+  F32   92.7 / 96.5 / 90.3      28.4 / 26.2 / 29.3     (-fresh-buffers)
+  R64   84.6 / 84.7 / 83.4      31.0 / 29.6 / 30.9
+  F64   83.1 / 81.2 / 87.9      32.1 / 30.3 / 30.7     (-fresh-buffers)
+  W2    2.6 / 5.2 / 4.6 (lith v1.10.0 fill, mean 140 / 127 / 133 ms)
+  REFUTE (operationalized): |F - R| <= 15 points in 3/3 reps at both depths. Allocation is cleared as the cause.
+  Caveat: -fresh-buffers allocates one 8 MiB buffer per request (~230/s, ~1.9 GB/s) vs lith's ~1200 x 1 MiB chunk
+    buffers; volume comparable, count ~5x lower. Prediction REFUTE held.
+--- 5f-P9u RESULTS (descriptive; 16:11:30-16:11:46Z; scorer scripts/lith/p9u-score.py -> p9t/p9u-score.txt) ---
+  rep  fill <=50  GC cycles  total STW  max pause  alloc     CPU cores  sched waits > 0.9 ms   goroutines peak
+  U-1  5.9%       11         1.50 ms    0.28 ms    1.26 GB   1.41       0 / 10497              218
+  U-2  7.8%       11         0.93 ms    0.29 ms    1.26 GB   1.38       0 / 10828              302
+  U-3  8.5%       11         1.31 ms    0.18 ms    1.26 GB   1.84       0 / 10223              317
+  -> No runtime signal on the scale of the delay: STW totals ~1 ms per burst, zero scheduler waits over 0.9 ms,
+     <2 of 16 cores. GC assist time is not directly exported; the scheduler histogram bounds runnable-wait, not assist.
+Cost $0.
