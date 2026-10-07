@@ -2051,3 +2051,22 @@ Cost $0.
   W1 (context): reused between (70-73% <= 50 ms, mean 46-53); new slow in 2/3.
   Predictions: new slow held; "reused between" FAILED for W2 (slow), held for W1; "acquire not carrying" held.
 Cost $0.
+
+--- 5f-P9s PRE-REGISTRATION (lith#350 06:34Z: s3bench at W2's burst shape; before any cell ran) ---
+Question (upstream): is the ~100 ms a lith-vs-s3bench difference, or burst-vs-steady? Every s3bench control so far was
+  a steady window; every lith arm a cold burst from a fresh process.
+Head node, in-region, 8 MiB parts, every arm a FRESH process. lith-s3bench has no request-count flag, so the burst
+  shape is a short window: at ~1.7 GB/s, 1 s at 32-64 workers = ~150-200 requests (W2 = 153 fills at depth 29-66).
+Arms, 3 reps interleaved:
+  B32  lith-s3bench -workers 32  -part 8388608 -duration 1s   (burst shape, low depth)
+  B64  lith-s3bench -workers 64  -part 8388608 -duration 1s   (burst shape, W2's peak depth)
+  S64  lith-s3bench -workers 64  -part 8388608 -duration 6s   (steady control at the same depth)
+  W2   lith v1.9.0 default mount, dd of A3dyn 07-02 (same-session reference; --wire-ttfb off)
+  s3bench key: A3dyn 07-08 (as P9p); W2 reads 07-02.
+Scoring (thresholds as P9p/P9q): slow = < 30% <= 50 ms; fast = >= 80% <= 50 ms; else between.
+  If B32/B64 are SLOW -> the difference is burst-vs-steady, not lith-vs-s3bench (upstream: five refutations were
+    against a mismatched control).
+  If B32/B64 are FAST while W2 is slow -> lith-specific; the runtime cell (#377) is next.
+My prediction: B64 between (the 1 s window includes the cold first-wave on 64 new connections), B32 fast-ish, S64 fast
+  (~85% <= 50 ms as P9p SA), W2 slow. Low confidence on B64.
+Cost $0.
