@@ -2260,3 +2260,21 @@ Cost $0.
      REUSED-connection acquisition (median 2.55 ms, up to 9.1) where s3bench's is 0.01 ms in every rep.
      (Upstream's estimate of s3bench new-share 2-4% was low: it is ~20%, one dial per worker in a 1.5 s window.)
   WARMUP pairs, 6/6: s3bench first process endpoint 74.2-87.5 ms vs lith same instant 35.7-43.4 ms (#381 sightings 8-13).
+
+--- 5f-P10 PRE-REGISTRATION (lith#381 diagnostic ladder; s3bench main 73ffe8b incl #384, md5 105c0e1d2001) ---
+Head node, in-region, NO other S3 activity on the box during the ladder. Measured arm M = lith-s3bench -workers 32
+  -part 8388608 -duration 1s on A3dyn 07-08 (anonymous), a fresh process. Each step preceded by >= 10 min idle
+  (no S3 traffic from this box). Order (each = [prep] then M; gap prep-end -> M-start recorded):
+  a1  nothing                     -> M
+  b   throwaway lith-s3bench -workers 1 -duration 200ms (minimal, upstream's guard) -> M  (gap logged)
+  c   aws s3api head-object --no-sign-request on the key -> M
+  d   getent hosts gcgrid.s3.amazonaws.com + s3.us-east-1.amazonaws.com + gcgrid.s3.us-east-1.amazonaws.com -> M
+  e   M itself with -warmup 1s (same process)
+  a2  nothing                     -> M   (bracket)
+Per M: TTFB <=50 ms fraction, p50, endpoint mean (SPLIT), start+ field.
+"Effect present" iff M <=50 ms < 60% AND pooled endpoint mean >= 60 ms; "removed" iff <=50 ms >= 75% AND endpoint
+  < 45 ms; else between. (Observed first processes: 36-51% / 74-98 ms; later processes 75-90% / 30-41 ms.)
+Readings (upstream's): (e) removes and (b) does not -> first-contact-in-process. (b) also removes -> something
+  persists outside the process; then (c)/(d) arbitrate. a2 not present -> the ladder warmed it (a result, not noise).
+My prediction: a1 present, b present, c present, d present, e removed, a2 present.
+Cost $0. ~70 min wall.
