@@ -2278,3 +2278,20 @@ Readings (upstream's): (e) removes and (b) does not -> first-contact-in-process.
   persists outside the process; then (c)/(d) arbitrate. a2 not present -> the ladder warmed it (a result, not noise).
 My prediction: a1 present, b present, c present, d present, e removed, a2 present.
 Cost $0. ~70 min wall.
+
+--- 5f-P11 (#350 concurrency-cap cell) + 5f-P12 (#350 overnight slow-window sampling) PRE-REGISTRATION
+    (written 22:55Z, before either ran; both chained to start only after 5f-P10 finishes) ---
+P11: simultaneous pairs exactly as P9y (same key 07-02, anon, 8 MiB, dd + s3bench -workers 64 -duration 1.5s started
+  together), lith v1.11.0, s3bench 73ffe8b. Warm-up pair discarded, then 5 reps, each rep two pairs interleaved:
+  A = lith default (--s3-concurrency 128) ; B = lith --s3-concurrency 64.  Acquisition split by conn= both programs.
+  Upstream's criteria on B (lith at the same cap as s3bench's 64 workers):
+    CONFIRM (structural: semaphore + shared pool queues, worker pool cannot) iff lith reused-acquire stays ~2.5 ms
+      (operationalized: median over B reps >= 1.0 ms) while s3bench reused stays ~0.01 ms.
+    REFUTE (sizing) iff lith reused-acquire median over B reps <= 0.1 ms.  Else between.
+  Also report A vs B lith new-share, endpoint, <=50 ms.
+  My prediction: CONFIRM (the ramp still issues requests without matching releases at cap 64), low-moderate.
+P12: from P11's end until 08:00Z, P9y unchanged (warm-up + 5 reps) every 30 min. Every session's wall-clock start
+  logged, slow or not. Acquisition split by conn= both programs per rep. Scoring as 5f-P9z (slow rep = s3bench
+  endpoint >= 70 ms; >= 5 slow reps needed): MATCH iff R in [0.80, 1.25] in >= 60% of slow reps; DIFFER iff R >= 1.5
+  in >= 60%; plus, on slow reps, lith vs s3bench reused-acquire (does lith's degrade more?). Unscored if < 5 slow reps.
+Cost $0.
