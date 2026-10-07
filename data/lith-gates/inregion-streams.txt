@@ -2168,3 +2168,27 @@ Scoring (<= 50 ms fraction, thresholds as before: slow < 30%, fast >= 80%):
 My prediction: AUTH IS THE CAUSE (cross-account signed requests make S3 evaluate the caller's IAM identity policy);
   moderate confidence.
 Cost $0.
+
+--- 5f-P9w RESULTS (18:01:45-18:02:21Z) + unscored immediate replication P9w2 (18:0x) ---
+  <=50 ms          rep1    rep2    rep3   |  P9w2 rep1  rep2   rep3
+  LS lith signed   32.0    60.1    45.1   |  47.1       57.5   73.2
+  LA lith anon     52.9    66.0    59.5   |  56.9       77.1   71.2
+  BA s3b anon      71.4    89.9    82.1   |  72.1       87.2   86.7
+  BS s3b signed    65.1    84.0    74.4   |  72.4       70.0   76.9
+  WARMUP (discarded) 31.3% / 36.2% -- #381 sighting 4 and 5.
+  SCORE (as pre-registered): PARTIAL. Neither "auth is the cause" (LA not fast; BS not slow) nor "auth is not"
+    (LA not slow). Auth effect is real but small: anon - signed = +6..+21 pts (lith), +6..+8 pts (s3bench, P9w).
+  UNEXPECTED, bigger than auth: lith signed is 32-73% here vs 3-9% in every earlier session (P9q..P9u) and rose
+    within P9v (8.5 -> 27.5 -> 35.3). Pattern: lith W2 improves with repeated reads of the SAME object within a
+    session (07-02 read ~16x in ~5 min here). Not claimed; tested next.
+
+--- 5f-P9x PRE-REGISTRATION (written after P9w2, before any P9x cell) ---
+Question: is the slowness object-level (a cold object is slow, a repeatedly-read one warms), or session-level?
+Arms, back to back, lith v1.11.0 W2 shape (dd bs=1M whole object), --wire-ttfb, --no-sign-request (anon, to remove
+  auth), fresh mount each:
+  HOT1 = A3dyn 07-02 (read ~16x in the last ~6 min)   COLD1 = A3dyn 07-21 (not read by me this week)
+  HOT2 = 07-02                                         COLD2 = A3dyn 07-22 (not read by me this week)
+Prediction if object-level: COLD arms slow (< 30% <= 50 ms) while HOT arms stay >= 50%. Session-level: all alike.
+  Confirms object-level iff both COLD < 30% and both HOT >= 50%. Refutes iff |COLD - HOT| <= 15 pts in both pairs.
+  Caveat: other users may have read 07-21/22 (public bucket); "cold" means cold to me only.
+Cost $0.

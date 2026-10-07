@@ -1,0 +1,15 @@
+=== gate 5f-P9w 2026-10-07T18:03:57Z lith=51234db1e082 s3bench=dd8c47c57a2e
+ARM WARMUP TTFB workers=64 part=8MiB fresh=false n=235 p10=26.3ms p50=97.0ms p90=149.3ms p99=183.3ms <=25ms=3.8% <=50ms=36.2% <=60ms=38.3%
+ARM LS-1 fill n=153 <=50ms=47.1% mean=52.4ms | endpoint mean 50.6ms (n=153)
+ARM LA-1 fill n=153 <=50ms=56.9% mean=51.4ms | endpoint mean 48.4ms (n=153)
+ARM BA-1 TTFB workers=64 part=8MiB fresh=false n=247 p10=25.2ms p50=34.2ms p90=68.6ms p99=142.9ms <=25ms=9.7% <=50ms=72.1% <=60ms=85.0%
+ARM BS-1 TTFB workers=64 part=8MiB fresh=false n=246 p10=22.1ms p50=28.8ms p90=71.7ms p99=117.7ms <=25ms=30.5% <=50ms=72.4% <=60ms=82.5%
+ARM LS-2 fill n=153 <=50ms=57.5% mean=46.1ms | endpoint mean 43.5ms (n=153)
+ARM LA-2 fill n=153 <=50ms=77.1% mean=38.1ms | endpoint mean 35.1ms (n=153)
+ARM BA-2 TTFB workers=64 part=8MiB fresh=false n=250 p10=21.8ms p50=28.3ms p90=52.7ms p99=76.4ms <=25ms=31.2% <=50ms=87.2% <=60ms=97.6%
+ARM BS-2 TTFB workers=64 part=8MiB fresh=false n=247 p10=22.8ms p50=31.7ms p90=65.8ms p99=92.3ms <=25ms=21.9% <=50ms=70.0% <=60ms=83.8%
+ARM LS-3 fill n=153 <=50ms=73.2% mean=37.2ms | endpoint mean 34.4ms (n=153)
+ARM LA-3 fill n=153 <=50ms=71.2% mean=42.7ms | endpoint mean 40.1ms (n=153)
+ARM BA-3 TTFB workers=64 part=8MiB fresh=false n=241 p10=20.4ms p50=26.8ms p90=54.7ms p99=276.4ms <=25ms=39.0% <=50ms=86.7% <=60ms=95.0%
+ARM BS-3 TTFB workers=64 part=8MiB fresh=false n=242 p10=22.5ms p50=30.5ms p90=58.4ms p99=68.0ms <=25ms=22.7% <=50ms=76.9% <=60ms=93.4%
+=== done 2026-10-07T18:04:32Z
