@@ -2242,3 +2242,9 @@ Scoring over all slow-regime reps (if >= 5 exist): MATCH iff R in [0.80, 1.25] i
   in >= 60%; else between. If < 5 slow reps occur: unscored, report what was seen.
 Prediction: MATCH in slow windows too (both programs ride the same endpoint conditions), low-moderate confidence.
 Cost $0.
+  5f-P9z AMENDMENT (lith#350 19:47Z ask; written after sessions s1-s3, none of which had a slow-regime rep, so no
+    scored data informed it): on slow-regime reps ALSO report acquisition mean for both programs; upstream's
+    question is whether lith's acquisition degrades far more than s3bench's as the regime worsens.
+  Interim (unscored), s1-s3 (19:11-19:56Z): 15/15 scored reps FAST (s3bench endpoint 30.3-40.7 ms); R 0.97-1.30
+    (14/15 MATCH band); acquisition lith 2.2-11.3 ms vs s3bench 0.8-1.8 ms every rep. WARMUP pairs: s3bench first
+    process endpoint 79.2 / 87.5 / 74.2 ms vs lith same instant 43.4 / 41.5 / 35.7 ms (#381 sightings 8-10).
