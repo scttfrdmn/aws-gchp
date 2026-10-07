@@ -2123,3 +2123,17 @@ Cost $0.
   -> No runtime signal on the scale of the delay: STW totals ~1 ms per burst, zero scheduler waits over 0.9 ms,
      <2 of 16 cores. GC assist time is not directly exported; the scheduler histogram bounds runnable-wait, not assist.
 Cost $0.
+
+--- 5f-P9v PRE-REGISTRATION (lith#350, v1.11.0 sha256 74590ea2...33af; before any cell ran) ---
+Cell: head node, in-region, W2 mount-alone (dd A3dyn 07-02), --wire-ttfb --metrics, fresh mount per arm.
+  One W2 warm-up arm FIRST and DISCARDED (#381), then 3 reps.
+Read per conn label: count + sum (mean) + <=25/<=50 fractions of conn_acquire, request_write, endpoint_ttfb, wire_ttfb.
+Composition check FIRST: per label, sum(acquire)+sum(write)+sum(endpoint) vs sum(wire); counts equal across the four.
+  Mismatch > 2 ms mean or unequal counts -> reported to upstream before any reading (retry/partial trace).
+Upstream's branches (as written):
+  endpoint ~28 ms, write large -> delay is ours (next: 1 MiB-read cell).
+  endpoint ~130 ms             -> S3 answers these requests slower; compare the two clients' range patterns.
+My operationalization: "endpoint ~28" = endpoint mean <= 45 ms AND write mean >= 50 ms; "endpoint ~130" = endpoint
+  mean >= 90 ms; else between, no outcome claimed. (W2 wire means so far 89-158 ms.)
+My prediction: endpoint ~130 (most of wire), write small (< 5 ms) -- low-moderate confidence.
+Cost $0.
