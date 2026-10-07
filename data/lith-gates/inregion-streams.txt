@@ -2192,3 +2192,14 @@ Prediction if object-level: COLD arms slow (< 30% <= 50 ms) while HOT arms stay 
   Confirms object-level iff both COLD < 30% and both HOT >= 50%. Refutes iff |COLD - HOT| <= 15 pts in both pairs.
   Caveat: other users may have read 07-21/22 (public bucket); "cold" means cold to me only.
 Cost $0.
+
+--- 5f-P9x RESULTS (head node ~18:05-18:06Z, v1.11.0, --no-sign-request; raw data/lith-gates/p9x/) ---
+  arm            fill <=50  fill mean  endpoint mean  acquire mean new / reused   (composition exact)
+  HOT1  07-02    8.5%       173.4 ms   101.4 ms       87.9 / 61.0 ms
+  COLD1 07-21    4.0%       170.1 ms   145.1 ms       16.4 / 28.3 ms
+  HOT2  07-02    9.8%       116.3 ms   104.6 ms       6.6 / 17.0 ms
+  COLD2 07-22    4.6%       162.9 ms   145.7 ms       34.2 / 0.5 ms
+  SCORE: object-level warming REFUTED (|COLD - HOT| <= 15 pts in both pairs: 4.5, 5.2). The fast state of P9w/P9w2
+    (18:01-18:05) ENDED within ~3 min for every object: it was temporal, not repetition-driven.
+  Residual: endpoint mean ~40 ms higher on the cold objects (145 vs 101-105) -- descriptive only.
+  NEW: connection acquisition 17-88 ms mean in 3 of 4 arms (1-5 ms in every earlier cell). Unexplained.
