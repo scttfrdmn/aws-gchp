@@ -2036,3 +2036,18 @@ My prediction (informed by the probe): new slow / reused NOT fast (between), and
   difference (the probe had acquire(new) all < 50 ms) -> a third outcome neither of upstream's two names: first-use
   connections are slow AFTER acquisition. Low confidence.
 Cost $0.
+
+--- 5f-P9r RESULTS (head node 2026-10-07 06:15:29-06:15:54Z, v1.9.0 e9c2ce7cff6e; raw + score data/lith-gates/p9r/) ---
+  (scorer's acquire "<=25 ms" column is an artifact: lith_s3_conn_acquire_seconds has buckets 0.02/0.03, no 0.025.)
+  W2 dd   conn   count (r1/r2/r3)   wire <=50ms        wire mean ms        acquire mean ms
+          new    39 / 52 / 75       0 / 0 / 0%         157.9/129.8/125.3   3.7 / 3.4 / 4.6
+          reused 114 / 101 / 78     5.3 / 9.9 / 14.1%  134.7/106.3/88.5    1.3 / 1.1 / 1.5
+  W1 6var new    11 / 9 / 10        0 / 55.6 / 20%     168.0/68.8/77.2     3.9 / 3.1 / 4.6
+          reused 129 / 131 / 130    69.8/72.5/71.5%    53.0/48.9/46.1      0.0 / 0.1 / 0.1
+  W2 OUTCOME (upstream's): REFUTE -- both labels slow (reused 5-14% <= 50 ms, mean 89-135 ms).
+     Acquisition is 3-5 ms new / ~1 ms reused; new-reused wire gap 23-37 ms, acquire carries < 15% of it.
+     First-use connections ARE slower than reused (by 23-37 ms mean, every rep) but not via acquisition, and the
+     bulk of the ~100 ms is on reused connections too. new share of fills 25-49% (rises across reps 39->75).
+  W1 (context): reused between (70-73% <= 50 ms, mean 46-53); new slow in 2/3.
+  Predictions: new slow held; "reused between" FAILED for W2 (slow), held for W1; "acquire not carrying" held.
+Cost $0.
