@@ -2137,3 +2137,34 @@ My operationalization: "endpoint ~28" = endpoint mean <= 45 ms AND write mean >=
   mean >= 90 ms; else between, no outcome claimed. (W2 wire means so far 89-158 ms.)
 My prediction: endpoint ~130 (most of wire), write small (< 5 ms) -- low-moderate confidence.
 Cost $0.
+
+--- 5f-P9v RESULTS (head node 2026-10-07 17:57:38-17:57:57Z, v1.11.0; raw data/lith-gates/p9v/) ---
+  Composition: acquire + write + endpoint == wire to 0.00 ms mean in every rep x label; counts equal across all four.
+  rep  conn    n    acquire  write    endpoint  wire      (means, ms)   pooled endpoint
+  1    new     65   4.10     0.02     111.30    115.42                 100.8
+       reused  88   1.68     0.02     93.00     94.71
+  2    new     39   4.46     0.03     98.16     102.64                 73.5
+       reused  114  0.83     0.02     64.99     65.83
+  3    new     55   4.97     0.02     83.99     88.98                  64.9
+       reused  98   0.67     0.02     54.15     54.84
+  (WARMUP discarded: endpoint new 148.3 / reused 119.4.)
+  -> Request write is ~20 us everywhere: "write large" branch REFUTED. The delay is WroteRequest -> first byte
+     (96-99% of wire) in every rep. By my threshold (pooled endpoint >= 90 ms) rep 1 = "endpoint ~130"; reps 2-3
+     between (73.5, 64.9) as the run sped up rep over rep (fill <=50: warm-up 3.9 -> 8.5 -> 27.5 -> 35.3%).
+  Prediction "endpoint dominant, write < 5 ms" held; "~130" held 1/3.
+CONFOUND FOUND (mine, all lith W2 arms P9p..P9v): mounts were SIGNED (no --no-sign-request; head-node role, cross-
+  account to gcgrid) while lith-s3bench defaults -no-sign-request=true (ANONYMOUS). The clients never sent the same
+  requests. Same Bucket/Key/Range fields, same SDK; different auth.
+
+--- 5f-P9w PRE-REGISTRATION (auth 2x2; before any cell ran) ---
+Head node, in-region, v1.11.0 lith (--wire-ttfb) and s3bench 28c7612. One discarded warm-up (s3bench). 3 reps
+  interleaved: LS = lith W2 signed (as P9v); LA = lith W2 --no-sign-request; BA = s3bench -workers 64 -duration 1s
+  (anonymous, default); BS = s3bench same with -no-sign-request=false (signed, head-node role). s3bench key = A3dyn
+  07-02 (the SAME object lith reads, removing the key difference too).
+Scoring (<= 50 ms fraction, thresholds as before: slow < 30%, fast >= 80%):
+  AUTH IS THE CAUSE iff LA fast/between AND BS slow, in >= 2/3 reps (signed slow for both programs, anonymous fast for both).
+  AUTH IS NOT iff LA slow and BS fast in >= 2/3 (lith slow whatever it sends).
+  Else partial, reported per arm. Also lith endpoint_ttfb mean LS vs LA.
+My prediction: AUTH IS THE CAUSE (cross-account signed requests make S3 evaluate the caller's IAM identity policy);
+  moderate confidence.
+Cost $0.
