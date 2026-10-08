@@ -2413,3 +2413,16 @@ P16: s3bench a20b9fa, measured burst -workers 32 -duration 1s on A3dyn 07-08, an
   Upstream's distinction: L100 removes (~1 request/conn suffices) -> SETUP-LIKE; only L1000 removes -> RAMP-LIKE.
   My prediction: L100 present/partial, L300 between, L1000 removed -> ramp-like. Low-moderate.
 Cost $0.
+
+--- 5f-P17 RESULTS (#381, 2026-10-08 19:25:08-19:25:39Z; raw data/lith-gates/p17/) ---
+  rep     ON <=50 / endpoint / new-share / reused-acq      OFF <=50 / endpoint / new-share / reused-acq    gap (OFF-ON)
+  WARMUP  54.9% / 48.5 / 48.4% / 0.12 ms                  5.8% / 137.7 / 82.5% / 0.01 ms                  -49.1 (discarded)
+  R1      75.8 / 37.9 / 15.7 / 1.37                       32.7 / 53.6 / 83.0 / 0.01                       -43.1
+  R2      60.1 / 41.5 / 51.0 / 2.26                       32.0 / 49.5 / 83.0 / 0.01                       -28.1
+  R3      71.9 / 34.8 / 64.1 / 0.76                       68.6 / 41.2 / 83.0 / 0.01                        -3.3
+  R4      73.2 / 37.6 / 33.3 / 1.56                       30.1 / 39.9 / 83.0 / 0.01                       -43.1
+  R5      71.2 / 38.6 / 31.4 / 2.07                       61.7 / 39.2 / 82.5 / 0.01                        -9.5
+  SCORE: CONFIRM (OFF >= 15 pts colder in 3/5) -- WITH upstream's flag: not a clean single variable (depth in flight
+    moves with the connection-opening pattern; bytes fetched equal, 1214 MB both). Prediction held.
+  Side result: OFF has ZERO reused-connection queueing (0.01 ms) vs ON 0.76-2.26 ms -> #350's reused-acquire residual
+    is produced by the ramp itself.

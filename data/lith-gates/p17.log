@@ -1,0 +1,14 @@
+=== gate 5f-P17 2026-10-08T19:25:08Z lith=51234db1e082
+WARMUP.ON fill n=153 <=50ms=54.9% endpoint=48.5ms new-share=48.4% reused-acq=0.12ms s3_MB=1214
+WARMUP.OFF fill n=154 <=50ms=5.8% endpoint=137.7ms new-share=82.5% reused-acq=0.01ms s3_MB=1214
+R1.ON fill n=153 <=50ms=75.8% endpoint=37.9ms new-share=15.7% reused-acq=1.37ms s3_MB=1214
+R1.OFF fill n=153 <=50ms=32.7% endpoint=53.6ms new-share=83.0% reused-acq=0.01ms s3_MB=1214
+R2.ON fill n=153 <=50ms=60.1% endpoint=41.5ms new-share=51.0% reused-acq=2.26ms s3_MB=1214
+R2.OFF fill n=153 <=50ms=32.0% endpoint=49.5ms new-share=83.0% reused-acq=0.01ms s3_MB=1214
+R3.ON fill n=153 <=50ms=71.9% endpoint=34.8ms new-share=64.1% reused-acq=0.76ms s3_MB=1214
+R3.OFF fill n=153 <=50ms=68.6% endpoint=41.2ms new-share=83.0% reused-acq=0.01ms s3_MB=1214
+R4.ON fill n=153 <=50ms=73.2% endpoint=37.6ms new-share=33.3% reused-acq=1.56ms s3_MB=1214
+R4.OFF fill n=153 <=50ms=30.1% endpoint=39.9ms new-share=83.0% reused-acq=0.01ms s3_MB=1214
+R5.ON fill n=153 <=50ms=71.2% endpoint=38.6ms new-share=31.4% reused-acq=2.07ms s3_MB=1214
+R5.OFF fill n=154 <=50ms=61.7% endpoint=39.2ms new-share=82.5% reused-acq=0.01ms s3_MB=1214
+=== done 2026-10-08T19:25:39Z
