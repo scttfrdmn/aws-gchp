@@ -2340,3 +2340,23 @@ Upstream's discriminator: fF PRESENT while f5 REMOVED -> the TCP metrics cache i
 Decay: f60 / f600 verdicts give persistence.
 My prediction: a present; f5 removed; fF present; f60 removed; f600 present. Low confidence on f5 (one sighting).
 Cost $0. ~60 min.
+  5f-P13 INTERIM (unscored until done): a 15.7% <= 50 / endpoint 144 new, 102 reused -> present; f5 35.0% / 68, 72 ->
+    present by rule (improved). INSTRUMENT CAVEAT (mine): `ss -tin` cwnd is the CLIENT's send window (=10 everywhere:
+    we only send requests); S3's sending cwnd, which governs first bytes of 8 MiB responses, is not observable here.
+    The client tcp_metrics cache likewise holds our send-side metrics. The flush arm stays a valid behavioural test.
+
+--- 5f-P14 (#350 auth in the current era) + 5f-P15 (#381 warm-up threshold) PRE-REGISTRATION
+    (written 15:56Z, before either ran; chained to start after 5f-P13 finishes) ---
+P14: two lith v1.11.0 mounts on the head node, started at the SAME instant, each dd-ing A3dyn 07-02 (W2): S = signed
+  (head-node role), A = --no-sign-request. Both --wire-ttfb. Warm-up pair discarded, then 5 reps.
+  Upstream's criteria (P9w priced auth at +6..+21 pts):
+    AUTH NOT THE CARRIER (calendar changed) iff signed <= 50 ms within 20 pts of anonymous in >= 3/5 reps;
+    AUTH IS THE CARRIER iff signed <= 50 ms <= 9% (old-session level) in >= 3/5 reps.  Else between.
+  My prediction: auth not the carrier.
+P15: s3bench a20b9fa (#385, md5 b741891e44d2), measured burst -workers 32 -duration 1s, A3dyn 07-08, anon, fresh
+  process; each step after >= 10 min idle: a (nothing); w1 (-warmup 1s -warmup-workers 1); w4 (-warmup 1s
+  -warmup-workers 4); w32 (-warmup 1s -warmup-workers 32, = P10 e, positive control). Verdicts as P10.
+  Upstream: w1 removes -> threshold low (a mount's index read explains fast mounts; one effect). Only w32 removes ->
+  mounts are fast for another reason.
+  My prediction: a present, w1 present, w4 between, w32 removed. Low confidence on w1/w4.
+Cost $0.
