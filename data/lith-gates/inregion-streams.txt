@@ -2453,3 +2453,17 @@ Upstream's criteria: CONFIRM iff T16S 16/16 ever-Sequential in BOTH reps with wa
   <= 6 s). REFUTE iff T16S does not establish (send pf-trace, no retry). Validity: T16 must hold ~0/16 and T16D 16/16.
   Also report coverage_held (expect sharply lower than T16's ~1000, not 0).
 My prediction: CONFIRM. Cost $0.
+
+--- 5f-P18 RESULTS (#316, head node, lith main 34cf131 md5 84d04eb1e7b5; raw data/lith-gates/p18/p18.log) ---
+  cell     ever-Seq  sh_max  wall s   coverage_held  low_cov  uncovered  s3_GB  issued/used
+  T16 -1    0/16      0      67.26    986            31       1766       0.540  0/0
+  T16S-1   16/16     16       2.94     16             0         15       0.671  631/504
+  T16D-1   16/16     16       1.37     16             0          9       0.864  2287/503
+  T16 -2    0/16      0      42.10    1007           16       1246       0.539  0/0
+  T16S-2   16/16     16       2.32     16             0         14       0.679  639/504
+  T16D-2   16/16     16       1.29     16             0          9       1.527  1479/503
+  SCORE: CONFIRM, both reps (T16S 16/16, wall 2.94 / 2.32 s <= 6 s, near T16C's ~3.0 s). Controls valid (T16 0/16,
+    T16D 16/16). coverage_held 16 (= O_DIRECT) vs ~1000. Holes unchanged (reads-with-hole/handle med 0.95-0.96).
+  Not scored: T16S fetched 0.67-0.68 GB for 0.54 GB read -- far less overrun than covMin 0.05 (P8: 1.887 GB) or
+    O_DIRECT today (0.86-1.53 GB). Prediction held.
+Cost $0.
