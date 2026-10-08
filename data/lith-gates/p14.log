@@ -1,0 +1,14 @@
+=== gate 5f-P14 2026-10-08T16:31:21Z lith=51234db1e082
+WARMUP.S fill n=153 <=50ms=4.6% mean=136.3ms endpoint=130.6ms
+WARMUP.A fill n=153 <=50ms=25.5% mean=117.2ms endpoint=113.5ms
+R1.S fill n=153 <=50ms=16.3% mean=84.3ms endpoint=79.1ms
+R1.A fill n=153 <=50ms=37.9% mean=65.0ms endpoint=53.6ms
+R2.S fill n=153 <=50ms=45.8% mean=57.3ms endpoint=44.4ms
+R2.A fill n=153 <=50ms=63.4% mean=46.5ms endpoint=44.0ms
+R3.S fill n=153 <=50ms=45.8% mean=53.4ms endpoint=46.8ms
+R3.A fill n=153 <=50ms=60.8% mean=47.2ms endpoint=43.9ms
+R4.S fill n=153 <=50ms=44.4% mean=51.5ms endpoint=45.9ms
+R4.A fill n=153 <=50ms=56.9% mean=63.4ms endpoint=42.4ms
+R5.S fill n=153 <=50ms=58.2% mean=46.9ms endpoint=44.3ms
+R5.A fill n=153 <=50ms=58.8% mean=48.3ms endpoint=44.4ms
+=== done 2026-10-08T16:31:54Z

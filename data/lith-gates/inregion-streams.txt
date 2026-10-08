@@ -2360,3 +2360,39 @@ P15: s3bench a20b9fa (#385, md5 b741891e44d2), measured burst -workers 32 -durat
   mounts are fast for another reason.
   My prediction: a present, w1 present, w4 between, w32 removed. Low confidence on w1/w4.
 Cost $0.
+
+--- 5f-P13 RESULTS (#381, 15:29:56-16:31:18Z; raw data/lith-gates/p13/) ---
+  step  prep                                  <=50 ms  endpoint new/reused  verdict   tcp_metrics entries before M
+  a     nothing                               15.7%    143.8 / 101.8 ms     present   2749
+  f5    H (32w 1s, separate proc), 5 s        35.0%    68.1 / 71.5          present   2749
+  fF    H, `ip tcp_metrics flush` (->0), 5 s  36.4%    69.2 / 68.0          present   4
+  f60   H, 60 s                               22.7%    124.9 / 89.8         present   23
+  f600  H, 600 s                              10.1%    145.2 / 101.3        present   45
+  SCORE: f5 PRESENT -> per the pre-registration the flush discriminator is UNINFORMATIVE (exception did not fully
+    reproduce). Descriptive: H gives a PARTIAL improvement (15.7 -> 35%) that is UNCHANGED by flushing the cache
+    (36.4%) and decays within 60 s -> evidence against tcp_metrics as the carrier, not a test of it.
+  ss cwnd = 10 everywhere is the client SEND window (uninformative; S3's send cwnd not observable).
+  Predictions: a present OK; f5 removed FAILED; fF present OK (trivially); f60 removed FAILED; f600 present OK.
+--- 5f-P14 RESULTS (#350, 16:31:21-16:31:54Z; raw data/lith-gates/p14/) ---
+  rep   signed <=50 / endpoint    anon <=50 / endpoint    gap
+  WARM  4.6% / 130.6 ms           25.5% / 113.5 ms        (discarded)
+  R1    16.3 / 79.1               37.9 / 53.6             21.6
+  R2    45.8 / 44.4               63.4 / 44.0             17.6
+  R3    45.8 / 46.8               60.8 / 43.9             15.0
+  R4    44.4 / 45.9               56.9 / 42.4             12.5
+  R5    58.2 / 44.3               58.8 / 44.4             0.6
+  SCORE: AUTH NOT THE CARRIER -- signed within 20 pts of anon in 4/5 (signed <= 9% in 0/5). Prediction held.
+    Endpoint means equal from R2 (44-47 ms both); signing costs a little in fill/acquire, not at the endpoint.
+    The calendar remains the unresolved confound for the slow era.
+--- 5f-P15 RESULTS (#381, 16:31:54-17:12:02Z; s3bench a20b9fa; raw data/lith-gates/p15/) ---
+  step  warm-up        <=50 ms  endpoint new/reused        new conns in M   verdict
+  a     none           22.0%    132.5 / 89.0 ms            32               present
+  w1    1 s, 1 worker  22.8%    135.5 / 84.9               31               present
+  w4    1 s, 4 workers 33.8%    146.8 / 81.0               28               present
+  w32   1 s, 32 w      89.5%    -- / 32.7                  0                REMOVED
+  SCORE (upstream's branches): ONLY the large (burst-scale) warm-up removes it -> "mounts are fast for another
+    reason". Predictions: a/w1 present OK; w4 between FAILED (present); w32 removed OK.
+  Descriptive pattern (not claimed): the warm-up helps in proportion to the connections it exercised (new conns in M
+    32 -> 31 -> 28 -> 0) -- consistent with a PER-CONNECTION first-traffic cost. A mount's window ramps 2->4->8...
+    so its connections carry traffic before concurrency grows; s3bench opens 32 cold at once.
+Cost $0.

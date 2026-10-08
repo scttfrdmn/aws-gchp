@@ -1,0 +1,17 @@
+=== gate 5f-P13 2026-10-08T15:29:56Z s3bench=105c0e1d2001 idle=600s
+STEP a 15:39:58 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+57ms n=178 p10=34.2ms p50=112.5ms p90=171.5ms p99=233.7ms <=25ms=4.5% <=50ms=15.7% <=60ms=17.4% | cwnd@0.4s n=37 min=10 med=10 max=10 | tcp_metrics entries before M: 2749
+     SPLIT  conn=new    n=  32  acquire=   9.48ms write=  0.016ms endpoint= 143.81ms  wire= 153.30ms
+     SPLIT  conn=reused n= 147  acquire=   0.01ms write=  0.017ms endpoint= 101.84ms  wire= 101.87ms
+STEP f5 15:50:05 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+57ms n=217 p10=25.7ms p50=73.4ms p90=118.1ms p99=145.0ms <=25ms=8.3% <=50ms=35.0% <=60ms=41.5% | cwnd@0.4s n=37 min=10 med=10 max=10 | tcp_metrics entries before M: 2749
+     SPLIT  conn=new    n=  32  acquire=   5.70ms write=  0.015ms endpoint=  68.06ms  wire=  73.77ms
+     SPLIT  conn=reused n= 186  acquire=   0.01ms write=  0.019ms endpoint=  71.53ms  wire=  71.56ms
+STEP fF 16:00:13 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+52ms n=217 p10=24.2ms p50=68.8ms p90=117.5ms p99=144.0ms <=25ms=12.4% <=50ms=36.4% <=60ms=43.3% | cwnd@0.4s n=37 min=10 med=10 max=13 | tcp_metrics entries before M: 4
+     SPLIT  conn=new    n=  32  acquire=   4.55ms write=  0.020ms endpoint=  69.19ms  wire=  73.77ms
+     SPLIT  conn=reused n= 186  acquire=   0.01ms write=  0.027ms endpoint=  68.01ms  wire=  68.04ms
+STEP f60 16:11:15 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+57ms n=194 p10=27.2ms p50=105.7ms p90=144.6ms p99=191.0ms <=25ms=5.7% <=50ms=22.7% <=60ms=24.2% | cwnd@0.4s n=37 min=10 med=10 max=10 | tcp_metrics entries before M: 23
+     SPLIT  conn=new    n=  32  acquire=   4.05ms write=  0.022ms endpoint= 124.88ms  wire= 128.95ms
+     SPLIT  conn=reused n= 163  acquire=   0.01ms write=  0.017ms endpoint=  89.82ms  wire=  89.85ms
+STEP f600 16:31:18 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+56ms n=169 p10=46.9ms p50=111.7ms p90=159.1ms p99=215.3ms <=25ms=3.6% <=50ms=10.1% <=60ms=13.0% | cwnd@0.4s n=38 min=10 med=10 max=10 | tcp_metrics entries before M: 45
+     SPLIT  conn=new    n=  32  acquire=   6.58ms write=  0.021ms endpoint= 145.20ms  wire= 151.81ms
+     SPLIT  conn=reused n= 138  acquire=   0.01ms write=  0.033ms endpoint= 101.29ms  wire= 101.33ms
+=== done 2026-10-08T16:31:18Z
