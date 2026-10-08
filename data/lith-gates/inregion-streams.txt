@@ -2440,3 +2440,16 @@ Cost $0.
   -> Characterization (#381): a per-connection, ramp-like first-traffic cost of ~1 s on S3 GETs from this box; it
      shows in the S3-side interval (WroteRequest -> first byte), not acquire/write. Mechanism inside S3/path not visible.
 Cost $0.
+
+--- 5f-P18 PRE-REGISTRATION (lith#316 20:50Z: --prefetch-sibling-coverage, #387; before any cell ran) ---
+Binary: lith built from main 34cf131 (#387, md5 84d04eb1e7b5) -- not a release; flag EXPERIMENTAL, off by default.
+  (Note: the flag's --help text names only the "already demanded" condition; upstream's comment specifies BOTH a
+  sibling descriptor open AND demanded bytes.)
+Harness gate-samefile.sh exactly as 5f-P8 (16 dd readers on ONE A3dyn object, 512 MiB each from offset 0, dd held open
+  for its read, page cache untouched except T16D, --pf-trace), head node, 2 reps, arms interleaved:
+  T16 (default, control: expect 0/16 ever-Sequential), T16S (--prefetch-sibling-coverage, covMin DEFAULT 0.5, no
+  O_DIRECT -- the test), T16D (iflag=direct, positive control: 16/16).
+Upstream's criteria: CONFIRM iff T16S 16/16 ever-Sequential in BOTH reps with wall near T16C's ~3.0 s (operationalized
+  <= 6 s). REFUTE iff T16S does not establish (send pf-trace, no retry). Validity: T16 must hold ~0/16 and T16D 16/16.
+  Also report coverage_held (expect sharply lower than T16's ~1000, not 0).
+My prediction: CONFIRM. Cost $0.

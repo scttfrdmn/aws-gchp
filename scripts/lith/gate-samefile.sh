@@ -51,7 +51,7 @@ N=0
 run_cell() {
   local arm=$1 rep=$2 tag="$1-$2" nr objs=() ddx=() i
   case "$arm" in
-    T1) nr=1 ;; T2) nr=2 ;; T4) nr=4 ;; T16|T16D|T16X|T16C) nr=16 ;;
+    T1) nr=1 ;; T2) nr=2 ;; T4) nr=4 ;; T16|T16D|T16X|T16C|T16S) nr=16 ;;
     *) echo "unknown arm $arm"; return 1 ;;
   esac
   for ((i = 0; i < nr; i++)); do
@@ -61,6 +61,8 @@ run_cell() {
   [ "$arm" = T16D ] && ddx=(iflag=direct)
   # T16C (#316, 5f-P8): coverage threshold lowered, page cache untouched
   local mf=(); [ "$arm" = T16C ] && mf=(--prefetch-coverage-min "${COVMIN:-0.05}")
+  # T16S (#316/#387, 5f-P18): sibling-coverage repair at the DEFAULT covMin, page cache untouched
+  [ "$arm" = T16S ] && mf=(--prefetch-sibling-coverage)
 
   N=$((N + 1)); local PORT=$((PORT_BASE + N))
   rm -f "$OUT/$tag".*
