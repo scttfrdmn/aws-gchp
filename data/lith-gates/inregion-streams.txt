@@ -2426,3 +2426,17 @@ Cost $0.
     moves with the connection-opening pattern; bytes fetched equal, 1214 MB both). Prediction held.
   Side result: OFF has ZERO reused-connection queueing (0.01 ms) vs ON 0.76-2.26 ms -> #350's reused-acquire residual
     is produced by the ramp itself.
+
+--- 5f-P16 RESULTS (#381 warm-up length ladder, 19:25:39-20:05:46Z, s3bench a20b9fa; raw data/lith-gates/p16/) ---
+  step   warm-up (32 w)  <=50 ms  p50      new conns in M  endpoint new / reused   verdict
+  a      none            22.1%    100.1    32              138.2 / 84.3 ms        present
+  L100   100 ms          39.9%    85.3     1               153.8 / 75.9           present (partial)
+  L300   300 ms          52.1%    44.9     0               -- / 65.3              present (partial)
+  L1000  1 s             92.2%    25.9     0               -- / 31.8              REMOVED
+  SCORE (upstream's distinction): RAMP-LIKE. L100 and L300 had every connection already exercised by >= 1 request
+    (0-1 new in M) yet stayed present; the cold fraction fades monotonically with warm-up LENGTH (22 -> 40 -> 52 -> 92%)
+    and only ~1 s of traffic per connection removes it. Not setup-like.
+  Predictions: L100 present OK; L300 between FAILED (present); L1000 removed OK; "ramp-like" OK.
+  -> Characterization (#381): a per-connection, ramp-like first-traffic cost of ~1 s on S3 GETs from this box; it
+     shows in the S3-side interval (WroteRequest -> first byte), not acquire/write. Mechanism inside S3/path not visible.
+Cost $0.

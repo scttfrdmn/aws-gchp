@@ -1,0 +1,4 @@
+# 1 keys, 1.1 GiB total, 145 ranges of 8 MiB, 32 workers, pool=32, http=false, read-buffer=0
+SPLIT  conn=reused n= 232  acquire=   0.01ms write=  0.022ms endpoint=  31.76ms  wire=  31.79ms
+TTFB   workers=32 part=8MiB fresh=false auth=anon warmup=1s/32w start+1241ms  n=232  p10=19.8ms p50=25.9ms p90=47.9ms p99=221.8ms  <=25ms=46.1% <=50ms=92.2% <=60ms=94.8%
+RESULT workers=32 part=8MiB http=false rbuf=0  agg=1467 MB/s  reqs=232  p50=136.2ms p99=339.4ms  maxconns=36  cpu=4.2s (21% of 16 cores)

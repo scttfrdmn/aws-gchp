@@ -1,0 +1,12 @@
+=== gate 5f-P16 2026-10-08T19:25:39Z s3bench=b741891e44d2 idle=600s
+STEP a 19:35:40 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s/32w start+54ms n=190 p10=25.2ms p50=100.1ms p90=151.0ms p99=188.2ms <=25ms=8.9% <=50ms=22.1% <=60ms=23.7%
+     SPLIT  conn=new    n=  32  acquire=   5.21ms write=  0.017ms endpoint= 138.18ms  wire= 143.41ms
+     SPLIT  conn=reused n= 159  acquire=   0.01ms write=  0.019ms endpoint=  84.30ms  wire=  84.33ms
+STEP L100 19:45:41 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=100ms/32w start+413ms n=203 p10=24.0ms p50=85.3ms p90=129.8ms p99=168.6ms <=25ms=13.8% <=50ms=39.9% <=60ms=42.9%
+     SPLIT  conn=new    n=   1  acquire=   4.44ms write=  0.012ms endpoint= 153.75ms  wire= 158.20ms
+     SPLIT  conn=reused n= 202  acquire=   0.01ms write=  0.018ms endpoint=  75.92ms  wire=  75.95ms
+STEP L300 19:55:43 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=300ms/32w start+560ms n=213 p10=22.1ms p50=44.9ms p90=131.0ms p99=178.1ms <=25ms=16.9% <=50ms=52.1% <=60ms=57.3%
+     SPLIT  conn=reused n= 213  acquire=   0.01ms write=  0.024ms endpoint=  65.32ms  wire=  65.36ms
+STEP L1000 20:05:46 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=1s/32w start+1241ms n=232 p10=19.8ms p50=25.9ms p90=47.9ms p99=221.8ms <=25ms=46.1% <=50ms=92.2% <=60ms=94.8%
+     SPLIT  conn=reused n= 232  acquire=   0.01ms write=  0.022ms endpoint=  31.76ms  wire=  31.79ms
+=== done 2026-10-08T20:05:46Z
