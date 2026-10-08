@@ -2396,3 +2396,20 @@ Cost $0.
     32 -> 31 -> 28 -> 0) -- consistent with a PER-CONNECTION first-traffic cost. A mount's window ramps 2->4->8...
     so its connections carry traffic before concurrency grows; s3bench opens 32 cold at once.
 Cost $0.
+
+--- 5f-P16 (#381 warm-up LENGTH ladder) + 5f-P17 (#381 lith gate on vs off, same instant) PRE-REGISTRATION
+    (2026-10-08 19:25Z, before either ran; P17 first, then P16) ---
+P17: two lith v1.11.0 mounts started at the SAME instant, both --no-sign-request --wire-ttfb, each dd-ing A3dyn 07-02:
+  ON = default (region gate on, window ramps 2->4->8...), OFF = --readahead-evidence-ratio -1 (window at max at once).
+  Warm-up pair discarded, then 5 reps. Read <=50 ms, endpoint, new-connection share, acquire by conn= label.
+  Upstream's criteria: CONFIRM iff OFF colder than ON; REFUTE iff OFF no colder.
+  Operationalized: CONFIRM iff OFF <=50 ms is >= 15 pts below ON in >= 3/5 reps; REFUTE iff |OFF - ON| <= 10 pts in
+  >= 3/5; else between. FLAG: not a clean single variable -- OFF also commits far more bytes in flight (#313), so
+  depth and connection-opening pattern move together; scored as such, not as a test of one variable.
+  My prediction: CONFIRM (OFF opens most connections in the first instant), moderate.
+P16: s3bench a20b9fa, measured burst -workers 32 -duration 1s on A3dyn 07-08, anon, fresh process; each step after
+  >= 10 min idle: a (nothing); L100 (-warmup 100ms -warmup-workers 32); L300 (-warmup 300ms ...); L1000 (-warmup 1s
+  ..., = P15 w32). Verdicts as P10. Note each warm-up worker completes >= 1 request (deadline is checked before issue).
+  Upstream's distinction: L100 removes (~1 request/conn suffices) -> SETUP-LIKE; only L1000 removes -> RAMP-LIKE.
+  My prediction: L100 present/partial, L300 between, L1000 removed -> ramp-like. Low-moderate.
+Cost $0.
