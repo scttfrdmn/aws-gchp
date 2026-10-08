@@ -1,0 +1,12 @@
+{"time":"2026-10-03T04:04:29.795064235Z","level":"INFO","msg":"building index","bucket":"gchp-lith-xregion-usw2-942542972736","prefix":"geosfp","auto_index_limit":5000000}
+{"time":"2026-10-03T04:04:30.013879814Z","level":"INFO","msg":"listing complete","keys":1,"seconds":0.218228139,"keys_per_sec":4.582360481019362}
+{"time":"2026-10-03T04:04:30.013935441Z","level":"INFO","msg":"index built","keys":1,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-03T04:04:30.058040074Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"imds-estimate"}
+{"time":"2026-10-03T04:04:30.058076047Z","level":"INFO","msg":"inflight-bytes budget","budget":"187500000 bytes (2 × 7.5 Gbps baseline × 100 ms)"}
+{"time":"2026-10-03T04:04:30.058081116Z","level":"INFO","msg":"parts-max","bytes":37500000,"source":"device-derived (NIC baseline × TTFB, clamped)","nic_bytes_per_s":937500000,"ttfb_seed":40000000}
+{"time":"2026-10-03T04:04:30.058122051Z","level":"INFO","msg":"coalesce gap","bytes":292968,"source":"device-derived","nic_bytes_per_s":937500000,"ttfb_seed":40000000,"concurrency":128}
+{"time":"2026-10-03T04:04:30.058128481Z","level":"INFO","msg":"prefetch bounds","window_blocks":33,"window_bound":"--max-readahead","window_commit_bytes":276824064,"prefetch_budget_bytes":4127829504,"inflight_bytes":187500000,"binding":"--inflight-bytes","full_window_descriptors":14,"floor_at_descriptors":165}
+{"time":"2026-10-03T04:04:30.0614927Z","level":"INFO","msg":"mounted","bucket":"gchp-lith-xregion-usw2-942542972736","prefix":"geosfp","mountpoint":"/scratch/mnt/p11","root":"geosfp/","keys":1}
+{"time":"2026-10-03T04:04:30.061511427Z","level":"INFO","msg":"s3 transport","info":"http2=off MaxConnsPerHost=0(unlimited) MaxIdleConnsPerHost=128 IdleConnTimeout=90s","s3_concurrency":128}
+{"time":"2026-10-03T04:04:30.061660353Z","level":"INFO","msg":"metrics endpoint","addr":":10152"}
+{"time":"2026-10-03T04:09:46.452223863Z","level":"INFO","msg":"unmounted","stale_objects":0}

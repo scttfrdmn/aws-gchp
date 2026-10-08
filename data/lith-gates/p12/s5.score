@@ -1,0 +1,7 @@
+## p12/s5
+  R1   2026-10-08T01:33:49Z fast | lith ep   39.3 <=50  66.0% new 53.6% acq new/reu  8.42/ 0.08 | s3b ep   33.0 <=50  87.8% new 20.0% acq new/reu  3.93/ 0.01 | R 1.19
+  R2   2026-10-08T01:33:54Z fast | lith ep   40.5 <=50  43.8% new 55.6% acq new/reu 13.71/ 9.16 | s3b ep   32.4 <=50  88.4% new 19.9% acq new/reu  6.07/ 0.01 | R 1.25
+  R3   2026-10-08T01:34:00Z fast | lith ep   40.4 <=50  64.7% new 32.0% acq new/reu  8.07/ 1.83 | s3b ep   34.8 <=50  86.9% new 18.6% acq new/reu  4.57/ 0.01 | R 1.16
+  R4   2026-10-08T01:34:06Z fast | lith ep   35.1 <=50  68.6% new 41.2% acq new/reu 11.06/ 1.18 | s3b ep   34.3 <=50  84.5% new 18.7% acq new/reu  5.02/ 0.01 | R 1.02
+  R5   2026-10-08T01:34:11Z fast | lith ep   33.6 <=50  76.5% new 55.6% acq new/reu  8.27/ 3.14 | s3b ep   31.1 <=50  89.5% new 20.8% acq new/reu  5.06/ 0.01 | R 1.08
+  [R] median lith reused-acq 1.83 ms, s3b reused-acq 0.01 ms, lith new-share 53.6%, R median 1.16

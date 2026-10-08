@@ -2295,3 +2295,26 @@ P12: from P11's end until 08:00Z, P9y unchanged (warm-up + 5 reps) every 30 min.
   endpoint >= 70 ms; >= 5 slow reps needed): MATCH iff R in [0.80, 1.25] in >= 60% of slow reps; DIFFER iff R >= 1.5
   in >= 60%; plus, on slow reps, lith vs s3bench reused-acquire (does lith's degrade more?). Unscored if < 5 slow reps.
 Cost $0.
+
+--- 5f-P10 RESULTS (#381 ladder, 2026-10-07 22:32:38-23:32:48Z, 10 min idle before each step; raw data/lith-gates/p10/) ---
+  step  prep                               M <=50 ms  M p50     endpoint new / reused   verdict
+  a1    nothing                            23.1%      101.5 ms  139.8 / 86.4 ms         PRESENT
+  b     throwaway -workers 1 200ms (0.41s) 26.8%      94.9      125.3 / 81.2            PRESENT
+  c     aws s3api head-object (1.14 s)     15.1%      110.8     140.9 / 98.3            PRESENT
+  d     getent hosts x3 (0.02 s)           22.2%      101.7     137.6 / 89.9            PRESENT
+  e     -warmup 1s, same process           95.3%      26.8      -- / 28.7 (0 new conns) REMOVED
+  a2    nothing (bracket)                  19.5%      105.2     136.2 / 90.9            PRESENT
+  -> Upstream's reading: (e) removes and (b) does not -> FIRST CONTACT IN PROCESS. a2 present -> the ladder did not warm
+     it. Prediction held 6/6. Note the effect is on REUSED connections too (endpoint 81-98 ms), not only first dials.
+--- 5f-P11 RESULTS (23:33:14-23:34:03Z) --- BETWEEN. lith reused-acquire median: A (cap 128) 1.16 ms, B (cap 64) 0.87 ms;
+  s3bench 0.01 ms in 9/10. B is under the >= 1.0 CONFIRM line and above the <= 0.1 REFUTE line. Cap 64 lowered it
+  ~25%, did not remove it. R median A 1.08, B 1.13; all 10 pairs fast. Prediction CONFIRM failed (between).
+--- 5f-P12 RESULTS (17 sessions 23:34Z-07:32Z, DONE 08:02:17Z; data/lith-gates/p12/all-score.txt) --- UNSCORED: 0 of 85
+  reps slow (s3bench endpoint 28.4 / 32.8 / 43.1 ms min/median/max). R 0.91 / 1.12 / 1.60, 78/85 in [0.80, 1.25].
+  lith reused-acquire median 2.04 ms (0.01-13.33); s3bench 0.01. Combined with P9z: ZERO slow windows in ~12.5 h
+  (19:11Z 10-07 -> 07:32Z 10-08), every session timestamped. Slow sessions seen before: 10-05 05:09, 16:29; 10-07 06:15,
+  14:25, 16:10, 17:57-18:06Z. Not claimed as time-of-day (06:03-06:33Z tonight was fast).
+  WARMUP pairs (#381): s3bench first process slow in 17/18 (69.0-88.2 ms vs lith same instant 34-45 ms). EXCEPTION: P12
+  s1 (first s3bench ~1 min after P11's 11 heavy 64-worker pairs) read 32.6 ms -> heavy recent traffic may warm something
+  outside the process briefly; the ladder's (b) was deliberately minimal (1 worker, 0.2 s). Unresolved; not claimed.
+Cost $0.

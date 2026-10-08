@@ -1,0 +1,19 @@
+=== gate 5f-P10 2026-10-07T22:32:38Z s3bench=105c0e1d2001 idle=600s
+STEP a1 prep=.001207889s gap_to_M~0 22:42:39 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+61ms n=199 p10=25.0ms p50=101.5ms p90=156.9ms p99=215.2ms <=25ms=10.1% <=50ms=23.1% <=60ms=25.1%
+     SPLIT  conn=new    n=  32  acquire=   5.08ms write=  0.016ms endpoint= 139.82ms  wire= 144.91ms
+     SPLIT  conn=reused n= 168  acquire=   0.01ms write=  0.017ms endpoint=  86.36ms  wire=  86.39ms
+STEP b prep=.407909599s gap_to_M~0 22:52:41 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+55ms n=198 p10=26.0ms p50=94.9ms p90=141.7ms p99=196.4ms <=25ms=8.6% <=50ms=26.8% <=60ms=27.3%
+     SPLIT  conn=new    n=  32  acquire=   5.19ms write=  0.014ms endpoint= 125.26ms  wire= 130.46ms
+     SPLIT  conn=reused n= 167  acquire=   0.01ms write=  0.018ms endpoint=  81.17ms  wire=  81.20ms
+STEP c prep=1.140732484s gap_to_M~0 23:02:43 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+53ms n=179 p10=40.1ms p50=110.8ms p90=162.9ms p99=216.8ms <=25ms=1.7% <=50ms=15.1% <=60ms=18.4%
+     SPLIT  conn=new    n=  32  acquire=   5.06ms write=  0.017ms endpoint= 140.85ms  wire= 145.93ms
+     SPLIT  conn=reused n= 148  acquire=   0.01ms write=  0.030ms endpoint=  98.25ms  wire=  98.29ms
+STEP d prep=.021104054s gap_to_M~0 23:12:44 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+55ms n=194 p10=28.4ms p50=101.7ms p90=160.9ms p99=216.8ms <=25ms=5.7% <=50ms=22.2% <=60ms=24.7%
+     SPLIT  conn=new    n=  32  acquire=   7.39ms write=  0.018ms endpoint= 137.62ms  wire= 145.03ms
+     SPLIT  conn=reused n= 163  acquire=   0.01ms write=  0.023ms endpoint=  89.94ms  wire=  89.97ms
+STEP e prep=.001127633s gap_to_M~0 23:22:47 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=1s start+1176ms n=236 p10=20.1ms p50=26.8ms p90=39.1ms p99=79.1ms <=25ms=34.7% <=50ms=95.3% <=60ms=97.0%
+     SPLIT  conn=reused n= 236  acquire=   0.01ms write=  0.017ms endpoint=  28.68ms  wire=  28.71ms
+STEP a2 prep=.001145672s gap_to_M~0 23:32:48 | TTFB workers=32 part=8MiB fresh=false auth=anon warmup=0s start+54ms n=190 p10=30.8ms p50=105.2ms p90=151.0ms p99=228.4ms <=25ms=5.3% <=50ms=19.5% <=60ms=21.1%
+     SPLIT  conn=new    n=  32  acquire=   4.30ms write=  0.020ms endpoint= 136.23ms  wire= 140.54ms
+     SPLIT  conn=reused n= 159  acquire=   0.01ms write=  0.018ms endpoint=  90.94ms  wire=  90.97ms
+=== done 2026-10-07T23:32:48Z
