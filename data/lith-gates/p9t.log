@@ -1,0 +1,35 @@
+=== gate 5f-P9t 2026-10-07T16:10:56Z s3bench=dd8c47c57a2e lith=b39e1702e01f
+ARM WARMUP TTFB   workers=32 part=8MiB fresh=false  n=159  p10=77.3ms p50=126.1ms p90=178.4ms p99=213.1ms  <=25ms=0.6% <=50ms=8.2% <=60ms=8.2%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1028 MB/s  reqs=159  p50=198.3ms p99=669.3ms  maxconns=36  cpu=1.7s (9% of 16 cores)
+ARM R32-1 TTFB   workers=32 part=8MiB fresh=false  n=228  p10=22.2ms p50=30.7ms p90=60.3ms p99=101.5ms  <=25ms=18.9% <=50ms=80.7% <=60ms=89.5%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1619 MB/s  reqs=228  p50=130.5ms p99=357.8ms  maxconns=36  cpu=3.3s (18% of 16 cores)
+ARM F32-1 TTFB   workers=32 part=8MiB fresh=true  n=233  p10=21.7ms p50=28.4ms p90=46.1ms p99=64.2ms  <=25ms=27.0% <=50ms=92.7% <=60ms=96.1%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1652 MB/s  reqs=233  p50=122.6ms p99=527.0ms  maxconns=36  cpu=3.5s (20% of 16 cores)
+ARM R64-1 TTFB   workers=64 part=8MiB fresh=false  n=246  p10=22.9ms p50=31.0ms p90=55.7ms p99=90.2ms  <=25ms=19.1% <=50ms=84.6% <=60ms=94.3%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1656 MB/s  reqs=246  p50=251.5ms p99=1011.2ms  maxconns=68  cpu=3.9s (21% of 16 cores)
+ARM F64-1 TTFB   workers=64 part=8MiB fresh=true  n=249  p10=23.4ms p50=32.1ms p90=61.0ms p99=120.1ms  <=25ms=16.9% <=50ms=83.1% <=60ms=89.2%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1694 MB/s  reqs=249  p50=261.5ms p99=746.4ms  maxconns=68  cpu=4.3s (23% of 16 cores)
+ARM W2-1 fill n=153 <=50ms=2.6% mean=140.4ms
+ARM R32-2 TTFB   workers=32 part=8MiB fresh=false  n=232  p10=21.3ms p50=27.9ms p90=45.7ms p99=71.2ms  <=25ms=34.1% <=50ms=94.0% <=60ms=98.7%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1638 MB/s  reqs=232  p50=122.7ms p99=427.7ms  maxconns=36  cpu=3.4s (19% of 16 cores)
+ARM F32-2 TTFB   workers=32 part=8MiB fresh=true  n=227  p10=19.9ms p50=26.2ms p90=39.9ms p99=60.1ms  <=25ms=42.7% <=50ms=96.5% <=60ms=98.7%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1579 MB/s  reqs=227  p50=127.3ms p99=350.2ms  maxconns=36  cpu=4.1s (22% of 16 cores)
+ARM R64-2 TTFB   workers=64 part=8MiB fresh=false  n=248  p10=22.6ms p50=29.6ms p90=54.8ms p99=77.9ms  <=25ms=24.2% <=50ms=84.7% <=60ms=96.4%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1601 MB/s  reqs=248  p50=257.0ms p99=796.8ms  maxconns=68  cpu=5.3s (27% of 16 cores)
+ARM F64-2 TTFB   workers=64 part=8MiB fresh=true  n=245  p10=22.9ms p50=30.3ms p90=58.8ms p99=79.0ms  <=25ms=18.4% <=50ms=81.2% <=60ms=92.2%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1584 MB/s  reqs=245  p50=205.5ms p99=1047.9ms  maxconns=68  cpu=5.0s (25% of 16 cores)
+ARM W2-2 fill n=153 <=50ms=5.2% mean=126.9ms
+ARM R32-3 TTFB   workers=32 part=8MiB fresh=false  n=229  p10=19.8ms p50=26.3ms p90=42.0ms p99=60.9ms  <=25ms=38.9% <=50ms=96.5% <=60ms=98.3%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1641 MB/s  reqs=229  p50=123.0ms p99=482.9ms  maxconns=36  cpu=3.8s (21% of 16 cores)
+ARM F32-3 TTFB   workers=32 part=8MiB fresh=true  n=226  p10=20.9ms p50=29.3ms p90=49.6ms p99=79.8ms  <=25ms=29.6% <=50ms=90.3% <=60ms=96.9%
+    RESULT workers=32 part=8MiB http=false rbuf=0  agg=1593 MB/s  reqs=226  p50=125.9ms p99=452.5ms  maxconns=36  cpu=3.5s (20% of 16 cores)
+ARM R64-3 TTFB   workers=64 part=8MiB fresh=false  n=253  p10=22.6ms p50=30.9ms p90=54.6ms p99=92.4ms  <=25ms=18.2% <=50ms=83.4% <=60ms=93.3%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1653 MB/s  reqs=253  p50=206.5ms p99=1153.6ms  maxconns=68  cpu=4.7s (24% of 16 cores)
+ARM F64-3 TTFB   workers=64 part=8MiB fresh=true  n=248  p10=23.1ms p50=30.7ms p90=55.3ms p99=75.7ms  <=25ms=17.7% <=50ms=87.9% <=60ms=94.8%
+    RESULT workers=64 part=8MiB http=false rbuf=0  agg=1611 MB/s  reqs=248  p50=227.2ms p99=1133.9ms  maxconns=68  cpu=4.9s (25% of 16 cores)
+ARM W2-3 fill n=153 <=50ms=4.6% mean=132.9ms
+=== 5f-P9u 2026-10-07T16:11:30Z
+ARM U-1 fill n=153 <=50ms=5.9% mean=115.4ms
+ARM U-2 fill n=153 <=50ms=7.8% mean=105.2ms
+ARM U-3 fill n=153 <=50ms=8.5% mean=99.0ms
+=== done 2026-10-07T16:11:46Z

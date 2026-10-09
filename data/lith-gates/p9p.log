@@ -1,0 +1,44 @@
+=== gate 5f-P9o/P9p  2026-10-05T05:08:54Z  lith=d38624715a8f s3bench=960dc6b249fd
+ARM MA-W1-1 wall=2.826830186
+ARM MS-W1-1 wall=4.542043790
+   TTFB   workers=128 part=8MiB  n=671  p10=24.2ms p50=31.0ms p90=167.0ms p99=211.2ms  <=25ms=12.5% <=50ms=75.4% <=60ms=76.9%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1610 MB/s  reqs=671  p50=571.7ms p99=1130.5ms  maxconns=156  cpu=10.3s (19% of 16 cores)
+   s3bench_start=1791176941.663451477 s3bench_end=1791176945.142616963
+ARM MA-W2-1 wall=1.447480065
+ARM MS-W2-1 wall=4.144264705
+   TTFB   workers=128 part=8MiB  n=632  p10=23.2ms p50=30.6ms p90=61.9ms p99=312.4ms  <=25ms=17.4% <=50ms=82.0% <=60ms=88.3%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1477 MB/s  reqs=632  p50=576.4ms p99=2161.3ms  maxconns=249  cpu=10.4s (19% of 16 cores)
+   s3bench_start=1791176951.999198235 s3bench_end=1791176955.564908287
+ARM SA-1 wall=3.477766579
+   TTFB   workers=128 part=8MiB  n=703  p10=19.9ms p50=25.5ms p90=52.3ms p99=60.4ms  <=25ms=46.8% <=50ms=86.6% <=60ms=98.9%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1692 MB/s  reqs=703  p50=582.6ms p99=971.6ms  maxconns=133  cpu=20.0s (38% of 16 cores)
+   s3bench_start=1791176957.173359147 s3bench_end=1791176960.648173772
+ARM MA-W1-2 wall=2.309730547
+ARM MS-W1-2 wall=4.200258667
+   TTFB   workers=128 part=8MiB  n=681  p10=23.3ms p50=31.1ms p90=57.5ms p99=87.7ms  <=25ms=16.7% <=50ms=84.6% <=60ms=92.1%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1628 MB/s  reqs=681  p50=462.4ms p99=3129.3ms  maxconns=150  cpu=12.1s (23% of 16 cores)
+   s3bench_start=1791176966.795167676 s3bench_end=1791176970.294705821
+ARM MA-W2-2 wall=1.187231522
+ARM MS-W2-2 wall=3.987186913
+   TTFB   workers=128 part=8MiB  n=587  p10=24.0ms p50=30.4ms p90=71.0ms p99=97.6ms  <=25ms=16.0% <=50ms=77.7% <=60ms=80.7%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1412 MB/s  reqs=587  p50=658.4ms p99=1404.1ms  maxconns=247  cpu=9.0s (17% of 16 cores)
+   s3bench_start=1791176977.127124754 s3bench_end=1791176980.609786520
+ARM SA-2 wall=3.570713112
+   TTFB   workers=128 part=8MiB  n=727  p10=21.9ms p50=27.9ms p90=52.7ms p99=69.0ms  <=25ms=27.8% <=50ms=87.5% <=60ms=96.6%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1708 MB/s  reqs=727  p50=338.7ms p99=2781.0ms  maxconns=134  cpu=13.8s (25% of 16 cores)
+   s3bench_start=1791176981.791064462 s3bench_end=1791176985.358783801
+ARM MA-W1-3 wall=2.319486221
+ARM MS-W1-3 wall=3.976246310
+   TTFB   workers=128 part=8MiB  n=673  p10=20.1ms p50=27.1ms p90=53.7ms p99=68.3ms  <=25ms=38.8% <=50ms=83.7% <=60ms=96.9%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1616 MB/s  reqs=673  p50=425.5ms p99=2383.0ms  maxconns=151  cpu=16.5s (31% of 16 cores)
+   s3bench_start=1791176991.536265240 s3bench_end=1791176995.007909398
+ARM MA-W2-3 wall=1.303492418
+ARM MS-W2-3 wall=4.015094801
+   TTFB   workers=128 part=8MiB  n=613  p10=21.1ms p50=28.3ms p90=56.2ms p99=251.1ms  <=25ms=31.6% <=50ms=84.7% <=60ms=93.3%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1463 MB/s  reqs=613  p50=406.0ms p99=2952.7ms  maxconns=223  cpu=15.1s (28% of 16 cores)
+   s3bench_start=1791177001.401820346 s3bench_end=1791177004.912324425
+ARM SA-3 wall=3.507602932
+   TTFB   workers=128 part=8MiB  n=723  p10=22.5ms p50=28.8ms p90=55.5ms p99=76.0ms  <=25ms=23.8% <=50ms=84.8% <=60ms=93.9%
+   RESULT workers=128 part=8MiB http=false rbuf=0  agg=1728 MB/s  reqs=723  p50=410.0ms p99=2903.6ms  maxconns=133  cpu=12.8s (24% of 16 cores)
+   s3bench_start=1791177006.070356142 s3bench_end=1791177009.574916697
+=== done 2026-10-05T05:10:09Z

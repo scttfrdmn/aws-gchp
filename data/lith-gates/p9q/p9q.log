@@ -1,0 +1,11 @@
+=== gate 5f-P9q  2026-10-05T16:29:50Z  lith=87248fd3ed2f
+awk: cmd. line:8: (FILENAME=/scratch/lith-gates/p9q/WB-1.final.prom FNR=287) fatal: division by zero attempted
+CELL WT-1 wall=1.48 s3_MB=1213.7 GETs=153 | fill n=153 <=25 2.6% <=50 13.1% <=100 58.2% | wire n=153 <=25 2.6% <=50 13.7% <=100 58.2%
+CELL W1T-1 wall=2.73 s3_MB=358.6 GETs=140 | fill n=140 <=25 35.7% <=50 61.4% <=100 77.9% | wire n=140 <=25 37.9% <=50 61.4% <=100 77.9%
+awk: cmd. line:8: (FILENAME=/scratch/lith-gates/p9q/WB-2.final.prom FNR=287) fatal: division by zero attempted
+CELL WT-2 wall=1.48 s3_MB=1213.7 GETs=153 | fill n=153 <=25 3.3% <=50 18.3% <=100 66.7% | wire n=153 <=25 3.3% <=50 18.3% <=100 66.7%
+CELL W1T-2 wall=2.38 s3_MB=358.6 GETs=140 | fill n=140 <=25 32.9% <=50 67.1% <=100 85.7% | wire n=140 <=25 34.3% <=50 67.1% <=100 85.7%
+awk: cmd. line:8: (FILENAME=/scratch/lith-gates/p9q/WB-3.final.prom FNR=287) fatal: division by zero attempted
+CELL WT-3 wall=1.32 s3_MB=1213.7 GETs=153 | fill n=153 <=25 11.8% <=50 34.0% <=100 83.7% | wire n=153 <=25 12.4% <=50 34.0% <=100 83.7%
+CELL W1T-3 wall=2.37 s3_MB=358.6 GETs=140 | fill n=140 <=25 39.3% <=50 72.9% <=100 83.6% | wire n=140 <=25 41.4% <=50 72.9% <=100 83.6%
+=== done 2026-10-05T16:30:25Z

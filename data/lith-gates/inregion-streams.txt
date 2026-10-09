@@ -1517,3 +1517,953 @@ Cost $0.
   prefetched; lag_ms is the working signal. Flagged, not relied on.
   dd walls (A3mstC): ratio 0 0.846/0.647/0.572, ratio 4 0.723/0.721/0.960. In line with P9f/P9g.
   Cost $0.
+
+--- 5f-P9i PRE-REGISTRATION (lith#340/#341 re-gate on v1.5.0, 2026-10-04; before any cell ran) ---
+Question: does v1.5.0's 50 ms nearEndpointTTFB bound engage the evidence gate on a DEFAULT
+  in-region mount, and stay off cross-region? Same harness and object as the v1.4.0 report on #340:
+  scripts/lith/gate-p9.sh, var1 slice of MERRA2.20190701.A3dyn.05x0625.nc4, head node c7g.4xlarge,
+  release lith_linux_arm64 v1.5.0 sha256-verified against checksums.txt, --nic-gbps 50.
+  Cells: IREPS=3 (I0 = default, I4 = forced 4, interleaved), XREPS=1 (us-west-2 copy, 58.6 ms RTT).
+  Added readouts (#341): lith_ttfb_median_seconds, lith_ttfb_measured, lith_ttfb_seconds bucket
+  le=0.05 / _count.
+Predictions (v1.4.0 baseline: I0 gauge 0, 1217.8 MB, 162 GETs, 54.02x; I4 59.8 MB, 24 GETs, 2.65x):
+  P1. I0 cells: evidence_ratio gauge > 0 (expect 4) and ttfb_measured = 1 in all 3 reps.
+  P2. I0 s3 bytes within 10% of I4 in the same rep (~60 MB, ~2.65x), i.e. the 54x is gone by
+      default. FAIL if any I0 cell is > 2x the I4 bytes.
+  P3. I0 ttfb median in [20, 45] ms, and >= 90% of ttfb samples in le=0.05.
+  P4. X0 cell: gauge 0 (gate off at distance) with ttfb median > 50 ms. Unscored if X0 median falls
+      in [45, 60] ms (inside the bound's stated gap).
+  P5. Wall: I0 within +-15% of I4 per rep. Informational; n=3 can't resolve less.
+Cost: ~$0.05 (one cross-region pair, ~1.3 GB at $0.02/GB plus requests); in-region $0.
+
+--- 5f-P9i RESULTS (head node, 05:34:14-05:37:33Z + diagnostic ~05:45Z, lith v1.5.0 release md5 da9d93515ed9) ---
+  Raw: data/lith-gates/p9i/p9i.log (gate cells), p9i-seq.log + seq.*.prom (diagnostic, unscored).
+  cell   s3_MB  GETs  amp    gauge  ttfb_median(8)  le50/count  wall
+  I0-1   59.8   24    2.65x  0      102.3 ms        15/24       2.18 s
+  I4-1   59.8   24    2.65x  4       40.3 ms        22/24       1.88 s
+  I0-2   59.8   24    2.65x  4       30.1 ms        21/24       1.95 s
+  I4-2   59.8   24    2.65x  4       43.2 ms        21/24       2.06 s
+  I0-3   59.8   24    2.65x  4       45.0 ms        22/24       2.16 s
+  I4-3   59.8   24    2.65x  4       28.9 ms        24/24       2.18 s
+  X cells NOT RUN: s3://gchp-lith-xregion-usw2-942542972736 no longer exists ("bucket not found").
+  P1 FAIL as worded (I0-1 gauge 0 at scrape), but the behaviour engaged in all 3 reps (see P2), and
+     the gauge is a live end-of-read value, not the decision that was taken (see diagnostic).
+  P2 PASS: default = forced byte for byte, 59.8 MB / 24 GETs / 2.65x in 3/3 (v1.4.0: 1217.8 / 162 / 54.02x).
+  P3 FAIL: end-of-read median 102.3 / 30.1 / 45.0 ms (1 of 3 outside [20,45]); le50 fraction
+     62% / 87.5% / 91.7% (2 of 3 below 90%). My band came from P9h's n=84, which was SERIAL block-0
+     demand GETs. These counts include prefetch-burst fills, which take longer.
+  P4 UNSCORED (no cross-region bucket).
+  P5 PASS: I0/I4 wall within 16% / 5% / 1%. Rep 1 is 16%, just outside +-15%; n=3, informational.
+  Cost $0 (cross-region cells failed at mount, before any GET).
+DIAGNOSTIC (unscored): one default mount, var1 of A3dyn for 6 different days in sequence:
+  every open 59.8 MB / 23-24 GETs (no 54x on any), yet after EVERY open gauge = 0 and the 8-sample
+  median = 97.6-102.6 ms. Per open: 15-16 of 23-24 samples are <= 50 ms; per-open mean 45-54 ms.
+  Mechanism (v1.5.0 source): ttfbMax = 8 (fill.go:23); evidenceRatio() is re-evaluated PER READ
+  (fs.go:1335). A new handle's blocks 0+1 are ~16 serial demand GETs at ~28 ms, which refill the
+  8-window below 50 ms before prefetch commits at block 2, so the gate is ON when it matters. Then
+  the establishment burst (150-230 in flight, P9h) is served at ~100 ms and leaves the window
+  above the bound.
+  -> 1. The default works on this shape in-region. That is the #340 fix, verified on the real endpoint.
+     2. But the in-region distribution the bound is anchored on is not 28/42.7 ms once the mount is
+        busy. Under its own burst, the in-region 8-median is ~100 ms: above the 50 ms bound AND above
+        the 58.6 ms cross-region RTT. So a loaded in-region mount and an idle cross-region one are
+        not separable on TTFB. Engagement currently depends on each handle's serial demand prefix
+        refreshing the window. Concurrent readers (GCHP: 48+ ranks opening at init) may never see
+        a sub-50 ms window.
+
+--- 5f-P9j PRE-REGISTRATION (lith#349, upstream's 4-cell TTFB-floor experiment, 2026-10-04; before any cell ran) ---
+Question (upstream, #349): does any statistic of the TTFB distribution separate in-region-under-load
+  from cross-region-idle? Scored by upstream's own pre-registration, held as written:
+  O1. in-region-loaded has >= 10% of samples <= 25 ms AND cross-region-idle has 0%  -> floor separates.
+  O2. in-region-loaded has < 10% <= 25 ms                                           -> option 2 refuted.
+  O3. cross-region-idle has ANY sample <= 25 ms                                     -> physics claim wrong.
+  Statistic: lith_ttfb_seconds bucket{le="0.025"}/_count (and le="0.06"/_count as context), v1.5.0.
+CORRECTION to my #349 offer: the head node is a 16-core c7g.4xlarge, so the $0 "loaded" cell is
+  12 GCHP ranks, not 48 (gate-streams-gchp has only ever run 6/12 here). Run at 12; 48 needs a
+  compute node (paid, asked separately). A 12-rank PASS of O1 is weaker than a 48-rank one; a 12-rank
+  O2 is already decisive (more ranks can only add load).
+Cells run now ($0, head node, release v1.5.0 md5 da9d93515ed9, --nic-gbps 50, --mem-cache 2GB):
+  C1 in-region idle: one default mount of s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/07, var1 of A3dyn
+     for 6 days in sequence (= p9i-seq). Cumulative histogram at the end.
+  C2 in-region loaded: scripts/lith/gate-p9j.sh = gate-streams-gchp harness (C24 TT, 5 prefix mounts,
+     official setCommonRunSettings/checkRunSettings) at RANKS=12, 2 reps. 2 Hz scrape per mount of
+     the histogram, median, measured, gauge, lith_s3_inflight.
+  C3/C4 cross-region: NOT RUN here (no bucket outside us-east-1; creating one needs a go).
+Scoring for C2 (two readings, both reported; the HEADLINE is upstream's):
+  H (headline): whole-run le025/count on the met mount (merra2-201901, where the bytes are) and pooled
+     over all 5 mounts. >= 10% -> O1's in-region half holds at 12 ranks; < 10% -> O2.
+  T (time-resolved, stricter): per-tick delta-histogram fraction <= 25 ms restricted to ticks where
+     that mount's lith_s3_inflight >= 64 (loaded phases only). Reported, not used to override H.
+Predictions (mine, from P9i): C1 le025 fraction 40-65% (seq.07 cumulative 13/23 = 57%). C2 headline:
+  >= 10% on the met mount (the ~16 serial demand GETs per open are frequent at init), but T on loaded
+  ticks falls below 10%. If T < 10% and H >= 10%, the floor's survival depends on the demand prefix
+  just as the median's did, and I'll say so rather than call O1 confirmed.
+Cost: $0 (in-region, head node).
+
+--- 5f-P9j RESULTS (head node, 2026-10-04 16:4x UTC, lith v1.5.0 release md5 da9d93515ed9) ---
+  Raw: data/lith-gates/p9j/ (idle/seq.*.prom, rep{1,2}/ttfb.csv + final.{9210,9212}.prom, p9j.log).
+  C1 in-region idle (6 sequential var1 opens, one default mount):
+     cumulative le025 50/140 = 35.7%, le060 90/140 = 64.3%. Every open 59.8 MB / 23-24 GETs; the
+     8-median after each open 98-108 ms (P9i reproduced).
+  C2 in-region loaded, 12-rank GCHP C24 TT, full simulated day each (144 steps to 2019/01/02, then the
+     known finalization abort), cap_restart advanced at ~120 s:
+     mount            rep  count  le025%  le060%  gauge>0 ticks  inflight max (2 Hz)
+     merra2-201901     1   4245   49.5%   87.0%   54%            31
+     merra2-201901     2   4160   53.5%   87.8%   50%            16
+     POOLED(5 mounts)  1   4492   49.4%   86.8%
+     POOLED(5 mounts)  2   4342   52.6%   87.3%
+  H (headline): in-region-loaded le025 = 49.5% / 53.5% on the met mount >= 10% -> O1's in-region half
+     HOLDS at 12 ranks. O1 is NOT confirmed overall: its cross-region half (C3 = 0%) is unmeasured.
+  T (pre-registered, inflight >= 64): UNSCOREABLE. lith_s3_inflight never exceeded 31 at 2 Hz; 12 ranks
+     do not put a mount under the load the question is about. Post-hoc at inflight >= 16 (2 ticks/rep,
+     n=253/277): 30.8% / 37.9%. Labelled post-hoc, direction only.
+  My predictions: C1 40-65% MISSED (35.7%). C2 H >= 10% held. "T < 10%" unscoreable, and the post-hoc
+     reading points the other way.
+  Side observation (unscored): under GCHP the met mount's gauge is > 0 on only ~half the ticks, and its
+     end-of-run 8-median is 26.6 / 73.0 ms across reps. The median gate flaps under real load; the le025
+     fraction is stable (49.5 / 53.5%).
+  -> At 12 ranks the floor statistic sits 3-5x above upstream's 10% line, and GCHP's mix of small
+     demand reads keeps it higher than the single-reader burst case (C1). But 12 ranks never reached
+     inflight 64, so the saturation question (cell 2 as upstream framed it) is still open. It needs 48
+     ranks (compute node, paid). C3/C4 need a bucket outside us-east-1.
+  Cost $0.
+
+--- 5f-P9k PRE-REGISTRATION (lith#349 cells C3/C4, approved on #349 17:03Z; before any cell ran) ---
+Upstream ruling 17:03Z: the 48-rank C2 waits for v1.6.0 (floor gauge, #352). C3/C4 run now on v1.5.0,
+  scored on the histogram, which is upstream's pre-registered statistic (le025/count >= 10% <=> p10 <= 25 ms).
+Setup: bucket s3://gchp-lith-xregion-usw2-942542972736 (us-west-2, recreated) holding
+  MERRA2.201907{02..07}.A3dyn.05x0625.nc4 (~7.3 GB), server-side copied from gcgrid. Head node
+  c7g.4xlarge us-east-1, release v1.5.0 md5 da9d93515ed9, --nic-gbps 50, default flags.
+Cells:
+  C3 cross-region idle   = p9i-seq (one mount, 6 sequential var1 opens), prefix in us-west-2.
+  C4 cross-region loaded = one mount, the same 6 var1 reads launched CONCURRENTLY (6 netCDF readers).
+  C4i in-region control  = C4 against gcgrid 2019/07 (unscored context: does concurrency move in-region le025?).
+  2 Hz scrape of le025/le060/count/median/gauge/s3_inflight per cell; final scrape scored.
+Scoring (upstream O1/O3 as written):
+  O3: C3 has ANY sample <= 25 ms -> the "first byte cannot beat one RTT" anchor is wrong.
+  O1 far half: C3 le025 = 0 (and C4 le025 = 0: load cannot push the far floor DOWN).
+  Context: C3/C4 le060 fraction (expect ~0: RTT 58.6 ms + server time).
+Predictions: C3 le025 = 0/n, C4 le025 = 0/n, C3 le060 < 5%. C4i le025 < C1's 35.7% (concurrency
+  queues first bytes in-region) -- weak, n=1.
+Cost: ~7.3 GB copy + ~15 GB cross-region reads (gate off at distance -> up to ~1.2 GB/open) ~ $0.45.
+  Bucket emptied and deleted after.
+
+--- 5f-P9k RESULTS (head node 17:26-17:33Z, v1.5.0 md5 da9d93515ed9) ---
+  Raw: data/lith-gates/p9k/. Six var1 reads of A3dyn 2019-07-02..07 per cell, one fresh default mount.
+  cell                 n    le025        le060        le100        8-median  s3_MB   inflight max  gauge>0 ticks
+  C3  x-region idle    961  0 (0.0%)     0 (0.0%)     87 (9.1%)    144.9 ms  7270.6  128           0/61
+  C4  x-region 6-conc  961  0 (0.0%)     0 (0.0%)    101 (10.5%)   135.6 ms  7270.6   35 (2 Hz)    0/651
+  C4i in-region 6-conc 807 58 (7.2%)    92 (11.4%)  310 (38.4%)   140.1 ms  5967.2  128           1/9
+  O3: NOT triggered. 0 of 1922 cross-region first bytes <= 25 ms (none <= 60 ms either). Anchor holds.
+  O1 far half: HOLDS. C3 = 0% and C4 = 0%; load did not push the far floor down.
+  Predictions: C3/C4 le025 = 0 held; C3 le060 < 5% held (0%); C4i < 35.7% held (7.2%).
+  C4i (unscored context, n=1) is the notable cell. In-region, 6 concurrent var1 readers on one default
+     mount: the gate essentially never engaged (5967 MB vs 6 x 59.8 = 359 MB engaged, i.e. the 54x class
+     of over-fetch back by concurrency alone), inflight hit 128, and the le025 fraction fell to 7.2%,
+     BELOW upstream's 10% falsifier line. Caveat: burst-dominated read mix (C1 vs C2 showed the mix moves
+     this fraction), n=1, v1.5.0 (no floor gauge). It is the bistable loop observed directly: gate off ->
+     full-depth burst -> queued first bytes -> floor up. Whether real GCHP at 48 ranks gets there is P9l.
+  Script note: the first C4 run hung at a bare `wait` that included the backgrounded mount; the C4
+     scrape was taken by hand after the readers had finished (all 6 .reader files complete), then fixed.
+  Cost: ~7.3 GB copy + ~14.5 GB cross-region reads ~ $0.44.
+
+--- 5f-P9l PRE-REGISTRATION (lith#349 cell 2 + #350; approved on #349 17:03Z; before the job was submitted) ---
+Setup: gate-p9j.sh unchanged except the binary and rank count: RANKS=48, REPS=2, lith v1.6.0 release
+  (md5 39ebae8ab0c3, sha256-verified tarball), one c8g.48xlarge compute node of gchp-lith-ab (192 cores,
+  50 Gbps), same 5 prefix mounts/indexes, --nic-gbps 50 --mem-cache 2GB, C24 TT 1 simulated day.
+  2 Hz per mount: le025/le060/count, median, measured, gauge, s3_inflight, s3_bytes, open, FLOOR (new).
+Scoring (upstream's falsifier, restated 17:28Z):
+  F1 (headline): met-mount whole-run le025/count. >= 10% -> floor survives 48-rank GCHP load;
+     < 10% -> floor refuted at this depth, p10 is the wrong quantile, fallback = a signal not
+     downstream of lith's own behaviour.
+  F2 (pre-registered T, now hopefully scoreable): delta-histogram le025 fraction over ticks with
+     inflight >= 64. Same 10% line. Unscoreable again if inflight never reaches 64.
+  F3 (floor vs median on loaded ticks): fraction of loaded ticks with floor <= 25 ms vs median <= 50 ms;
+     and whether gauge > 0 tracks median <= 50 ms (expected: yes, nothing reads the floor).
+  #350 context: max inflight and median at that depth.
+Predictions: inflight reaches >= 64 on the met mount (48 ranks open ~4x the files of 12). F1 >= 10%
+  but lower than the 12-rank 49.5/53.5%; given C4i (7.2%) I put F1 >= 10% at only ~60%. F2 < F1.
+  Gauge flaps as at 12 ranks; floor steadier than median.
+Cost: c8g.48xlarge $7.657/hr x ~0.5 h (boot + 2 reps + teardown idle) ~ $4. Node scales down via PC
+  idle timeout; job time limit 1 h.
+  ADDENDUM (17:36-17:37Z, same cells on v1.6.0 md5 39ebae8ab0c3, sampler with lith_ttfb_floor_seconds;
+     unscored, n=1 each, run so the floor gauge itself is on record before the bucket is deleted):
+     C3v6  x-region idle   n=961 le025 0 (0.0%)  le060 0      floor gauge 123-134 ms all run, 8-median 145 ms
+     C4iv6 in-region 6-conc n=535 le025 53 (9.9%) le060 98 (18.3%) s3 3682.7 MB, end floor 70.3 ms
+     C4iv6 time series (2 Hz): t0.5 floor 18.0 / median 25.8 / inflight 0 / gauge 4;
+        t1.5 20.8 / 102.0 / 10 / gauge 0 (median crosses, gate off); t2.0 73.9 / 105.1 / 27 / 0;
+        t3.0 70.3 / 108.3 / 0 / 0.
+     -> Under 6 concurrent burst readers in-region the rolling p10 rose from 18 to ~70-74 ms within ~0.5 s
+        of the gate turning off: above the 50 ms bound and above the 58.6 ms cross-region RTT. The floor
+        separated from the far side only because the far floor (also burst-queued, gate off) sat at ~125 ms.
+        Gauge tracked the median, not the floor (as designed: nothing reads the floor).
+     Also: bytes vary across the two concurrent in-region runs (5967 vs 3683 MB); both far above 359 MB engaged.
+
+--- 5f-P9l RESULTS (job 25, compute-dy-nodes-1 c8g.48xlarge, 18:00:07-18:02:53Z, lith v1.6.0 md5 39ebae8ab0c3) ---
+  Raw: data/lith-gates/p9l/. Layout NX=2 NY=24 (official scripts), 144 timesteps per rep, checkpoint
+  write reached at 65 s both reps. Node boot 3.5 min (CONFIGURING 17:56:20-17:59:50).
+  met mount (merra2-201901)   rep1         rep2         (12-rank P9j rep1/rep2 for reference)
+    fills (ttfb count)        4001         3961         4245 / 4160
+    le025 / count             49.1%        51.7%        49.5% / 53.5%
+    le060 / count             86.6%        88.3%        87.0% / 87.8%
+    s3_inflight max (2 Hz)    27           21           31 / 16
+    s3 MB (distinct MB)       3776.6 (3223.4)  3774.8 (3223.0)   3764.1 / 3757.8
+    floor gauge, all ticks    p50 19.2, max 20.9 ms   p50 19.1, max 21.2 ms
+    floor <= 25 ms            112/112 ticks           114/114 ticks
+    8-median <= 50 ms         91/112 (81%)            86/114 (75%)
+    gauge > 0                 91/112                  86/114
+    gauge == (median <= 50)   112/112                 114/114
+    end-of-run floor/median   19.6 / 95.1 ms          19.1 / 93.9 ms
+  F1 PASS: 49.1% / 51.7% >= 10%. The floor survives 48-rank GCHP C24 TT.
+  F2 UNSCOREABLE again: inflight never reached 64 (max 27/21). 48 ranks did not load the mount more than
+     12 did: same fill count (~4000), same bytes (3.77 GB), same inflight range. Rank count is not the
+     knob for mount concurrency on this workload. The mechanism is not measured here; not claimed.
+  F3: floor <= 25 ms on 100% of ticks in both reps, inside a 2 ms band (19.1-21.2 ms); the median was
+     above the 50 ms bound on 19-25% of ticks and ended each run at ~94 ms. The gauge tracked the median
+     on every tick (226/226). Floor steady, median flapping, on the real workload.
+  Predictions: "inflight >= 64" FAILED. "F1 >= 10% but lower than 12-rank" -> >= 10% held, "lower" did
+     not (equal within 2 points). "Floor steadier than median" held.
+  #350: not answerable with GCHP C24 TT at any rank count on one node -- it never builds the ~128-deep
+     burst. The only cell that reached 128 was the synthetic concurrent-reader control (P9k C4i), and there
+     the floor rose to ~70 ms. So: on GCHP the floor separates cleanly; at real burst saturation (synthetic)
+     it does not. Which regime production (C90/C180, multi-node) lives in is unmeasured.
+  Cost: c8g.48xlarge $7.657/hr; job 2.8 min + boot 3.5 min + idle until scale-down.
+
+--- 5f-P9m / #350-sweep / 5f-P9n PRE-REGISTRATION (lith#349 18:21Z+18:27Z, #350 02:21Z; spend approved
+    by user 2026-10-05; written before any cell ran) ---
+Upstream ruling: floor refuted as a policy input (statistics of our own fills are downstream of the
+  decision). Proposed replacement: region pair (ratio 4 iff bucket region == instance region).
+P9m (head node c7g.4xlarge, v1.6.0 md5 39ebae8ab0c3, in-region gcgrid 2019/07, 6 concurrent var1 readers
+  of A3dyn 07-02..07, one fresh mount per cell, --nic-gbps 50): arms
+    D  default (gate decides from 8-median)
+    F  --readahead-evidence-ratio 4 (forced)
+    B  default gate + --inflight-bytes 350MB (separates "gate fixes it" from "byte budget fixes it")
+  3 reps, interleaved D,F,B within rep. Engaged reference: 6 x 59.8 = 359 MB.
+  Upstream's criteria, held as written:
+    confirm  F s3 bytes ~359-400 MB (r ~1.0-1.1) vs D 3.7-6.0 GB; floor/median stay low under F.
+    refute   F still >> 400 MB (gate does not hold under concurrency even when on).
+    watch    wall: if F costs > ~20% wall vs D, state the trade.
+    B arm    B ~359-400 MB with gate at default -> the byte budget alone fixes it.
+  My predictions: F 359-420 MB in 3/3; D 3.5-6 GB; F wall within +-20% of D; B between (1-3 GB).
+#350 sweep (head node, in-region, lith-s3bench from main >= #354 9d7bc8c6): one large object
+  (s3://gcgrid MERRA2.20190702.A3dyn.05x0625.nc4, 1.21 GB), -workers 128, -part 64KiB/256KiB/1MiB/8MiB,
+  -duration 20s, 2 passes in ascending then descending order. Upstream's criteria:
+    confirm  TTFB rises with part size at fixed depth -> bytes in flight is the quantity.
+    refute   flat across part size -> no mechanism for the ~100 ms.
+  NOTE: head node NIC is c7g.4xlarge (up to 15 Gbps burst, not 50); 128 x 8 MiB = 1.07 GB in flight
+  drains in ~0.57 s at 15 Gbps, so if the hypothesis holds the 8 MiB TTFB should be LARGER here than
+  upstream's 50 Gbps estimate (~86 ms). My prediction: monotone rise, 8 MiB p50 > 150 ms.
+P9n (cross-region falsifier of the region-pair approach; bucket recreated in us-west-2 with A3dyn 07-01):
+  whole-object fast consumer (reader MODE=whole), --readahead-evidence-ratio 4 vs -1 (off), 3 reps
+  interleaved, fresh mount per cell. r = wall(4)/wall(-1).
+    upstream: r ~2.35 reproduces the cost the gate exists to avoid -> region pair is needed.
+              r ~1.0 -> region gate unnecessary; option B (cheaper ramp, gate on everywhere) is the answer.
+  My prediction: r in [1.8, 2.8] (5f-P9b measured 2.35 on this path).
+Cost: P9m/#350 $0 (in-region). P9n ~1.3 GB copy + 3 x (1.2 GB + 1.2 GB) reads ~7.5 GB ~ $0.16. Bucket
+  deleted after.
+
+--- 5f-P9m RESULTS (head node 03:08:47-03:09:21Z, v1.6.0 39ebae8ab0c3; raw data/lith-gates/p9m/) ---
+  arm                       rep1 MB   rep2 MB   rep3 MB   walls (s)        gauge>0 ticks  evidence clamps
+  D default                 3281.4    1826.6    375.4     3.4 / 2.3 / 2.2   2/7 2/5 4/5    11 / 13 / 19
+  F forced ratio 4          358.6     358.6     358.6     2.3 / 2.3 / 2.3   5/5 5/5 5/5    22 / 22 / 20
+  B default + 350MB budget  358.6     358.6     358.6     2.2 / 2.2 / 2.2   2/5 4/5 4/5    20 / 22 / 22
+  CONFIRM (upstream): F = 358.6 MB in 3/3 = the 6 x 59.8 MB engaged reference (r 1.00); the gate holds under
+     concurrency when it is on. Wall: F within the D range, no cost (no >20% trade to state).
+  Default is not reproducible: 9.1x / 5.1x / 1.05x over-fetch on three identical cells.
+  B: 358.6 MB in 3/3 with the gate at default. Does NOT cleanly separate budget from gate: readahead window
+     cap fell 223 -> 62 blocks, and clamp counts (20-22) match F rather than D (11-19), i.e. the gate was
+     engaged when it mattered. Consistent with "smaller burst keeps TTFB low so the gate stays on"; not proof.
+  My predictions: F 359-420 held; D 3.5-6 GB held in 2/3 (rep 3 375 MB); F wall +-20% held; B "1-3 GB" FAILED.
+
+--- #350 sweep RESULTS (head node 03:11:27Z, lith-s3bench @ main 5e47bd6 (incl #354), md5 960dc6b249fd;
+    raw data/lith-gates/s3bench350/sweep.log) ---
+  one key gcgrid MERRA2.20190702.A3dyn (1.21 GB), -workers 128, 20 s, ascending then descending:
+  part     TTFB p50 (pass1/pass2)  p90           p99            <=25ms         agg MB/s
+  64KiB    30.5 / 23.5             113.4 / 29.5  160.8 / 47.1   31.9 / 63.3%   130 / 295
+  256KiB   23.9 / 23.5             30.4 / 29.6   47.2 / 46.0    59.4 / 63.3%   1152 / 1172
+  1MiB     25.9 / 25.2             33.2 / 31.8   57.1 / 56.3    42.7 / 48.6%   1728 / 1717
+  8MiB     25.6 / 25.0             33.1 / 31.5   203.2 / 138.2  44.9 / 50.0%   1720 / 1734
+  REFUTE (upstream criterion): TTFB p50/p90 FLAT across part size at fixed depth 128, including 8 MiB with
+     ~1.07 GB in flight and the link saturated (1.72 GB/s = this box's ~15 Gbps ceiling). Only p99 rises at
+     8 MiB. Bytes in flight does not delay first bytes at the client seam. My prediction (8MiB p50 > 150 ms)
+     FAILED. Pass-1 64KiB tail (p90 113 ms, not repeated in pass 2) unexplained; each run is a fresh process.
+  -> No mechanism for lith's in-mount ~100 ms TTFB under its own burst is left standing from these sweeps.
+
+--- 5f-P9n RESULTS (head node, cross-region us-west-2 58.6 ms, v1.6.0; raw data/lith-gates/p9n/) ---
+  CORRECTION to the pre-registration: "whole-object fast consumer (reader MODE=whole)" was wrong. reader.py
+     whole is a netCDF decompress at ~89 MB/s, the SLOW-consumer cell (P9b, r 1.00). Ran it as written, then
+     the real fast-consumer cell (P9c shape: GEOSFP A3dyn 3.78 GB, dd bs=1M, n=4 interleaved).
+  netCDF whole (as pre-registered, slow consumer): off 15.10/15.38/20.56, forced 15.83/14.96/15.42 s;
+     r = 1.00. Reproduces P9b; uninformative about the ramp cost.
+  dd fast consumer (P9c shape):  off (-1) 8.94 / 12.07 / 8.07 / 10.87 s  median 9.90
+                                 forced 4 21.39 / 18.73 / 15.80 / 20.02 s median 19.38
+     r = 1.96, zero overlap (min forced 15.80 > max off 12.07; p = 1/70). 3776.8 MB / 459 GETs in all 8 cells.
+  Upstream criterion: r ~2.35 reproduces -> the cross-region ramp penalty stands on v1.6.0 -> the gate can
+     NOT simply default on everywhere; region pair (or a cheaper ramp) is needed. r 1.96 vs P9c 2.35: same
+     direction, smaller; within my [1.8, 2.8] prediction.
+  Cost: ~5 GB copies + ~34 GB cross-region reads ~ $0.80. Bucket emptied and deleted after.
+
+--- 5f-P9o (#349 v1.7.0 verify) + 5f-P9p (#350 differential probe) PRE-REGISTRATION (2026-10-05; before any cell ran) ---
+Binary: lith v1.7.0 release lith_linux_arm64 sha256 a43139a2...c00c7 (md5 d38624715a8f), verified against
+  checksums.txt. lith-s3bench: main 5e47bd6 build (md5 960dc6b249fd; s3bench's TTFB seam is #354, unchanged).
+  Head node c7g.4xlarge, in-region gcgrid MERRA2/2019/07, --nic-gbps 50, default flags otherwise, fresh mount/arm.
+Workloads: W1 = 6 concurrent var1 readers of A3dyn 07-02..07 (P9m shape); W2 = dd bs=1M of A3dyn 07-02 (1.21 GB,
+  sequential, deepest burst). s3bench: -workers 128 -part 8388608 -duration 3s on A3dyn 07-08 (a different key),
+  started 0.5 s after the workload. Arms per rep: MA-W1, MS-W1, MA-W2, MS-W2, SA (s3bench alone). 3 reps.
+  2 Hz scrape: ttfb hist (le .025/.05/.06/.1/.2), median, floor, measured, gauge, s3_inflight,
+  prefetch_committed_bytes, s3_bytes, box CPU busy % (/proc/stat).
+P9o scoring (upstream's ask): gauge == 4 on EVERY tick (after measured) of every in-region mount arm -> PASS;
+  any tick 0 -> bug, scrape posted. And W1 s3 bytes = 358.6 MB (+-2%) on the default mount in 3/3.
+P9p scoring (upstream's three outcomes, my thresholds fixed now):
+  mount TTFB over the s3bench window = delta of the cumulative histogram between the ticks bracketing it;
+  "mount ~100" = < 30% of window fills <= 50 ms; "mount ~25" = >= 80% <= 50 ms.
+  s3bench "stays" = TTFB p50 <= 40 ms; "rises" = p50 >= 60 ms.
+  O1 s3bench stays while mount ~100 -> gap inside lith (report CPU both arms).
+  O2 s3bench rises -> box-wide degradation during the burst.
+  O3 mount ~25 too (mount-alone arms) -> ~100 ms not reproducible on v1.7.0 (#369/#368); then compare
+     committed bytes/inflight vs P9k to say whether it is the gate bounding the burst or the #369 seam.
+  Mixed/between thresholds -> reported as such, no outcome claimed.
+Predictions: P9o PASS. P9p: O3 for W1 (gate now bounds the 6-reader burst, like P9m F: ~359 MB, inflight <=10);
+  W2 (dd) reaches depth; for W2 I predict O1 with box CPU < 40% (i.e. not CPU saturation), low confidence.
+Cost $0.
+
+--- 5f-P9o / 5f-P9p RESULTS (head node 05:08:54-05:10:09Z, lith v1.7.0 d38624715a8f, s3bench 960dc6b249fd;
+    raw data/lith-gates/p9p/, scored by scripts/lith/p9p-score.py -> p9p/score.txt) ---
+P9o PASS: lith_readahead_evidence_ratio == 4 on 115/115 ticks across all 12 in-region default mount arms;
+  W1 (6 concurrent var1) = 358.6 MB in 6/6 default mounts (was 3281/1827/375 MB on v1.6.0 default).
+P9p (#350): mount TTFB over the s3bench window vs s3bench at the same moment (8 MiB parts both sides --
+  W2 is 153 GETs / 1.21 GB = 7.9 MB per fill):
+  arm       mount window <=50ms   s3bench p50/p90 (ms)  outcome      box CPU mean/max   mount inflight max
+  MS-W2-1   14.7% (n=95)          30.6 / 61.9           O1           20.5 / 30.3%       66
+  MS-W2-2   19.6% (n=143)         30.4 / 71.0           O1           20.9 / 28.6%       30
+  MS-W2-3   42.9% (n=98)          28.3 / 56.2           between      33.7 / 43.3%       29
+  MS-W1-1/2/3  56.0 / 58.8 / 67.1%  31.0 / 31.1 / 27.1    between      34-46 / 44-72%     3-7
+  SA-1/2/3 s3bench alone p50 25.5 / 27.9 / 28.8 ms, p90 52-56 ms.
+  Mount-alone (whole arm): W2 <=50ms 19.0 / 37.9 / 41.2% (end 8-median 146 / 71 / 125 ms, inflight max 29-64);
+    W1 63.6 / 70.0 / 72.1% (inflight max 6-15).
+  Verdict: W2 (deep sequential burst) = upstream O1 in 2/3 reps, the third between: at the SAME moment, on the
+    same box and part size, s3bench gets first bytes at ~30 ms (only +2-4 ms over alone) while the mount's
+    fills are mostly > 50 ms. The gap is inside lith. Box CPU was NOT saturated (mean 20-34% of 16 cores), so
+    box-level CPU saturation is not the explanation; goroutine/scheduling effects inside one process are not
+    ruled out by a box-wide number. O3 does not hold for W2: the ~100 ms reproduces on v1.7.0 mount-alone.
+  W1 is between thresholds in every arm (bounded burst, inflight <= 15): not ~25, not ~100.
+  Predictions: P9o PASS held. W1 O3 FAILED (between, not >= 80% <= 50 ms). W2 O1 with CPU < 40% held 2/3.
+Cost $0.
+
+--- 5f-P6f PRE-REGISTRATION (lith#313 01:00Z asks, on v1.7.0 = post-#320 + #367; before any cell ran) ---
+Head node c7g.4xlarge (tier 2 x budget, as 5f-P6c), lith v1.7.0 d38624715a8f, harness gate-p6f.sh = 5f-P6c's
+  gate-p6c.sh + pressure series + committed-at-rest scrape 3 s after readers; RESIDENT=1, 16 readers, whole-object
+  dd, fresh mount per cell, 2 reps. Cells as 5f-P6c: M043 (A3cld x16, clean), M122 (A3dyn x16, clean),
+  D375 (GEOSFP A3dyn x16, collapsed), plus D375P13 = D375 with --prefetch-pressure-max 1.3, interleaved.
+Verdict per cell assigned by evicted_unread (0 vs > 1000) BEFORE reading committed or resident (rule as P6c/P6d).
+Upstream cell 1 (re-score committed/tier post-#320):
+  confirm  separation widened: clean committed/tier max well under collapsed min (P6c: clean <= 1.205 vs
+           collapsed 1.39 on this box; pooled gap was 0.002 on c8gn).
+  refute   gap still ~0.002 (here: clean max within 0.02 of collapsed min) -> committed can't carry a default.
+  Also: committed_at_rest_3s == 0 in every cell (upstream: #320 made it return to zero at rest).
+  NOTE: only the head-node half. The c8gn half (5f-P6d, where the 0.002 knife edge lives) needs a paid box.
+Upstream cell 2 (16-reader arm at --prefetch-pressure-max 1.3):
+  confirm  D375P13 evicted_unread drops toward 0 and spread returns toward 1.0 without wall-clock loss vs D375.
+  refute   wall regresses (overcommit was buying throughput).
+  Also report lith_prefetch_pressure peak and pressure_held_total (did it bind).
+My predictions: committed_at_rest 0 in 10/10; clean committed/tier < 1.0 and collapsed > 1.3 (gap widens);
+  D375 collapses again (evicted > 1000); D375P13 evicted < 100, spread < 1.5, agg wall <= D375's.
+Cost $0.
+
+--- 5f-P6f RESULTS (head node 05:14:41-05:18:19Z, lith v1.7.0 d38624715a8f; raw data/lith-gates/p6f/) ---
+Bounds identical to 5f-P6c (lith-318): budget 4127829504, window 223, inflight 1.25 GB (binding), tier 8.256 GB.
+  cell       rep  evicted  verdict  agg wall  spread  peak committed  /tier   peak resident /tier  at-rest(3s)
+  M043       1,2  0, 0     clean    4.5, 4.2  1.09, 1.07  3.70, 3.32 GB  0.45, 0.40   0.24, 0.29        0, 0
+  M122       1,2  0, 0     clean    11.6, 11.1 1.11, 1.10 4.09, 4.09 GB  0.50, 0.50   0.30, 0.36        0, 0
+  D375       1,2  0, 0     CLEAN    34.1, 33.3 1.05, 1.19 4.10, 4.10 GB  0.50, 0.50   0.42, 0.44        0, 0
+  D375P13    1,2  0, 0     clean    33.4, 33.4 1.07, 1.04 4.10, 4.10 GB  0.50, 0.50   0.38, 0.44        0, 0
+  pressure_held_total 0 everywhere; peak lith_prefetch_pressure 0.496.
+  5f-P6c on lith-318, same box/cells: D375 evicted 2870/2868, spread 3.21/3.39, peak committed 11.46 GB (1.39 tier).
+HEADLINE: the head-node collapse does NOT reproduce on v1.7.0. Peak committed now stops at 0.993 x the prefetch
+  budget in every 16-reader cell (11.46 GB before), D375 runs at the ~33 s NIC floor with spread ~1.1 and 0 evictions.
+Cell 1 (re-score committed/tier): UNSCOREABLE on this box as framed -- there is no collapsed cell left to separate
+  from. committed/tier <= 0.50 in all 8 cells. committed_at_rest_3s == 0 in 8/8 (upstream's #320 claim HOLDS).
+Cell 2 (pressure-max 1.3): MOOT -- pressure peaked at 0.496 < 1.3, held 0; D375P13 == D375 (33.4 vs 33.3-34.1 s).
+Predictions: at-rest 0 held; "D375 collapses again" FAILED; "P13 binds and fixes it" FAILED (nothing to fix).
+Which change bounded committed (#320's credit fixes vs another #313-adjacent change) is not attributed here.
+Open: the c8gn.48xlarge cells (5f-P6d: 19.6k-25.5k evictions at 1.21-1.27 tier on lith-318) are where the
+  collapse was largest; whether it is also gone there needs that box (~$6.30, 34 min last time).
+Cost $0.
+
+--- 5f-P6g PRE-REGISTRATION (lith#313 c8gn half on v1.7.0; approved by user 2026-10-05; before launch) ---
+Box: c8gn.48xlarge on-demand $11.376/h, us-east-1c (subnet-f59636d4, as 5f-P6d), AL2023 arm64
+  ami-0ae8605ed708e3c3e, self-terminate `shutdown -h +120` (InstanceInitiatedShutdownBehavior=terminate),
+  hard cap ~$23, expected ~35 min (~$6.60). Binary lith v1.7.0 (d38624715a8f). Harness gate-p6f.sh +
+  sampler-p6f.py (RESIDENT=1 PRESSURE=1), cells EXACTLY 5f-P6d's: auto L64, auto L112, 600 L32, 600 L64,
+  whole-object dd of distinct GEOS-FP A3dyn (fatnic-a3dyn-objects.txt order), 2 reps, fresh mount per cell.
+Verdict by evicted_unread (0 vs > 1000) first. 5f-P6d on lith-318: L64 clean / L112 collapse (19.6k) /
+  600 L32 clean / 600 L64 collapse (25.5k); committed/tier 0.93 / 1.21 / 0.93 / 1.27.
+Question: is the collapse also gone on the fat-NIC box (as on the head node, 5f-P6f)?
+  GONE   -> L112 and 600 L64 evicted 0 (or < 1000) and committed/tier <= 1.0 in both reps.
+  STAYS  -> either collapses again (evicted > 1000); then cell 1 is scoreable: report committed/tier clean max
+            vs collapse min (upstream: confirm if widened from 0.002; refute if still ~0.002).
+  Also: committed_at_rest_3s == 0 in all 8; pressure peak + held (pressure-max off by default, so held 0).
+  If STAYS, a third arm is run only if time is under 60 min: L112 with --prefetch-pressure-max 1.0 (upstream's
+  "try ~1.0 on a fat-NIC box"), 1 rep, unscored.
+My prediction: GONE on both collapse cells (committed capped at budget as on the head node), wall per cell
+  near 5f-P6d's clean walls; ~60% confidence (the fat-NIC regime had a 12x larger tier and budget).
+
+--- 5f-P6h PRE-REGISTRATION (lith#313 14:59Z: attribute the vanished collapse to #368; before any cell ran) ---
+NOTE: upstream asked (14:59Z) to hold the c8gn cell until this one ran. I launched the c8gn (5f-P6g) at 15:04Z
+  without re-reading the thread; its results are recorded below this cell and are a re-measure, not a test.
+Head node, v1.7.0 d38624715a8f, gate-p6f.sh (RESIDENT=1 PRESSURE=1), D375 (16 x GEOSFP A3dyn), 2 reps,
+  arms interleaved within rep: D375 (default, region gate on) and D375G0 (--readahead-evidence-ratio -1).
+Upstream's criteria: CONFIRM = D375G0 collapses: evicted_unread in the thousands, spread > 3, peak committed
+  > 1.2 x tier. REFUTE = D375G0 stays clean -> something else between lith-318 and v1.7.0 did it.
+My prediction: CONFIRM (lith-318 = gate off by default in-region for this shape gave 2870 evictions, 1.39 tier).
+Cost $0.
+
+--- 5f-P6g RESULTS (c8gn.48xlarge i-0cfbe770c0dc28a16 us-east-1c, v1.7.0; driver 15:19:03-15:28:26Z; instance
+    15:04:34-15:30:24Z = 26 min ~$4.90; terminated; temp SSH SG sg-0e311868344e60913 created+deleted because my
+    public IP was no longer in cluster-access; raw data/lith-gates/p6g/) ---
+LAUNCHED AGAINST UPSTREAM'S HOLD (14:59Z, unread at launch). Result is a re-measure of the fix, not a test.
+Bounds identical to 5f-P6d: budget 49816376832, tier 99.63 GB; auto: window 223 inflight 1.25 GB binding;
+  600: window 1024 inflight 15 GB, binding --max-readahead x --block-size. No OOM.
+  cell        rep  evicted  verdict  agg wall s     spread       peak committed / tier   at rest
+  auto L64    1,2  0, 0     clean    49.4, 47.0     1.07, 1.06   0.498, 0.498           0, 0   (P6d 55.1/52.8 clean)
+  auto L112   1,2  0, 0     CLEAN    81.7, 79.6     1.04, 1.04   0.504, 0.504           0, 0   (P6d 430/446 COLLAPSE 19.6k)
+  600  L32    1,2  0, 0     clean    21.2, 21.1     1.19, 1.24   0.499, 0.485           0, 0   (P6d 21.7/21.7 clean)
+  600  L64    1,2  0, 0     CLEAN    41.3, 40.8     1.08, 1.07   0.498, 0.499           0, 0   (P6d 265/256 COLLAPSE 25.5k)
+  -> GONE on the fat-NIC box too: the two collapse cells are 5.4x (L112) and 6.3x (600 L64) faster, 0 evictions,
+     peak committed capped at ~1.0 x budget (0.50 tier) where lith-318 reached 1.21-1.27 tier.
+  Predictions: GONE held (2/2 cells, 4/4 reps). Conditional third arm not run (no collapse).
+
+--- 5f-P6h RESULTS (head node 15:3x-15:37:57Z, v1.7.0; raw data/lith-gates/p6h/) ---
+  arm      rep  evicted  agg wall s   spread  peak committed (/tier)   peak resident /tier  at rest
+  D375     1,2  0, 0     33.6, 33.7   1.09, 1.02  4.10 GB (0.50)        0.35, 0.29          0, 0
+  D375G0   1,2  3033, 3013  107.0, 106.6  3.94, 3.81  11.57 GB (1.40)   1.000, 1.000        0, 0
+  CONFIRM (upstream's criteria, all three): evictions in the thousands, spread > 3, peak committed > 1.2 x tier.
+  D375G0 reproduces lith-318's P6c collapse almost exactly (2870/2868, 3.21/3.39, 11.46 GB, resident 1.000).
+  -> The vanished collapse is #368's region gate bounding the start transient (window floored at 2 blocks until
+     a handle earns it), not #320's accounting and not the pressure gate. Prediction CONFIRM held.
+  Remaining #313 exposure (upstream): mounts where the gate is OFF -- cross-region and region-unknown.
+
+--- 5f-P6i (#313 pressure-max on the gate-off population) + 5f-P9q (#350 --wire-ttfb) PRE-REGISTRATION
+    (2026-10-05, lith v1.8.0 release sha256 2984a089...cb2a1 md5 87248fd3ed2f; before any cell ran) ---
+P6i: head node, gate-p6f.sh (RESIDENT=1 PRESSURE=1), D375 (16 x GEOSFP A3dyn), all arms --readahead-evidence-ratio -1,
+  2 reps interleaved: G0 (control), G0P13 (--prefetch-pressure-max 1.3), G0P10 (--prefetch-pressure-max 1.0).
+  Upstream's criteria, as written:
+    confirm @1.3  evictions low hundreds or 0, spread < 1.5, wall from ~107 s toward ~33 s, AND held_total > 0.
+    refute  @1.3  held > 0 but evictions still in the thousands (gate fires without bounding).
+    report  peak lith_prefetch_pressure (advisory if it sails well past the threshold).
+    1.0 arm = cost probe: wall vs 1.3's; if 1.0 is better, ask for a value below it.
+    quality: ~40 s = good substitute for the gate-off population; ~70 s = bounds the collapse without fixing it.
+  My predictions: G0 collapses (~3000 evicted, ~107 s). 1.3: holds > 0, evictions < 300, wall 35-50 s, peak
+    pressure 1.3-1.45. 1.0: wall within +-10% of 1.3, peak ~1.0-1.1.
+P9q: head node, in-region gcgrid MERRA2/2019/07, fresh default mount per arm, 3 reps interleaved:
+  WB = W2 (dd bs=1M of A3dyn 07-02, 1.21 GB) without --wire-ttfb (control, comparable to P9p MA-W2);
+  WT = W2 with --wire-ttfb;  W1T = W1 (6 concurrent var1) with --wire-ttfb (context, unscored).
+  Final scrape: lith_ttfb_seconds and lith_s3_wire_ttfb_seconds, all buckets, counts.
+  Read FIRST: wire_count vs fill_count (difference = retries, per upstream).
+  Then for WT: wire <=50 ms >= 80% while fill <=50 ms < 30% -> delay is ABOVE the wire.
+               both < 30% <=50 ms -> lith's requests really are slower at the endpoint.
+               anything else -> reported as between, no outcome claimed.
+  My predictions: counts equal (no retries) to within 1%; WT wire <=50 ms >= 80% with fill < 40% -> above the
+    wire (moderate confidence); WB matches P9p MA-W2 (fill <=50 ms 19-41%).
+Cost $0.
+
+--- 5f-P6j PRE-REGISTRATION (upstream's conditional "if 1.0 is better, a value below it"; written after P6i scored,
+    before any P6j cell ran) ---
+Same harness/binary/box as P6i, gate off (-1), D375, 2 reps interleaved: G0P085 (0.85), G0P05 (0.5) -- the two values
+  upstream measured locally (0.85 -> peak 0.94, 0.5 -> peak 0.56). No control rerun (P6i G0 is the control).
+Questions: does the spread come under 1.5 (fairness), do evictions reach ~0, and what does throttling cost in wall?
+My predictions: 0.85: evicted < 50, wall 38-45 s, spread 1.5-2.5. 0.5: evicted 0, wall 45-70 s (over-throttled),
+  spread < 2. Peak pressure ~= threshold (+0.01) in both.
+Cost $0.
+
+--- 5f-P9q RESULTS (head node 16:29:50-16:30:25Z, v1.8.0 87248fd3ed2f; raw data/lith-gates/p9q/) ---
+  (gate-p9q.sh's awk crashed scoring WB, which has no wire histogram; WB re-scored from the same final.prom files;
+   scorer fixed afterwards.)
+  arm     rep  fill n  wire n  fill <=25/<=50/<=100        wire <=25/<=50/<=100
+  WB      1-3  153     --      2.6/4.6/17.0, 2.0/8.5/50.3, 3.9/19.0/75.2 %   (no --wire-ttfb; control)
+  WT      1    153     153     2.6/13.1/58.2               2.6/13.7/58.2
+  WT      2    153     153     3.3/18.3/66.7               3.3/18.3/66.7
+  WT      3    153     153     11.8/34.0/83.7              12.4/34.0/83.7
+  W1T     1-3  140     140     fill <=50 61.4/67.1/72.9    wire <=50 61.4/67.1/72.9
+  Counts equal in 9/9 -> no retries. Wire == fill bucket-for-bucket to within 1 sample (full ladder in WT-1).
+  OUTCOME (upstream's): both ~slow -> the delay is AT THE WIRE: the HTTP transport itself receives lith's first
+    bytes late. Not above the wire (not SDK middleware/deserialization/rescheduling). WB (default client path) is
+    as slow or slower than WT, so the plain-*http.Client path did not change it.
+  Prediction "above the wire" FAILED. Combined with P9p (s3bench ~30 ms at the same moment, same part size):
+    lith's requests differ from s3bench's AS REQUESTS -- the next question per upstream.
+  Cost $0.
+
+--- 5f-P6i RESULTS (head node 16:30-16:39:44Z, v1.8.0; raw data/lith-gates/p6i/) ---
+  arm (all gate -1)  rep  evicted   agg wall s   spread      held   peak pressure  peak committed
+  G0 (control)       1,2  2853, 2983  116.0, 112.3  3.93, 4.06  0, 0   1.402, 1.401   11.57 GB
+  G0P13 (1.3)        1,2  2051, 2235  106.8, 100.1  4.32, 4.10  100, 94  1.300, 1.306  10.74-10.78 GB
+  G0P10 (1.0)        1,2  119, 71     40.3, 41.5    2.60, 2.63  394, 393  1.004, 1.004  8.29 GB
+  @1.3 REFUTED by upstream's criterion: held > 0 (100/94) but evictions still in the thousands. The gate is not
+    advisory -- peak pressure is held AT 1.30 -- it bounds committed at 1.3 x tier, which is above the tier, so the
+    tier still overflows with unread bytes (resident 1.000).
+  @1.0 better than 1.3 (upstream's "more interesting" branch): evictions low hundreds (119/71), wall 40-42 s (~2.8x
+    faster than control, upstream's "good substitute" band), BUT spread 2.6 (criterion < 1.5 not met).
+  Predictions: G0 held; 1.3 "evicted < 300, wall 35-50 s" FAILED; 1.0 "within +-10% of 1.3" FAILED (2.6x faster).
+
+--- 5f-P6j RESULTS (head node 16:40-16:45:28Z, v1.8.0; raw data/lith-gates/p6j/) ---
+  arm (gate -1)   rep  evicted  agg wall s   spread      held      peak pressure  peak committed
+  G0P085 (0.85)   1,2  0, 4     46.5, 43.9   2.28, 3.06  581, 540  0.855, 0.854   7.05 GB
+  G0P05  (0.5)    1,2  0, 0     63.0, 62.6   2.31, 2.32  885, 881  0.505, 0.510   4.17-4.21 GB
+  LADDER (gate off, D375, v1.8.0; P6i + P6j):  none 116/112 s 2.9k ev | 1.3 107/100 s 2.1k ev | 1.0 40.3/41.5 s 71-119 ev
+    | 0.85 46.5/43.9 s 0-4 ev | 0.5 63.0/62.6 s 0 ev.   Region gate on (P6h): 33.6 s, 0 ev, spread ~1.05.
+  -> Wall minimum at 1.0; evictions ~0 from 0.85 down at +10% wall; 0.5 over-throttles (+55% vs 1.0).
+     Peak pressure tracks the threshold to +0.01 in every arm: the admission check is NOT advisory on real S3.
+     Spread never < 1.5 (2.3-3.1 at every threshold): the pressure gate bounds bytes and evictions but does not
+     restore per-reader fairness, which the region gate does (~1.05).
+  Predictions: 0.85 evicted < 50 held; wall 38-45 1/2; spread 1.5-2.5 1/2. 0.5 evicted 0 held; wall 45-70 held;
+     spread < 2 FAILED. Peak ~= threshold held.
+Cost $0.
+
+--- 5f-P9r PRE-REGISTRATION (lith#350 connection split, v1.9.0 sha256 0b165bbe...e0f6 md5 e9c2ce7cff6e; before the cell)
+DISCLOSURE: one unscored 64 MiB dd probe was run first only to confirm the labelled metric names; it read wire
+  conn=new 0/20 <= 50 ms vs reused 7/17, acquire(new) 20/20 <= 50 ms. Seen before writing this; criteria below are
+  upstream's, as written, so the probe cannot move them.
+Cell: head node, in-region gcgrid MERRA2/2019/07, fresh mount per arm, --wire-ttfb, 3 reps interleaved:
+  WT = W2 (dd bs=1M of A3dyn 07-02, 1.21 GB);  W1T = W1 (6 concurrent var1), context.
+Read per label (conn=new / reused): wire_ttfb count, <=25/<=50/<=100 ms, mean (sum/count);
+  conn_acquire count, <=10/<=25/<=50 ms, mean. Also the fill histogram as before.
+Upstream's criteria:
+  CONFIRM  conn=new slow and conn=reused fast, with conn_acquire{new} carrying most of the difference.
+  REFUTE   both labels slow.
+  My operationalization: "slow" = < 30% <= 50 ms, "fast" = >= 80% <= 50 ms (as P9p/P9q); "carrying most" =
+    mean acquire(new) - mean acquire(reused) >= 50% of mean wire(new) - mean wire(reused).
+My prediction (informed by the probe): new slow / reused NOT fast (between), and acquire(new) NOT carrying most of the
+  difference (the probe had acquire(new) all < 50 ms) -> a third outcome neither of upstream's two names: first-use
+  connections are slow AFTER acquisition. Low confidence.
+Cost $0.
+
+--- 5f-P9r RESULTS (head node 2026-10-07 06:15:29-06:15:54Z, v1.9.0 e9c2ce7cff6e; raw + score data/lith-gates/p9r/) ---
+  (scorer's acquire "<=25 ms" column is an artifact: lith_s3_conn_acquire_seconds has buckets 0.02/0.03, no 0.025.)
+  W2 dd   conn   count (r1/r2/r3)   wire <=50ms        wire mean ms        acquire mean ms
+          new    39 / 52 / 75       0 / 0 / 0%         157.9/129.8/125.3   3.7 / 3.4 / 4.6
+          reused 114 / 101 / 78     5.3 / 9.9 / 14.1%  134.7/106.3/88.5    1.3 / 1.1 / 1.5
+  W1 6var new    11 / 9 / 10        0 / 55.6 / 20%     168.0/68.8/77.2     3.9 / 3.1 / 4.6
+          reused 129 / 131 / 130    69.8/72.5/71.5%    53.0/48.9/46.1      0.0 / 0.1 / 0.1
+  W2 OUTCOME (upstream's): REFUTE -- both labels slow (reused 5-14% <= 50 ms, mean 89-135 ms).
+     Acquisition is 3-5 ms new / ~1 ms reused; new-reused wire gap 23-37 ms, acquire carries < 15% of it.
+     First-use connections ARE slower than reused (by 23-37 ms mean, every rep) but not via acquisition, and the
+     bulk of the ~100 ms is on reused connections too. new share of fills 25-49% (rises across reps 39->75).
+  W1 (context): reused between (70-73% <= 50 ms, mean 46-53); new slow in 2/3.
+  Predictions: new slow held; "reused between" FAILED for W2 (slow), held for W1; "acquire not carrying" held.
+Cost $0.
+
+--- 5f-P9s PRE-REGISTRATION (lith#350 06:34Z: s3bench at W2's burst shape; before any cell ran) ---
+Question (upstream): is the ~100 ms a lith-vs-s3bench difference, or burst-vs-steady? Every s3bench control so far was
+  a steady window; every lith arm a cold burst from a fresh process.
+Head node, in-region, 8 MiB parts, every arm a FRESH process. lith-s3bench has no request-count flag, so the burst
+  shape is a short window: at ~1.7 GB/s, 1 s at 32-64 workers = ~150-200 requests (W2 = 153 fills at depth 29-66).
+Arms, 3 reps interleaved:
+  B32  lith-s3bench -workers 32  -part 8388608 -duration 1s   (burst shape, low depth)
+  B64  lith-s3bench -workers 64  -part 8388608 -duration 1s   (burst shape, W2's peak depth)
+  S64  lith-s3bench -workers 64  -part 8388608 -duration 6s   (steady control at the same depth)
+  W2   lith v1.9.0 default mount, dd of A3dyn 07-02 (same-session reference; --wire-ttfb off)
+  s3bench key: A3dyn 07-08 (as P9p); W2 reads 07-02.
+Scoring (thresholds as P9p/P9q): slow = < 30% <= 50 ms; fast = >= 80% <= 50 ms; else between.
+  If B32/B64 are SLOW -> the difference is burst-vs-steady, not lith-vs-s3bench (upstream: five refutations were
+    against a mismatched control).
+  If B32/B64 are FAST while W2 is slow -> lith-specific; the runtime cell (#377) is next.
+My prediction: B64 between (the 1 s window includes the cold first-wave on 64 new connections), B32 fast-ish, S64 fast
+  (~85% <= 50 ms as P9p SA), W2 slow. Low confidence on B64.
+Cost $0.
+
+--- 5f-P9s RESULTS (head node 2026-10-07 14:25:48-14:26:30Z; s3bench 960dc6b249fd, lith v1.9.0 e9c2ce7cff6e; raw data/lith-gates/p9s/) ---
+  arm   rep1                         rep2                         rep3                        (<=50 ms, p50, n)
+  B32   10.8% p50 125.2 n=167 SLOW   93.0% p50 26.2 n=229 fast    88.3% p50 27.8 n=230 fast
+  B64   60.8% p50 41.2 n=245 betw    76.6% p50 29.9 n=244 betw    81.0% p50 34.6 n=247 fast
+  S64   96.3% p50 25.4 n=1320 fast   94.9% p50 28.3 n=1356 fast   96.3% p50 25.7 n=1331 fast
+  W2    4.6% mean 150.2 n=153 SLOW   5.2% mean 125.0 SLOW         5.2% mean 129.3 SLOW   (lith fill)
+  OUTCOME: lith-specific. s3bench at W2's burst shape is between/fast in 5 of 6 burst arms while lith is slow in 3/3.
+    Burst-vs-steady is a real but smaller effect on s3bench (61-93% vs 95-96% <= 50 ms); it does not reach lith's 5%.
+    -> upstream's branch: the runtime cell (#377) is next.
+  Anomaly: B32-1 (the FIRST arm of the session) was slow (10.8%, p50 125 ms), like pass-1 64 KiB in the #350 part sweep
+    (first run, p90 113 ms). A session-first effect exists for s3bench; W2 arms were never session-first and were slow
+    every rep, so it does not explain lith. Unexplained; not claimed.
+  Predictions: B64 between held 2/3; B32 fast-ish held 2/3 (rep1 slow); S64 fast held; W2 slow held.
+Cost $0.
+
+--- 5f-P9t (#350 allocation arm, causal) + 5f-P9u (#350 runtime metrics, descriptive) PRE-REGISTRATION
+    (2026-10-07; s3bench built from lith main 28c7612 incl #378, md5 dd8c47c57a2e; lith v1.10.0 sha256 46c66605...69f9
+    md5 b39e1702e01f; before any cell ran) ---
+P9t: head node, in-region, key A3dyn 07-08, -part 8388608 -duration 1s, every arm a fresh process. One WARM-UP s3bench
+  arm first, DISCARDED (session-first effect, P9s). Then 3 reps interleaved: R32 (-workers 32), F32 (-workers 32
+  -fresh-buffers), R64, F64, and W2 (lith v1.10.0 mount, dd A3dyn 07-02, same-session reference).
+  Upstream's criteria: CONFIRM = -fresh-buffers drops toward lith's ~5% while reused stays at 61-93% <= 50 ms.
+                       REFUTE  = both arms alike.
+  Operationalized: CONFIRM iff F arms slow (< 30% <= 50 ms) in >= 2/3 reps at a depth where R is between/fast;
+    REFUTE iff |F - R| <= 15 points in >= 2/3 reps at both depths; else between, no outcome claimed.
+  My prediction: REFUTE (allocating 1200 x 8 MiB in 1 s = ~10 GB/s alloc may raise GC cost, but a sub-ms STW does not
+    make 60-100 ms first bytes). Low-moderate confidence.
+P9u (descriptive; upstream: correlate only): W2 mount-alone on v1.10.0 with --metrics, 3 reps; full /metrics scrape
+  saved every 0.5 s. Report per rep over the burst: GC cycles and total pause (go_gc_duration_seconds count/sum delta),
+  go_sched_latencies_seconds high buckets, alloc bytes delta, process CPU seconds delta (cores used), goroutine peak,
+  alongside the fill TTFB fractions. No outcome claimed.
+Cost $0.
+
+--- 5f-P9t RESULTS (head node 2026-10-07 16:10:56-16:11:30Z; raw data/lith-gates/p9t/) ---
+  WARMUP (discarded, session-first): 8.2% <= 50 ms, p50 126 ms -- third sighting of the session-first effect.
+  arm   <=50 ms rep1/2/3        p50 ms
+  R32   80.7 / 94.0 / 96.5      30.7 / 27.9 / 26.3
+  F32   92.7 / 96.5 / 90.3      28.4 / 26.2 / 29.3     (-fresh-buffers)
+  R64   84.6 / 84.7 / 83.4      31.0 / 29.6 / 30.9
+  F64   83.1 / 81.2 / 87.9      32.1 / 30.3 / 30.7     (-fresh-buffers)
+  W2    2.6 / 5.2 / 4.6 (lith v1.10.0 fill, mean 140 / 127 / 133 ms)
+  REFUTE (operationalized): |F - R| <= 15 points in 3/3 reps at both depths. Allocation is cleared as the cause.
+  Caveat: -fresh-buffers allocates one 8 MiB buffer per request (~230/s, ~1.9 GB/s) vs lith's ~1200 x 1 MiB chunk
+    buffers; volume comparable, count ~5x lower. Prediction REFUTE held.
+--- 5f-P9u RESULTS (descriptive; 16:11:30-16:11:46Z; scorer scripts/lith/p9u-score.py -> p9t/p9u-score.txt) ---
+  rep  fill <=50  GC cycles  total STW  max pause  alloc     CPU cores  sched waits > 0.9 ms   goroutines peak
+  U-1  5.9%       11         1.50 ms    0.28 ms    1.26 GB   1.41       0 / 10497              218
+  U-2  7.8%       11         0.93 ms    0.29 ms    1.26 GB   1.38       0 / 10828              302
+  U-3  8.5%       11         1.31 ms    0.18 ms    1.26 GB   1.84       0 / 10223              317
+  -> No runtime signal on the scale of the delay: STW totals ~1 ms per burst, zero scheduler waits over 0.9 ms,
+     <2 of 16 cores. GC assist time is not directly exported; the scheduler histogram bounds runnable-wait, not assist.
+Cost $0.
+
+--- 5f-P9v PRE-REGISTRATION (lith#350, v1.11.0 sha256 74590ea2...33af; before any cell ran) ---
+Cell: head node, in-region, W2 mount-alone (dd A3dyn 07-02), --wire-ttfb --metrics, fresh mount per arm.
+  One W2 warm-up arm FIRST and DISCARDED (#381), then 3 reps.
+Read per conn label: count + sum (mean) + <=25/<=50 fractions of conn_acquire, request_write, endpoint_ttfb, wire_ttfb.
+Composition check FIRST: per label, sum(acquire)+sum(write)+sum(endpoint) vs sum(wire); counts equal across the four.
+  Mismatch > 2 ms mean or unequal counts -> reported to upstream before any reading (retry/partial trace).
+Upstream's branches (as written):
+  endpoint ~28 ms, write large -> delay is ours (next: 1 MiB-read cell).
+  endpoint ~130 ms             -> S3 answers these requests slower; compare the two clients' range patterns.
+My operationalization: "endpoint ~28" = endpoint mean <= 45 ms AND write mean >= 50 ms; "endpoint ~130" = endpoint
+  mean >= 90 ms; else between, no outcome claimed. (W2 wire means so far 89-158 ms.)
+My prediction: endpoint ~130 (most of wire), write small (< 5 ms) -- low-moderate confidence.
+Cost $0.
+
+--- 5f-P9v RESULTS (head node 2026-10-07 17:57:38-17:57:57Z, v1.11.0; raw data/lith-gates/p9v/) ---
+  Composition: acquire + write + endpoint == wire to 0.00 ms mean in every rep x label; counts equal across all four.
+  rep  conn    n    acquire  write    endpoint  wire      (means, ms)   pooled endpoint
+  1    new     65   4.10     0.02     111.30    115.42                 100.8
+       reused  88   1.68     0.02     93.00     94.71
+  2    new     39   4.46     0.03     98.16     102.64                 73.5
+       reused  114  0.83     0.02     64.99     65.83
+  3    new     55   4.97     0.02     83.99     88.98                  64.9
+       reused  98   0.67     0.02     54.15     54.84
+  (WARMUP discarded: endpoint new 148.3 / reused 119.4.)
+  -> Request write is ~20 us everywhere: "write large" branch REFUTED. The delay is WroteRequest -> first byte
+     (96-99% of wire) in every rep. By my threshold (pooled endpoint >= 90 ms) rep 1 = "endpoint ~130"; reps 2-3
+     between (73.5, 64.9) as the run sped up rep over rep (fill <=50: warm-up 3.9 -> 8.5 -> 27.5 -> 35.3%).
+  Prediction "endpoint dominant, write < 5 ms" held; "~130" held 1/3.
+CONFOUND FOUND (mine, all lith W2 arms P9p..P9v): mounts were SIGNED (no --no-sign-request; head-node role, cross-
+  account to gcgrid) while lith-s3bench defaults -no-sign-request=true (ANONYMOUS). The clients never sent the same
+  requests. Same Bucket/Key/Range fields, same SDK; different auth.
+
+--- 5f-P9w PRE-REGISTRATION (auth 2x2; before any cell ran) ---
+Head node, in-region, v1.11.0 lith (--wire-ttfb) and s3bench 28c7612. One discarded warm-up (s3bench). 3 reps
+  interleaved: LS = lith W2 signed (as P9v); LA = lith W2 --no-sign-request; BA = s3bench -workers 64 -duration 1s
+  (anonymous, default); BS = s3bench same with -no-sign-request=false (signed, head-node role). s3bench key = A3dyn
+  07-02 (the SAME object lith reads, removing the key difference too).
+Scoring (<= 50 ms fraction, thresholds as before: slow < 30%, fast >= 80%):
+  AUTH IS THE CAUSE iff LA fast/between AND BS slow, in >= 2/3 reps (signed slow for both programs, anonymous fast for both).
+  AUTH IS NOT iff LA slow and BS fast in >= 2/3 (lith slow whatever it sends).
+  Else partial, reported per arm. Also lith endpoint_ttfb mean LS vs LA.
+My prediction: AUTH IS THE CAUSE (cross-account signed requests make S3 evaluate the caller's IAM identity policy);
+  moderate confidence.
+Cost $0.
+
+--- 5f-P9w RESULTS (18:01:45-18:02:21Z) + unscored immediate replication P9w2 (18:0x) ---
+  <=50 ms          rep1    rep2    rep3   |  P9w2 rep1  rep2   rep3
+  LS lith signed   32.0    60.1    45.1   |  47.1       57.5   73.2
+  LA lith anon     52.9    66.0    59.5   |  56.9       77.1   71.2
+  BA s3b anon      71.4    89.9    82.1   |  72.1       87.2   86.7
+  BS s3b signed    65.1    84.0    74.4   |  72.4       70.0   76.9
+  WARMUP (discarded) 31.3% / 36.2% -- #381 sighting 4 and 5.
+  SCORE (as pre-registered): PARTIAL. Neither "auth is the cause" (LA not fast; BS not slow) nor "auth is not"
+    (LA not slow). Auth effect is real but small: anon - signed = +6..+21 pts (lith), +6..+8 pts (s3bench, P9w).
+  UNEXPECTED, bigger than auth: lith signed is 32-73% here vs 3-9% in every earlier session (P9q..P9u) and rose
+    within P9v (8.5 -> 27.5 -> 35.3). Pattern: lith W2 improves with repeated reads of the SAME object within a
+    session (07-02 read ~16x in ~5 min here). Not claimed; tested next.
+
+--- 5f-P9x PRE-REGISTRATION (written after P9w2, before any P9x cell) ---
+Question: is the slowness object-level (a cold object is slow, a repeatedly-read one warms), or session-level?
+Arms, back to back, lith v1.11.0 W2 shape (dd bs=1M whole object), --wire-ttfb, --no-sign-request (anon, to remove
+  auth), fresh mount each:
+  HOT1 = A3dyn 07-02 (read ~16x in the last ~6 min)   COLD1 = A3dyn 07-21 (not read by me this week)
+  HOT2 = 07-02                                         COLD2 = A3dyn 07-22 (not read by me this week)
+Prediction if object-level: COLD arms slow (< 30% <= 50 ms) while HOT arms stay >= 50%. Session-level: all alike.
+  Confirms object-level iff both COLD < 30% and both HOT >= 50%. Refutes iff |COLD - HOT| <= 15 pts in both pairs.
+  Caveat: other users may have read 07-21/22 (public bucket); "cold" means cold to me only.
+Cost $0.
+
+--- 5f-P9x RESULTS (head node ~18:05-18:06Z, v1.11.0, --no-sign-request; raw data/lith-gates/p9x/) ---
+  arm            fill <=50  fill mean  endpoint mean  acquire mean new / reused   (composition exact)
+  HOT1  07-02    8.5%       173.4 ms   101.4 ms       87.9 / 61.0 ms
+  COLD1 07-21    4.0%       170.1 ms   145.1 ms       16.4 / 28.3 ms
+  HOT2  07-02    9.8%       116.3 ms   104.6 ms       6.6 / 17.0 ms
+  COLD2 07-22    4.6%       162.9 ms   145.7 ms       34.2 / 0.5 ms
+  SCORE: object-level warming REFUTED (|COLD - HOT| <= 15 pts in both pairs: 4.5, 5.2). The fast state of P9w/P9w2
+    (18:01-18:05) ENDED within ~3 min for every object: it was temporal, not repetition-driven.
+  Residual: endpoint mean ~40 ms higher on the cold objects (145 vs 101-105) -- descriptive only.
+  NEW: connection acquisition 17-88 ms mean in 3 of 4 arms (1-5 ms in every earlier cell). Unexplained.
+
+--- 5f-P9y PRE-REGISTRATION (lith#350 19:04Z: the SIMULTANEOUS same-auth cell; before any scored arm ran) ---
+DISCLOSURE: the s3bench build check (session's first s3bench process, -workers 8, key 07-03) read endpoint 139-168 ms,
+  0% <= 50 ms. Seen before writing this.
+Binaries: lith v1.11.0 (51234db1e082) mount, --no-sign-request --wire-ttfb; lith-s3bench main a7c6a2b (#383, md5
+  8ca8da27fac6), default anonymous (auth=anon printed). Same key: MERRA2.20190702.A3dyn.05x0625.nc4, 8 MiB sequential.
+Per rep: fresh mount; then START TOGETHER (same instant, both backgrounded): dd bs=1M of the object through the mount
+  (W2, 153 fills) and s3bench -workers 64 -part 8388608 -duration 1.5s on the same key. Wait both. Rep 0 = warm-up,
+  DISCARDED (#381). Then 5 scored reps.
+Read: lith endpoint mean (pooled over conn labels, from lith_s3_endpoint_ttfb_seconds sum/count) and s3bench
+  endpoint mean (pooled from its SPLIT lines); also wire, acquire, and both <=50 ms fractions.
+Scoring per rep: R = lith_endpoint_mean / s3bench_endpoint_mean.
+  MATCH  iff 0.80 <= R <= 1.25 in >= 3/5 reps -> S3 answers both the same; gap is in what lith does after (1 MiB cell next).
+  DIFFER iff R >= 1.5 in >= 3/5 reps -> S3 answers lith's requests slower at the same instant/auth/ranges.
+  Else between, per rep reported.
+My prediction: DIFFER (P9p, simultaneous: s3bench ~30 ms vs mount mostly > 50 ms), moderate confidence.
+Cost $0.
+
+--- 5f-P9y RESULTS (head node 2026-10-07 19:09:25Z+; raw + score data/lith-gates/p9y/) ---
+  rep  lith endpoint / wire / acq / fill (ms)   lith <=50   s3bench endpoint / wire / acq   s3b <=50   R     verdict
+  R1   41.3 / 50.3 / 9.0 / 50.6                 51.0%       37.3 / 38.8 / 1.4               78.5%      1.11  MATCH
+  R2   37.3 / 41.8 / 4.5 / 42.1                 65.4%       35.9 / 37.1 / 1.1               82.2%      1.04  MATCH
+  R3   33.2 / 36.2 / 3.0 / 36.5                 78.4%       31.8 / 33.3 / 1.5               86.6%      1.04  MATCH
+  R4   37.1 / 43.2 / 6.1 / 43.4                 66.7%       32.7 / 33.9 / 1.1               86.4%      1.13  MATCH
+  R5   36.4 / 41.4 / 5.0 / 41.7                 69.3%       30.1 / 31.5 / 1.3               84.1%      1.21  MATCH
+  WARMUP (discarded): lith endpoint 41.2 (72.5% <=50) vs s3bench 97.7 (36.0%) AT THE SAME INSTANT, same key -> the
+    #381 first-process effect is in the s3bench PROCESS, not the endpoint/path (lith, simultaneous, was fast).
+  SCORE: MATCH in 5/5 (R 1.04-1.21). Prediction DIFFER FAILED. Fill == wire (+0.2-0.3 ms) -> nothing after the response.
+  lith's residual vs s3bench: acquisition +2-8 ms and endpoint +3-10%.
+  CAVEAT: the whole cell ran in a FAST window (lith fill 36-51 ms, not the ~100-150 ms of slow sessions). It shows S3
+    treats both alike in this regime; it cannot speak to a slow window.
+
+--- 5f-P9z PRE-REGISTRATION (written after P9y scored) ---
+Repeat P9y unchanged (warm-up discarded + 5 simultaneous reps) every 20 min, 6 times (~2 h), to catch a SLOW window.
+Classify each rep by regime from the s3bench side (independent of lith): slow = s3bench endpoint mean >= 70 ms.
+Scoring over all slow-regime reps (if >= 5 exist): MATCH iff R in [0.80, 1.25] in >= 60% of them; DIFFER iff R >= 1.5
+  in >= 60%; else between. If < 5 slow reps occur: unscored, report what was seen.
+Prediction: MATCH in slow windows too (both programs ride the same endpoint conditions), low-moderate confidence.
+Cost $0.
+  5f-P9z AMENDMENT (lith#350 19:47Z ask; written after sessions s1-s3, none of which had a slow-regime rep, so no
+    scored data informed it): on slow-regime reps ALSO report acquisition mean for both programs; upstream's
+    question is whether lith's acquisition degrades far more than s3bench's as the regime worsens.
+  Interim (unscored), s1-s3 (19:11-19:56Z): 15/15 scored reps FAST (s3bench endpoint 30.3-40.7 ms); R 0.97-1.30
+    (14/15 MATCH band); acquisition lith 2.2-11.3 ms vs s3bench 0.8-1.8 ms every rep. WARMUP pairs: s3bench first
+    process endpoint 79.2 / 87.5 / 74.2 ms vs lith same instant 43.4 / 41.5 / 35.7 ms (#381 sightings 8-10).
+
+--- 5f-P9z RESULTS (head node, 6 sessions 19:11:48-20:57Z, unchanged P9y; raw data/lith-gates/p9z/) ---
+  SCORE: UNSCORED as pre-registered -- 0 of 30 scored reps were slow-regime (s3bench endpoint 28.8-40.7 ms, all < 70).
+  No slow window in ~2 h. Descriptive: R 0.97-1.41, 26/30 inside [0.80, 1.25], 4 between (1.28-1.41), 0 DIFFER.
+  Acquisition split (amendment; scripts/lith/p9z-acq.py -> p9z/acq-split.txt), min / median / max over 30 reps:
+    lith    new-share 24.2 / 40.5 / 71.9%  acq new 5.01 / 7.79 / 16.63  reused 0.01 / 2.55 / 9.12  pooled 2.20 / 4.57 / 11.33 ms
+    s3bench new-share 17.7 / 20.0 / 23.2%  acq new 4.01 / 5.33 / 8.38   reused 0.01 / 0.01 / 0.01  pooled 0.76 / 1.06 / 1.83 ms
+    lith pooled predicted from its new-share x s3bench's per-class costs: 1.11 / 2.24 / 5.03 ms
+  -> The new-connection share explains ~half of lith's acquisition residual (2.2 of 4.6 ms median). The rest is lith's
+     REUSED-connection acquisition (median 2.55 ms, up to 9.1) where s3bench's is 0.01 ms in every rep.
+     (Upstream's estimate of s3bench new-share 2-4% was low: it is ~20%, one dial per worker in a 1.5 s window.)
+  WARMUP pairs, 6/6: s3bench first process endpoint 74.2-87.5 ms vs lith same instant 35.7-43.4 ms (#381 sightings 8-13).
+
+--- 5f-P10 PRE-REGISTRATION (lith#381 diagnostic ladder; s3bench main 73ffe8b incl #384, md5 105c0e1d2001) ---
+Head node, in-region, NO other S3 activity on the box during the ladder. Measured arm M = lith-s3bench -workers 32
+  -part 8388608 -duration 1s on A3dyn 07-08 (anonymous), a fresh process. Each step preceded by >= 10 min idle
+  (no S3 traffic from this box). Order (each = [prep] then M; gap prep-end -> M-start recorded):
+  a1  nothing                     -> M
+  b   throwaway lith-s3bench -workers 1 -duration 200ms (minimal, upstream's guard) -> M  (gap logged)
+  c   aws s3api head-object --no-sign-request on the key -> M
+  d   getent hosts gcgrid.s3.amazonaws.com + s3.us-east-1.amazonaws.com + gcgrid.s3.us-east-1.amazonaws.com -> M
+  e   M itself with -warmup 1s (same process)
+  a2  nothing                     -> M   (bracket)
+Per M: TTFB <=50 ms fraction, p50, endpoint mean (SPLIT), start+ field.
+"Effect present" iff M <=50 ms < 60% AND pooled endpoint mean >= 60 ms; "removed" iff <=50 ms >= 75% AND endpoint
+  < 45 ms; else between. (Observed first processes: 36-51% / 74-98 ms; later processes 75-90% / 30-41 ms.)
+Readings (upstream's): (e) removes and (b) does not -> first-contact-in-process. (b) also removes -> something
+  persists outside the process; then (c)/(d) arbitrate. a2 not present -> the ladder warmed it (a result, not noise).
+My prediction: a1 present, b present, c present, d present, e removed, a2 present.
+Cost $0. ~70 min wall.
+
+--- 5f-P11 (#350 concurrency-cap cell) + 5f-P12 (#350 overnight slow-window sampling) PRE-REGISTRATION
+    (written 22:55Z, before either ran; both chained to start only after 5f-P10 finishes) ---
+P11: simultaneous pairs exactly as P9y (same key 07-02, anon, 8 MiB, dd + s3bench -workers 64 -duration 1.5s started
+  together), lith v1.11.0, s3bench 73ffe8b. Warm-up pair discarded, then 5 reps, each rep two pairs interleaved:
+  A = lith default (--s3-concurrency 128) ; B = lith --s3-concurrency 64.  Acquisition split by conn= both programs.
+  Upstream's criteria on B (lith at the same cap as s3bench's 64 workers):
+    CONFIRM (structural: semaphore + shared pool queues, worker pool cannot) iff lith reused-acquire stays ~2.5 ms
+      (operationalized: median over B reps >= 1.0 ms) while s3bench reused stays ~0.01 ms.
+    REFUTE (sizing) iff lith reused-acquire median over B reps <= 0.1 ms.  Else between.
+  Also report A vs B lith new-share, endpoint, <=50 ms.
+  My prediction: CONFIRM (the ramp still issues requests without matching releases at cap 64), low-moderate.
+P12: from P11's end until 08:00Z, P9y unchanged (warm-up + 5 reps) every 30 min. Every session's wall-clock start
+  logged, slow or not. Acquisition split by conn= both programs per rep. Scoring as 5f-P9z (slow rep = s3bench
+  endpoint >= 70 ms; >= 5 slow reps needed): MATCH iff R in [0.80, 1.25] in >= 60% of slow reps; DIFFER iff R >= 1.5
+  in >= 60%; plus, on slow reps, lith vs s3bench reused-acquire (does lith's degrade more?). Unscored if < 5 slow reps.
+Cost $0.
+
+--- 5f-P10 RESULTS (#381 ladder, 2026-10-07 22:32:38-23:32:48Z, 10 min idle before each step; raw data/lith-gates/p10/) ---
+  step  prep                               M <=50 ms  M p50     endpoint new / reused   verdict
+  a1    nothing                            23.1%      101.5 ms  139.8 / 86.4 ms         PRESENT
+  b     throwaway -workers 1 200ms (0.41s) 26.8%      94.9      125.3 / 81.2            PRESENT
+  c     aws s3api head-object (1.14 s)     15.1%      110.8     140.9 / 98.3            PRESENT
+  d     getent hosts x3 (0.02 s)           22.2%      101.7     137.6 / 89.9            PRESENT
+  e     -warmup 1s, same process           95.3%      26.8      -- / 28.7 (0 new conns) REMOVED
+  a2    nothing (bracket)                  19.5%      105.2     136.2 / 90.9            PRESENT
+  -> Upstream's reading: (e) removes and (b) does not -> FIRST CONTACT IN PROCESS. a2 present -> the ladder did not warm
+     it. Prediction held 6/6. Note the effect is on REUSED connections too (endpoint 81-98 ms), not only first dials.
+--- 5f-P11 RESULTS (23:33:14-23:34:03Z) --- BETWEEN. lith reused-acquire median: A (cap 128) 1.16 ms, B (cap 64) 0.87 ms;
+  s3bench 0.01 ms in 9/10. B is under the >= 1.0 CONFIRM line and above the <= 0.1 REFUTE line. Cap 64 lowered it
+  ~25%, did not remove it. R median A 1.08, B 1.13; all 10 pairs fast. Prediction CONFIRM failed (between).
+--- 5f-P12 RESULTS (17 sessions 23:34Z-07:32Z, DONE 08:02:17Z; data/lith-gates/p12/all-score.txt) --- UNSCORED: 0 of 85
+  reps slow (s3bench endpoint 28.4 / 32.8 / 43.1 ms min/median/max). R 0.91 / 1.12 / 1.60, 78/85 in [0.80, 1.25].
+  lith reused-acquire median 2.04 ms (0.01-13.33); s3bench 0.01. Combined with P9z: ZERO slow windows in ~12.5 h
+  (19:11Z 10-07 -> 07:32Z 10-08), every session timestamped. Slow sessions seen before: 10-05 05:09, 16:29; 10-07 06:15,
+  14:25, 16:10, 17:57-18:06Z. Not claimed as time-of-day (06:03-06:33Z tonight was fast).
+  WARMUP pairs (#381): s3bench first process slow in 17/18 (69.0-88.2 ms vs lith same instant 34-45 ms). EXCEPTION: P12
+  s1 (first s3bench ~1 min after P11's 11 heavy 64-worker pairs) read 32.6 ms -> heavy recent traffic may warm something
+  outside the process briefly; the ladder's (b) was deliberately minimal (1 worker, 0.2 s). Unresolved; not claimed.
+Cost $0.
+
+--- #350 data check (upstream 15:19Z: were the slow sessions first contacts?) ---
+  In all 7 slow sessions lith stayed slow on arms that were NOT the box's first S3 contact (P9p: lith 15-43% <= 50 ms
+  while a SIMULTANEOUS s3bench read 78-85%; P9s/P9t: lith 2.6-5.2% right after s3bench arms at 77-97%). So "slow windows
+  = box first contact" does not hold for lith as stated. Alternative not claimed: each lith W2 arm is a FRESH mount
+  process whose bulk traffic starts with the 1.3 s burst; the P10 ladder shows small requests (head-object, 1-worker
+  throwaway) do not warm. Unexplained by that: lith fast from P9y onward. Confounds: lith signed in 6/7 slow sessions,
+  anonymous in all fast ones from P9y (P9x anonymous AND slow).
+
+--- 5f-P13 PRE-REGISTRATION (#381 (b') decay + tcp_metrics carrier test; before any arm ran) ---
+Head node: tcp_metrics cache present (2749 entries); net.ipv4.tcp_no_metrics_save=0, tcp_slow_start_after_idle=1.
+M = lith-s3bench (73ffe8b) -workers 32 -part 8 MiB -duration 1s, A3dyn 07-08, anon, fresh process (as P10).
+H = heavy throwaway at M's scale: same command, -duration 1s, separate process, discarded.
+Each step preceded by >= 10 min idle. Steps: a (nothing -> M); f5 (H, 5 s, M); fF (H, `sudo ip tcp_metrics flush`,
+  5 s, M); f60 (H, 60 s, M); f600 (H, 600 s, M). Captured: `ip tcp_metrics show` count before M; `ss -tin` snapshot
+  0.4 s into M (cwnd per S3 socket).
+Verdicts per M as P10: present iff <= 50 ms < 60% AND pooled endpoint >= 60 ms; removed iff >= 75% AND < 45 ms.
+Upstream's discriminator: fF PRESENT while f5 REMOVED -> the TCP metrics cache is the carrier. fF REMOVED -> not the
+  cache. If f5 is PRESENT, the P12-s1 exception does not reproduce and the flush test is uninformative.
+Decay: f60 / f600 verdicts give persistence.
+My prediction: a present; f5 removed; fF present; f60 removed; f600 present. Low confidence on f5 (one sighting).
+Cost $0. ~60 min.
+  5f-P13 INTERIM (unscored until done): a 15.7% <= 50 / endpoint 144 new, 102 reused -> present; f5 35.0% / 68, 72 ->
+    present by rule (improved). INSTRUMENT CAVEAT (mine): `ss -tin` cwnd is the CLIENT's send window (=10 everywhere:
+    we only send requests); S3's sending cwnd, which governs first bytes of 8 MiB responses, is not observable here.
+    The client tcp_metrics cache likewise holds our send-side metrics. The flush arm stays a valid behavioural test.
+
+--- 5f-P14 (#350 auth in the current era) + 5f-P15 (#381 warm-up threshold) PRE-REGISTRATION
+    (written 15:56Z, before either ran; chained to start after 5f-P13 finishes) ---
+P14: two lith v1.11.0 mounts on the head node, started at the SAME instant, each dd-ing A3dyn 07-02 (W2): S = signed
+  (head-node role), A = --no-sign-request. Both --wire-ttfb. Warm-up pair discarded, then 5 reps.
+  Upstream's criteria (P9w priced auth at +6..+21 pts):
+    AUTH NOT THE CARRIER (calendar changed) iff signed <= 50 ms within 20 pts of anonymous in >= 3/5 reps;
+    AUTH IS THE CARRIER iff signed <= 50 ms <= 9% (old-session level) in >= 3/5 reps.  Else between.
+  My prediction: auth not the carrier.
+P15: s3bench a20b9fa (#385, md5 b741891e44d2), measured burst -workers 32 -duration 1s, A3dyn 07-08, anon, fresh
+  process; each step after >= 10 min idle: a (nothing); w1 (-warmup 1s -warmup-workers 1); w4 (-warmup 1s
+  -warmup-workers 4); w32 (-warmup 1s -warmup-workers 32, = P10 e, positive control). Verdicts as P10.
+  Upstream: w1 removes -> threshold low (a mount's index read explains fast mounts; one effect). Only w32 removes ->
+  mounts are fast for another reason.
+  My prediction: a present, w1 present, w4 between, w32 removed. Low confidence on w1/w4.
+Cost $0.
+
+--- 5f-P13 RESULTS (#381, 15:29:56-16:31:18Z; raw data/lith-gates/p13/) ---
+  step  prep                                  <=50 ms  endpoint new/reused  verdict   tcp_metrics entries before M
+  a     nothing                               15.7%    143.8 / 101.8 ms     present   2749
+  f5    H (32w 1s, separate proc), 5 s        35.0%    68.1 / 71.5          present   2749
+  fF    H, `ip tcp_metrics flush` (->0), 5 s  36.4%    69.2 / 68.0          present   4
+  f60   H, 60 s                               22.7%    124.9 / 89.8         present   23
+  f600  H, 600 s                              10.1%    145.2 / 101.3        present   45
+  SCORE: f5 PRESENT -> per the pre-registration the flush discriminator is UNINFORMATIVE (exception did not fully
+    reproduce). Descriptive: H gives a PARTIAL improvement (15.7 -> 35%) that is UNCHANGED by flushing the cache
+    (36.4%) and decays within 60 s -> evidence against tcp_metrics as the carrier, not a test of it.
+  ss cwnd = 10 everywhere is the client SEND window (uninformative; S3's send cwnd not observable).
+  Predictions: a present OK; f5 removed FAILED; fF present OK (trivially); f60 removed FAILED; f600 present OK.
+--- 5f-P14 RESULTS (#350, 16:31:21-16:31:54Z; raw data/lith-gates/p14/) ---
+  rep   signed <=50 / endpoint    anon <=50 / endpoint    gap
+  WARM  4.6% / 130.6 ms           25.5% / 113.5 ms        (discarded)
+  R1    16.3 / 79.1               37.9 / 53.6             21.6
+  R2    45.8 / 44.4               63.4 / 44.0             17.6
+  R3    45.8 / 46.8               60.8 / 43.9             15.0
+  R4    44.4 / 45.9               56.9 / 42.4             12.5
+  R5    58.2 / 44.3               58.8 / 44.4             0.6
+  SCORE: AUTH NOT THE CARRIER -- signed within 20 pts of anon in 4/5 (signed <= 9% in 0/5). Prediction held.
+    Endpoint means equal from R2 (44-47 ms both); signing costs a little in fill/acquire, not at the endpoint.
+    The calendar remains the unresolved confound for the slow era.
+--- 5f-P15 RESULTS (#381, 16:31:54-17:12:02Z; s3bench a20b9fa; raw data/lith-gates/p15/) ---
+  step  warm-up        <=50 ms  endpoint new/reused        new conns in M   verdict
+  a     none           22.0%    132.5 / 89.0 ms            32               present
+  w1    1 s, 1 worker  22.8%    135.5 / 84.9               31               present
+  w4    1 s, 4 workers 33.8%    146.8 / 81.0               28               present
+  w32   1 s, 32 w      89.5%    -- / 32.7                  0                REMOVED
+  SCORE (upstream's branches): ONLY the large (burst-scale) warm-up removes it -> "mounts are fast for another
+    reason". Predictions: a/w1 present OK; w4 between FAILED (present); w32 removed OK.
+  Descriptive pattern (not claimed): the warm-up helps in proportion to the connections it exercised (new conns in M
+    32 -> 31 -> 28 -> 0) -- consistent with a PER-CONNECTION first-traffic cost. A mount's window ramps 2->4->8...
+    so its connections carry traffic before concurrency grows; s3bench opens 32 cold at once.
+Cost $0.
+
+--- 5f-P16 (#381 warm-up LENGTH ladder) + 5f-P17 (#381 lith gate on vs off, same instant) PRE-REGISTRATION
+    (2026-10-08 19:25Z, before either ran; P17 first, then P16) ---
+P17: two lith v1.11.0 mounts started at the SAME instant, both --no-sign-request --wire-ttfb, each dd-ing A3dyn 07-02:
+  ON = default (region gate on, window ramps 2->4->8...), OFF = --readahead-evidence-ratio -1 (window at max at once).
+  Warm-up pair discarded, then 5 reps. Read <=50 ms, endpoint, new-connection share, acquire by conn= label.
+  Upstream's criteria: CONFIRM iff OFF colder than ON; REFUTE iff OFF no colder.
+  Operationalized: CONFIRM iff OFF <=50 ms is >= 15 pts below ON in >= 3/5 reps; REFUTE iff |OFF - ON| <= 10 pts in
+  >= 3/5; else between. FLAG: not a clean single variable -- OFF also commits far more bytes in flight (#313), so
+  depth and connection-opening pattern move together; scored as such, not as a test of one variable.
+  My prediction: CONFIRM (OFF opens most connections in the first instant), moderate.
+P16: s3bench a20b9fa, measured burst -workers 32 -duration 1s on A3dyn 07-08, anon, fresh process; each step after
+  >= 10 min idle: a (nothing); L100 (-warmup 100ms -warmup-workers 32); L300 (-warmup 300ms ...); L1000 (-warmup 1s
+  ..., = P15 w32). Verdicts as P10. Note each warm-up worker completes >= 1 request (deadline is checked before issue).
+  Upstream's distinction: L100 removes (~1 request/conn suffices) -> SETUP-LIKE; only L1000 removes -> RAMP-LIKE.
+  My prediction: L100 present/partial, L300 between, L1000 removed -> ramp-like. Low-moderate.
+Cost $0.
+
+--- 5f-P17 RESULTS (#381, 2026-10-08 19:25:08-19:25:39Z; raw data/lith-gates/p17/) ---
+  rep     ON <=50 / endpoint / new-share / reused-acq      OFF <=50 / endpoint / new-share / reused-acq    gap (OFF-ON)
+  WARMUP  54.9% / 48.5 / 48.4% / 0.12 ms                  5.8% / 137.7 / 82.5% / 0.01 ms                  -49.1 (discarded)
+  R1      75.8 / 37.9 / 15.7 / 1.37                       32.7 / 53.6 / 83.0 / 0.01                       -43.1
+  R2      60.1 / 41.5 / 51.0 / 2.26                       32.0 / 49.5 / 83.0 / 0.01                       -28.1
+  R3      71.9 / 34.8 / 64.1 / 0.76                       68.6 / 41.2 / 83.0 / 0.01                        -3.3
+  R4      73.2 / 37.6 / 33.3 / 1.56                       30.1 / 39.9 / 83.0 / 0.01                       -43.1
+  R5      71.2 / 38.6 / 31.4 / 2.07                       61.7 / 39.2 / 82.5 / 0.01                        -9.5
+  SCORE: CONFIRM (OFF >= 15 pts colder in 3/5) -- WITH upstream's flag: not a clean single variable (depth in flight
+    moves with the connection-opening pattern; bytes fetched equal, 1214 MB both). Prediction held.
+  Side result: OFF has ZERO reused-connection queueing (0.01 ms) vs ON 0.76-2.26 ms -> #350's reused-acquire residual
+    is produced by the ramp itself.
+
+--- 5f-P16 RESULTS (#381 warm-up length ladder, 19:25:39-20:05:46Z, s3bench a20b9fa; raw data/lith-gates/p16/) ---
+  step   warm-up (32 w)  <=50 ms  p50      new conns in M  endpoint new / reused   verdict
+  a      none            22.1%    100.1    32              138.2 / 84.3 ms        present
+  L100   100 ms          39.9%    85.3     1               153.8 / 75.9           present (partial)
+  L300   300 ms          52.1%    44.9     0               -- / 65.3              present (partial)
+  L1000  1 s             92.2%    25.9     0               -- / 31.8              REMOVED
+  SCORE (upstream's distinction): RAMP-LIKE. L100 and L300 had every connection already exercised by >= 1 request
+    (0-1 new in M) yet stayed present; the cold fraction fades monotonically with warm-up LENGTH (22 -> 40 -> 52 -> 92%)
+    and only ~1 s of traffic per connection removes it. Not setup-like.
+  Predictions: L100 present OK; L300 between FAILED (present); L1000 removed OK; "ramp-like" OK.
+  -> Characterization (#381): a per-connection, ramp-like first-traffic cost of ~1 s on S3 GETs from this box; it
+     shows in the S3-side interval (WroteRequest -> first byte), not acquire/write. Mechanism inside S3/path not visible.
+Cost $0.
+
+--- 5f-P18 PRE-REGISTRATION (lith#316 20:50Z: --prefetch-sibling-coverage, #387; before any cell ran) ---
+Binary: lith built from main 34cf131 (#387, md5 84d04eb1e7b5) -- not a release; flag EXPERIMENTAL, off by default.
+  (Note: the flag's --help text names only the "already demanded" condition; upstream's comment specifies BOTH a
+  sibling descriptor open AND demanded bytes.)
+Harness gate-samefile.sh exactly as 5f-P8 (16 dd readers on ONE A3dyn object, 512 MiB each from offset 0, dd held open
+  for its read, page cache untouched except T16D, --pf-trace), head node, 2 reps, arms interleaved:
+  T16 (default, control: expect 0/16 ever-Sequential), T16S (--prefetch-sibling-coverage, covMin DEFAULT 0.5, no
+  O_DIRECT -- the test), T16D (iflag=direct, positive control: 16/16).
+Upstream's criteria: CONFIRM iff T16S 16/16 ever-Sequential in BOTH reps with wall near T16C's ~3.0 s (operationalized
+  <= 6 s). REFUTE iff T16S does not establish (send pf-trace, no retry). Validity: T16 must hold ~0/16 and T16D 16/16.
+  Also report coverage_held (expect sharply lower than T16's ~1000, not 0).
+My prediction: CONFIRM. Cost $0.
+
+--- 5f-P18 RESULTS (#316, head node, lith main 34cf131 md5 84d04eb1e7b5; raw data/lith-gates/p18/p18.log) ---
+  cell     ever-Seq  sh_max  wall s   coverage_held  low_cov  uncovered  s3_GB  issued/used
+  T16 -1    0/16      0      67.26    986            31       1766       0.540  0/0
+  T16S-1   16/16     16       2.94     16             0         15       0.671  631/504
+  T16D-1   16/16     16       1.37     16             0          9       0.864  2287/503
+  T16 -2    0/16      0      42.10    1007           16       1246       0.539  0/0
+  T16S-2   16/16     16       2.32     16             0         14       0.679  639/504
+  T16D-2   16/16     16       1.29     16             0          9       1.527  1479/503
+  SCORE: CONFIRM, both reps (T16S 16/16, wall 2.94 / 2.32 s <= 6 s, near T16C's ~3.0 s). Controls valid (T16 0/16,
+    T16D 16/16). coverage_held 16 (= O_DIRECT) vs ~1000. Holes unchanged (reads-with-hole/handle med 0.95-0.96).
+  Not scored: T16S fetched 0.67-0.68 GB for 0.54 GB read -- far less overrun than covMin 0.05 (P8: 1.887 GB) or
+    O_DIRECT today (0.86-1.53 GB). Prediction held.
+Cost $0.

@@ -1,0 +1,12 @@
+OPEN 02 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.7]
+OPEN 03 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.8]
+OPEN 04 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.8]
+OPEN 05 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.8]
+OPEN 06 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.7]
+OPEN 07 reader=[mode=var1 vars=5 elem_bytes=479084544 wall=1.8]
+02: dMB=   59.8 dGETs=  23 gauge=0 median_ms= 101.0 this-open samples=23 le50=16 mean_ms= 45.3
+03: dMB=   59.8 dGETs=  24 gauge=0 median_ms=  99.4 this-open samples=24 le50=16 mean_ms= 54.2
+04: dMB=   59.8 dGETs=  24 gauge=0 median_ms= 102.2 this-open samples=24 le50=15 mean_ms= 54.4
+05: dMB=   59.8 dGETs=  23 gauge=0 median_ms=  97.6 this-open samples=23 le50=15 mean_ms= 51.4
+06: dMB=   59.8 dGETs=  23 gauge=0 median_ms=  98.5 this-open samples=23 le50=15 mean_ms= 52.8
+07: dMB=   59.8 dGETs=  23 gauge=0 median_ms= 102.6 this-open samples=23 le50=15 mean_ms= 49.9

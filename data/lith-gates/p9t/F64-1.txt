@@ -1,0 +1,3 @@
+# 1 keys, 1.1 GiB total, 145 ranges of 8 MiB, 64 workers, pool=64, http=false, read-buffer=0
+TTFB   workers=64 part=8MiB fresh=true  n=249  p10=23.4ms p50=32.1ms p90=61.0ms p99=120.1ms  <=25ms=16.9% <=50ms=83.1% <=60ms=89.2%
+RESULT workers=64 part=8MiB http=false rbuf=0  agg=1694 MB/s  reqs=249  p50=261.5ms p99=746.4ms  maxconns=68  cpu=4.3s (23% of 16 cores)

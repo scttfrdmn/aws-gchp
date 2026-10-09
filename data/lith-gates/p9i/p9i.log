@@ -1,0 +1,12 @@
+=== gate 5f-P9  2026-10-04T05:34:14Z  B=da9d93515ed9  MERRA2.20190701.A3dyn.05x0625.nc4
+X0-1 MOUNT FAILED
+Error: s3client: resolve region for bucket "gchp-lith-xregion-usw2-942542972736": bucket not found
+X4-1 MOUNT FAILED
+Error: s3client: resolve region for bucket "gchp-lith-xregion-usw2-942542972736": bucket not found
+CELL I0-1 wall=2.176083870 s3_MB=59.8 GETs=24 distinct_MB=22.5 amp=2.65 issued=47 used=13 evidence_ratio_gauge=0 ttfb_median_ms=102.3 ttfb_measured=1 ttfb_le50=15/24
+CELL I4-1 wall=1.877817855 s3_MB=59.8 GETs=24 distinct_MB=22.5 amp=2.65 issued=47 used=13 evidence_ratio_gauge=4 ttfb_median_ms=40.3 ttfb_measured=1 ttfb_le50=22/24
+CELL I0-2 wall=1.952056293 s3_MB=59.8 GETs=24 distinct_MB=22.5 amp=2.65 issued=47 used=13 evidence_ratio_gauge=4 ttfb_median_ms=30.1 ttfb_measured=1 ttfb_le50=21/24
+CELL I4-2 wall=2.059767115 s3_MB=59.8 GETs=24 distinct_MB=22.5 amp=2.65 issued=47 used=13 evidence_ratio_gauge=4 ttfb_median_ms=43.2 ttfb_measured=1 ttfb_le50=21/24
+CELL I0-3 wall=2.161485045 s3_MB=59.8 GETs=24 distinct_MB=22.5 amp=2.65 issued=47 used=13 evidence_ratio_gauge=4 ttfb_median_ms=45.0 ttfb_measured=1 ttfb_le50=22/24
+CELL I4-3 wall=2.182487840 s3_MB=59.8 GETs=24 distinct_MB=22.5 amp=2.65 issued=47 used=13 evidence_ratio_gauge=4 ttfb_median_ms=28.9 ttfb_measured=1 ttfb_le50=24/24
+=== done 2026-10-04T05:37:33Z

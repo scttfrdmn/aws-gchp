@@ -1,0 +1,6 @@
+R1      lith n=153 endpoint   41.3 wire   50.3 acq   9.0 ms <=50  51.0% | s3bench(anon) n=285 endpoint   37.3 wire   38.8 acq   1.4 ms <=50  78.5% | R=1.11 MATCH
+R2      lith n=153 endpoint   37.3 wire   41.8 acq   4.5 ms <=50  65.4% | s3bench(anon) n=305 endpoint   35.9 wire   37.1 acq   1.1 ms <=50  82.2% | R=1.04 MATCH
+R3      lith n=153 endpoint   33.2 wire   36.2 acq   3.0 ms <=50  78.4% | s3bench(anon) n=269 endpoint   31.8 wire   33.3 acq   1.5 ms <=50  86.6% | R=1.04 MATCH
+R4      lith n=153 endpoint   37.1 wire   43.2 acq   6.1 ms <=50  66.7% | s3bench(anon) n=310 endpoint   32.7 wire   33.9 acq   1.1 ms <=50  86.4% | R=1.13 MATCH
+R5      lith n=153 endpoint   36.4 wire   41.4 acq   5.0 ms <=50  69.3% | s3bench(anon) n=297 endpoint   30.1 wire   31.5 acq   1.3 ms <=50  84.1% | R=1.21 MATCH
+WARMUP  lith n=153 endpoint   41.2 wire   44.2 acq   3.0 ms <=50  72.5% | s3bench(anon) n=265 endpoint   97.7 wire   99.0 acq   1.3 ms <=50  36.0% | R=0.42 between

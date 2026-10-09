@@ -1,0 +1,4 @@
+=== gate 5f-P9k  2026-10-04T17:33:08Z  B=da9d93515ed9
+CELL C4i-iconc wall=4.6 n=807 le025=58 (7.2%) le060=92 (11.4%) le100=310 (38.4%) median_ms=140.1 s3_MB=5967.2
+  inflight max (2 Hz): 128
+=== done 2026-10-04T17:33:14Z

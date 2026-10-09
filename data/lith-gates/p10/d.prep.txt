@@ -1,0 +1,24 @@
+52.216.217.194  s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+54.231.204.154  s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+16.15.236.29    s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+16.15.183.16    s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+52.216.48.114   s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+52.216.33.18    s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+16.15.252.105   s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+52.217.93.136   s3-w.us-east-1.amazonaws.com gcgrid.s3.amazonaws.com s3-1-w.amazonaws.com
+16.15.246.216   s3.us-east-1.amazonaws.com
+52.217.84.214   s3.us-east-1.amazonaws.com
+16.15.207.94    s3.us-east-1.amazonaws.com
+16.15.252.82    s3.us-east-1.amazonaws.com
+54.231.171.184  s3.us-east-1.amazonaws.com
+16.15.252.64    s3.us-east-1.amazonaws.com
+16.15.207.194   s3.us-east-1.amazonaws.com
+16.182.24.168   s3.us-east-1.amazonaws.com
+16.15.213.147   s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+16.15.237.186   s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+16.182.36.138   s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+16.182.40.194   s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+52.216.42.58    s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+52.217.171.178  s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+16.182.41.2     s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com
+16.15.212.38    s3-r-w.us-east-1.amazonaws.com gcgrid.s3.us-east-1.amazonaws.com

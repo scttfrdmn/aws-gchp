@@ -1,0 +1,12 @@
+{"time":"2026-10-03T04:02:49.376733796Z","level":"INFO","msg":"building index","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","auto_index_limit":5000000}
+{"time":"2026-10-03T04:02:49.419808336Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.042487333,"keys_per_sec":5107.404599860386}
+{"time":"2026-10-03T04:02:49.419945281Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-03T04:02:49.459151555Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":7.5,"peak_gbps":7.5,"source":"imds-estimate"}
+{"time":"2026-10-03T04:02:49.459183683Z","level":"INFO","msg":"inflight-bytes budget","budget":"187500000 bytes (2 × 7.5 Gbps baseline × 100 ms)"}
+{"time":"2026-10-03T04:02:49.459188934Z","level":"INFO","msg":"parts-max","bytes":37500000,"source":"device-derived (NIC baseline × TTFB, clamped)","nic_bytes_per_s":937500000,"ttfb_seed":40000000}
+{"time":"2026-10-03T04:02:49.459234426Z","level":"INFO","msg":"coalesce gap","bytes":292968,"source":"device-derived","nic_bytes_per_s":937500000,"ttfb_seed":40000000,"concurrency":128}
+{"time":"2026-10-03T04:02:49.459240682Z","level":"INFO","msg":"prefetch bounds","window_blocks":33,"window_bound":"--max-readahead","window_commit_bytes":276824064,"prefetch_budget_bytes":4127829504,"inflight_bytes":187500000,"binding":"--inflight-bytes","full_window_descriptors":14,"floor_at_descriptors":165}
+{"time":"2026-10-03T04:02:49.462551384Z","level":"INFO","msg":"mounted","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","mountpoint":"/scratch/mnt/p11","root":"GEOS_0.25x0.3125/GEOS_FP/2019/07/","keys":217}
+{"time":"2026-10-03T04:02:49.462569591Z","level":"INFO","msg":"s3 transport","info":"http2=off MaxConnsPerHost=0(unlimited) MaxIdleConnsPerHost=128 IdleConnTimeout=90s","s3_concurrency":128}
+{"time":"2026-10-03T04:02:49.462717983Z","level":"INFO","msg":"metrics endpoint","addr":":10151"}
+{"time":"2026-10-03T04:04:29.727374318Z","level":"INFO","msg":"unmounted","stale_objects":0}

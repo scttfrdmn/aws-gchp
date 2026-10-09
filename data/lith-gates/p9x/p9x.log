@@ -1,0 +1,4 @@
+ARM HOT1 (07-02) fill n=153 <=50ms=8.5% mean=173.4ms endpoint mean 101.4ms
+ARM COLD1 (07-21) fill n=150 <=50ms=4.0% mean=170.1ms endpoint mean 145.1ms
+ARM HOT2 (07-02) fill n=153 <=50ms=9.8% mean=116.3ms endpoint mean 104.6ms
+ARM COLD2 (07-22) fill n=153 <=50ms=4.6% mean=162.9ms endpoint mean 145.7ms
