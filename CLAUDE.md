@@ -3,7 +3,7 @@
 ## Project Overview
 Comprehensive benchmarking of GCHP (GEOS-Chem High Performance) on AWS ParallelCluster across multiple instance types, generations (5-8), and architectures (Intel, AMD, Graviton).
 
-**Date Context:** January 2026 - Using latest software versions
+**Date Context:** Started January 2026; current state as of October 2026 (see Current Phase)
 
 ## Documentation Policy
 **DO NOT create session logs, build summaries, or update documents** (e.g., BUILD-SESSION-*.md, SESSION-SUMMARY-*.md). Only update existing documentation when significant architectural changes occur. Focus on getting work done, not documenting every session.
@@ -45,7 +45,7 @@ cd /path/to/GCHP/run
 **Method 2: Copy existing official example (if available)**
 ```bash
 # Find official examples in GCHP installation
-find /fsx/gchp-14.7.1 -name "*TransportTracers*" -type d
+find /sw/gchp-14.7.1 -name "*TransportTracers*" -type d
 # Copy and follow GCHP docs to configure
 ```
 
@@ -60,7 +60,9 @@ find /fsx/gchp-14.7.1 -name "*TransportTracers*" -type d
 ### Region Selection
 **Deploy in us-east-1** - GEOS-Chem RODA data (`s3://gcgrid`) is in us-east-1 for free in-region transfers. Other regions incur cross-region data transfer costs ($0.02/GB).
 
-**Important:** Use **us-east-1a** subnet - FSx SCRATCH_2 is not available in us-east-1e. Use `scripts/find-fsx-subnet.sh` to find compatible subnets.
+**Capacity is AZ-specific.** m9g.48xlarge has been empty in us-east-1a and available in us-east-1c, so probe AZs before
+committing a cluster to one. FSx SCRATCH_2 is not offered in us-east-1e; `scripts/find-fsx-subnet.sh` is only needed
+if you create an FSx volume (the default input layer is now lith, which has no AZ constraint).
 
 ### AWS Profile
 **ALWAYS use:** `AWS_PROFILE=aws` for all AWS CLI and ParallelCluster commands
@@ -76,7 +78,7 @@ find /fsx/gchp-14.7.1 -name "*TransportTracers*" -type d
 AWS_PROFILE=aws uv run pcluster <command>
 
 # Example:
-AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
+AWS_PROFILE=aws uv run pcluster list-clusters --region us-east-1
 ```
 
 ## Software Stack
@@ -108,18 +110,20 @@ AWS_PROFILE=aws uv run pcluster list-clusters --region us-west-2
 - **S3:** `s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/`
 - **Optimization:** `-O2 -g -mcpu=neoverse-v1`
 - **GCHP Binary:** 257 MB
-- **Compatibility:** Graviton 2/3/4 (c7g, c7gn, c8g, hpc7g)
+- **Compatibility:** Graviton 2/3/4/5 (c7g, c7gn, hpc7g, c8g, c8gn, m8gn, m8gb, m9g); the same binary runs on m9g (Graviton5)
 
 ### Usage on Deployed Cluster
 
-After cluster creation, the stack is automatically available:
+The stack is synced from S3 to the `/sw` EBS volume at boot by `s3://gchp-shared-storage-us-east-1/bootstrap/sync-stack-arm.sh`
+(or `sync-stack-x86.sh`). These live in S3; only the x86 copy is in `parallelcluster/bootstrap/`. `gchp-env.sh` is
+relocatable and sets `OPAL_PREFIX`/`PMIX_PREFIX` itself.
 
 ```bash
 # Load environment
-source /fsx/gchp-env.sh
+source /sw/gchp-env.sh
 
 # Verify GCHP
-/fsx/gchp-14.7.1/bin/gchp --help
+ls -la /sw/gchp-14.7.1/bin/gchp
 
 # Check MPI
 mpirun --version
@@ -133,60 +137,32 @@ gcc --version  # Should show 12.2.0
 - **AMD Toolchain:** AOCC 5.0.0 (Zen 5 support)
 - **ARM Toolchain:** ACfL 24.04
 
-## Architecture: FSx-Based Software Stack
+## Architecture: S3-Backed Stack, lith Input, EBS Scratch
 
-**Current Approach:** Everything on FSx Lustre (no custom AMI required)
-- **Simplicity:** Use standard Amazon Linux 2023 AMI
-- **Maintainability:** Multiple software versions can coexist on /sw
-- **Cost:** S3-backed FSx volumes (~$1-2/month storage)
-- **Flexibility:** Easy to update, test different toolchains
+**Current approach (since 2026-10-04):** standard Amazon Linux 2023 AMI, no custom AMI, **no FSx by default**.
 
-### Three-FSx Architecture
+1. **Software stack (`/sw`, EBS).** The self-contained 14.7.1 stack is stored in
+   `s3://gchp-shared-storage-us-east-1/stacks/<arch>/gchp14.7.1-validated/` and synced to `/sw` at boot. The head node
+   NFS-exports `/sw` to compute nodes. Multiple stack versions can coexist under `stacks/`.
+2. **Input data (`s3://gcgrid` via lith).** `s3://.../bootstrap/install-lith.sh` installs lith and FUSE3 on every node
+   and creates `/input-lith`. The run scripts then mount the five prefix-scoped gcgrid trees (two MERRA2 months,
+   HEMCO, CHEM_INPUTS, GEOSCHEM_RESTARTS) with their index files. See `scripts/lith/gate-streams-gchp.sh` or
+   `scripts/spawn/gchp-spawn-run.sh` for the pattern.
+   Results are byte-identical to FSx (TT and fullchem), lith reads the live bucket, and there is no standing cost.
+   See `docs/LITH-VALUE-FOR-GCHP.md` and `docs/lith-input-layer-analysis.md`.
+   - Pass `--no-sign-request` on gcgrid mounts unless signing is the variable under test.
+   - Size `--mem-cache` per node: lith's RSS is the cache plus in-flight prefetch.
+   - When a run must match the older FSx-based benchmark rows, create a fresh FSx instead. It must be Lustre 2.15
+     with the Lustre-ports SG (`sg-09d153889e75c86cb`), pre-created (not inline) and referenced by ID, then
+     pre-hydrated with a scoped `lfs hsm_restore`.
+3. **Scratch (`/scratch`, gp3 EBS on the head node, NFS to compute).** Run directories and outputs. Nothing GCHP does
+   needs Lustre. The multi-node checkpoint failure turned out to be the stale-file `NC_EEXIST` bug, not the filesystem.
+   Copy results you want to keep to S3 yourself.
 
-**Core principle:** Shared, read-only resources (software + data) hydrate from S3. User workspace (scratch) is private and local.
-
-1. **Software Stack** (`/fsx`)
-   - Built once by infrastructure team
-   - **S3-backed (REQUIRED):** ImportPath from shared S3 bucket
-   - **x86_64:** `s3://gchp-shared-storage-us-east-1/stacks/x86_64/gchp14.7.1-validated/`
-   - **ARM64:** `s3://gchp-shared-storage-us-east-1/stacks/aarch64/gchp14.7.1-validated/`
-   - **Read-only:** Imported at cluster creation, never modified
-   - **Cross-account capable:** Can share via S3 bucket policy
-   - Contains: GCC 12.2.0 + OpenMPI 4.1.7 + HDF5 + NetCDF + ESMF 8.6.1 + GCHP 14.7.1
-   - **Self-contained:** All dependencies built from source
-   - **Persistent:** Stack lives in S3, independent of any cluster
-
-2. **Input Data** (`/input`)
-   - Met fields, emissions, chemistry data
-   - **S3-backed (REQUIRED):** ImportPath from GEOS-Chem RODA or shared bucket
-   - Example: `s3://gcgrid/` (GEOS-Chem RODA - publicly accessible)
-   - **Read-only:** Imported at cluster creation, never modified
-   - **Cross-account capable:** GEOS-Chem RODA already shared globally
-   - **Permanent shared resource:** Multiple users/accounts access same data
-
-3. **User Scratch** (`/scratch`)
-   - **Private per-user/job:** Each user/cluster has own scratch space
-   - **Local to cluster:** Not shared across accounts or clusters
-   - Run directories, simulation outputs, temporary files
-   - **S3-backing (OPTIONAL):** User's choice based on needs
-   
-   **Key principle:** Scratch is where the actual work happens - it's writable and user-specific
-   
-   **S3-Backed Scratch (Production runs):**
-   - User's personal S3 bucket: `s3://my-bucket/scratch/`
-   - ✅ Outputs preserved for long-term analysis
-   - ✅ Can resume interrupted simulations
-   - ❌ S3 costs for all outputs
-   - **Use for:** Long simulations, important results
-   
-   **Non-S3-Backed Scratch (Development/Testing):**
-   - No S3 backing - pure ephemeral storage
-   - ✅ Fast, cheap, simple
-   - ❌ All data lost on cluster deletion
-   - User manually copies important results to their own S3
-   - **Use for:** Quick tests, development iterations
-   
-   **Default:** Non-backed (user owns backup decision), optionally S3-backed for production
+**History:** the original design was three S3-linked FSx volumes (`/fsx` software, `/input` data, `/scratch`). It was
+retired because each 1.2 TB volume cost about $168/month standing, or about 33 min to create and hydrate per cluster,
+and pinned the cluster to one AZ. The `docs/FSX-*.md` files and the `gchp-*fsx*.yaml` / older `bench-*.yaml` configs
+describe that era and are kept as records.
 
 ### Build Strategy
 - Build on latest generation instances (fastest build times)
@@ -203,53 +179,43 @@ gcc --version  # Should show 12.2.0
 ```
 aws-gchp/
 ├── parallelcluster/
-│   ├── configs/              # Cluster configurations
-│   │   ├── gchp-test.yaml        # Working config (hpc7a + c7a queues)
-│   │   ├── gchp-test-add-c7a.yaml # Multi-queue example
-│   │   └── builder-cluster.yaml   # Software stack builder
-│   ├── post-install/         # Software stack build scripts
-│   │   ├── amd-toolchain-setup.sh    # GCC 14 + OpenMPI + EFA
-│   │   ├── intel-toolchain-setup.sh  # oneAPI stack
-│   │   └── arm-toolchain-setup.sh    # ACfL stack
-│   └── job-scripts/          # SLURM job scripts
+│   ├── configs/        # Cluster configs. Live: bench-lith-input-m9g-use1.yaml (gchp-lith-ab)
+│   │                   # bench-matrix-use1.template.yaml = publication matrix; bench-* = historical runs
+│   ├── bootstrap/      # Node bootstrap scripts (canonical copies live in s3://.../bootstrap/)
+│   └── post-install/   # Stack build scripts (build-gchp-stack-validated*.sh)
 ├── scripts/
-│   ├── build-gchp.sh        # GCHP compilation
-│   ├── run-benchmark.sh     # Benchmark execution
-│   └── collect-metrics.sh   # Performance data collection
-├── docs/                     # Documentation
-│   ├── COMPLETE-DEPLOYMENT-GUIDE.md  # Complete workflow
-│   ├── 4-node-success-final.md       # Scaling validation
-│   └── gchp-*.md                     # Historical learnings
-└── data/                     # Benchmark results
+│   ├── gchp-matrix-run.sh, gchp-campaign-sweep.sh, launch-matrix-cluster.sh   # benchmark matrix
+│   ├── gchp_aws/       # GCHP→AWS calculator (intent → instance/layout/$), append_benchmark.py
+│   ├── lith/           # lith gate harnesses + scorers (5f-* gates)
+│   ├── spawn/          # GCHP on spawn (no ParallelCluster): launchers + run wrappers
+│   ├── stream/         # STREAM memory-bandwidth probe
+│   └── *s3*, *phase1*  # decoupled-chemistry transports, workers, microbenchmarks
+├── patches/            # GCHP source patches (decoupled chemistry, instrumentation)
+├── docs/               # Guides and results (see Current Phase for the current ones)
+├── data/
+│   └── lith-gates/     # Raw gate data; inregion-streams.txt = every pre-registration + result
+└── BENCHMARK-TRACKER.md, gchp-decoupled-chemistry-design.md
 ```
 
 ## Infrastructure Details
 
-### Validated Cluster (gchp-test)
-**Region:** us-east-1 (GEOS-Chem RODA native region)
-**Head Node:** t3.xlarge
-**SSH Key:** aws-gchp
-**S3 Bucket:** s3://gchp-shared-storage-us-east-1/
-**Compute Queues:**
-- **compute:** hpc7a.24xlarge (max 4, EFA enabled)
-- **c7a-compute:** c7a.48xlarge (max 8, ENA)
+### Live cluster: `gchp-lith-ab` (us-east-1)
+- **Config:** `parallelcluster/configs/bench-lith-input-m9g-use1.yaml` (PC 3.15)
+- **Head node:** c7g.4xlarge (Graviton). It is also the free test box for lith gates: 16 cores, ~15 Gbps.
+- **Compute:** one `compute` queue, EFA, dynamic, max 2 nodes, c8g.48xlarge (384 GiB) or m9g.48xlarge (768 GiB)
+- **Storage:** `/sw` EBS (stack), `/scratch` 200 GB gp3 EBS; no FSx
+- **SSH key:** `aws-gchp`. **Shared bucket:** `s3://gchp-shared-storage-us-east-1/` (stacks, bootstrap, spawn bundles, results)
+- **Compute nodes have no internet egress.** Mirror artifacts to S3, and give each queue its own IAM for S3 custom
+  actions. A self-terminating compute node reports why in CloudWatch `<node>.bootstrap_error_msg`.
 
-**Storage:**
-- `/fsx` - FSx Lustre SCRATCH_2 (1.2TB, S3-backed)
-- `/input` - FSx Lustre (S3-backed, GEOS-IT met fields)
-- `/sw-gcc14` - Software stack location
+### Without ParallelCluster: spawn
+`scripts/spawn/launch-spawn-smoke.sh` launches a 2-node EFA cohort with spawn (>= 0.120.0). It syncs the stack, mounts
+lith, NFS-shares node 0's `/scratch` and runs GCHP. Use a fresh `--job-array-name` per launch. Never use `set -u` in a
+wrapper that sources GCHP's `setCommonRunSettings.sh`, which dereferences `$4`.
 
-**Working Configurations:**
-- `/fsx/gchp-tt-proper/` - Single-node (C24, 48 cores)
-- `/fsx/gchp-tt-2node/` - 2-node (C48, 96 cores)
-- `/fsx/gchp-tt-4node/` - 4-node (C90, 192 cores) ✅
-
-### Planned Infrastructure (us-west-2)
-**Region:** us-west-2
-**Subnet:** subnet-0a73ca94ed00cdaf9
-**Security Group:** sg-025793e5909030cc3
-**SSH Key:** aws-gchp (created May 2026)
-**S3 Bucket:** s3://aws-instance-benchmarks-data/gchp/
+### Other regions
+`bench-matrix-use2*.template.yaml` exist for capacity fallback in us-east-2. Cross-region reads of gcgrid cost
+$0.02/GB, and the lith evidence gate is off cross-region by design.
 
 ## Common Commands
 
@@ -262,92 +228,98 @@ AWS_PROFILE=aws ~/.local/bin/pcluster list-clusters --region us-east-1
 AWS_PROFILE=aws uv run pcluster create-cluster \
   --cluster-name <name> \
   --cluster-configuration parallelcluster/configs/<config>.yaml \
-  --region us-west-2
+  --region us-east-1
 
-# Delete cluster
+# Delete cluster (check for non-project resources first: rsdemo, loop-*, keel-*)
 AWS_PROFILE=aws uv run pcluster delete-cluster \
   --cluster-name <name> \
-  --region us-west-2
+  --region us-east-1
 
 # SSH to head node
 ssh -i ~/.ssh/aws-gchp.pem ec2-user@<head-node-ip>
 ```
 
-### FSx Lustre S3 Integration
+### Stack and input checks
 ```bash
-# FSx automatically exports to S3 via ExportPath configuration
-# No manual sync needed for most cases
-
-# Check what's in S3
+# Stacks in S3
 aws s3 ls s3://gchp-shared-storage-us-east-1/stacks/ --recursive --human-readable
 
-# User clusters automatically import via FSx ImportPath
+# On a node: lith mounts healthy (5 expected) and their metrics (ports 9210-9214 are our scripts' convention)
+mount | grep -c fuse.lith
+curl -s localhost:9210/metrics | grep -E '^lith_(s3_bytes_total|ttfb_seconds_count|readahead_evidence_ratio) '
 ```
 
 ## Current Phase
 
-**Status:** ✅ Multi-node scaling validated (February 2026)
+**Status (October 2026):** GCHP 14.7.1 validated on x86_64 and Graviton. The C180 multi-node
+benchmarks, the decoupled-chemistry prototype, and the lith S3 input layer are all measured. The
+publication-quality study is costed and awaiting approval. Per-gate detail lives in
+`data/lith-gates/inregion-streams.txt`, and the lith summary is in `docs/LITH-VALUE-FOR-GCHP.md`.
+
+**Live infrastructure:** see Infrastructure Details.
 
 **Completed:**
-- ✅ GCC 14.2.1 + OpenMPI 4.1.7 + EFA stack built and validated
-- ✅ GCHP 14.5.0 compiled and running on AWS
-- ✅ Single-node validation (48 cores, C24, 14s runtime)
-- ✅ 2-node validation (96 cores, C48, 63s runtime)
-- ✅ 4-node validation (192 cores, C90, 116s runtime, 95% scaling efficiency)
-- ✅ FSx-based deployment architecture proven
-- ✅ Multi-queue strategy (hpc7a + c7a) implemented
-
-**Builder Cluster (Completed):**
-- **Name:** gchp-builder (deleted after build)
-- **Region:** us-east-1
-- **Head Node:** t3.xlarge
-- **Compute Queues:**
-  - compute: hpc7a.24xlarge (max 4 nodes, EFA)
-  - c7a-compute: c7a.48xlarge (max 8 nodes, ENA)
-- **Storage:** 3× FSx Lustre volumes (software, input data, scratch)
+- ✅ GCC 12.2.0 + OpenMPI 4.1.7/EFA + ESMF 8.6.1 + GCHP 14.7.1 self-contained stacks (x86_64, aarch64)
+- ✅ EFA multi-node proven on 14.7.1 (2026-06-27); multi-node needs RDMA (EFA): over TCP GCHP aborts at `MPI_Win_create`
+- ✅ C180 multi-node benchmarks: Graviton5 m9g.48xl fastest and cheapest (~$0.80/sim-day); first clean,
+  restartable C180 multi-node checkpoint (2026-07-15); C180 fullchem runs on m9g (556 GB high-water)
+- ✅ Decoupled chemistry: Phases 0/1a/1b byte-identical; C180 chemistry off-node over S3 byte-identical at 1.31× wall
+- ✅ GCHP→AWS calculator (`scripts/gchp_aws/`); scaling-campaign Phases 0–1 (no spend)
+- ✅ lith input layer: TT + fullchem byte-identical off `s3://gcgrid`; cold start 1.73–4.92× faster than a
+  fresh FSx, tied when warm; FSx input layer retired
+- ✅ GCHP on spawn without ParallelCluster: 2-node EFA C24 TT run passed (spawn 0.120.0, launch→result 4:42)
 
 **Next Steps:**
-1. Extended runtime tests (24-hour simulations)
-2. C180 resolution testing (8-16 nodes)
-3. Alternative instance type benchmarking (c7a vs hpc7a)
-4. Investigate c7a configuration issues (Job 27 status=56)
-5. Compare toolchain performance (GCC vs Intel vs AMD vs ARM)
+1. Publication study (5-rep stats across instances + decoupling modes): proposal costed, **no spend without approval**
+2. One multi-node C180 fullchem validation over lith before relying on it for long production runs
+3. Harden the off-node chemistry sidecar's S3 PUTs (22/192 failed at C180 → in-process re-solve)
+4. Re-measure the handoff-bound off-node numbers on m8gn.48xl (768 GB, 2 NICs) instead of single-NIC m9g
+5. GCHP 14.8.1 (when released): rebuild both stacks, re-verify C24, drop the finalization-abort workaround
+
+**Measurement rules learned the hard way:**
+- Never quote a cold first run.
+- Compare arms simultaneously, not minutes apart.
+- Hold core count constant across architectures.
+- Score byte-identity, not completion.
+- Re-read the upstream issue thread right before launching any paid cell.
 
 ## Key Design Decisions
 
-1. **FSx-based software stack (no custom AMI)** - Simpler, more maintainable, allows multiple toolchain versions to coexist
-2. **Three-FSx architecture** - Shared resources (/sw, /input) always S3-backed + user workspace (/scratch) optionally S3-backed
-3. **Hybrid scratch strategy** - S3-backed for production, non-backed for development (see `docs/FSX-STORAGE-STRATEGY.md`)
-4. **Multi-queue strategy** - hpc7a (EFA, optimal) + c7a (ENA, better availability) for flexibility
-5. **Compatibility flags first** - Pragmatic approach (znver3, icelake-server) before microarchitecture-specific optimization
-6. **Standard Amazon Linux 2023** - No custom AMI required, all software on /sw
-7. **Grid resolution constraints validated** - X/NX >= 4, X/NY >= 4, NY divisible by 6
+1. **No custom AMI.** Standard AL2023, with the self-contained stack synced from S3 to `/sw`.
+2. **lith over `s3://gcgrid` as the default input layer.** Byte-identical results, live data, no standing cost, no
+   AZ pin. FSx only when matching older rows.
+3. **EBS scratch.** Nothing needs Lustre.
+4. **EFA/RDMA for multi-node.** GCHP aborts at `MPI_Win_create` over TCP. AWS calls placement groups optional for EFA; we use them where capacity allows.
+5. **Compatibility flags first:** `-O2 -g`, plus `-mcpu=neoverse-v1` on ARM, before microarchitecture tuning.
+6. **Grid resolution constraints:** X/NX >= 4, X/NY >= 4, NY divisible by 6.
+7. **Ephemeral clusters are the normal case.** That's why cold-start behaviour (lith vs fresh FSx) is the honest comparison.
 
-## Success Metrics & Key Findings
+## Key Findings & Traps
 
-### Validated Performance
-- **95% scaling efficiency** (2→4 nodes, 96→192 cores)
-- **Grid constraint formula proven** across C24, C48, C90 resolutions
-- **EFA networking validated** across 4 nodes, 300 Gbps RDMA
-- **Cost-effective testing**: ~$25 for complete validation (Jobs 1-28)
+### Performance
+- **C180:** Graviton5 m9g.48xlarge is fastest per node and cheapest (~$0.80/sim-day), with no OOM at 768 GB. Graviton4
+  is close. Intel trails. 2-node is super-linear on 192-core Graviton.
+- **Memory:** HISTORY output is the main driver (~1.7 GB/core). C180 fullchem peaks at 556 GB on one node and needs
+  `domains_stack_size 64M` and a large `/dev/shm`.
+- **Decoupled chemistry:** byte-identical at every phase. Off-node over S3 costs 2.0× wall at C90 and 1.31× at C180,
+  amortizing as the chemistry fraction grows.
+- **lith:** 1.73× (C24 TT) to 4.92× (C180 restart) faster cold start than a fresh FSx, tied warm. HEMCO over-fetches
+  2.46× (its data is 98% netCDF-4/HDF5, read as scattered chunks).
 
-### Architecture Insights
-- **FSx + S3 architecture works** - No custom AMI needed
-- **Multi-queue flexibility essential** - hpc7a capacity variable, c7a as fallback
-- **Domain decomposition matters** - Square-ish layouts (NY=12) work well
-- **Initialization overhead dominates short runs** - Better efficiency at production scales
+### Methodology (each of these cost real money or time once)
+- Hold core count constant across architectures. Graviton and c7a/c8a have vCPU = core; Intel is hyperthreaded.
+- Score byte-identity (checkpoint md5), never completion.
+- Never quote a cold first run. Compare arms simultaneously, not minutes apart.
+- Pre-register predictions and the scoring rule before running.
+- Auto-teardown must delete only on affirmative success, never on an empty `squeue`.
+- Re-read the upstream issue thread right before launching any paid cell.
 
-### Deployment Model
-- **Infrastructure builders** create shared resources (/sw, /input)
-- **End users** import read-only + create personal /scratch
-- **S3-backed FSx** provides persistence and automatic sync
-- **Standard AMI** simplifies deployment and maintenance
-
-## Notes for Blog Post
-- FSx-based deployment model (no custom AMI required)
-- Multi-node scaling results (95% efficiency achieved)
-- Grid resolution constraint analysis (critical for users)
-- Multi-queue strategy for capacity management
-- Cost analysis and optimization strategies
-- Complete deployment guide from zero to production
-- Contribute findings back to GCHP development team
+### GCHP 14.7.1 traps
+- `setCommonRunSettings.sh` has three independent rank knobs (`TOTAL_CORES`, `NUM_NODES`, `NUM_CORES_PER_NODE`), and
+  `Run_Duration` is `YYYYMMDD`, so its default is a month.
+- Multi-node checkpoint: delete stale checkpoints, or the pnc4 create fails with `NC_EEXIST`. Measure throughput from
+  GCHP's own timer, and don't wait on the finalization abort (a benign double free).
+- fullchem on gcgrid restarts needs `Require_Species_in_Restart=0` and the newest GC-version restart. It also needs the
+  5 GMI alias files, which are in live gcgrid but not in old FSx snapshots.
+- ESMF 8.6.1's `libesmf.so` lacks a SONAME (fix with `patchelf`). A relocated OpenMPI needs `OPAL_PREFIX` and
+  `PMIX_PREFIX`; `gchp-env.sh` sets both.
