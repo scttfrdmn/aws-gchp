@@ -2609,3 +2609,25 @@ Cost $0.
   #391 SCORE: PREMISE CONFIRMED -- B spread 3.08/3.38 vs A 1.04/1.11 (D16), 2.44/2.25 vs 1.17/1.08 (S6); B > 1.5 x A.
   Predictions: D16 all held; S6 "pressure << 0.85" FAILED (gate-off S6 over-fetches 7.1-7.3 GB, peak ~0.85).
 Cost $0.
+
+--- 5f-P24 PRE-REGISTRATION (lith#337 multi-client gateway cell, 05:12Z ask; before any cell ran) ---
+Environment (free, head node): lith serve nfs on 10.250.0.1:12049 (kernel nfsd keeps 2049), export
+  s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07, --no-sign-request --nic-gbps 50, default mem-cache; fresh gateway per
+  cell. Distinct client IPs via K network namespaces on a private bridge br337 (10.250.0.0/24, veth per ns); the gateway
+  keys clients by host IP and has no UMNT handler, so each idle client sends ONE NFS MOUNT (mount, then unmount) and
+  stays registered for --client-idle (5 min). Streaming client = the host namespace (its own IP), NFSv3 tcp
+  port=mountport=12049, ro, nolock; dd bs=1M of one GEOS-FP A3dyn (3.78 GB) after all idle MOUNTs.
+Arms, 2 reps interleaved: K0 / K7 / K47 idle clients (1 / 8 / 48 registered) on v1.12.0; K0-111 = K0 on v1.11.0 (#393:
+  pre-v1.12.0 stock export had InflightBytes 0 = no byte gating, coalesce gap pinned 256 KiB).
+Read: streaming throughput (MB/s), lith_nfs_clients, readahead window gauge, lith_prefetch_pressure +
+  pressure_held_total (2 Hz), s3 bytes.
+Questions (upstream): Q1 does the divisor collapse (upstream measured window 96 -> 61 -> 10 blocks for 1 / 8 / 48
+  mounts) cost streaming throughput? Q2 does v1.12.0 vs v1.11.0 change K0 throughput? Q3 does held_total climb
+  continuously (the 0.85 band not transferring to a gateway)?
+Scoring: Q1 COSTS iff K47 throughput < 0.8 x K0 in both reps; NO COST iff within 10% in both; else between.
+  Q2 CHANGED iff |K0-v112 - K0-v111| > 15% in both reps. Q3 continuous iff < 50% of holds occur in the first 20% of
+  the read.
+My predictions: Q1 throughput drops < 20% at K47 -- a 10-block (80 MiB) window still exceeds this box's
+  bandwidth-delay product (~15 Gbps x ~30 ms ~ 56 MB), so the collapse may not bind on this head node (would bind on a
+  fatter NIC). Q2 no change. Q3 holds ~0 (one stream cannot fill the tier). Low confidence on Q1.
+Cost $0. All namespaces, veths, the bridge and mounts removed by the harness's EXIT trap.
