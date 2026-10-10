@@ -58,7 +58,7 @@ clean_lith() {
     fusermount3 -u "$m" >/dev/null 2>&1
   done
   pkill -f "lith-311 mount" >/dev/null 2>&1
-  sleep 2
+  sleep ${TL:+8}${TL:-2}   # P21: give --timeline-csv time to write at unmount
   local left; left=$(mount | grep -c fuse.lith)
   say "  stale fuse.lith mounts after cleanup: $left"
 }
@@ -77,19 +77,19 @@ mount_lith() {
   # reported but is budget-scaled to this box and is not comparable to production.
   "$LITH" mount s3://gcgrid/GEOS_0.5x0.625/MERRA2/2019/01 /input-lith/GEOS_0.5x0.625/MERRA2/2019/01 \
       --index-file "$GATES/idx/merra2.lithidx" --no-sign-request --nic-gbps $NIC \
-      --mem-cache $MEMC --metrics ":9210" --daemon
+      --mem-cache $MEMC --metrics ":9210" ${TL:+--timeline-csv $OUT/tl-9210.csv} --daemon
   "$LITH" mount s3://gcgrid/GEOS_0.5x0.625/MERRA2/2015/01 /input-lith/GEOS_0.5x0.625/MERRA2/2015/01 \
       --index-file "$GATES/idx/merra2-2015.lithidx" --no-sign-request --nic-gbps $NIC \
-      --mem-cache $MEMC --metrics ":9211" --daemon
+      --mem-cache $MEMC --metrics ":9211" ${TL:+--timeline-csv $OUT/tl-9211.csv} --daemon
   "$LITH" mount s3://gcgrid/HEMCO /input-lith/HEMCO \
       --index-file "$GATES/idx/hemco.lithidx" --no-sign-request --nic-gbps $NIC \
-      --mem-cache $MEMC --metrics ":9212" --daemon
+      --mem-cache $MEMC --metrics ":9212" ${TL:+--timeline-csv $OUT/tl-9212.csv} --daemon
   "$LITH" mount s3://gcgrid/CHEM_INPUTS /input-lith/CHEM_INPUTS \
       --index-file "$GATES/idx/cheminp.lithidx" --no-sign-request --nic-gbps $NIC \
-      --mem-cache $MEMC --metrics ":9213" --daemon
+      --mem-cache $MEMC --metrics ":9213" ${TL:+--timeline-csv $OUT/tl-9213.csv} --daemon
   "$LITH" mount s3://gcgrid/GEOSCHEM_RESTARTS /input-lith/GEOSCHEM_RESTARTS \
       --index-file "$GATES/idx/restarts.lithidx" --no-sign-request --nic-gbps $NIC \
-      --mem-cache $MEMC --metrics ":9214" --daemon
+      --mem-cache $MEMC --metrics ":9214" ${TL:+--timeline-csv $OUT/tl-9214.csv} --daemon
   sleep 6
   local n alive=0 p
   n=$(mount | grep -c fuse.lith)
