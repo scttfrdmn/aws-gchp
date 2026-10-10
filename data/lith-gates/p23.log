@@ -1,0 +1,26 @@
+=== gate 5f-P23 2026-10-10T07:17:28Z lith=c1cba2483054
+CELL S6-A-1 wall=3.0s readers=6 rmin=2.6 rmax=3.0 spread=1.17 peak_pressure=0.026 evicted=0 held=0 s3_GB=0.36
+    admission: "msg":"prefetch admission","evidence_ratio":4,"pressure_max":0}
+CELL S6-B-1 wall=5.1s readers=6 rmin=2.1 rmax=5.1 spread=2.44 peak_pressure=0.852 evicted=3 held=11 s3_GB=7.18
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85}
+CELL S6-C-1 wall=5.2s readers=6 rmin=2.2 rmax=5.2 spread=2.42 peak_pressure=0.864 evicted=9 held=0 s3_GB=7.27
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0}
+CELL S6-A-2 wall=2.3s readers=6 rmin=2.1 rmax=2.3 spread=1.08 peak_pressure=0.026 evicted=0 held=0 s3_GB=0.36
+    admission: "msg":"prefetch admission","evidence_ratio":4,"pressure_max":0}
+CELL S6-B-2 wall=4.9s readers=6 rmin=2.2 rmax=4.9 spread=2.25 peak_pressure=0.845 evicted=0 held=0 s3_GB=7.11
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85}
+CELL S6-C-2 wall=4.9s readers=6 rmin=2.2 rmax=4.9 spread=2.20 peak_pressure=0.844 evicted=3 held=0 s3_GB=7.12
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0}
+CELL D16-A-1 wall=33.4s readers=16 rmin=32.1 rmax=33.4 spread=1.04 peak_pressure=0.496 evicted=0 held=0 s3_GB=60.08
+    admission: "msg":"prefetch admission","evidence_ratio":4,"pressure_max":0}
+CELL D16-B-1 wall=44.9s readers=16 rmin=14.6 rmax=44.9 spread=3.08 peak_pressure=0.851 evicted=9 held=542 s3_GB=60.13
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85}
+CELL D16-C-1 wall=104.9s readers=16 rmin=29.9 rmax=104.9 spread=3.50 peak_pressure=1.402 evicted=2910 held=0 s3_GB=63.48
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0}
+CELL D16-A-2 wall=33.2s readers=16 rmin=30.0 rmax=33.2 spread=1.11 peak_pressure=0.497 evicted=0 held=0 s3_GB=60.08
+    admission: "msg":"prefetch admission","evidence_ratio":4,"pressure_max":0}
+CELL D16-B-2 wall=46.5s readers=16 rmin=13.7 rmax=46.5 spread=3.38 peak_pressure=0.852 evicted=0 held=543 s3_GB=60.11
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85}
+CELL D16-C-2 wall=100.8s readers=16 rmin=29.0 rmax=100.8 spread=3.48 peak_pressure=1.402 evicted=3078 held=0 s3_GB=63.64
+    admission: "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0}
+=== done 2026-10-10T07:24:36Z
