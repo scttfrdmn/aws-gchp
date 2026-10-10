@@ -1,0 +1,5 @@
+{"time":"2026-10-10T07:33:41.524580821Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.02694459,"keys_per_sec":8053.564741567788}
+{"time":"2026-10-10T07:33:41.52476956Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-10T07:33:41.524900047Z","level":"INFO","msg":"lith NFSv3 gateway","listen":"10.250.0.1:12049","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","keys":217,"root_id":"1f2961dae350a539","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=12049,mountport=12049,nolock <host>:/ /mnt
+{"time":"2026-10-10T07:33:42.466390366Z","level":"ERROR","msg":"No handler for 100227.0"}

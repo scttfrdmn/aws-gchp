@@ -1,0 +1,19 @@
+=== gate 5f-P24 2026-10-10T07:32:31Z v112=c1cba2483054 v111=51234db1e082
+CELL K0-1 clients=1 wall=2.98s MB/s=1267 peak_pressure=0.000 held=0 window_min/max=/
+    "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"} 
+CELL K7-1 clients=8 wall=2.89s MB/s=1305 peak_pressure=0.000 held=0 window_min/max=/
+    "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"} 
+CELL K47-1 clients=48 wall=7.28s MB/s=519 peak_pressure=0.000 held=0 window_min/max=/
+    "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"} 
+CELL K0v111-1 clients=1 wall=2.85s MB/s=1327 peak_pressure=0.000 held=0 window_min/max=/
+    
+CELL K0-2 clients=1 wall=2.90s MB/s=1300 peak_pressure=0.000 held=0 window_min/max=/
+    "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"} 
+CELL K7-2 clients=8 wall=3.07s MB/s=1231 peak_pressure=0.000 held=0 window_min/max=/
+    "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"} 
+CELL K47-2 clients=48 wall=6.76s MB/s=558 peak_pressure=0.000 held=0 window_min/max=/
+    "msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"} 
+CELL K0v111-2 clients=1 wall=2.72s MB/s=1391 peak_pressure=0.000 held=0 window_min/max=/
+    
+=== done 2026-10-10T07:33:46Z
+cleanup done: netns=0 bridge=0

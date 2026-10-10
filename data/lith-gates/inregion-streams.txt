@@ -2631,3 +2631,22 @@ My predictions: Q1 throughput drops < 20% at K47 -- a 10-block (80 MiB) window s
   bandwidth-delay product (~15 Gbps x ~30 ms ~ 56 MB), so the collapse may not bind on this head node (would bind on a
   fatter NIC). Q2 no change. Q3 holds ~0 (one stream cannot fill the tier). Low confidence on Q1.
 Cost $0. All namespaces, veths, the bridge and mounts removed by the harness's EXIT trap.
+
+--- 5f-P24 RESULTS (#337, head node 07:32:31-07:33:46Z; netns multi-client gateway; raw data/lith-gates/p24/) ---
+  lith_nfs_clients confirmed 1 / 8 / 48 in the K0 / K7 / K47 arms. Streaming client: dd of one 3.78 GB GEOS-FP object.
+  arm      binary   clients  MB/s rep1 / rep2   vs K0
+  K0       v1.12.0  1        1267 / 1300        1.00
+  K7       v1.12.0  8        1305 / 1231        1.03 / 0.95
+  K47      v1.12.0  48       519 / 558          0.41 / 0.43
+  K0v111   v1.11.0  1        1327 / 1391        1.05 / 1.07
+  Bytes identical in every arm (3.777 GB, 458 GETs, prefetch issued == used == 3594) -> the cost is window DEPTH, not
+    wasted bytes.
+  Q1 SCORE: COSTS -- K47 < 0.8 x K0 in both reps (0.41 / 0.43). 47 mounted-but-idle clients cut a streaming client's
+    throughput ~2.4x. K7 no cost. My prediction (< 20% drop) FAILED: the 48-client window does bind on a 15 Gbps box.
+  Q2 SCORE: NOT CHANGED by the rule (v1.11.0 K0 +4.7% / +7.0% vs v1.12.0, < 15%); direction consistent (v1.12 slightly
+    slower), n=2 -- flagged, not claimed.
+  Q3: NOT EXERCISED -- pressure_held_total 0 in all v1.12 arms; one stream cannot load the tier. The gateway exports
+    lith_prefetch_pressure_held_total but NOT the lith_prefetch_pressure gauge.
+  Harness: K network namespaces on a private bridge (each its own IP; gateway keys clients by host IP, no UMNT handler,
+    so one MOUNT registers for --client-idle); all removed on exit (verified: 0 netns, no bridge, no mounts).
+Cost $0.
