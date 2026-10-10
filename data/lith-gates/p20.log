@@ -1,0 +1,5 @@
+=== gate 5f-P20 2026-10-10T05:54:53Z lith=c1cba2483054 tier=10GB cap=24G
+ARM D wall=33.7s | peak RSS 20.38 GB  next_gc 20.30 GB  heap_inuse 20.20  heap_idle 9.81  committed 5.03  (committed-unread) 3.82 GB | RSS/next_gc 1.00  next_gc/tier 2.03
+ARM G0 wall=45.6s | peak RSS 20.43 GB  next_gc 20.31 GB  heap_inuse 20.06  heap_idle 10.11  committed 8.52  (committed-unread) 8.02 GB | RSS/next_gc 1.01  next_gc/tier 2.03
+ARM G0P wall=95.9s | peak RSS 20.41 GB  next_gc 20.31 GB  heap_inuse 20.25  heap_idle 9.70  committed 13.62  (committed-unread) 11.31 GB | RSS/next_gc 1.00  next_gc/tier 2.03
+=== done 2026-10-10T05:58:14Z

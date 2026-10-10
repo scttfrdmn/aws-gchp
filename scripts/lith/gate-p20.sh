@@ -5,8 +5,8 @@ P=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07; mkdir -p "$OUT"; sudo mkdir -p "
 arm() { local tag=$1; shift; PORT=$((PORT + 1))
   sudo systemd-run --scope -p MemoryMax=24G --unit "p20-$tag" "$B" mount "$P" "$MNT" --metrics ":$PORT" --nic-gbps 50 \
       --log-level warn --no-sign-request --mem-cache 10GB "$@" > "$OUT/$tag.mount.log" 2>&1 &
-  for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
-  mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED"; tail -3 "$OUT/$tag.mount.log"; return 1; }
+  for _ in $(seq 1 90); do sudo mountpoint -q "$MNT" && break; sleep 1; done
+  sudo mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED"; tail -3 "$OUT/$tag.mount.log"; return 1; }
   rm -f "$OUT/$tag.stop"
   ( while [ ! -f "$OUT/$tag.stop" ]; do
       curl -s --max-time 2 "http://127.0.0.1:$PORT/metrics" | awk -v t="$(date +%s.%N)" '

@@ -2494,3 +2494,28 @@ P20: ONE mount of s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07, --mem-cache 10GB
   My prediction: GC model holds in D (RSS ~ next_gc ~ 18-22 GB); G0P largest RSS. If any arm is OOM-killed by the
   24G cap, that is reported as RSS >= 24 GB.
 Cost $0.
+
+--- 5f-P19 RESULTS (#312, head node 05:46:09-05:48:31Z, 12 ranks, v1.12.0; raw data/lith-gates/p19/) ---
+  GCHP C24 TT completed (cap_restart advanced at 125 s); 1235 samples over 125 s.
+  mount          oh_max  oh_med  sh_max  sh_med  win_min  sh/oh at oh_max
+  merra2-201901  110     41      44      10      2        0.400
+  merra2-201501  6       0       0       0       119      0.000
+  hemco          20      11      4       0       29       0.200
+  cheminputs     12      0       0       0       119      0.000
+  restarts       12      0       1       0       119      0.000
+  TOTAL(peaks)   160                     49               0.306
+  SCORE: BETWEEN (neither "streams ~ ranks, descriptors ~ 6x" nor "streams ~ descriptors"). Met: streams 44 at peak
+    = 3.7x ranks, descriptors 110 = 9.2x ranks; median sh/oh 10/41 = 0.24. Prediction (0.25-0.40) held at peak.
+    Consistent with 5f-P3b (0.318 at 12 ranks) and 5f-P6e (0.36 at 48), i.e. unchanged since lith-311/318.
+--- 5f-P20 RESULTS (#314, head node 05:54:53-05:58:14Z, v1.12.0, --mem-cache 10GB, MemoryMax=24G; data/lith-gates/p20/) ---
+  (First attempt 05:48Z failed at MY readiness check: `mountpoint -q` as ec2-user cannot stat a root-owned FUSE mount;
+   three mounts stacked and were cleaned up; rerun with `sudo mountpoint`. No data from the failed attempt.)
+  arm  wall    peak RSS  next_gc  heap_inuse  heap_idle  committed  committed-unread  RSS/next_gc  next_gc/tier
+  D    33.7 s  20.38 GB  20.30    20.20       9.81       5.03       3.82              1.00         2.03
+  G0   45.6 s  20.43     20.31    20.06       10.11      8.52       8.02              1.01         2.03
+  G0P  95.9 s  20.41     20.31    20.25       9.70       13.62      11.31             1.00         2.03
+  SCORE: GC MODEL HOLDS in 3/3 (next_gc 2.03 x tier in [1.6, 2.4]; RSS within 1% of next_gc). Additive model REFUTED:
+    committed-unread varies 3x (3.8 -> 11.3 GB) while RSS is constant at 20.4 GB. RSS never exceeded next_gc.
+    -> GOMEMLIMIT is the fix (upstream's branch). Prediction "GC holds" held; "G0P largest RSS" FAILED (all equal);
+    G0P is the collapse shape in WALL (96 s) not memory.
+Cost $0.
