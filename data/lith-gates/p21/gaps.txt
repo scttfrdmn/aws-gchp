@@ -1,0 +1,10 @@
+merra2-201901  keys  12  demand events  22532 | gap p50      0.1 p90      5.2 p99     47.5 max   50.9 s | keys with max gap >= 2 s: 7/12 (58%), their events 91% | gaps >= 2 s: 46 (median 5.0 s)
+merra2-201501  keys   1  demand events      7 | gap p50      0.5 p90    122.3 p99    122.3 max    0.1 s | keys with max gap >= 2 s: 0/1 (0%), their events 0% | gaps >= 2 s: 0 (median 0.0 s)
+hemco          keys   6  demand events    511 | gap p50      0.1 p90     32.8 p99    158.4 max   49.9 s | keys with max gap >= 2 s: 3/6 (50%), their events 80% | gaps >= 2 s: 3 (median 49.5 s)
+cheminputs     keys   2  demand events      4 | gap p50    115.3 p90    115.3 p99    115.3 max    0.1 s | keys with max gap >= 2 s: 0/2 (0%), their events 0% | gaps >= 2 s: 0 (median 0.0 s)
+restarts       keys   1  demand events    344 | gap p50      1.1 p90     27.9 p99    113.1 max    0.2 s | keys with max gap >= 2 s: 0/1 (0%), their events 0% | gaps >= 2 s: 0 (median 0.0 s)
+ALL mounts: keys with max gap >= 2 s: 10/22 (45%), covering 89% of demand events
+
+long gaps (>= 2 s) that contain an 'open' of the same key (re-open => not necessarily an idle held handle):
+  merra2-201901  13/46 long gaps contain a re-open (28%)
+  hemco          3/3 long gaps contain a re-open (100%)

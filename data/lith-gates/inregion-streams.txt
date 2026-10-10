@@ -2543,3 +2543,30 @@ P22 (#317): one c8gn.48xlarge (us-east-1c, AL2023 ami-0ae8605ed708e3c3e, benchma
     any wrong/misleading row -> report it.
   With the grant: expect source=DescribeInstanceTypes, 600 Gbps.
   Cost: c8gn.48xlarge $11.376/h x ~10 min ~ $2. Temp IAM role/profile and SG deleted after.
+
+--- 5f-P21 RESULTS (#312, head node 06:24:10-06:29:05Z, 12-rank GCHP C24 TT, v1.12.0, --timeline-csv; raw +
+    scorer data/lith-gates/p21/{tl-*.csv,gaps.txt}, scripts/lith/p21-gaps.py) ---
+  GCHP completed (cap_restart at 120 s). Handle census reproduced P19: met oh_max 110 / sh_max 43 (0.391), pooled 0.289.
+  Demand events = hit|uncovered|join (open excluded). Per KEY:
+  mount          keys  demand ev  gap p50 / p90 / p99 (ms)   max gap   keys max-gap>=2s   their events   gaps>=2s (median)
+  merra2-201901  12    22532      0.1 / 5.2 / 47.5           50.9 s    7/12 (58%)         91%            46 (5.0 s)
+  hemco          6     511        0.1 / 32.8 / 158.4         49.9 s    3/6 (50%)          80%            3 (49.5 s)
+  merra2-201501, cheminputs, restarts: no gap >= 2 s (1-2 keys each).
+  ALL: 10/22 keys (45%) have a max gap >= 2 s, covering 89% of demand events.
+  Long gaps containing a re-open of the same key: met 13/46 (28%) -> 33/46 (72%) are gaps a held descriptor sat idle
+    through; HEMCO 3/3 (100%) -> HEMCO's are close/reopen cycles, not idle handles.
+  SCORE (upstream's table, operationalized >= 25% of keys): LONG GAPS FOR A SUBSTANTIAL SHARE -> idleness is real.
+    Met gaps median 5.0 s = the ExtData time-slice cadence (prediction 4-13 s held).
+  Caveats: per KEY not per handle (merging makes keys look busier than handles); reads served by the kernel page cache
+    (FOPEN_KEEP_CACHE) never reach lith and are invisible, which could make a key look idler than its handles -- the
+    re-open check bounds this only partly. A per-handle instrument would settle it.
+--- 5f-P22 RESULTS (#317, c8gn.48xlarge i-081f256fd529bacb6, 06:24:56-~06:28:30Z, ~4 min ~$0.76; raw p22/doctor.txt) ---
+  IMDS instance-type c8gn.48xlarge; v1.12.0 release sha256-verified. Role WITHOUT ec2:DescribeInstanceTypes:
+    [WARN] nic 10.0 Gbps baseline (source=fallback) ... NIC undetected (no ethtool speed, no IMDS type, no DescribeInstanceTypes)
+    [WARN] nic:DescribeInstanceTypes ec2:DescribeInstanceTypes DENIED -- grant that one action ...
+    [WARN] nic:imds-estimate c8gn.48xlarge is a network-optimized family ... no estimate is offered -- pass --nic-gbps
+  Ask 1 SATISFIED (DENIED row present). Ask 2 SATISFIED (WARN, source=fallback). Wording issues: the nic row says
+    "no IMDS type" although IMDS returned it (the imds-estimate row names it); fusermount3 fix says "apt install fuse3"
+    on AL2023 (dnf).
+  With a temp profile granting ONLY ec2:DescribeInstanceTypes: nic 600.0 Gbps (source=DescribeInstanceTypes), then
+    source=cache(DescribeInstanceTypes) on rerun. Temp SG, IAM role and instance profile deleted; instance terminated.

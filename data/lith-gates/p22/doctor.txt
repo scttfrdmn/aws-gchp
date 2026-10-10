@@ -1,0 +1,21 @@
+[INFO] lith                   1.12.0 (commit 9e150b7, 2026-10-09T21:59:47Z)
+[PASS] credentials            source=EC2RoleProvider
+[PASS] fuse device            /dev/fuse present and openable
+[FAIL] fusermount3            not on PATH
+        └─ fix: install fuse3 (apt install fuse3)
+[WARN] nic                    10.0 Gbps baseline (source=fallback) → parts-max 47 MiB, inflight 238 MiB — NIC undetected (no ethtool speed, no IMDS type, no DescribeInstanceTypes)
+        └─ fix: pass --nic-gbps <Gbps>; without it the device-derived knobs are guesses (e.g. parts-max)
+[WARN] nic:ethtool            ens68 reports no link speed (normal for ENA, which answers "Unknown!")
+[WARN] nic:cache              no usable entry in /tmp/nic-1000.json
+[WARN] nic:DescribeInstanceTypes ec2:DescribeInstanceTypes DENIED — grant that one action to this instance profile for an exact baseline (ParallelCluster's default node roles do not include it), or pass --nic-gbps
+[WARN] nic:imds-estimate      c8gn.48xlarge is a network-optimized family, where the size-keyed estimate is far too low (c8gn.48xlarge is 600 Gbps against the table's 50), so no estimate is offered — pass --nic-gbps with the sustained baseline
+Error: one or more checks failed
+=== WITH ec2:DescribeInstanceTypes
+[INFO] lith                   1.12.0 (commit 9e150b7, 2026-10-09T21:59:47Z)
+[PASS] credentials            source=EC2RoleProvider
+[PASS] fuse device            /dev/fuse present and openable
+[FAIL] fusermount3            not on PATH
+        └─ fix: install fuse3 (apt install fuse3)
+[INFO] nic                    600.0 Gbps baseline (source=cache(DescribeInstanceTypes)) → parts-max 64 MiB, inflight 14305 MiB
+[INFO] nic:ethtool            ens68 reports no link speed (normal for ENA, which answers "Unknown!")
+Error: one or more checks failed
