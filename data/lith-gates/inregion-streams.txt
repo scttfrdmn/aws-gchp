@@ -2691,3 +2691,21 @@ Cost $0 (head node; CloudTrail data events ~pennies).
     dispatched, 1 MiB demand-chunk floor touching the whole 10 MB file.
   Predictions: >2x set held (5/5); ~1x set held; "main fixes fits" FAILED (3.18 both); unexpected: main fixes kerchunk_scan.
 Cost $0 (+ CloudTrail data events, pennies). Trail + ledger bucket deleted.
+
+--- 5f-P26 PRE-REGISTRATION (lith#337 21:01Z asks; head node netns rig as 5f-P24; before any cell ran) ---
+Builds: v1.11.0 (51234db1e082), v1.12.0 (c1cba2483054), main 2218e90 (be90b074ab93; incl #405 pressure gauge),
+  PR #410 head 088ef35 (d15ccf49f210; = main + the divisor-input commit). Streaming object(s): GEOS-FP A3dyn 3.78 GB.
+Part A (Q2, BEFORE #410, as asked): K0 x 5 reps, v1.11.0 vs v1.12.0 interleaved. CHANGED iff median differs > 10%
+  AND the 5-rep ranges do not overlap; else NOT CHANGED. Prediction: NOT CHANGED.
+Part B (#410 ladder): K0 / K7 / K47 idle clients x 2 reps, main vs pr410 interleaved within rep. Bytes/GETs/prefetch
+  issued+used kept. Upstream's table on pr410: K47 ~ K0 (>= 0.9 x K0) -> fixed; K47 800-1000 -> partial; K47 ~540 ->
+  not reaching the read path; pr410 K0 < 1200 MB/s (or < 0.9 x main K0) -> the bad outcome; bytes rising on K0 -> waste.
+  Prediction: pr410 K47 ~ K0 ~ 1250-1300; main K47 ~540 (reproduces P24); K0 equal between builds.
+Part C (Q3, N streaming namespaces): S8 / S16 = 8 / 16 namespaces each dd-ing a DISTINCT A3dyn concurrently, x 2 reps,
+  main vs pr410. 2 Hz: lith_prefetch_pressure, pressure_held_total, s3 bytes, nfs_clients. Report aggregate MB/s,
+  per-client spread (max/min wall), peak pressure, held_total shape (share of holds in first 20% of the run).
+  "Band does not transfer to a gateway" iff held climbs continuously (< 50% of holds in the first 20%).
+  Note: with N streaming clients each on one path, main's divisor (registered clients) == pr410's (read paths) ==
+  N, so pr410 ~ main is EXPECTED here; a difference would itself be a finding.
+  Predictions: pr410 ~ main (aggregate within 10%); peak pressure < 0.85, holds ~0 (divisor keeps windows small).
+Cost $0; namespaces/bridge removed by the EXIT trap.
