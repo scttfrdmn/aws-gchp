@@ -2467,3 +2467,30 @@ My prediction: CONFIRM. Cost $0.
   Not scored: T16S fetched 0.67-0.68 GB for 0.54 GB read -- far less overrun than covMin 0.05 (P8: 1.887 GB) or
     O_DIRECT today (0.86-1.53 GB). Prediction held.
 Cost $0.
+
+--- 5f-P19 (#312 handle census on a real GCHP run) + 5f-P20 (#314 RSS vs GC target) PRE-REGISTRATION
+    (2026-10-10, lith v1.12.0 release md5 c1cba2483054 sha256-verified; before either ran) ---
+P19: gate-streams-gchp.sh unchanged (5f-P3 harness: GCHP 14.7.1 C24 TT via official setCommonRunSettings/
+  checkRunSettings, five prefix-scoped --no-sign-request lith mounts, 2 Hz sampler of lith_open_handles /
+  lith_streaming_handles / window per mount), RANKS=12 on the head node (16 cores; 48 needs a compute node, asked
+  separately). One run. Report per mount and pooled: oh_max, sh_max, medians, sh/oh at peak oh.
+  Upstream's table: streams ~ ranks and descriptors ~ 6x (their 48 vs 288 at 48 ranks, i.e. sh/oh ~0.17) -> #312 is
+  a footnote; streams ~ descriptors -> dominant, needs a read-idle mechanism; between -> report numbers.
+  Prior: 5f-P6e (48 ranks, lith-318) sh/oh at peak oh 0.36; 5f-P3b (12 ranks) 0.318.
+  My prediction: sh/oh 0.25-0.40 (between, nearer footnote), unchanged by v1.12.0.
+P20: ONE mount of s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07, --mem-cache 10GB (30% of 33.0 GB RAM -- upstream
+  asked ~45%; lowered because if the GC model holds, 45% -> ~27 GB RSS on a 33 GB head node that also runs slurmctld),
+  lith daemon inside `systemd-run --scope -p MemoryMax=24G` (only lith can be OOM-killed). 16 concurrent dd of 16 A3dyn
+  objects (60 GB) to fill the tier. 1 Hz scrape of process_resident_memory_bytes, go_memstats_{next_gc,heap_inuse,
+  heap_idle}_bytes, lith_prefetch_{committed,unread_resident}_bytes. Arms, one each: D default (in-region: evidence
+  gate on); G0 --readahead-evidence-ratio -1 (pressure gate default-on per #389); G0P -1 plus --prefetch-pressure-max -1
+  (pre-#389 shape).
+  Upstream's criteria (on the steady part, tier full):
+    GC model holds  iff next_gc ~ 2 x tier AND RSS tracks next_gc rather than the tier -> GOMEMLIMIT is the fix.
+    upstream wrong  iff RSS substantially exceeds next_gc (then heap_idle vs heap_inuse).
+    additive model  iff committed - unread_resident is large AND RSS tracks that.
+  Operationalized: "~2 x tier" = next_gc peak in [1.6, 2.4] x 10 GB; "tracks" = RSS peak within 15% of next_gc peak;
+    "substantially exceeds" = RSS peak > 1.2 x next_gc peak.
+  My prediction: GC model holds in D (RSS ~ next_gc ~ 18-22 GB); G0P largest RSS. If any arm is OOM-killed by the
+  24G cap, that is reported as RSS >= 24 GB.
+Cost $0.
