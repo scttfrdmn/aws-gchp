@@ -2570,3 +2570,24 @@ P22 (#317): one c8gn.48xlarge (us-east-1c, AL2023 ami-0ae8605ed708e3c3e, benchma
     on AL2023 (dnf).
   With a temp profile granting ONLY ec2:DescribeInstanceTypes: nic 600.0 Gbps (source=DescribeInstanceTypes), then
     source=cache(DescribeInstanceTypes) on rerun. Temp SG, IAM role and instance profile deleted; instance terminated.
+
+--- 5f-P23 PRE-REGISTRATION (lith#313 + #391, 05:12Z asks; v1.12.0 c1cba2483054; before any cell ran) ---
+v1.12.0 default: --prefetch-pressure-max 0 = 0.85 wherever the evidence gate is off, off where it is on. Arms:
+  A default (evidence on, pressure off); B --readahead-evidence-ratio -1 (pressure auto 0.85);
+  C --readahead-evidence-ratio -1 --prefetch-pressure-max -1 (both off; pre-v1.12.0 gate-off control).
+Two shapes (deviation, deliberate): S6 = upstream's suggested 6 concurrent var1 slice readers (A3dyn 07-02..07, MERRA2
+  2019/07) -- may never fill the default tier, so B ~ C on evictions there would NOT mean "not engaging"; D16 = 16
+  concurrent whole-object dd of GEOS-FP A3dyn 07-01..16 (the D375 shape upstream's expected numbers come from). Head
+  node, default --mem-cache (25% RAM, tier ~8.26 GB), --nic-gbps 50, 2 reps, arms interleaved, fresh mount per cell.
+  Per-reader completion times recorded; 2 Hz lith_prefetch_pressure + pressure_held_total; final evicted_unread;
+  the startup "prefetch admission" log line per arm.
+#313 criteria (upstream, as written): B peak pressure <= ~0.86 with unread evictions near 0 while C >> 1 with
+  thousands -> default works (expected C ~8.0 / ~2900, B ~0.855 / 0-4 on D16). B held_total climbing CONTINUOUSLY
+  (not start-then-flat) -> binding in steady state. B wall > 1.15 x C -> 0.85 too tight. B ~ C on evictions ->
+  not engaging (check admission line; pressure_max 0 in B = composition rule wrong).
+#391 criteria (spread = max/min per-reader completion): A ~1.05 and B ~2.3-3.1 -> premise confirmed; B ~ A ->
+  #391 wrong, closes. Operationalized: "B ~ A" iff B spread <= 1.5 x A spread.
+My predictions: D16 -- C collapses (evicted > 1000, pressure > 1.3); B pressure <= 0.86, evicted < 100, held flattens
+  after the start; B wall < C wall; spread A ~1.1, B 2.3-3.1 -> #391 confirmed. S6 -- tier never fills (pressure <<
+  0.85 in all arms), uninformative for #313.
+Cost $0.
