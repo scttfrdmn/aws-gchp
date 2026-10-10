@@ -1,0 +1,1 @@
+{"shape": "mmap_random", "ok": true, "tool_bytes": 12288000, "n_opens": 1, "detail": "3000 random 4 KiB page touches over 892331003 B (checksum 391765)", "wall_s": 117.454}

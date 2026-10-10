@@ -1,0 +1,1 @@
+{"shape": "kerchunk_read", "ok": true, "tool_bytes": 831744, "n_opens": 1, "detail": "U[time=3, lev=30] (361, 576) via kerchunk refs + zarr", "wall_s": 0.894}

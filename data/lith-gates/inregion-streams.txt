@@ -2676,3 +2676,18 @@ Predictions (smoke-informed, disclosed): > 2x on v1.12.0 -- kerchunk_scan (~29x,
   cog (was 22x), concurrent, webdataset, sqlite, kerchunk_read, mmap_random; tinyfiles amp<1 artifact. main vs v1.12.0:
   fits_header_cutout drops toward ~1-2x (#402); others unchanged within 10%.
 Cost $0 (head node; CloudTrail data events ~pennies).
+
+--- 5f-P25 RESULTS (#216, head node 15:05:42-15:20:41Z; deliverable data/lith-gates/p25/shape-sweep.csv) ---
+  52 lith rows (13 shapes x 2 reps x {v1.12.0, main}) + 24 cloudtrail rows. Reps byte-identical in every row.
+  Control (simultaneous lith-s3bench): TTFB p50 24-26 ms, ~98% <= 50 ms in every row -> steady endpoint.
+  Ledger: 24/24 staged rows MATCH lith GET + bytes exactly (first pass mis-attributed by time window; by key: exact).
+  amplification_x v1.12.0 / main (prior 09-16): kerchunk_scan 28.78 / 4.44 (new); grib_idx 5.07 / 5.07 (8.14);
+    zip 3.41 / 3.41 (3.33); fits 3.18 / 3.18 (4.76); hemco 2.20 / 1.93 (new); cog 1.54 (22.09); netcdf4 1.35 (92.52);
+    kerchunk_read 1.38; sqlite 1.01-1.05 (1.00); mmap 1.01 (1.92); concurrent 1.00; webdataset 1.00; tinyfiles 0.12 (artifact).
+  Mechanisms (pf-trace): kerchunk_scan v1.12 strided-branch whole-block dispatch on 8 KiB scattered metadata (80 issued /
+    6 used), fixed on main (#402; whole fills 83.9 -> 0 MB); grib + hemco M16-class (Sequential stretches inside fields/
+    chunks dispatch 8 MiB blocks past their ends; grib 48 issued / 2 used); fits = SEQUENTIAL 85% (kernel 128 KiB
+    readahead makes the 2 KiB-in-32 KiB row stride contiguous) so #402's strided fix cannot reach it; zip = cold, 0
+    dispatched, 1 MiB demand-chunk floor touching the whole 10 MB file.
+  Predictions: >2x set held (5/5); ~1x set held; "main fixes fits" FAILED (3.18 both); unexpected: main fixes kerchunk_scan.
+Cost $0 (+ CloudTrail data events, pennies). Trail + ledger bucket deleted.

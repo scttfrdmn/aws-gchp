@@ -1,0 +1,1 @@
+{"shape": "sqlite_random", "ok": true, "tool_bytes": null, "n_opens": 1, "detail": "1000 indexed point lookups (316 hits) + 5 range scans (10005 rows)", "wall_s": 7.169}

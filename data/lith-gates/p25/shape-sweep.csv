@@ -1,0 +1,97 @@
+# M17-A access-shape RE-SWEEP (#216), run 2026-10-10 by aws-gchp (pre-registered 5f-P25 in aws-gchp
+# data/lith-gates/inregion-streams.txt). Head node c7g.4xlarge, us-east-1, cold fresh mount per row (drop_caches),
+# --nic-gbps 15 explicit, otherwise default flags. TWO builds: lith v1.12.0 release (c1cba2483054) and main ba8c35d
+# (fa967b30e3f6, includes #402). 2 reps per shape per build; reps were byte-identical in every row.
+# Columns: the 2026-09-16 schema, plus: build, rep, utc_start, kernel_read_bytes (lith_read_size_bytes_sum: bytes the
+# kernel asked lith for), tool_bytes (bytes the TOOL asked for at its own API; DECODED size for compressed formats, so
+# amp_vs_tool < 1 there is expected), amp_vs_tool, n_opens, ctl_ttfb_p50_ms / ctl_le50_pct (a SIMULTANEOUS light
+# lith-s3bench control per row: 4 workers, 64 KiB, -warmup 1s; it read 24-26 ms / ~98% <= 50 ms in every row, so the
+# endpoint was steady through the sweep and wall_s is comparable across rows), ok (tool's own success check).
+# amplification_x = s3_bytes / distinct_bytes (distinct is counted in 64 KiB units, hence tinyfiles < 1).
+# DATASETS: public in-region anonymous -- GFS 20261009 00z pgrb2.0p25.f000 + .idx; GOES-19 ABI-L2-CMIPF C01 (GOES-16
+# retired); 1000genomes human_g1k_v37.fasta.gz; gcgrid MERRA2 A3dyn (kerchunk) and HEMCO CEDS/GFAS/EDGAR (GCHP).
+# Staged in aws-gchp's own bucket (signed), written by the real tools, seeded (sha256 in stage.sha256): cog 76 MB,
+# fits 257 MB, tar 17 MB (400 samples), sqlite 22 MB (300k rows), zip 9.9 MB (500 x 20 KiB stored), 300 x 8 KiB.
+# LEDGER: temporary CloudTrail data-event trail on the staged prefix only -> source=cloudtrail rows: all 24 staged
+# runs (6 shapes x 2 reps x 2 builds) MATCH lith's GET count and bytes exactly. Trail deleted after.
+# FINDINGS (> ~2x): kerchunk_scan 28.78x v1.12.0 -> 4.44x main (NEW shape; strided-branch whole-block dispatch on
+# scattered HDF5 metadata, fixed by #402); grib_idx 5.07x (M16 class, #221 residual); fits_header_cutout 3.18x on both
+# (detector says SEQUENTIAL 85%, not Strided -> #402 does not reach it; see #222); zip_seek_to_end 3.41x (detector cold,
+# 0 dispatched: 1 MiB demand-chunk floor, not #220's parts-fetch); hemco_timeslice 2.20x -> 1.93x main (M16 class).
+shape,source,build,rep,utc_start,get,list,s3_bytes,distinct_bytes,amplification_x,kernel_read_bytes,tool_bytes,amp_vs_tool,fill_whole,fill_demand,fill_plan,fill_demand_batch,pf_cold_pct,pf_seq_pct,pf_strided_pct,pf_random_pct,uncovered,pf_used,pf_issued,n_opens,wall_s,ctl_ttfb_p50_ms,ctl_le50_pct,ok,notes
+grib_idx,lith,v1.12.0,1,2026-10-10T15:05:43Z,75,0,62422091,12320768,5.07,11829248,10221443,6.11,50331648,12090443,0,0,11,14,0,75,69,2,48,2,3.05,24.9,99.3,True,12/12 fields decoded
+netcdf4_hyperslab,lith,v1.12.0,1,2026-10-10T15:05:49Z,21,0,7862494,5832704,1.35,5586944,131072,59.99,0,7862494,0,0,73,0,0,27,21,0,0,1,1.15,24.1,99.3,True,OR_ABI-L2-CMIPF-M6C01_G19_s20262810000210_e20262810009519_c20262810009578.nc CMI 10848x10848 slab 256x256 int16
+mmap_random,lith,v1.12.0,1,2026-10-10T15:05:54Z,2413,0,416277499,414056448,1.01,306253824,12288000,33.88,0,416277499,0,0,0,0,0,100,2413,0,0,1,142.025,24.4,99.1,True,3000 random 4 KiB page touches over 892331003 B (checksum 391765)
+concurrent_handles,lith,v1.12.0,1,2026-10-10T15:08:19Z,128,0,506698297,506658816,1.0,506634240,506632761,1.0,465541689,41156608,0,0,8,92,0,0,65,443,448,8,1.082,24.6,98.9,True,8 handles; contiguous 1/8 shares; 1 MiB reads
+cog_overview_window,lith,v1.12.0,1,2026-10-10T15:08:24Z,8,0,2818048,1835008,1.54,1695744,524288,5.38,0,2818048,0,0,29,0,0,71,8,0,0,1,1.14,25.4,97.4,True,overview factors [2; 4; 8; 16]; read 1/16 overview + 512x512 window (decoded pixel bytes)
+fits_header_cutout,lith,v1.12.0,1,2026-10-10T15:08:30Z,14,0,54525952,17170432,3.18,17055744,1051456,51.86,49283072,5242880,0,0,15,85,0,0,8,13,47,1,1.465,23.9,98.2,True,header (6 cards) + 512x512 float32 cutout via .section
+webdataset_stream,lith,v1.12.0,1,2026-10-10T15:08:35Z,19,0,17008640,17039360,1.0,17010688,17008640,1.0,7571456,9437184,0,0,51,49,0,0,17,8,8,1,1.018,25.3,98.8,True,400 samples; 16392690 payload B
+zip_seek_to_end,lith,v1.12.0,1,2026-10-10T15:08:41Z,12,0,10291022,3014656,3.41,1966080,409600,25.12,0,10158080,132942,0,100,0,0,0,10,0,0,1,0.518,25.7,98.3,True,central directory (500 entries) + 20 random entries
+tinyfiles_random,lith,v1.12.0,1,2026-10-10T15:08:46Z,300,0,2457600,19660800,0.12,2457600,2457600,1.0,212992,2244608,0,0,100,0,0,0,274,26,26,300,11.992,25.3,98.6,True,300 x 8 KiB; random order
+sqlite_random,lith,v1.12.0,1,2026-10-10T15:09:01Z,195,0,17092608,16842752,1.01,5877760,,,0,17092608,0,0,1,0,0,99,195,0,0,1,7.169,24.8,98.6,True,1000 indexed point lookups (316 hits) + 5 range scans (10005 rows)
+kerchunk_scan,lith,v1.12.0,1,2026-10-10T15:09:10Z,55,0,103743488,3604480,28.78,528384,,,83886080,19857408,0,0,25,0,20,55,45,6,80,1,5.967,24.7,98.8,True,2904 refs from HDF5 metadata walk
+kerchunk_read,lith,v1.12.0,1,2026-10-10T15:09:19Z,2,0,1179648,851968,1.38,786432,831744,1.42,0,1179648,0,0,100,0,0,0,2,0,0,1,0.919,24.5,99.3,True,U[time=3; lev=30] (361; 576) via kerchunk refs + zarr
+hemco_timeslice,lith,v1.12.0,1,2026-10-10T15:09:24Z,311,0,137277382,62390272,2.2,54411264,1425600000,0.1,74448896,62828486,0,0,30,12,6,53,302,11,71,3,18.782,24.5,98.2,True,55 vars; one time slice each; 3 HEMCO files
+grib_idx,lith,v1.12.0,2,2026-10-10T15:09:46Z,75,0,62422091,12320768,5.07,11829248,10221443,6.11,50331648,12090443,0,0,11,14,0,75,69,2,48,2,2.767,25.6,98.0,True,12/12 fields decoded
+netcdf4_hyperslab,lith,v1.12.0,2,2026-10-10T15:09:51Z,21,0,7862494,5832704,1.35,5586944,131072,59.99,0,7862494,0,0,73,0,0,27,21,0,0,1,1.029,24.1,98.4,True,OR_ABI-L2-CMIPF-M6C01_G19_s20262810000210_e20262810009519_c20262810009578.nc CMI 10848x10848 slab 256x256 int16
+mmap_random,lith,v1.12.0,2,2026-10-10T15:09:56Z,2413,0,416277499,414056448,1.01,306253824,12288000,33.88,0,416277499,0,0,0,0,0,100,2413,0,0,1,131.123,24.4,98.4,True,3000 random 4 KiB page touches over 892331003 B (checksum 391765)
+concurrent_handles,lith,v1.12.0,2,2026-10-10T15:12:10Z,137,0,506698297,506658816,1.0,506634240,506632761,1.0,459315769,47382528,0,0,8,92,0,0,76,438,441,8,0.898,24.8,98.6,True,8 handles; contiguous 1/8 shares; 1 MiB reads
+cog_overview_window,lith,v1.12.0,2,2026-10-10T15:12:15Z,8,0,2818048,1835008,1.54,1695744,524288,5.38,0,2818048,0,0,29,0,0,71,8,0,0,1,1.151,25.2,97.6,True,overview factors [2; 4; 8; 16]; read 1/16 overview + 512x512 window (decoded pixel bytes)
+fits_header_cutout,lith,v1.12.0,2,2026-10-10T15:12:21Z,14,0,54525952,17170432,3.18,17055744,1051456,51.86,49283072,5242880,0,0,15,85,0,0,8,13,47,1,1.404,25.0,98.8,True,header (6 cards) + 512x512 float32 cutout via .section
+webdataset_stream,lith,v1.12.0,2,2026-10-10T15:12:26Z,19,0,17008640,17039360,1.0,17010688,17008640,1.0,7571456,9437184,0,0,51,49,0,0,17,8,8,1,1.143,24.1,99.8,True,400 samples; 16392690 payload B
+zip_seek_to_end,lith,v1.12.0,2,2026-10-10T15:12:32Z,12,0,10291022,3014656,3.41,1966080,409600,25.12,0,10158080,132942,0,100,0,0,0,10,0,0,1,0.425,25.6,99.5,True,central directory (500 entries) + 20 random entries
+tinyfiles_random,lith,v1.12.0,2,2026-10-10T15:12:37Z,300,0,2457600,19660800,0.12,2457600,2457600,1.0,212992,2244608,0,0,100,0,0,0,274,26,26,300,11.058,25.4,97.1,True,300 x 8 KiB; random order
+sqlite_random,lith,v1.12.0,2,2026-10-10T15:12:51Z,188,0,17616896,16842752,1.05,5877760,,,0,17616896,0,0,1,0,0,99,188,0,0,1,5.667,24.2,99.8,True,1000 indexed point lookups (316 hits) + 5 range scans (10005 rows)
+kerchunk_scan,lith,v1.12.0,2,2026-10-10T15:12:59Z,57,0,103743488,3604480,28.78,528384,,,82837504,20905984,0,0,25,0,20,55,46,5,80,1,5.588,24.7,98.8,True,2904 refs from HDF5 metadata walk
+kerchunk_read,lith,v1.12.0,2,2026-10-10T15:13:07Z,2,0,1179648,851968,1.38,786432,831744,1.42,0,1179648,0,0,100,0,0,0,2,0,0,1,0.898,25.5,98.5,True,U[time=3; lev=30] (361; 576) via kerchunk refs + zarr
+hemco_timeslice,lith,v1.12.0,2,2026-10-10T15:13:12Z,314,0,137080774,62390272,2.2,54411264,1425600000,0.1,73400320,63680454,0,0,30,11,6,53,305,10,71,3,17.4,25.1,98.8,True,55 vars; one time slice each; 3 HEMCO files
+grib_idx,lith,main-ba8c35d,1,2026-10-10T15:13:33Z,75,0,62422091,12320768,5.07,11829248,10221443,6.11,50331648,12090443,0,0,11,14,0,75,69,2,48,2,3.09,24.4,98.6,True,12/12 fields decoded
+netcdf4_hyperslab,lith,main-ba8c35d,1,2026-10-10T15:13:38Z,21,0,7862494,5832704,1.35,5586944,131072,59.99,0,7862494,0,0,73,0,0,27,21,0,0,1,1.171,25.0,99.1,True,OR_ABI-L2-CMIPF-M6C01_G19_s20262810000210_e20262810009519_c20262810009578.nc CMI 10848x10848 slab 256x256 int16
+mmap_random,lith,main-ba8c35d,1,2026-10-10T15:13:44Z,2413,0,416277499,414056448,1.01,306253824,12288000,33.88,0,416277499,0,0,0,0,0,100,2413,0,0,1,120.842,24.3,99.3,True,3000 random 4 KiB page touches over 892331003 B (checksum 391765)
+concurrent_handles,lith,main-ba8c35d,1,2026-10-10T15:15:47Z,130,0,506698297,506658816,1.0,506634240,506632761,1.0,463510073,43188224,0,0,8,92,0,0,68,442,446,8,0.867,24.6,99.3,True,8 handles; contiguous 1/8 shares; 1 MiB reads
+cog_overview_window,lith,main-ba8c35d,1,2026-10-10T15:15:52Z,8,0,2818048,1835008,1.54,1695744,524288,5.38,0,2818048,0,0,29,0,0,71,8,0,0,1,1.177,24.9,98.6,True,overview factors [2; 4; 8; 16]; read 1/16 overview + 512x512 window (decoded pixel bytes)
+fits_header_cutout,lith,main-ba8c35d,1,2026-10-10T15:15:58Z,14,0,54525952,17170432,3.18,17055744,1051456,51.86,49283072,5242880,0,0,15,85,0,0,8,13,47,1,1.301,24.7,99.3,True,header (6 cards) + 512x512 float32 cutout via .section
+webdataset_stream,lith,main-ba8c35d,1,2026-10-10T15:16:03Z,19,0,17008640,17039360,1.0,17010688,17008640,1.0,7571456,9437184,0,0,51,49,0,0,17,8,8,1,1.086,25.3,98.1,True,400 samples; 16392690 payload B
+zip_seek_to_end,lith,main-ba8c35d,1,2026-10-10T15:16:09Z,12,0,10291022,3014656,3.41,1966080,409600,25.12,0,10158080,132942,0,100,0,0,0,10,0,0,1,0.405,24.8,98.5,True,central directory (500 entries) + 20 random entries
+tinyfiles_random,lith,main-ba8c35d,1,2026-10-10T15:16:14Z,300,0,2457600,19660800,0.12,2457600,2457600,1.0,212992,2244608,0,0,100,0,0,0,274,26,26,300,10.52,25.0,98.4,True,300 x 8 KiB; random order
+sqlite_random,lith,main-ba8c35d,1,2026-10-10T15:16:27Z,195,0,17092608,16842752,1.01,5877760,,,0,17092608,0,0,1,0,0,99,195,0,0,1,5.981,25.6,96.5,True,1000 indexed point lookups (316 hits) + 5 range scans (10005 rows)
+kerchunk_scan,lith,main-ba8c35d,1,2026-10-10T15:16:35Z,60,0,15990784,3604480,4.44,528384,,,0,15335424,0,0,25,0,20,55,50,0,10,1,5.364,24.5,98.6,True,2904 refs from HDF5 metadata walk
+kerchunk_read,lith,main-ba8c35d,1,2026-10-10T15:16:43Z,2,0,1179648,851968,1.38,786432,831744,1.42,0,1179648,0,0,100,0,0,0,2,0,0,1,0.894,25.1,99.5,True,U[time=3; lev=30] (361; 576) via kerchunk refs + zarr
+hemco_timeslice,lith,main-ba8c35d,1,2026-10-10T15:16:49Z,340,0,120369094,62390272,1.93,54411264,1425600000,0.08,57671680,62435270,0,0,30,11,6,53,331,8,58,3,17.604,24.9,98.6,True,55 vars; one time slice each; 3 HEMCO files
+grib_idx,lith,main-ba8c35d,2,2026-10-10T15:17:09Z,75,0,62422091,12320768,5.07,11829248,10221443,6.11,50331648,12090443,0,0,11,14,0,75,69,2,48,2,2.981,25.6,97.7,True,12/12 fields decoded
+netcdf4_hyperslab,lith,main-ba8c35d,2,2026-10-10T15:17:14Z,21,0,7862494,5832704,1.35,5586944,131072,59.99,0,7862494,0,0,73,0,0,27,21,0,0,1,1.104,26.0,99.3,True,OR_ABI-L2-CMIPF-M6C01_G19_s20262810000210_e20262810009519_c20262810009578.nc CMI 10848x10848 slab 256x256 int16
+mmap_random,lith,main-ba8c35d,2,2026-10-10T15:17:20Z,2413,0,416277499,414056448,1.01,306253824,12288000,33.88,0,416277499,0,0,0,0,0,100,2413,0,0,1,117.454,24.3,99.3,True,3000 random 4 KiB page touches over 892331003 B (checksum 391765)
+concurrent_handles,lith,main-ba8c35d,2,2026-10-10T15:19:20Z,131,0,506698297,506658816,1.0,506634240,506632761,1.0,462527033,44171264,0,0,8,92,0,0,70,441,445,8,0.841,24.2,99.3,True,8 handles; contiguous 1/8 shares; 1 MiB reads
+cog_overview_window,lith,main-ba8c35d,2,2026-10-10T15:19:25Z,8,0,2818048,1835008,1.54,1695744,524288,5.38,0,2818048,0,0,29,0,0,71,8,0,0,1,1.098,25.5,98.6,True,overview factors [2; 4; 8; 16]; read 1/16 overview + 512x512 window (decoded pixel bytes)
+fits_header_cutout,lith,main-ba8c35d,2,2026-10-10T15:19:31Z,14,0,54525952,17170432,3.18,17055744,1051456,51.86,49283072,5242880,0,0,15,85,0,0,8,13,47,1,1.467,25.2,99.3,True,header (6 cards) + 512x512 float32 cutout via .section
+webdataset_stream,lith,main-ba8c35d,2,2026-10-10T15:19:36Z,19,0,17008640,17039360,1.0,17010688,17008640,1.0,7571456,9437184,0,0,51,49,0,0,17,8,8,1,1.121,24.6,98.0,True,400 samples; 16392690 payload B
+zip_seek_to_end,lith,main-ba8c35d,2,2026-10-10T15:19:42Z,12,0,10291022,3014656,3.41,1966080,409600,25.12,0,10158080,132942,0,100,0,0,0,10,0,0,1,0.449,24.5,98.3,True,central directory (500 entries) + 20 random entries
+tinyfiles_random,lith,main-ba8c35d,2,2026-10-10T15:19:47Z,300,0,2457600,19660800,0.12,2457600,2457600,1.0,212992,2244608,0,0,100,0,0,0,274,26,26,300,9.812,24.3,97.8,True,300 x 8 KiB; random order
+sqlite_random,lith,main-ba8c35d,2,2026-10-10T15:20:00Z,188,0,17616896,16842752,1.05,5853184,,,0,17616896,0,0,1,0,0,99,188,0,0,1,6.379,24.7,99.1,True,1000 indexed point lookups (316 hits) + 5 range scans (10005 rows)
+kerchunk_scan,lith,main-ba8c35d,2,2026-10-10T15:20:08Z,60,0,15990784,3604480,4.44,528384,,,0,15335424,0,0,25,0,20,55,50,0,10,1,5.36,24.4,98.6,True,2904 refs from HDF5 metadata walk
+kerchunk_read,lith,main-ba8c35d,2,2026-10-10T15:20:16Z,2,0,1179648,851968,1.38,786432,831744,1.42,0,1179648,0,0,100,0,0,0,2,0,0,1,0.875,25.4,99.0,True,U[time=3; lev=30] (361; 576) via kerchunk refs + zarr
+hemco_timeslice,lith,main-ba8c35d,2,2026-10-10T15:20:22Z,342,0,120106950,62390272,1.93,54411264,1425600000,0.08,56623104,63221702,0,0,30,11,6,53,333,7,58,3,17.729,24.5,98.4,True,55 vars; one time slice each; 3 HEMCO files
+cog_overview_window,cloudtrail,v1.12.0,1,2026-10-10T15:08:24Z,8,,2818048,,,,,,,,,,,,,,,,,,,,,,ledger: GET 8 vs lith 8; bytes 2818048 vs lith 2818048 -> MATCH
+fits_header_cutout,cloudtrail,v1.12.0,1,2026-10-10T15:08:30Z,14,,54525952,,,,,,,,,,,,,,,,,,,,,,ledger: GET 14 vs lith 14; bytes 54525952 vs lith 54525952 -> MATCH
+webdataset_stream,cloudtrail,v1.12.0,1,2026-10-10T15:08:35Z,19,,17008640,,,,,,,,,,,,,,,,,,,,,,ledger: GET 19 vs lith 19; bytes 17008640 vs lith 17008640 -> MATCH
+zip_seek_to_end,cloudtrail,v1.12.0,1,2026-10-10T15:08:41Z,12,,10291022,,,,,,,,,,,,,,,,,,,,,,ledger: GET 12 vs lith 12; bytes 10291022 vs lith 10291022 -> MATCH
+tinyfiles_random,cloudtrail,v1.12.0,1,2026-10-10T15:08:46Z,300,,2457600,,,,,,,,,,,,,,,,,,,,,,ledger: GET 300 vs lith 300; bytes 2457600 vs lith 2457600 -> MATCH
+sqlite_random,cloudtrail,v1.12.0,1,2026-10-10T15:09:01Z,195,,17092608,,,,,,,,,,,,,,,,,,,,,,ledger: GET 195 vs lith 195; bytes 17092608 vs lith 17092608 -> MATCH
+cog_overview_window,cloudtrail,v1.12.0,2,2026-10-10T15:12:15Z,8,,2818048,,,,,,,,,,,,,,,,,,,,,,ledger: GET 8 vs lith 8; bytes 2818048 vs lith 2818048 -> MATCH
+fits_header_cutout,cloudtrail,v1.12.0,2,2026-10-10T15:12:21Z,14,,54525952,,,,,,,,,,,,,,,,,,,,,,ledger: GET 14 vs lith 14; bytes 54525952 vs lith 54525952 -> MATCH
+webdataset_stream,cloudtrail,v1.12.0,2,2026-10-10T15:12:26Z,19,,17008640,,,,,,,,,,,,,,,,,,,,,,ledger: GET 19 vs lith 19; bytes 17008640 vs lith 17008640 -> MATCH
+zip_seek_to_end,cloudtrail,v1.12.0,2,2026-10-10T15:12:32Z,12,,10291022,,,,,,,,,,,,,,,,,,,,,,ledger: GET 12 vs lith 12; bytes 10291022 vs lith 10291022 -> MATCH
+tinyfiles_random,cloudtrail,v1.12.0,2,2026-10-10T15:12:37Z,300,,2457600,,,,,,,,,,,,,,,,,,,,,,ledger: GET 300 vs lith 300; bytes 2457600 vs lith 2457600 -> MATCH
+sqlite_random,cloudtrail,v1.12.0,2,2026-10-10T15:12:51Z,188,,17616896,,,,,,,,,,,,,,,,,,,,,,ledger: GET 188 vs lith 188; bytes 17616896 vs lith 17616896 -> MATCH
+cog_overview_window,cloudtrail,main-ba8c35d,1,2026-10-10T15:15:52Z,8,,2818048,,,,,,,,,,,,,,,,,,,,,,ledger: GET 8 vs lith 8; bytes 2818048 vs lith 2818048 -> MATCH
+fits_header_cutout,cloudtrail,main-ba8c35d,1,2026-10-10T15:15:58Z,14,,54525952,,,,,,,,,,,,,,,,,,,,,,ledger: GET 14 vs lith 14; bytes 54525952 vs lith 54525952 -> MATCH
+webdataset_stream,cloudtrail,main-ba8c35d,1,2026-10-10T15:16:03Z,19,,17008640,,,,,,,,,,,,,,,,,,,,,,ledger: GET 19 vs lith 19; bytes 17008640 vs lith 17008640 -> MATCH
+zip_seek_to_end,cloudtrail,main-ba8c35d,1,2026-10-10T15:16:09Z,12,,10291022,,,,,,,,,,,,,,,,,,,,,,ledger: GET 12 vs lith 12; bytes 10291022 vs lith 10291022 -> MATCH
+tinyfiles_random,cloudtrail,main-ba8c35d,1,2026-10-10T15:16:14Z,300,,2457600,,,,,,,,,,,,,,,,,,,,,,ledger: GET 300 vs lith 300; bytes 2457600 vs lith 2457600 -> MATCH
+sqlite_random,cloudtrail,main-ba8c35d,1,2026-10-10T15:16:27Z,195,,17092608,,,,,,,,,,,,,,,,,,,,,,ledger: GET 195 vs lith 195; bytes 17092608 vs lith 17092608 -> MATCH
+cog_overview_window,cloudtrail,main-ba8c35d,2,2026-10-10T15:19:25Z,8,,2818048,,,,,,,,,,,,,,,,,,,,,,ledger: GET 8 vs lith 8; bytes 2818048 vs lith 2818048 -> MATCH
+fits_header_cutout,cloudtrail,main-ba8c35d,2,2026-10-10T15:19:31Z,14,,54525952,,,,,,,,,,,,,,,,,,,,,,ledger: GET 14 vs lith 14; bytes 54525952 vs lith 54525952 -> MATCH
+webdataset_stream,cloudtrail,main-ba8c35d,2,2026-10-10T15:19:36Z,19,,17008640,,,,,,,,,,,,,,,,,,,,,,ledger: GET 19 vs lith 19; bytes 17008640 vs lith 17008640 -> MATCH
+zip_seek_to_end,cloudtrail,main-ba8c35d,2,2026-10-10T15:19:42Z,12,,10291022,,,,,,,,,,,,,,,,,,,,,,ledger: GET 12 vs lith 12; bytes 10291022 vs lith 10291022 -> MATCH
+tinyfiles_random,cloudtrail,main-ba8c35d,2,2026-10-10T15:19:47Z,300,,2457600,,,,,,,,,,,,,,,,,,,,,,ledger: GET 300 vs lith 300; bytes 2457600 vs lith 2457600 -> MATCH
+sqlite_random,cloudtrail,main-ba8c35d,2,2026-10-10T15:20:00Z,188,,17616896,,,,,,,,,,,,,,,,,,,,,,ledger: GET 188 vs lith 188; bytes 17616896 vs lith 17616896 -> MATCH

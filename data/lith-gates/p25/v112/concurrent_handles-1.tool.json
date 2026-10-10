@@ -1,0 +1,1 @@
+{"shape": "concurrent_handles", "ok": true, "tool_bytes": 506632761, "n_opens": 8, "detail": "8 handles, contiguous 1/8 shares, 1 MiB reads", "wall_s": 1.082}
