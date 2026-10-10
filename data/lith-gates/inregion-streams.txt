@@ -2650,3 +2650,29 @@ Cost $0. All namespaces, veths, the bridge and mounts removed by the harness's E
   Harness: K network namespaces on a private bridge (each its own IP; gateway keys clients by host IP, no UMNT handler,
     so one MOUNT registers for --client-idle); all removed on exit (verified: 0 netns, no bridge, no mounts).
 Cost $0.
+
+--- 5f-P25 PRE-REGISTRATION (lith#216 access-shape re-sweep; user-approved "best results"; written after an UNSCORED
+    smoke pass (2026-10-10 14:58-15:03Z, data not used) that was run only to debug the tool scripts) ---
+Box: head node c7g.4xlarge, us-east-1, --nic-gbps 15 explicit (prior sweep: c8gd.2xlarge; amplification is a byte
+  ratio and box-independent, wall is not). Binaries: lith v1.12.0 release (c1cba2483054) AND lith main ba8c35d
+  (fa967b30e3f6; contains #402 FITS strided fix, after v1.12.0). Default flags otherwise.
+Tools (real, /scratch/sweepenv py3.12): eccodes 2.49, netCDF4, rasterio 1.5.2/GDAL 3.12.2, astropy 8.0.1, webdataset,
+  zipfile, sqlite3, kerchunk 0.2.7 + zarr 2.18.7 (numpy pinned 2.3.5: numpy>=2.4 makes kerchunk silently skip data vars).
+Shapes (13): the prior sweep's 10 -- grib_idx (GFS 20261009 f000 + .idx, 12 fields decoded), netcdf4_hyperslab (GOES-19
+  C01, GOES-16 retired), mmap_random (1000genomes fasta.gz, 3000 x 4 KiB), concurrent_handles (8 x 1/8 of the GFS grib),
+  cog_overview_window, fits_header_cutout, webdataset_stream, zip_seek_to_end, tinyfiles_random, sqlite_random (staged,
+  own bucket, signed, real-tool-written, seeded) -- plus kerchunk_scan (HDF5 metadata walk of MERRA2 A3dyn), kerchunk_read
+  (one U slice via refs + zarr), hemco_timeslice (GCHP: one time slice of every var in CEDS/GFAS/EDGAR netCDF-4).
+Protocol: per row a fresh cold mount (drop_caches first), --pf-trace, pre/post scrape; a SIMULTANEOUS light control
+  (lith-s3bench 4 workers, 64 KiB, -warmup 1s) reports endpoint TTFB p50 and <=50 ms per row; 2 reps per binary.
+  Columns = prior schema + rep, utc_start, kernel_read_bytes, tool_bytes (bytes the tool asked for; DECODED size for
+  compressed formats), amp_vs_tool, n_opens, ctl_ttfb_p50_ms, ctl_le50_pct, ok. CloudTrail ledger: temporary trail
+  lith-sweep-216 logging GetObject on gchp-shared-storage-us-east-1/lith-sweep/ only -> GET/bytes cross-check of the six
+  staged rows (as the prior sweep did for cog+sqlite); trail + log bucket deleted after.
+Scoring (upstream's): any row with amplification_x > ~2 or a fill-kind split wrong for the shape -> one issue per row,
+  stating whether it is the M16 gap-in-block-space class or new. Rows that look fine are results too.
+Predictions (smoke-informed, disclosed): > 2x on v1.12.0 -- kerchunk_scan (~29x, NEW candidate: HDF5 metadata walk),
+  grib_idx (~5x), fits_header_cutout (~3.7x), zip_seek_to_end (~3.4x), hemco_timeslice (~2.2x); ~1x -- netcdf4 (was 92x),
+  cog (was 22x), concurrent, webdataset, sqlite, kerchunk_read, mmap_random; tinyfiles amp<1 artifact. main vs v1.12.0:
+  fits_header_cutout drops toward ~1-2x (#402); others unchanged within 10%.
+Cost $0 (head node; CloudTrail data events ~pennies).
