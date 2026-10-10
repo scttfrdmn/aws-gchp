@@ -1,0 +1,15 @@
+{"time":"2026-10-10T23:11:46.156756302Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.030127217,"keys_per_sec":7202.789424592387}
+{"time":"2026-10-10T23:11:46.156962598Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-10T23:11:46.156989521Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"--nic-gbps"}
+{"time":"2026-10-10T23:11:46.19657305Z","level":"INFO","msg":"inflight-bytes budget","budget":"1250000000 bytes (2 × 50.0 Gbps baseline × 100 ms)"}
+{"time":"2026-10-10T23:11:46.1966077Z","level":"INFO","msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"}
+{"time":"2026-10-10T23:11:46.196761666Z","level":"INFO","msg":"lith NFSv3 gateway","listen":"10.250.0.1:12049","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","keys":217,"root_id":"1f2961dae350a539","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=12049,mountport=12049,nolock <host>:/ /mnt
+{"time":"2026-10-10T23:11:47.097574288Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.225427578Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.355325478Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.485619471Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.57693633Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.725003759Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.866779819Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:47.961988847Z","level":"ERROR","msg":"No handler for 100227.0"}

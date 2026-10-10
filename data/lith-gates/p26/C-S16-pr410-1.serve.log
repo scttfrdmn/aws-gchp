@@ -1,0 +1,23 @@
+{"time":"2026-10-10T23:13:45.399450067Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.030278345,"keys_per_sec":7166.838213911626}
+{"time":"2026-10-10T23:13:45.399645446Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-10T23:13:45.399675072Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"--nic-gbps"}
+{"time":"2026-10-10T23:13:45.534031389Z","level":"INFO","msg":"inflight-bytes budget","budget":"1250000000 bytes (2 × 50.0 Gbps baseline × 100 ms)"}
+{"time":"2026-10-10T23:13:45.534064365Z","level":"INFO","msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"}
+{"time":"2026-10-10T23:13:45.534231862Z","level":"INFO","msg":"lith NFSv3 gateway","listen":"10.250.0.1:12049","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","keys":217,"root_id":"1f2961dae350a539","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=12049,mountport=12049,nolock <host>:/ /mnt
+{"time":"2026-10-10T23:13:46.352026501Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.352304514Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.353356894Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.353414804Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.353919388Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.353926139Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.354080758Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.353810373Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.35423793Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.354300925Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.354732534Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.354740319Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.355288785Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.356648822Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.366249524Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:13:46.562973351Z","level":"ERROR","msg":"No handler for 100227.0"}

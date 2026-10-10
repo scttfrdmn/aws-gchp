@@ -2709,3 +2709,20 @@ Part C (Q3, N streaming namespaces): S8 / S16 = 8 / 16 namespaces each dd-ing a 
   N, so pr410 ~ main is EXPECTED here; a difference would itself be a finding.
   Predictions: pr410 ~ main (aggregate within 10%); peak pressure < 0.85, holds ~0 (divisor keeps windows small).
 Cost $0; namespaces/bridge removed by the EXIT trap.
+
+--- 5f-P26 RESULTS (#337, head node 23:09:33-23:16:15Z; netns rig; raw data/lith-gates/p26/) ---
+Part A (Q2) K0 MB/s, 5 reps: v1.11.0 1225 1343 1379 1348 1343 (median 1343); v1.12.0 1266 1269 1303 1383 1331 (median
+  1303). 3.0% apart, ranges overlap -> NOT CHANGED (#393 cost nothing measurable). Prediction held.
+Part B (#410 ladder) MB/s rep1/rep2, bytes identical in all 12 cells (3.777 GB, 458 GETs, issued == used == 3594):
+  K0  main 1265/1355  pr410 1310/1320  | K7 main 1388/1348  pr410 1199/1287 | K47 main 808/797  pr410 1386/1333
+  -> pr410 K47 >= 0.9 x pr410 K0 (1.06 / 1.01): FIXED. pr410 K0 >= 1200 and ~= main K0: no bad outcome; no waste.
+  (main K47 808/797 is better than v1.12.0's 519/558 in P24 but still ~0.6 x K0.) pr410 K7 -8% / -5% vs main: noise-level,
+  flagged. Prediction held except main K47 (~540 predicted, 800 measured).
+Part C (Q3) S8 / S16 streaming namespaces, main vs pr410: aggregate 1783-1836 MB/s everywhere (link-bound at ~15 Gbps);
+  spread 1.02-1.16; bytes identical (29.946 / 60.077 GB, issued == used); held 0 in all 8 cells -> the gate was never
+  reached, so "does the 0.85 band transfer" is NOT ANSWERABLE on this box.
+  Peak lith_prefetch_pressure: main 0.498-0.545 (at t=1.5-2.0 s); pr410 0.537-0.830, peak at t=0.5 s in every pr410
+  cell (S16: 0.830 / 0.704) -> #410 introduces a START TRANSIENT: a path counts as a reader only after its first read,
+  so N new streams briefly share a small divisor. Below the gate here (0.83 vs 0.85); on a fatter NIC it would bind.
+  Prediction "pr410 ~ main" held for throughput/bytes; FAILED for peak pressure.
+Cost $0; namespaces/bridge removed (verified 0/0).

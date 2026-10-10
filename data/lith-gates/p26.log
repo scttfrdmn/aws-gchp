@@ -1,0 +1,36 @@
+=== gate 5f-P26 2026-10-10T23:09:33Z v111=51234db1e082 v112=c1cba2483054 main=be90b074ab93 pr410=d15ccf49f210
+--- Part A (Q2)
+CELL A-v111-1 wall=3.08s MB/s=1225 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v112-1 wall=2.98s MB/s=1266 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v111-2 wall=2.81s MB/s=1343 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v112-2 wall=2.98s MB/s=1269 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v111-3 wall=2.74s MB/s=1379 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v112-3 wall=2.90s MB/s=1303 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v111-4 wall=2.80s MB/s=1348 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v112-4 wall=2.73s MB/s=1383 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v111-5 wall=2.81s MB/s=1343 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+CELL A-v112-5 wall=2.84s MB/s=1331 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=NA
+--- Part B (#410 ladder)
+CELL B-K0-main-1 wall=2.98s MB/s=1265 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=0.098
+CELL B-K0-pr410-1 wall=2.88s MB/s=1310 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=0.098
+CELL B-K7-main-1 wall=2.72s MB/s=1388 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=8 peak_pressure=0.063
+CELL B-K7-pr410-1 wall=3.15s MB/s=1199 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=8 peak_pressure=0.098
+CELL B-K47-main-1 wall=4.67s MB/s=808 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=48 peak_pressure=0.011
+CELL B-K47-pr410-1 wall=2.73s MB/s=1386 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=48 peak_pressure=0.098
+CELL B-K0-main-2 wall=2.79s MB/s=1355 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=0.098
+CELL B-K0-pr410-2 wall=2.86s MB/s=1320 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=0.098
+CELL B-K7-main-2 wall=2.80s MB/s=1348 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=8 peak_pressure=0.063
+CELL B-K7-pr410-2 wall=2.93s MB/s=1287 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=8 peak_pressure=0.098
+CELL B-K47-main-2 wall=4.74s MB/s=797 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=48 peak_pressure=0.011
+CELL B-K47-pr410-2 wall=2.83s MB/s=1333 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=48 peak_pressure=0.098
+--- Part C (Q3 streaming)
+CELL C-S8-main-1 streams=8/8 wall=16.7s agg_MB/s=1805 spread=1.06 s3_GB=29.946 GETs=3631 issued=28498 used=28498 held=0 nfs_clients=8 peak_pressure=0.502 held_in_first20pct=0/0
+CELL C-S8-pr410-1 streams=8/8 wall=16.7s agg_MB/s=1810 spread=1.02 s3_GB=29.946 GETs=3631 issued=28498 used=28498 held=0 nfs_clients=8 peak_pressure=0.537 held_in_first20pct=0/0
+CELL C-S16-main-1 streams=16/16 wall=33.5s agg_MB/s=1803 spread=1.04 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.545 held_in_first20pct=0/0
+CELL C-S16-pr410-1 streams=16/16 wall=33.5s agg_MB/s=1803 spread=1.06 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.830 held_in_first20pct=0/0
+CELL C-S8-main-2 streams=8/8 wall=16.9s agg_MB/s=1783 spread=1.09 s3_GB=29.946 GETs=3631 issued=28498 used=28498 held=0 nfs_clients=8 peak_pressure=0.514 held_in_first20pct=0/0
+CELL C-S8-pr410-2 streams=8/8 wall=16.8s agg_MB/s=1796 spread=1.08 s3_GB=29.946 GETs=3631 issued=28498 used=28498 held=0 nfs_clients=8 peak_pressure=0.617 held_in_first20pct=0/0
+CELL C-S16-main-2 streams=16/16 wall=32.9s agg_MB/s=1836 spread=1.05 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.498 held_in_first20pct=0/0
+CELL C-S16-pr410-2 streams=16/16 wall=33.7s agg_MB/s=1795 spread=1.16 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.704 held_in_first20pct=0/0
+=== done 2026-10-10T23:16:15Z
+cleanup done: netns=0 bridge=0

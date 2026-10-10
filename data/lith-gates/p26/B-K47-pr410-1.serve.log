@@ -1,0 +1,55 @@
+{"time":"2026-10-10T23:11:21.090895612Z","level":"INFO","msg":"listing complete","keys":217,"seconds":0.024400227,"keys_per_sec":8893.359885545327}
+{"time":"2026-10-10T23:11:21.091104224Z","level":"INFO","msg":"index built","keys":217,"dirs":1,"dropped":0,"shadowed":0,"collisions":0}
+{"time":"2026-10-10T23:11:21.091131691Z","level":"INFO","msg":"nic bandwidth","baseline_gbps":50,"peak_gbps":50,"source":"--nic-gbps"}
+{"time":"2026-10-10T23:11:21.126581289Z","level":"INFO","msg":"inflight-bytes budget","budget":"1250000000 bytes (2 × 50.0 Gbps baseline × 100 ms)"}
+{"time":"2026-10-10T23:11:21.126617119Z","level":"INFO","msg":"prefetch admission","evidence_ratio":0,"pressure_max":0.85,"note":"the gateway has no evidence gate"}
+{"time":"2026-10-10T23:11:21.126786357Z","level":"INFO","msg":"lith NFSv3 gateway","listen":"10.250.0.1:12049","bucket":"gcgrid","prefix":"GEOS_0.25x0.3125/GEOS_FP/2019/07","keys":217,"root_id":"1f2961dae350a539","portmap":false}
+mount with: sudo mount -t nfs -o vers=3,proto=tcp,port=12049,mountport=12049,nolock <host>:/ /mnt
+{"time":"2026-10-10T23:11:22.039812241Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.205442273Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.315081276Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.435339443Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.545509822Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.67575978Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.825485346Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:22.955811675Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.065387935Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.185074958Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.285283673Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.425006329Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.564994Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.725565472Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.834922557Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:23.956209337Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.125015374Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.255479678Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.414727776Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.545222647Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.675183865Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.815185058Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:24.985681833Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.125489247Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.29545409Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.434811473Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.535132495Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.655644766Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.81506037Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:25.945620743Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.105035183Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.215799502Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.395377979Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.515793974Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.64519326Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.785807969Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:26.935406155Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:27.075464417Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:27.225214197Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:27.375185193Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:27.52564308Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:27.675171546Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:27.856391924Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:28.025145545Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:28.185468424Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:28.325061989Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:28.445224436Z","level":"ERROR","msg":"No handler for 100227.0"}
+{"time":"2026-10-10T23:11:28.621544807Z","level":"ERROR","msg":"No handler for 100227.0"}
