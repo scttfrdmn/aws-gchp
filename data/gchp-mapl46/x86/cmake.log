@@ -1,0 +1,164 @@
+-- The Fortran compiler identification is GNU 12.2.0
+-- The CXX compiler identification is GNU 12.2.0
+-- The C compiler identification is GNU 12.2.0
+-- Detecting Fortran compiler ABI info
+-- Detecting Fortran compiler ABI info - done
+-- Check for working Fortran compiler: /sw/openmpi-4.1.7/bin/mpifort - skipped
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /sw/openmpi-4.1.7/bin/mpicxx - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /sw/openmpi-4.1.7/bin/mpicc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found NetCDF: /sw/netcdf-fortran-4.6.0/lib/libnetcdff.so  
+-- Found ESMF: /sw/esmf-8.6.1/include (found version "8.6.1") 
+-- Found MPI_C: /sw/openmpi-4.1.7/bin/mpicc (found version "3.1") 
+-- Found MPI_CXX: /sw/openmpi-4.1.7/bin/mpicxx (found version "3.1") 
+-- Found MPI_Fortran: /sw/openmpi-4.1.7/bin/mpifort (found version "3.1") 
+-- Found MPI: TRUE (found version "3.1")  
+-- Found Git: /usr/bin/git (found version "2.50.1") 
+-- Performing Test C_FLAG_TEST_1
+-- Performing Test C_FLAG_TEST_1 - Success
+-- Performing Test CXX_FLAG_TEST_1
+-- Performing Test CXX_FLAG_TEST_1 - Success
+-- Looking for sys/types.h
+-- Looking for sys/types.h - found
+-- Looking for stdint.h
+-- Looking for stdint.h - found
+-- Looking for stddef.h
+-- Looking for stddef.h - found
+-- Check size of void*
+-- Check size of void* - done
+-- Check size of off_t
+-- Check size of off_t - done
+-- Performing Test FORTRAN_COMPILER_SUPPORTS_ASSUMED_TYPE
+-- Performing Test FORTRAN_COMPILER_SUPPORTS_ASSUMED_TYPE: SUCCESS
+-- Performing Test FORTRAN_COMPILER_SUPPORTS_FINDLOC
+-- Performing Test FORTRAN_COMPILER_SUPPORTS_FINDLOC: SUCCESS
+-- Found OpenMP_C: -fopenmp (found version "4.5") 
+-- Found OpenMP_CXX: -fopenmp (found version "4.5") 
+-- Found OpenMP_Fortran: -fopenmp (found version "4.5") 
+-- Found OpenMP: TRUE (found version "4.5")  
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Could NOT find MKL (missing: MKL_LIBRARIES MKL_INCLUDE_DIRS) 
+-- Looking for Fortran sgemm
+-- Looking for Fortran sgemm - not found
+-- Could NOT find BLAS (missing: BLAS_LIBRARIES) 
+-- Could NOT find LAPACK (missing: LAPACK_LIBRARIES) 
+    Reason given by package: LAPACK could not be found because dependency BLAS could not be found.
+
+-- Could NOT find BLAS (missing: BLAS_LIBRARIES) 
+-- Could NOT find ImageMagick (missing: ImageMagick_mogrify_EXECUTABLE) 
+-- NOTE: ImageMagick was not found. This will prevent using LaTeX and some postprocessing utilities from running, but does not affect the build
+-- Could NOT find LATEX (missing: LATEX_COMPILER) 
+-- Found MPI: TRUE (found version "3.1") found components: C CXX Fortran 
+-- cpp is /sw/gcc-12.2.0/bin/cpp
+-- /scratch/gchp-mapl46/GCHP/src/GFE/gFTL
+-- Performing Test _LOGICAL_DEFAULT_KIND: SUCCESS (value=4)
+-- Performing Test _INT_DEFAULT_KIND: SUCCESS (value=4)
+-- Performing Test _ISO_INT8: SUCCESS (value=1)
+-- Performing Test _ISO_INT16: SUCCESS (value=2)
+-- Performing Test _ISO_INT32: SUCCESS (value=4)
+-- Performing Test _ISO_INT64: SUCCESS (value=8)
+-- Performing Test _REAL_DEFAULT_KIND: SUCCESS (value=4)
+-- Performing Test _DOUBLE_DEFAULT_KIND: SUCCESS (value=8)
+-- Performing Test _ISO_REAL32: SUCCESS (value=4)
+-- Performing Test _ISO_REAL64: SUCCESS (value=8)
+-- Performing Test _ISO_REAL128: SUCCESS (value=16)
+-- Using target 'GFTL::gftl'
+-- /scratch/gchp-mapl46/GCHP/src/GFE/gFTL
+-- Using target 'GFTL_SHARED::gftl-shared-v2'
+-- /scratch/gchp-mapl46/GCHP/src/GFE/fArgParse
+-- /scratch/gchp-mapl46/GCHP/src/GFE/yaFyaml
+-- Performing Test SUPPORT_FOR_ASSUMED_TYPE
+-- Performing Test SUPPORT_FOR_ASSUMED_TYPE: SUCCESS
+-- Performing Test SUPPORT_FOR_C_LOC_ASSUMED_SIZE
+-- Performing Test SUPPORT_FOR_C_LOC_ASSUMED_SIZE: FAILURE
+-- Performing Test SUPPORT_FOR_MPI_ALLOC_MEM_CPTR
+-- Performing Test SUPPORT_FOR_MPI_ALLOC_MEM_CPTR: SUCCESS
+-- Performing Test _ISO_REAL32: SUCCESS (value=4)
+-- Performing Test _ISO_REAL64: SUCCESS (value=8)
+-- Performing Test _ISO_REAL128: SUCCESS (value=16)
+-- Could NOT find Doxygen (missing: DOXYGEN_EXECUTABLE) 
+-- /scratch/gchp-mapl46/GCHP/src/GFE/pFlogger
+-- Building MAPL as STATIC libraries
+-- Found gFTL: /scratch/gchp-mapl46/GCHP/src/GFE/gFTL (found version )
+-- Found gFTL-shared: /scratch/gchp-mapl46/GCHP/src/GFE/gFTL (found version )
+-- Building with fArgParse
+-- Found fArgParse: /scratch/gchp-mapl46/GCHP/src/GFE/fArgParse (found version )
+-- Building with ExtData2G
+-- Building with pFlogger
+-- Found pFlogger: /scratch/gchp-mapl46/GCHP/src/GFE/pFlogger (found version )
+-- Found MPI: TRUE (found version "3.1")  
+-- HDF5 C compiler wrapper is unable to compile a minimal HDF5 program.
+-- Found HDF5: /sw/hdf5-1.14.0/lib/libhdf5.so (found version "1.14.0")  
+-- Found esmf.mk file /sw/esmf-8.6.1/lib/libO/Linux.gfortran.64.openmpi.default/esmf.mk
+-- Found ESMF: /sw/esmf-8.6.1/lib/libO/Linux.gfortran.64.openmpi.default/libesmf.so (found suitable version "8.6.1", minimum required is "8.6.1") 
+-- Found Perl: /usr/bin/perl (found version "5.32.1") 
+-- Performing Test SUPPORT_FOR_ASSUMED_TYPE
+-- Performing Test SUPPORT_FOR_ASSUMED_TYPE: SUCCESS
+-- Performing Test SUPPORT_FOR_C_LOC_ASSUMED_SIZE
+-- Performing Test SUPPORT_FOR_C_LOC_ASSUMED_SIZE: SUCCESS
+-- Performing Test SUPPORT_FOR_MPI_ALLOC_MEM_CPTR
+-- Performing Test SUPPORT_FOR_MPI_ALLOC_MEM_CPTR: SUCCESS
+-- Performing Test SUPPORT_FOR_MPI_IERROR_KEYWORD
+-- Performing Test SUPPORT_FOR_MPI_IERROR_KEYWORD: SUCCESS
+-- Found udunits: /sw/udunits-2.2.28/lib/libudunits2.so  
+-- Found EXPAT: /usr/lib64/libexpat.so (found version "2.8.3") 
+-- Performing Test NETCDF_HAS_QUANTIZE
+-- Performing Test NETCDF_HAS_QUANTIZE - Success
+-- netCDF has quantize capability
+-- Performing Test NETCDF_HAS_ZSTD
+-- Performing Test NETCDF_HAS_ZSTD - Failed
+-- netCDF does not have zstandard capability
+fatal: No names found, cannot describe anything.
+=================================================================
+Cloud-J 8.0.2
+Current status: 
+=================================================================
+=================================================================
+HETP 1.0
+=================================================================
+fatal: No tags can describe '07da3c29fd85abc3824cb6288578b0b68c2395a3'.
+Try --always, or create some tags.
+=================================================================
+HEMCO 3.12.1
+Current status: 
+=================================================================
+fatal: No tags can describe 'b9f570e2c7a98b308004cd07e2985a12a47b6f5c'.
+Try --always, or create some tags.
+=================================================================
+GEOS-Chem 14.7.1 (science codebase)
+Current status: 
+=================================================================
+-- KPP integrator (read from fullchem.kpp):
+  + KPP_INTEGRATOR_NAME:	  rosenbrock_autoreduce
+  * KPP_INTEGRATOR_AUTOREDUCE:	  [32mON[m  OFF
+-- Settings:
+  * MECH:	  [32mfullchem[m  carbon  custom
+  * OMP:	  ON  [32mOFF[m
+  * USE_REAL8:	  [32mON[m  OFF
+  * APM:	  ON  [32mOFF[m
+  * TOMAS:	  ON  [32mOFF[m
+  * RRTMG:	  ON  [32mOFF[m
+  * GTMM:	  ON  [32mOFF[m
+  * LUO_WETDEP:	  ON  [32mOFF[m
+  * FASTJX:	  ON  [32mOFF[m
+  * KPPSA:	  ON  [32mOFF[m
+  * JACOBIAN:	  ON  [32mOFF[m
+  * MPI_LOAD_BALANCE:	  [32mON[m  OFF
+-- Configuring done (14.5s)
+-- Generating done (0.9s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    HDF5_C_LIBRARY_hdf5
+
+
+-- Build files have been written to: /scratch/gchp-mapl46/GCHP/build

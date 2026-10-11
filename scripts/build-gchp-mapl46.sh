@@ -4,7 +4,7 @@
 # src/MAPL and rebuild incrementally. Both binaries come from one tree with one cmake configure,
 # so the only difference between them is MAPL_Cap.F90.
 # Same cmake recipe as build-instrumented-gchp.sh, with no instrumentation patches.
-#   out: $W/gchp-stock  $W/gchp-pr46  (+ build logs)
+#   out: $W/gchp-stock  $W/gchp-pr46  $W/gchp-pr46fin (variant C: + MPI_Finalize before _exit)  (+ build logs)
 set -eo pipefail
 
 STACK=/sw
@@ -19,8 +19,15 @@ export OMPI_FC="$STACK/gcc-12.2.0/bin/gfortran" OMPI_CC="$STACK/gcc-12.2.0/bin/g
 export HDF5_ROOT="$STACK/hdf5-1.14.0" NetCDF_ROOT="$STACK/netcdf-c-4.9.2"
 chmod -R +x "$STACK/gcc-12.2.0/libexec" 2>/dev/null || true
 ESMF_MK="$(find "$STACK/esmf-8.6.1/lib" -name esmf.mk 2>/dev/null | head -1)"
-if [ -n "$ESMF_MK" ] && grep -q "/fsx/stacks/gchp14.7.1-validated-arm64" "$ESMF_MK" 2>/dev/null; then
-  sudo sed -i "s#/fsx/stacks/gchp14.7.1-validated-arm64#$STACK#g" "$ESMF_MK"
+# esmf.mk bakes the build prefix: /fsx/stacks/gchp14.7.1-validated-arm64 (aarch64), /tmp/gchp-build-validated (x86_64)
+# The x86_64 copy also still points its include paths at the ESMF BUILD tree (esmf-8.6.1/src/include, absent from
+# the stack) and at /fsx/stacks/gchp14.7.1-validated/netcdf-c; map both to the installed layout the aarch64 copy
+# already uses ($STACK/esmf-8.6.1/include, $STACK/netcdf-c-4.9.2). All idempotent.
+if [ -n "$ESMF_MK" ]; then
+  sudo sed -i -E -e "s#(/fsx/stacks/gchp14.7.1-validated-arm64|/tmp/gchp-build-validated)/#$STACK/#g" \
+    -e "s#$STACK/esmf-8.6.1/src/include#$STACK/esmf-8.6.1/include#g" \
+    -e "s#/fsx/stacks/gchp14.7.1-validated/#$STACK/#g" "$ESMF_MK"
+  grep -E "^ESMF_F90COMPILEPATHS" "$ESMF_MK"
 fi
 [ -f /usr/include/expat.h ] || sudo dnf install -y expat-devel 2>&1 | tail -1
 
@@ -69,4 +76,13 @@ echo "[build] PR #46 applied: $(git -C "$SRC/src/MAPL" diff --stat | tail -1)"
 make -j"$NCPUS" > "$W/make-pr46.log" 2>&1 || { tail -30 "$W/make-pr46.log"; exit 1; }
 cp -p bin/gchp "$W/gchp-pr46"
 echo "[build] pr46 OK $(md5sum "$W/gchp-pr46" | cut -c1-12)  $(date -u +%T)"
+
+# Variant C: PR #46 with finalize_mpi's MPI_Barrier replaced by MPI_Finalize (then _exit(0) as in the PR).
+CAP="$SRC/src/MAPL/gridcomps/Cap/MAPL_Cap.F90"
+[ "$(grep -c 'call MPI_Barrier(this%comm_world, status)' "$CAP")" = 1 ] || { echo "FAIL: variant C anchor not unique"; exit 1; }
+sed -i 's/call MPI_Barrier(this%comm_world, status)/call MPI_Finalize(status)/' "$CAP"
+git -C "$SRC/src/MAPL" diff > "$W/pr46fin.patch"
+make -j"$NCPUS" > "$W/make-pr46fin.log" 2>&1 || { tail -30 "$W/make-pr46fin.log"; exit 1; }
+cp -p bin/gchp "$W/gchp-pr46fin"
+echo "[build] pr46fin OK $(md5sum "$W/gchp-pr46fin" | cut -c1-12)  $(date -u +%T)"
 echo BUILD_DONE

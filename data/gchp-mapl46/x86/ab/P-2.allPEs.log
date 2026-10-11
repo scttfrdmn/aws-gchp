@@ -1,0 +1,234 @@
+0000: GCHPctmEnv: INFO: Configured to derive and export mass flux and courant numbers
+0000: GCHPctmEnv: INFO: Configured to expect 'bottom-up' wind data from 'ExtData'
+0000: GCHPctmEnv: INFO: Configured to expect 'bottom-up' humidity data from 'ExtData'
+0000: GCHPctmEnv: INFO: Configured to use dry air pressure in advection
+0000: GCHPctmEnv: INFO: Configured to correct native mass flux (if using) for humidity
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Times for component <GCHPctmEnv>
+0000: MAPL.profiler: INFO:                                         Min                            Mean                           Max                     PE         # cycles
+0000: MAPL.profiler: INFO:                             ============================   ============================   ============================   =============   ========
+0000: MAPL.profiler: INFO: Name                          %    inclusive  exclusive      %    inclusive  exclusive      %    inclusive  exclusive     max    min
+0000: MAPL.profiler: INFO:                             ------ ---------- ----------   ------ ---------- ----------   ------ ---------- ----------   ------ ------
+0000: MAPL.profiler: INFO: GCHPctmEnv                |   0.04       0.86       0.00 |   0.05       0.86       0.00 |   0.06       0.86       0.00 |  00005  00007 |      291
+0000: MAPL.profiler: INFO: --SetService              |   0.11       0.00       0.00 |   0.12       0.00       0.00 |   0.13       0.00       0.00 |  00000  00001 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00008 |        1
+0000: MAPL.profiler: INFO: --Initialize              |   0.03       0.01       0.00 |   0.04       0.01       0.00 |   0.08       0.01       0.00 |  00000  00005 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.84       0.01       0.01 |   0.94       0.01       0.01 |   0.96       0.01       0.01 |  00007  00000 |        1
+0000: MAPL.profiler: INFO: ----INITIALIZE            |   0.09       0.00       0.00 |   0.10       0.00       0.00 |   0.12       0.00       0.00 |  00000  00002 |        1
+0000: MAPL.profiler: INFO: --Record                  |   0.03       0.00       0.00 |   0.03       0.00       0.00 |   0.04       0.00       0.00 |  00000  00009 |      144
+0000: MAPL.profiler: INFO: ----generic               |   0.01       0.00       0.00 |   0.01       0.00       0.00 |   0.01       0.00       0.00 |  00010  00002 |      144
+0000: MAPL.profiler: INFO: --Run                     |   0.02       0.85       0.00 |   0.03       0.85       0.00 |   0.03       0.85       0.00 |  00004  00011 |      144
+0000: MAPL.profiler: INFO: ----GenRunMine            |   0.19       0.85       0.00 |   0.23       0.85       0.00 |   0.62       0.85       0.01 |  00000  00008 |      144
+0000: MAPL.profiler: INFO: ------RUN                 |  98.64       0.84       0.84 |  98.45       0.85       0.85 |  97.95       0.85       0.85 |  00005  00000 |      144
+0000: MAPL.profiler: INFO: --Finalize                |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.01       0.00       0.00 |  00000  00002 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.01       0.00       0.00 |  00000  00004 |        1
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Times for component <GCHPchem>
+0000: MAPL.profiler: INFO:                                         Min                            Mean                           Max                     PE         # cycles
+0000: MAPL.profiler: INFO:                             ============================   ============================   ============================   =============   ========
+0000: MAPL.profiler: INFO: Name                          %    inclusive  exclusive      %    inclusive  exclusive      %    inclusive  exclusive     max    min
+0000: MAPL.profiler: INFO:                             ------ ---------- ----------   ------ ---------- ----------   ------ ---------- ----------   ------ ------
+0000: MAPL.profiler: INFO: GCHPchem                  |   0.00      19.58       0.00 |   0.00      19.84       0.00 |   0.00      20.27       0.00 |  00006  00000 |      291
+0000: MAPL.profiler: INFO: --SetService              |   0.25       0.05       0.05 |   0.29       0.06       0.06 |   0.30       0.06       0.06 |  00002  00004 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00002  00000 |        1
+0000: MAPL.profiler: INFO: --Initialize              |   0.00       1.45       0.00 |   0.00       1.45       0.00 |   0.00       1.45       0.00 |  00000  00001 |        1
+0000: MAPL.profiler: INFO: ----INITIALIZE            |   4.94       1.45       0.95 |   4.80       1.45       0.95 |   4.63       1.45       0.95 |  00000  00010 |        1
+0000: MAPL.profiler: INFO: ------generic             |   2.58       0.50       0.50 |   2.52       0.50       0.50 |   2.43       0.50       0.50 |  00004  00000 |        1
+0000: MAPL.profiler: INFO: --Record                  |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00005  00006 |      144
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00008 |      144
+0000: MAPL.profiler: INFO: --Run                     |   0.00      17.98       0.00 |   0.00      18.23       0.00 |   0.00      18.67       0.00 |  00007  00009 |      144
+0000: MAPL.profiler: INFO: ----GenRunMine            |   0.90      17.98       0.17 |   0.91      18.23       0.18 |   0.93      18.67       0.19 |  00000  00007 |      144
+0000: MAPL.profiler: INFO: ------RUN                 |   0.66      17.81       0.13 |   0.67      18.05       0.13 |   0.66      18.49       0.14 |  00002  00005 |      144
+0000: MAPL.profiler: INFO: --------CP_BFRE           |   0.33       0.06       0.06 |   0.34       0.07       0.07 |   0.34       0.07       0.07 |  00000  00005 |      144
+0000: MAPL.profiler: INFO: --------DO_CHEM           |   2.03      17.61       0.39 |   2.01      17.85       0.40 |   1.96      18.29       0.40 |  00007  00006 |      144
+0000: MAPL.profiler: INFO: ----------GC_CONV         |   3.06       0.59       0.59 |   3.45       0.68       0.68 |   3.64       0.75       0.75 |  00007  00005 |      144
+0000: MAPL.profiler: INFO: ----------GC_DRYDEP       |   0.33       0.06       0.06 |   0.75       0.15       0.15 |   1.25       0.26       0.26 |  00005  00011 |       72
+0000: MAPL.profiler: INFO: ----------GC_EMIS         |   8.02       1.55       1.55 |   8.12       1.61       1.61 |   8.38       1.73       1.73 |  00011  00004 |       72
+0000: MAPL.profiler: INFO: ----------GC_TURB         |  44.74       8.63       8.63 |  43.60       8.65       8.65 |  42.08       8.66       8.66 |  00008  00005 |      144
+0000: MAPL.profiler: INFO: ----------GC_CHEM         |   0.65       0.12       0.12 |   0.64       0.13       0.13 |   0.62       0.13       0.13 |  00010  00000 |       72
+0000: MAPL.profiler: INFO: ----------GC_WETDEP       |  31.03       5.99       5.99 |  31.40       6.23       6.23 |  32.25       6.64       6.64 |  00007  00001 |      144
+0000: MAPL.profiler: INFO: ----------GC_DIAGN        |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00010  00000 |      144
+0000: MAPL.profiler: INFO: --------CP_AFTR           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00010 |      144
+0000: MAPL.profiler: INFO: --Finalize                |   0.14       0.10       0.03 |   0.17       0.10       0.03 |   0.17       0.10       0.03 |  00001  00003 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.33       0.06       0.06 |   0.33       0.07       0.07 |   0.35       0.07       0.07 |  00003  00001 |        1
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Times for component <DYNAMICS>
+0000: MAPL.profiler: INFO:                                         Min                            Mean                           Max                     PE         # cycles
+0000: MAPL.profiler: INFO:                             ============================   ============================   ============================   =============   ========
+0000: MAPL.profiler: INFO: Name                          %    inclusive  exclusive      %    inclusive  exclusive      %    inclusive  exclusive     max    min
+0000: MAPL.profiler: INFO:                             ------ ---------- ----------   ------ ---------- ----------   ------ ---------- ----------   ------ ------
+0000: MAPL.profiler: INFO: DYNAMICS                  |   0.00      39.93       0.00 |   0.00      39.97       0.00 |   0.00      40.01       0.00 |  00010  00005 |      291
+0000: MAPL.profiler: INFO: --SetService              |   0.90       0.36       0.36 |   0.99       0.40       0.40 |   1.09       0.44       0.44 |  00004  00002 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00003  00005 |        1
+0000: MAPL.profiler: INFO: --Initialize              |   0.00       0.01       0.00 |   0.00       0.01       0.00 |   0.00       0.01       0.00 |  00000  00005 |        1
+0000: MAPL.profiler: INFO: ----INITIALIZE            |   0.00       0.01       0.00 |   0.00       0.01       0.00 |   0.00       0.01       0.00 |  00000  00005 |        1
+0000: MAPL.profiler: INFO: ------generic             |   0.03       0.01       0.01 |   0.03       0.01       0.01 |   0.03       0.01       0.01 |  00010  00000 |        1
+0000: MAPL.profiler: INFO: --Record                  |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00007  00003 |      144
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00001 |      144
+0000: MAPL.profiler: INFO: --Run                     |   0.00      39.55       0.00 |   0.00      39.56       0.00 |   0.00      39.56       0.00 |  00007  00000 |      144
+0000: MAPL.profiler: INFO: ----GenRunMine            |   0.01      39.55       0.00 |   0.01      39.56       0.00 |   0.02      39.56       0.01 |  00000  00003 |      144
+0000: MAPL.profiler: INFO: ------RUN                 |  99.06      39.55      39.55 |  98.95      39.55      39.55 |  98.84      39.56      39.56 |  00010  00000 |      144
+0000: MAPL.profiler: INFO: --Finalize                |   0.00       0.00       0.00 |   0.01       0.00       0.00 |   0.01       0.00       0.00 |  00010  00000 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00003 |        1
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Times for component <GCHP>
+0000: MAPL.profiler: INFO:                                         Min                            Mean                           Max                     PE         # cycles
+0000: MAPL.profiler: INFO:                             ============================   ============================   ============================   =============   ========
+0000: MAPL.profiler: INFO: Name                          %    inclusive  exclusive      %    inclusive  exclusive      %    inclusive  exclusive     max    min
+0000: MAPL.profiler: INFO:                             ------ ---------- ----------   ------ ---------- ----------   ------ ---------- ----------   ------ ------
+0000: MAPL.profiler: INFO: GCHP                      |   0.00      60.47       0.00 |   0.00      60.74       0.00 |   0.00      61.21       0.00 |  00004  00005 |      291
+0000: MAPL.profiler: INFO: --SetService              |   0.70       0.42       0.42 |   0.75       0.46       0.45 |   0.80       0.49       0.49 |  00011  00005 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00001 |        1
+0000: MAPL.profiler: INFO: --Initialize              |   0.01       1.51       0.00 |   0.01       1.51       0.00 |   0.01       1.51       0.00 |  00000  00008 |        1
+0000: MAPL.profiler: INFO: ----GCHPctmEnv            |   0.01       0.01       0.01 |   0.02       0.01       0.01 |   0.02       0.01       0.01 |  00007  00000 |        1
+0000: MAPL.profiler: INFO: ----GCHPchem              |   2.40       1.45       1.45 |   2.39       1.45       1.45 |   2.37       1.45       1.45 |  00003  00000 |        1
+0000: MAPL.profiler: INFO: ----DYNAMICS              |   0.02       0.01       0.01 |   0.02       0.01       0.01 |   0.02       0.01       0.01 |  00000  00003 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.06       0.03       0.03 |   0.06       0.03       0.03 |   0.05       0.03       0.03 |  00006  00010 |        1
+0000: MAPL.profiler: INFO: --Record                  |   0.00       0.01       0.00 |   0.00       0.01       0.00 |   0.00       0.02       0.00 |  00002  00006 |      144
+0000: MAPL.profiler: INFO: ----GCHPctmEnv            |   0.00       0.00       0.00 |   0.01       0.00       0.00 |   0.01       0.01       0.01 |  00000  00009 |      144
+0000: MAPL.profiler: INFO: ----GCHPchem              |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.01       0.01       0.01 |  00000  00005 |      144
+0000: MAPL.profiler: INFO: ----DYNAMICS              |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.01       0.01       0.01 |  00000  00005 |      144
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00004  00008 |      144
+0000: MAPL.profiler: INFO: --Run                     |   0.00      58.41       0.00 |   0.00      58.65       0.00 |   0.00      59.09       0.00 |  00009  00004 |      144
+0000: MAPL.profiler: INFO: ----GenRunMine            |   0.00      58.41       0.00 |   0.00      58.65       0.00 |   0.01      59.09       0.01 |  00000  00010 |      144
+0000: MAPL.profiler: INFO: ------RUN                 |   0.01      58.41       0.01 |   0.01      58.65       0.01 |   0.01      59.09       0.01 |  00003  00000 |      144
+0000: MAPL.profiler: INFO: --------GCHPctmEnv        |   1.41       0.85       0.85 |   1.40       0.85       0.85 |   1.39       0.85       0.85 |  00005  00000 |      144
+0000: MAPL.profiler: INFO: --------DYNAMICS          |  65.44      39.56      39.56 |  65.13      39.56      39.56 |  64.61      39.56      39.56 |  00010  00005 |      144
+0000: MAPL.profiler: INFO: --------GCHPchem          |  29.76      17.99      17.99 |  30.02      18.23      18.23 |  30.49      18.67      18.67 |  00007  00001 |      144
+0000: MAPL.profiler: INFO: --Finalize                |   0.00       0.10       0.00 |   0.00       0.10       0.00 |   0.00       0.10       0.00 |  00000  00005 |        1
+0000: MAPL.profiler: INFO: ----GCHPctmEnv            |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00009 |        1
+0000: MAPL.profiler: INFO: ----GCHPchem              |   0.16       0.10       0.10 |   0.16       0.10       0.10 |   0.16       0.10       0.10 |  00000  00006 |        1
+0000: MAPL.profiler: INFO: ----DYNAMICS              |   0.00       0.00       0.00 |   0.01       0.00       0.00 |   0.01       0.00       0.00 |  00006  00000 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00008 |        1
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Times for component <HIST>
+0000: MAPL.profiler: INFO:                                         Min                            Mean                           Max                     PE         # cycles
+0000: MAPL.profiler: INFO:                             ============================   ============================   ============================   =============   ========
+0000: MAPL.profiler: INFO: Name                          %    inclusive  exclusive      %    inclusive  exclusive      %    inclusive  exclusive     max    min
+0000: MAPL.profiler: INFO:                             ------ ---------- ----------   ------ ---------- ----------   ------ ---------- ----------   ------ ------
+0000: MAPL.profiler: INFO: HIST                      |   0.02       1.71       0.00 |   0.03       1.72       0.00 |   0.03       1.73       0.00 |  00011  00002 |      147
+0000: MAPL.profiler: INFO: --SetService              |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00005  00011 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00010  00000 |        1
+0000: MAPL.profiler: INFO: --Initialize              |  34.35       0.59       0.58 |  34.08       0.59       0.58 |  33.73       0.59       0.59 |  00000  00009 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.01       0.00       0.00 |   0.07       0.00       0.00 |   0.08       0.00       0.00 |  00005  00000 |        1
+0000: MAPL.profiler: INFO: --Run                     |   0.02       0.61       0.00 |   0.02       0.61       0.00 |   0.02       0.63       0.00 |  00001  00010 |      144
+0000: MAPL.profiler: INFO: ----GenRunMine            |   1.16       0.61       0.02 |   1.21       0.61       0.02 |   1.45       0.63       0.03 |  00000  00006 |      144
+0000: MAPL.profiler: INFO: ------Emissions           |   0.04       0.02       0.00 |   0.05       0.02       0.00 |   0.05       0.02       0.00 |  00007  00000 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   1.26       0.02       0.02 |   1.28       0.02       0.02 |   1.30       0.02       0.02 |  00006  00011 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00003  00007 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00011  00000 |      144
+0000: MAPL.profiler: INFO: ------CloudConvFlux       |   0.04       0.09       0.00 |   0.04       0.09       0.00 |   0.05       0.10       0.00 |  00007  00002 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   5.37       0.09       0.09 |   5.41       0.09       0.09 |   5.45       0.09       0.09 |  00006  00003 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00007  00008 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00004  00011 |      144
+0000: MAPL.profiler: INFO: ------DryDep              |   0.04       0.01       0.00 |   0.04       0.01       0.00 |   0.05       0.01       0.00 |  00001  00008 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   0.44       0.01       0.01 |   0.45       0.01       0.01 |   0.46       0.01       0.01 |  00006  00008 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00005  00007 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00011  00000 |      144
+0000: MAPL.profiler: INFO: ------FV3Dynamics         |   0.03       0.01       0.00 |   0.04       0.01       0.00 |   0.04       0.02       0.00 |  00003  00000 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   0.81       0.01       0.01 |   0.82       0.01       0.01 |   0.83       0.01       0.01 |  00000  00007 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00009  00008 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00011  00008 |      144
+0000: MAPL.profiler: INFO: ------GCHPctmEnvLevCenter |   0.03       0.02       0.00 |   0.04       0.02       0.00 |   0.04       0.02       0.00 |  00003  00005 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   1.32       0.02       0.02 |   1.33       0.02       0.02 |   1.35       0.02       0.02 |  00000  00010 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00011  00008 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00001  00006 |      144
+0000: MAPL.profiler: INFO: ------GCHPctmEnvLevEdge   |   0.04       0.02       0.00 |   0.04       0.02       0.00 |   0.05       0.02       0.00 |  00003  00011 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   1.33       0.02       0.02 |   1.34       0.02       0.02 |   1.37       0.02       0.02 |  00006  00010 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00004 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00003  00005 |      144
+0000: MAPL.profiler: INFO: ------RadioNuclide        |   0.03       0.04       0.00 |   0.04       0.04       0.00 |   0.05       0.04       0.00 |  00007  00005 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   2.07       0.04       0.04 |   2.08       0.04       0.04 |   2.10       0.04       0.04 |  00000  00009 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00001  00007 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00001  00008 |      144
+0000: MAPL.profiler: INFO: ------SpeciesConc         |   0.03       0.09       0.00 |   0.04       0.09       0.00 |   0.04       0.10       0.00 |  00001  00002 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   5.38       0.09       0.09 |   5.44       0.09       0.09 |   5.51       0.10       0.10 |  00000  00009 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00001  00003 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00010  00009 |      144
+0000: MAPL.profiler: INFO: ------StateMet            |   0.04       0.16       0.00 |   0.04       0.16       0.00 |   0.04       0.16       0.00 |  00004  00002 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   9.28       0.16       0.16 |   9.32       0.16       0.16 |   9.43       0.16       0.16 |  00006  00004 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00005 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00001  00008 |      144
+0000: MAPL.profiler: INFO: ------StateMetLevEdge     |   0.03       0.03       0.00 |   0.04       0.03       0.00 |   0.04       0.03       0.00 |  00003  00010 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   1.85       0.03       0.03 |   1.87       0.03       0.03 |   1.92       0.03       0.03 |  00000  00003 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00003 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00004  00011 |      144
+0000: MAPL.profiler: INFO: ------WetLossConv         |   0.03       0.05       0.00 |   0.04       0.05       0.00 |   0.04       0.05       0.00 |  00010  00008 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   3.12       0.05       0.05 |   3.13       0.05       0.05 |   3.13       0.05       0.05 |  00000  00002 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00009  00010 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00005  00010 |      144
+0000: MAPL.profiler: INFO: ------WetLossLS           |   0.03       0.03       0.00 |   0.04       0.03       0.00 |   0.04       0.03       0.00 |  00003  00005 |      864
+0000: MAPL.profiler: INFO: --------Couplers          |   1.58       0.03       0.03 |   1.59       0.03       0.03 |   1.59       0.03       0.03 |  00004  00009 |      144
+0000: MAPL.profiler: INFO: --------IO Create         |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00003  00005 |      144
+0000: MAPL.profiler: INFO: --------IO Post           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00003  00010 |      144
+0000: MAPL.profiler: INFO: ------Done Wait           |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00005 |      144
+0000: MAPL.profiler: INFO: --Finalize                |  30.17       0.51       0.51 |  30.02       0.52       0.52 |  29.68       0.52       0.52 |  00008  00000 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.02       0.00       0.00 |   0.02       0.00       0.00 |   0.03       0.00       0.00 |  00011  00005 |        1
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Times for component <EXTDATA>
+0000: MAPL.profiler: INFO:                                         Min                            Mean                           Max                     PE         # cycles
+0000: MAPL.profiler: INFO:                             ============================   ============================   ============================   =============   ========
+0000: MAPL.profiler: INFO: Name                          %    inclusive  exclusive      %    inclusive  exclusive      %    inclusive  exclusive     max    min
+0000: MAPL.profiler: INFO:                             ------ ---------- ----------   ------ ---------- ----------   ------ ---------- ----------   ------ ------
+0000: MAPL.profiler: INFO: EXTDATA                   |   0.00      55.98       0.00 |   0.00      56.04       0.00 |   0.00      56.14       0.00 |  00007  00000 |      147
+0000: MAPL.profiler: INFO: --SetService              |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00002  00011 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00008 |        1
+0000: MAPL.profiler: INFO: --Initialize              |   0.00       0.21       0.00 |   0.00       0.21       0.00 |   0.00       0.21       0.00 |  00000  00004 |        1
+0000: MAPL.profiler: INFO: ----Initialize            |   0.38       0.21       0.21 |   0.37       0.21       0.21 |   0.36       0.21       0.21 |  00000  00004 |        1
+0000: MAPL.profiler: INFO: ------generic             |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00009  00005 |        1
+0000: MAPL.profiler: INFO: --Run                     |   0.00      55.77       0.00 |   0.00      55.83       0.00 |   0.00      55.93       0.00 |  00002  00008 |      144
+0000: MAPL.profiler: INFO: ----GenRunMine            |   0.02      55.77       0.01 |   0.02      55.83       0.01 |   0.02      55.93       0.01 |  00000  00008 |      144
+0000: MAPL.profiler: INFO: ------Run                 |   0.00      55.76       0.00 |   0.00      55.82       0.00 |   0.00      55.92       0.00 |  00000  00003 |      144
+0000: MAPL.profiler: INFO: --------Read_Loop         |   0.11      55.54       0.06 |   0.11      55.60       0.06 |   0.10      55.70       0.06 |  00001  00007 |      144
+0000: MAPL.profiler: INFO: ----------CheckUpd        |   0.02       0.01       0.01 |   0.02       0.01       0.01 |   0.02       0.01       0.01 |  00001  00000 |    22608
+0000: MAPL.profiler: INFO: ----------Bracket         |   0.22       0.12       0.12 |   0.22       0.12       0.12 |   0.22       0.13       0.13 |  00010  00005 |     1278
+0000: MAPL.profiler: INFO: ----------Swap            |   0.01       0.01       0.01 |   0.01       0.01       0.01 |   0.01       0.01       0.01 |  00005  00000 |     9516
+0000: MAPL.profiler: INFO: ----------PRead           |   0.00      55.34       0.00 |   0.00      55.40       0.00 |   0.00      55.50       0.00 |  00008  00009 |       32
+0000: MAPL.profiler: INFO: ------------CreateCFIO    |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00006  00004 |       32
+0000: MAPL.profiler: INFO: ------------prefetch      |  65.57      36.12      36.12 |  64.47      36.13      36.13 |  63.33      36.13      36.13 |  00003  00000 |       32
+0000: MAPL.profiler: INFO: ------------IclientDone   |  18.99      10.46      10.46 |  19.27      10.80      10.80 |  19.93      11.37      11.37 |  00009  00004 |       32
+0000: MAPL.profiler: INFO: ------------read-prefetch |  14.28       7.86       7.86 |  15.12       8.47       8.47 |  15.59       8.90       8.90 |  00004  00009 |       32
+0000: MAPL.profiler: INFO: --------Interpolate       |   0.40       0.22       0.22 |   0.39       0.22       0.22 |   0.39       0.22       0.22 |  00009  00010 |      144
+0000: MAPL.profiler: INFO: --Finalize                |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00008 |        1
+0000: MAPL.profiler: INFO: ----generic               |   0.00       0.00       0.00 |   0.00       0.00       0.00 |   0.00       0.00       0.00 |  00000  00008 |        1
+0000: MAPL.profiler: INFO: 
+0000: MAPL.profiler: INFO: Model Throughput:      723.046 days per day
+0000: MAPL.profiler: INFO: Report on process: 0
+0000: MAPL.profiler: INFO:                                                                Inclusive        Exclusive
+0000: MAPL.profiler: INFO:                                                             ================ ================
+0000: MAPL.profiler: INFO: Name                                               #-cycles  T (sec)    %     T (sec)    %
+0000: MAPL.profiler: INFO:                                                    -------- --------- ------ --------- ------
+0000: MAPL.profiler: INFO: All                                                       1   119.501 100.00     0.234   0.20
+0000: MAPL.profiler: INFO: --SetService                                              1     0.542   0.45     0.052   0.04
+0000: MAPL.profiler: INFO: ----GCHP                                                  1     0.490   0.41     0.003   0.00
+0000: MAPL.profiler: INFO: ------GCHPctmEnv                                          1     0.001   0.00     0.001   0.00
+0000: MAPL.profiler: INFO: ------GCHPchem                                            1     0.050   0.04     0.050   0.04
+0000: MAPL.profiler: INFO: ------DYNAMICS                                            1     0.436   0.37     0.436   0.37
+0000: MAPL.profiler: INFO: ----HIST                                                  1     0.000   0.00     0.000   0.00
+0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.000   0.00     0.000   0.00
+0000: MAPL.profiler: INFO: --Initialize                                              1     2.326   1.95     0.020   0.02
+0000: MAPL.profiler: INFO: ----GCHP                                                  1     1.512   1.27     0.037   0.03
+0000: MAPL.profiler: INFO: ------GCHPctmEnv                                          1     0.009   0.01     0.009   0.01
+0000: MAPL.profiler: INFO: ------GCHPchem                                            1     1.452   1.22     1.452   1.22
+0000: MAPL.profiler: INFO: ------DYNAMICS                                            1     0.014   0.01     0.014   0.01
+0000: MAPL.profiler: INFO: ----HIST                                                  1     0.586   0.49     0.586   0.49
+0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.208   0.17     0.208   0.17
+0000: MAPL.profiler: INFO: --Run                                                     1   115.776  96.88     0.508   0.43
+0000: MAPL.profiler: INFO: ----EXTDATA                                             144    55.781  46.68    55.781  46.68
+0000: MAPL.profiler: INFO: ----GCHP                                                288    58.842  49.24     0.032   0.03
+0000: MAPL.profiler: INFO: ------GCHPctmEnv                                        288     0.855   0.72     0.855   0.72
+0000: MAPL.profiler: INFO: ------GCHPchem                                          288    18.394  15.39    18.394  15.39
+0000: MAPL.profiler: INFO: ------DYNAMICS                                          288    39.561  33.11    39.561  33.11
+0000: MAPL.profiler: INFO: ----HIST                                                288     0.645   0.54     0.645   0.54
+0000: MAPL.profiler: INFO: --Finalize                                                1     0.623   0.52     0.000   0.00
+0000: MAPL.profiler: INFO: ----GCHP                                                  1     0.104   0.09     0.001   0.00
+0000: MAPL.profiler: INFO: ------GCHPctmEnv                                          1     0.001   0.00     0.001   0.00
+0000: MAPL.profiler: INFO: ------GCHPchem                                            1     0.100   0.08     0.100   0.08
+0000: MAPL.profiler: INFO: ------DYNAMICS                                            1     0.002   0.00     0.002   0.00
+0000: MAPL.profiler: INFO: ----HIST                                                  1     0.517   0.43     0.517   0.43
+0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.001   0.00     0.001   0.00

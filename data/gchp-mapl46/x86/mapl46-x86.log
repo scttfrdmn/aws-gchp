@@ -1,0 +1,26 @@
+[mapl46-x86 03:19:45] instance c7a.24xlarge x86_64 96 cpus
+[mapl46-x86 03:21:03] stack 3.1G  lith Error: unknown flag: --version  rundir 48 files
+[build] GCHP 14.7.1 MAPL 80d66d0
+[build] PR #46 applies cleanly to 14.7.1 MAPL (checked, not yet applied)
+[build] stock OK 4dbb432730f5  03:35:51
+[build] PR #46 applied:  1 file changed, 26 insertions(+), 12 deletions(-)
+[build] pr46 OK 3e264b72bf9a  03:36:01
+[build] pr46fin OK 5c6a60f72021  03:36:12
+BUILD_DONE
+[03:38:56] CELL A-1 rc=134 wall=153s cap_adv_at=152s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=12 backtrace=12 improper=0 timers=0 throughput=1 stray_gchp=0
+[03:38:56]   first seen (s): cap_restart=152 throughput=152 double_free=152 improper=NA mpirun_exit=153
+[03:40:59] CELL B-1 rc=1 wall=121s cap_adv_at=121s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=0 backtrace=0 improper=2 timers=0 throughput=1 stray_gchp=0
+[03:40:59]   first seen (s): cap_restart=121 throughput=121 double_free=NA improper=121 mpirun_exit=121
+[03:43:03] CELL C-1 rc=0 wall=121s cap_adv_at=120s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=0 backtrace=0 improper=0 timers=0 throughput=1 stray_gchp=0
+[03:43:03]   first seen (s): cap_restart=120 throughput=120 double_free=NA improper=NA mpirun_exit=121
+[03:45:07] CELL P-1 rc=134 wall=121s cap_adv_at=120s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=12 backtrace=12 improper=0 timers=0 throughput=1 stray_gchp=0
+[03:45:07]   first seen (s): cap_restart=120 throughput=120 double_free=120 improper=NA mpirun_exit=121
+[03:47:12] CELL A-2 rc=134 wall=121s cap_adv_at=120s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=12 backtrace=12 improper=0 timers=0 throughput=1 stray_gchp=0
+[03:47:12]   first seen (s): cap_restart=120 throughput=121 double_free=121 improper=NA mpirun_exit=121
+[03:49:15] CELL B-2 rc=1 wall=121s cap_adv_at=121s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=0 backtrace=0 improper=2 timers=0 throughput=1 stray_gchp=0
+[03:49:15]   first seen (s): cap_restart=121 throughput=121 double_free=NA improper=121 mpirun_exit=121
+[03:51:20] CELL C-2 rc=0 wall=121s cap_adv_at=120s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=0 backtrace=0 improper=0 timers=0 throughput=1 stray_gchp=0
+[03:51:20]   first seen (s): cap_restart=120 throughput=120 double_free=NA improper=NA mpirun_exit=121
+[03:53:24] CELL P-2 rc=134 wall=122s cap_adv_at=121s cap=20190102 000000 ckpt_md5=266f2b3365b3 double_free=12 backtrace=12 improper=0 timers=0 throughput=1 stray_gchp=0
+[03:53:24]   first seen (s): cap_restart=121 throughput=121 double_free=121 improper=NA mpirun_exit=122
+[03:53:24] === done 2026-10-11T03:53:24Z

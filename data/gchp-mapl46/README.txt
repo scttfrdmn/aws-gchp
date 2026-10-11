@@ -125,3 +125,25 @@ RESULTS 3: MN (Slurm job 26, 02:47-03:05Z, 2x c8g.48xlarge, EFA 2 endpoints/node
     (inference, not measured): core dumps from the aborting ranks to the NFS run dir under Slurm's core limit.
   CORRECTION to RESULTS 1's "stock teardown costs ~125 s": that is the 16-core head node (loaded, slow I/O). On
     c8g.48xlarge under mpirun the stock abort completes ~3 s after the checkpoint. The teardown cost is box-dependent.
+
+RESULTS 4: X86 (spawn i-0b39e8efa48ce07d4, c7a.24xlarge AMD Zen 4, 03:36-03:53Z; 12 ranks, mpirun, lith v1.12.0 amd64)
+  Two failed launches first, both before any cell ran (~2 + ~3 min of instance time): the spawn AMI lacks `make`
+  (added make/perl/m4/which/diffutils), then CMake could not generate because the x86_64 stack's esmf.mk still points
+  its include paths at the ESMF build tree (esmf-8.6.1/src/include) and /fsx/stacks/gchp14.7.1-validated/netcdf-c;
+  build-gchp-mapl46.sh now maps both to the installed layout the aarch64 esmf.mk already uses.
+  bins: A 4dbb432730f5  B 3e264b72bf9a  C 5c6a60f72021  P (production x86) 6ad40a37d43b
+  cell  rc   ckpt md5      double_free  improper  cap_restart at  mpirun exit at
+  A-1   134  266f2b3365b3  12           0         152 s           153 s
+  B-1   1    266f2b3365b3  0            2         121 s           121 s
+  C-1   0    266f2b3365b3  0            0         120 s           121 s
+  P-1   134  266f2b3365b3  12           0         120 s           121 s
+  A-2   134  266f2b3365b3  12           0         120 s           121 s
+  B-2   1    266f2b3365b3  0            2         121 s           121 s
+  C-2   0    266f2b3365b3  0            0         120 s           121 s
+  P-2   134  266f2b3365b3  12           0         121 s           122 s
+  Scoring: all as predicted. On x86 the production binary's md5 EQUALS the fresh build's (unlike aarch64), so the
+    aarch64 P mismatch is specific to how that production binary was built. Teardown <= 1 s for every arm here.
+OVERALL: across aarch64 1-node (head), aarch64 2-node EFA, x86_64 1-node; mpirun and srun:
+  stock      -> double free every run; mpirun 134; srun hangs (2-node)
+  PR #46     -> no double free, md5 unchanged; mpirun rc 1 ("exiting improperly"), srun rc 0
+  PR #46 + MPI_Finalize before _exit -> rc 0 under both launchers, md5 unchanged, every run (12 cells)

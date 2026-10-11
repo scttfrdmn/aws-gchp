@@ -8,7 +8,7 @@
 # Unlike gate-streams-gchp.sh this waits for mpirun to EXIT, because the exit is what is under test.
 # No `set -u`: GCHP's setCommonRunSettings.sh dereferences $4.
 
-GATES=/scratch/lith-gates
+GATES=${GATES:-/scratch/lith-gates}
 LITH=${LITH:-$GATES/lith-main-412}
 W=${W:-/scratch/gchp-mapl46}
 SRC=${SRC:-/scratch/gchp_lith_TransportTracers}

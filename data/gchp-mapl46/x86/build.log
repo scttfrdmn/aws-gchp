@@ -1,0 +1,154 @@
+✅ GCHP Validated Stack (x86_64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+ESMF_F90COMPILEPATHS=-I/sw/esmf-8.6.1/mod/modO/Linux.gfortran.64.openmpi.default -I/sw/esmf-8.6.1/include -I/sw/netcdf-c-4.9.2/include
+Cloning into '/scratch/gchp-mapl46/GCHP'...
+Note: switching to '503642dfe2b02c219e69fed52e027faea1a0063d'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Submodule 'ESMA_cmake' (https://github.com/geoschem/ESMA_cmake) registered for path 'ESMA_cmake'
+Submodule 'geos-chem-shared-docs' (https://github.com/geoschem/geos-chem-shared-docs.git) registered for path 'docs/source/geos-chem-shared-docs'
+Submodule 'FMS' (https://github.com/geoschem/FMS.git) registered for path 'src/FMS'
+Submodule 'FVdycoreCubed_GridComp' (https://github.com/geoschem/FVdycoreCubed_GridComp.git) registered for path 'src/GCHP_GridComp/FVdycoreCubed_GridComp'
+Submodule 'Cloud-J' (https://github.com/geoschem/Cloud-J) registered for path 'src/GCHP_GridComp/GEOSChem_GridComp/Cloud-J'
+Submodule 'HEMCO' (https://github.com/geoschem/HEMCO.git) registered for path 'src/GCHP_GridComp/GEOSChem_GridComp/HEMCO/HEMCO'
+Submodule 'HETP' (https://github.com/geoschem/HETerogeneous-vectorized-or-Parallel.git) registered for path 'src/GCHP_GridComp/GEOSChem_GridComp/HETP'
+Submodule 'geos-chem' (https://github.com/geoschem/geos-chem.git) registered for path 'src/GCHP_GridComp/GEOSChem_GridComp/geos-chem'
+Submodule 'src/GFE' (https://github.com/Goddard-Fortran-Ecosystem/GFE) registered for path 'src/GFE'
+Submodule 'GMAO_Shared' (https://github.com/geoschem/GMAO_Shared) registered for path 'src/GMAO_Shared'
+Submodule 'MAPL' (https://github.com/geoschem/MAPL) registered for path 'src/MAPL'
+Cloning into '/scratch/gchp-mapl46/GCHP/ESMA_cmake'...
+Cloning into '/scratch/gchp-mapl46/GCHP/docs/source/geos-chem-shared-docs'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/FMS'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/FVdycoreCubed_GridComp'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/Cloud-J'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/HEMCO/HEMCO'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/HETP'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GMAO_Shared'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/MAPL'...
+Submodule path 'ESMA_cmake': checked out '01bbf2fcad996692ecbb744b394e0fe1ae4e3379'
+Submodule 'ecbuild' (https://github.com/geoschem/ecbuild.git) registered for path 'ESMA_cmake/ecbuild'
+Cloning into '/scratch/gchp-mapl46/GCHP/ESMA_cmake/ecbuild'...
+Submodule path 'ESMA_cmake/ecbuild': checked out '744f3eff24737189cd4a4a2179e5e8d623fbb277'
+From https://github.com/geoschem/geos-chem-shared-docs
+ * branch            8303ab0058203da8215d278111e278d05a6a531c -> FETCH_HEAD
+Submodule path 'docs/source/geos-chem-shared-docs': checked out '8303ab0058203da8215d278111e278d05a6a531c'
+From https://github.com/geoschem/FMS
+ * branch            259759d19ad203d13bf37395fb100da97eb955ad -> FETCH_HEAD
+Submodule path 'src/FMS': checked out '259759d19ad203d13bf37395fb100da97eb955ad'
+From https://github.com/geoschem/FVdycoreCubed_GridComp
+ * branch            348620fbcf42d7c2cef391f146248c1e6df1636a -> FETCH_HEAD
+Submodule path 'src/GCHP_GridComp/FVdycoreCubed_GridComp': checked out '348620fbcf42d7c2cef391f146248c1e6df1636a'
+Submodule 'fvdycore' (https://github.com/geoschem/GFDL_atmos_cubed_sphere.git) registered for path 'src/GCHP_GridComp/FVdycoreCubed_GridComp/fvdycore'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/FVdycoreCubed_GridComp/fvdycore'...
+Submodule path 'src/GCHP_GridComp/FVdycoreCubed_GridComp/fvdycore': checked out '643f3c44c3c3825dda26da728d6f24f9ae0e9c22'
+Submodule path 'src/GCHP_GridComp/GEOSChem_GridComp/Cloud-J': checked out '16d18b07ebc7f6ab3f8eb4c2ddcfdae8f12d9a23'
+From https://github.com/geoschem/HEMCO
+ * branch            07da3c29fd85abc3824cb6288578b0b68c2395a3 -> FETCH_HEAD
+Submodule path 'src/GCHP_GridComp/GEOSChem_GridComp/HEMCO/HEMCO': checked out '07da3c29fd85abc3824cb6288578b0b68c2395a3'
+Submodule 'geos-chem-shared-docs' (https://github.com/geoschem/geos-chem-shared-docs.git) registered for path 'src/GCHP_GridComp/GEOSChem_GridComp/HEMCO/HEMCO/docs/source/geos-chem-shared-docs'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/HEMCO/HEMCO/docs/source/geos-chem-shared-docs'...
+From https://github.com/geoschem/geos-chem-shared-docs
+ * branch            8303ab0058203da8215d278111e278d05a6a531c -> FETCH_HEAD
+Submodule path 'src/GCHP_GridComp/GEOSChem_GridComp/HEMCO/HEMCO/docs/source/geos-chem-shared-docs': checked out '8303ab0058203da8215d278111e278d05a6a531c'
+From https://github.com/geoschem/HETerogeneous-vectorized-or-Parallel
+ * branch            2a99b24625ed26cf87ae88697ddd6cf8bbdec812 -> FETCH_HEAD
+Submodule path 'src/GCHP_GridComp/GEOSChem_GridComp/HETP': checked out '2a99b24625ed26cf87ae88697ddd6cf8bbdec812'
+From https://github.com/geoschem/geos-chem
+ * branch            b9f570e2c7a98b308004cd07e2985a12a47b6f5c -> FETCH_HEAD
+Submodule path 'src/GCHP_GridComp/GEOSChem_GridComp/geos-chem': checked out 'b9f570e2c7a98b308004cd07e2985a12a47b6f5c'
+Submodule 'KPP/standalone' (https://github.com/geoschem/KPP-Standalone) registered for path 'src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/KPP/standalone'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/KPP/standalone'...
+From https://github.com/geoschem/KPP-Standalone
+ * branch            eeee8951f03cc538a3f7a20d4a2a98470db5a021 -> FETCH_HEAD
+Submodule path 'src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/KPP/standalone': checked out 'eeee8951f03cc538a3f7a20d4a2a98470db5a021'
+From https://github.com/Goddard-Fortran-Ecosystem/GFE
+ * branch            bac529f8220cfc87add0487920e40166663b4d69 -> FETCH_HEAD
+Submodule path 'src/GFE': checked out 'bac529f8220cfc87add0487920e40166663b4d69'
+Submodule 'fArgParse' (https://github.com/Goddard-Fortran-Ecosystem/fArgParse.git) registered for path 'src/GFE/fArgParse'
+Submodule 'gFTL' (https://github.com/Goddard-Fortran-Ecosystem/gFTL.git) registered for path 'src/GFE/gFTL'
+Submodule 'gFTL-shared' (https://github.com/Goddard-Fortran-Ecosystem/gFTL-shared.git) registered for path 'src/GFE/gFTL-shared'
+Submodule 'pFUnit' (https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git) registered for path 'src/GFE/pFUnit'
+Submodule 'pFlogger' (https://github.com/Goddard-Fortran-Ecosystem/pFlogger.git) registered for path 'src/GFE/pFlogger'
+Submodule 'yaFyaml' (https://github.com/Goddard-Fortran-Ecosystem/yaFyaml.git) registered for path 'src/GFE/yaFyaml'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/fArgParse'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/gFTL'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/gFTL-shared'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/pFUnit'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/pFlogger'...
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/yaFyaml'...
+From https://github.com/Goddard-Fortran-Ecosystem/fArgParse
+ * branch            eed51c5a740d428e07cc2c93ee04c6413ef81501 -> FETCH_HEAD
+Submodule path 'src/GFE/fArgParse': checked out 'eed51c5a740d428e07cc2c93ee04c6413ef81501'
+Submodule 'gFTL-shared' (https://github.com/Goddard-Fortran-Ecosystem/gFTL-shared.git) registered for path 'src/GFE/fArgParse/extern/gFTL-shared'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/fArgParse/extern/gFTL-shared'...
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL-shared
+ * branch            25fd6250272fed0956d2feed74520efc06a8c2dc -> FETCH_HEAD
+Submodule path 'src/GFE/fArgParse/extern/gFTL-shared': checked out '25fd6250272fed0956d2feed74520efc06a8c2dc'
+Submodule 'gFTL' (https://github.com/Goddard-Fortran-Ecosystem/gFTL.git) registered for path 'src/GFE/fArgParse/extern/gFTL-shared/extern/gFTL'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/fArgParse/extern/gFTL-shared/extern/gFTL'...
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL
+ * branch            107f47006b0f96b7393e8a766f6614f581693f19 -> FETCH_HEAD
+Submodule path 'src/GFE/fArgParse/extern/gFTL-shared/extern/gFTL': checked out '107f47006b0f96b7393e8a766f6614f581693f19'
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL
+ * branch            ee489ee4e0fe4a045d021e3c7ff55809c067f7c4 -> FETCH_HEAD
+Submodule path 'src/GFE/gFTL': checked out 'ee489ee4e0fe4a045d021e3c7ff55809c067f7c4'
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL-shared
+ * branch            25fd6250272fed0956d2feed74520efc06a8c2dc -> FETCH_HEAD
+Submodule path 'src/GFE/gFTL-shared': checked out '25fd6250272fed0956d2feed74520efc06a8c2dc'
+Submodule 'gFTL' (https://github.com/Goddard-Fortran-Ecosystem/gFTL.git) registered for path 'src/GFE/gFTL-shared/extern/gFTL'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/gFTL-shared/extern/gFTL'...
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL
+ * branch            107f47006b0f96b7393e8a766f6614f581693f19 -> FETCH_HEAD
+Submodule path 'src/GFE/gFTL-shared/extern/gFTL': checked out '107f47006b0f96b7393e8a766f6614f581693f19'
+From https://github.com/Goddard-Fortran-Ecosystem/pFUnit
+ * branch            cbe21b95eff70804acfd7f5a9b68dec291781c4a -> FETCH_HEAD
+Submodule path 'src/GFE/pFUnit': checked out 'cbe21b95eff70804acfd7f5a9b68dec291781c4a'
+Submodule 'fArgParse' (https://github.com/Goddard-Fortran-Ecosystem/fArgParse.git) registered for path 'src/GFE/pFUnit/extern/fArgParse'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/pFUnit/extern/fArgParse'...
+From https://github.com/Goddard-Fortran-Ecosystem/fArgParse
+ * branch            eed51c5a740d428e07cc2c93ee04c6413ef81501 -> FETCH_HEAD
+Submodule path 'src/GFE/pFUnit/extern/fArgParse': checked out 'eed51c5a740d428e07cc2c93ee04c6413ef81501'
+Submodule 'gFTL-shared' (https://github.com/Goddard-Fortran-Ecosystem/gFTL-shared.git) registered for path 'src/GFE/pFUnit/extern/fArgParse/extern/gFTL-shared'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/pFUnit/extern/fArgParse/extern/gFTL-shared'...
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL-shared
+ * branch            25fd6250272fed0956d2feed74520efc06a8c2dc -> FETCH_HEAD
+Submodule path 'src/GFE/pFUnit/extern/fArgParse/extern/gFTL-shared': checked out '25fd6250272fed0956d2feed74520efc06a8c2dc'
+Submodule 'gFTL' (https://github.com/Goddard-Fortran-Ecosystem/gFTL.git) registered for path 'src/GFE/pFUnit/extern/fArgParse/extern/gFTL-shared/extern/gFTL'
+Cloning into '/scratch/gchp-mapl46/GCHP/src/GFE/pFUnit/extern/fArgParse/extern/gFTL-shared/extern/gFTL'...
+From https://github.com/Goddard-Fortran-Ecosystem/gFTL
+ * branch            107f47006b0f96b7393e8a766f6614f581693f19 -> FETCH_HEAD
+Submodule path 'src/GFE/pFUnit/extern/fArgParse/extern/gFTL-shared/extern/gFTL': checked out '107f47006b0f96b7393e8a766f6614f581693f19'
+From https://github.com/Goddard-Fortran-Ecosystem/pFlogger
+ * branch            4e08f88bd148cabf5a1988d8846c007c98255b19 -> FETCH_HEAD
+Submodule path 'src/GFE/pFlogger': checked out '4e08f88bd148cabf5a1988d8846c007c98255b19'
+From https://github.com/Goddard-Fortran-Ecosystem/yaFyaml
+ * branch            e30505add07dd2662e360054bc77581d11cd79bc -> FETCH_HEAD
+Submodule path 'src/GFE/yaFyaml': checked out 'e30505add07dd2662e360054bc77581d11cd79bc'
+Submodule path 'src/GMAO_Shared': checked out '4ddb3ecd7dc52c1de8a09123e6cd43d62f896755'
+From https://github.com/geoschem/MAPL
+ * branch            80d66d0acce035db79be527414da093361680d0f -> FETCH_HEAD
+Submodule path 'src/MAPL': checked out '80d66d0acce035db79be527414da093361680d0f'
+[build] GCHP 14.7.1 MAPL 80d66d0
+[build] PR #46 applies cleanly to 14.7.1 MAPL (checked, not yet applied)
+=== [build] stock make -j96  03:21:41
+[build] stock OK 4dbb432730f5  03:35:51
+[build] PR #46 applied:  1 file changed, 26 insertions(+), 12 deletions(-)
+[build] pr46 OK 3e264b72bf9a  03:36:01
+[build] pr46fin OK 5c6a60f72021  03:36:12
+BUILD_DONE
