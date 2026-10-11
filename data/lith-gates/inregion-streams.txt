@@ -2904,3 +2904,12 @@ Upstream's read: don't move -> floor-bound, residual is arm B's, go build it; mo
 Scoring: "moves" iff OFF amp differs from the reference by > 10% in both reps. Arm A: ON < 0.9x OFF in both reps -> helps.
 Prediction: none move (GRIB/HEMCO certainly; FITS is the one at risk because v1.13.0's notes list a strided-slice
   extent change for #222 -- if that path engages for the cutout, FITS could drop below 2.20). Arm A helps nowhere.
+--- 5f-P33 RESULTS (20:05-20:07Z, v1.13.0 md5 603db1afb12f; 12/12 rows ok; lith_readahead_evidence_ratio gauge = 2 in
+    every row, so the default is in effect) ---
+  shape   OFF amp r1/r2  ON amp r1/r2  window   used:issued OFF / ON          fill bytes whole / demand (OFF r1)
+  GRIB    3.02 / 3.02    3.02 / 3.02   2 / 2    2:24, 2:24 / 2:24, 2:24        25.2 MB / 12.1 MB
+  FITS    2.20 / 2.20    2.20 / 2.20   2 / 2    13:31, 13:31 / same            32.5 MB / 5.2 MB
+  HEMCO   1.79 / 1.79    1.79 / 1.79   2 / 2    7:50, 7:50 / 8:50, 7:50        48.2 MB / 63.2 MB
+  Scoring: none move vs the b67fda3 ratio-2 reference (identical to 0.01) -> floor-bound confirmed on the artifact;
+    the residual is arm B's. Arm A helps nowhere (identical). Predictions right, including FITS: the v1.13.0 strided
+    extent path did not engage for the cutout (its bytes are still kind=whole, 32.5 MB, unchanged from b67fda3).
