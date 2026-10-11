@@ -75,3 +75,16 @@ RESULTS 1: arms A/B/P (try 2, 01:59-02:22Z; try 1 was stopped after A-1/B-1 to f
     - B-1 ran slow (cap at 282 s, 308 d/d) because A-1's 6 orphan ranks overlapped it; harness now waits for strays.
     - The throughput "first seen" times in try 2 are invalid: allPEs.log appends and the source run dir carried 3 old
       runs. The per-cell throughput values above are each log's final (new) line.
+
+RESULTS 2: variant C (02:24-02:36Z; binary gchp-pr46fin md5 5dee3da1cbb6; full MAPL diff vs 14.7.1 in pr46fin.patch)
+  cell  rc   ckpt md5      double_free  improper  throughput      cap_restart at  mpirun exit at  teardown
+  A-1   134  f2e423040f1d  12           0         yes (714.9)     121 s           247 s           126 s
+  C-1   0    f2e423040f1d  0            0         yes (783.1)     111 s           112 s           1 s
+  A-2   134  f2e423040f1d  12           0         yes (818.2)     106 s           232 s           126 s
+  C-2   0    f2e423040f1d  0            0         yes (719.0)     120 s           122 s           2 s
+  No stray ranks, no waits needed. Throughput first-seen now valid (fresh allPEs.log): it lands at cap_restart time.
+  Scoring: C WORKS (both reps: rc 0, no double free, no launcher complaint, md5 == A). Prediction right; the risk
+    (double free inside MPI_Finalize) did not occur, which also places the double-freed vector's destructor in
+    _dl_fini, after MPI_Finalize, consistent with the June backtrace.
+  Net: PR #46 + MPI_Finalize-before-_exit gives a clean exit code under OpenMPI 4.1.7 mpirun on aarch64.
+  Not yet covered: srun/Slurm launch, multi-node (EFA), x86_64, Intel MPI/MVAPICH.

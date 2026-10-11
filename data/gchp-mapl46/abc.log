@@ -1,0 +1,38 @@
+[02:24:27] === GCHP#556 / MAPL PR#46 A/B  2026-10-11T02:24:27Z  ranks=12 lith=5bdb3556e16d
+[02:24:27]   bin A e96237c5b1db /scratch/gchp-mapl46/gchp-stock
+[02:24:28]   bin C 5dee3da1cbb6 /scratch/gchp-mapl46/gchp-pr46fin
+lith mounted in the background (pid 3121797); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3121825); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3121851); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3121877); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3121904); logs: /tmp/lith-1000-mount.log
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:24:36] RUN A-1 bin=e96237c5b1db
+[02:28:45] CELL A-1 rc=134 wall=247s cap_adv_at=121s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=12 backtrace=12 improper=0 timers=0 throughput=1 stray_gchp=0
+[02:28:45]   first seen (s): cap_restart=121 throughput=121 double_free=122 improper=NA mpirun_exit=247
+[02:28:45]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:28:45]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:28:47] RUN C-1 bin=5dee3da1cbb6
+[02:30:41] CELL C-1 rc=0 wall=112s cap_adv_at=111s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=0 backtrace=0 improper=0 timers=0 throughput=1 stray_gchp=0
+[02:30:41]   first seen (s): cap_restart=111 throughput=111 double_free=NA improper=NA mpirun_exit=112
+[02:30:41]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:30:41]   last log line:  NOT using buffer I/O for file: cap_restart
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:30:43] RUN A-2 bin=e96237c5b1db
+[02:34:37] CELL A-2 rc=134 wall=232s cap_adv_at=106s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=12 backtrace=12 improper=0 timers=0 throughput=1 stray_gchp=0
+[02:34:37]   first seen (s): cap_restart=106 throughput=106 double_free=107 improper=NA mpirun_exit=232
+[02:34:37]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:34:37]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:34:39] RUN C-2 bin=5dee3da1cbb6
+[02:36:43] CELL C-2 rc=0 wall=122s cap_adv_at=120s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=0 backtrace=0 improper=0 timers=0 throughput=1 stray_gchp=0
+[02:36:43]   first seen (s): cap_restart=120 throughput=120 double_free=NA improper=NA mpirun_exit=122
+[02:36:43]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:36:43]   last log line:  NOT using buffer I/O for file: cap_restart
+[02:36:43] === done 2026-10-11T02:36:43Z
+[02:36:46] stale fuse.lith mounts after cleanup: 0

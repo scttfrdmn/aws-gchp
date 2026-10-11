@@ -1,0 +1,1411 @@
+--------------------------------------------------------------------------
+PMIx was unable to find a usable compression library
+on the system. We will therefore be unable to compress
+large data streams. This may result in longer-than-normal
+startup times and larger memory footprints. We will
+continue, but strongly recommend installing zlib or
+a comparable compression library for better user experience.
+
+You can suppress this warning by adding "pcompress_base_silence_warning=1"
+to your PMIx MCA default parameter file, or by adding
+"PMIX_MCA_pcompress_base_silence_warning=1" to your environment.
+--------------------------------------------------------------------------
+ Starting pFIO input server on Clients
+ Starting pFIO output server on Clients
+ Integer*4 Resource Parameter: BEG_DATE:19600101 0
+ Integer*4 Resource Parameter: END_DATE:22000101 0
+ Integer*4 Resource Parameter: JOB_SGMT:1 0
+ Integer*4 Resource Parameter: HEARTBEAT_DT:600
+ NOT using buffer I/O for file: cap_restart
+            CAP: INFO: Read CAP restart properly, Current Date =   2019/01/01
+            CAP: INFO:                            Current Time =   00:00:00
+ Character Resource Parameter: ROOT_CF:GCHP.rc
+ Character Resource Parameter: ROOT_NAME:GCHP
+ Character Resource Parameter: HIST_CF:HISTORY.rc
+ Character Resource Parameter: MAPL_ENABLE_TIMERS:YES
+ Character Resource Parameter: MAPL_ENABLE_MEMUTILS:YES
+     GCHPctmEnv: INFO: Configured to derive and export mass flux and courant numbers
+  
+ Adding history variables to GCHP Export State:
+ adding export: CloudConvFlux_Rn222
+ adding export: CloudConvFlux_Pb210
+ adding export: CloudConvFlux_Pb210s
+ adding export: CloudConvFlux_Be7
+ adding export: CloudConvFlux_Be7s
+ adding export: CloudConvFlux_Be10
+ adding export: CloudConvFlux_Be10s
+ adding export: CloudConvFlux_aoa
+ adding export: CloudConvFlux_aoa_bl
+ adding export: CloudConvFlux_aoa_nh
+ adding export: CloudConvFlux_CH3I
+ adding export: CloudConvFlux_CO_25
+ adding export: CloudConvFlux_CO_50
+ adding export: CloudConvFlux_e90
+ adding export: CloudConvFlux_e90_n
+ adding export: CloudConvFlux_e90_s
+ adding export: CloudConvFlux_nh_5
+ adding export: CloudConvFlux_nh_50
+ adding export: CloudConvFlux_PassiveTracer
+ adding export: CloudConvFlux_SF6
+ adding export: CloudConvFlux_st80_25
+ adding export: DryDep_Pb210
+ adding export: DryDep_Pb210s
+ adding export: DryDep_Be7
+ adding export: DryDep_Be7s
+ adding export: DryDep_Be10
+ adding export: DryDep_Be10s
+ adding export: DryDepVel_Pb210
+ adding export: DryDepVel_Pb210s
+ adding export: DryDepVel_Be7
+ adding export: DryDepVel_Be7s
+ adding export: DryDepVel_Be10
+ adding export: DryDepVel_Be10s
+ adding export: PbFromRnDecay
+ adding export: RadDecay_Rn222
+ adding export: RadDecay_Pb210
+ adding export: RadDecay_Pb210s
+ adding export: RadDecay_Be7
+ adding export: RadDecay_Be7s
+ adding export: RadDecay_Be10
+ adding export: RadDecay_Be10s
+ adding export: SpeciesConcVV_Rn222
+ adding export: SpeciesConcVV_Pb210
+ adding export: SpeciesConcVV_Pb210s
+ adding export: SpeciesConcVV_Be7
+ adding export: SpeciesConcVV_Be7s
+ adding export: SpeciesConcVV_Be10
+ adding export: SpeciesConcVV_Be10s
+ adding export: SpeciesConcVV_aoa
+ adding export: SpeciesConcVV_aoa_bl
+ adding export: SpeciesConcVV_aoa_nh
+ adding export: SpeciesConcVV_CH3I
+ adding export: SpeciesConcVV_CO_25
+ adding export: SpeciesConcVV_CO_50
+ adding export: SpeciesConcVV_e90
+ adding export: SpeciesConcVV_e90_n
+ adding export: SpeciesConcVV_e90_s
+ adding export: SpeciesConcVV_nh_5
+ adding export: SpeciesConcVV_nh_50
+ adding export: SpeciesConcVV_PassiveTracer
+ adding export: SpeciesConcVV_SF6
+ adding export: SpeciesConcVV_st80_25
+ adding export: Met_AD
+ adding export: Met_AIRDEN
+ adding export: Met_AIRVOL
+ adding export: Met_ALBD
+ adding export: Met_AREAM2
+ adding export: Met_AVGW
+ adding export: Met_BXHEIGHT
+ adding export: Met_ChemGridLev
+ adding export: Met_CLDF
+ adding export: Met_CLDFRC
+ adding export: Met_CLDTOPS
+ adding export: Met_DELP
+ adding export: Met_DQRCU
+ adding export: Met_DQRLSAN
+ adding export: Met_DTRAIN
+ adding export: Met_EFLUX
+ adding export: Met_FRCLND
+ adding export: Met_FRLAKE
+ adding export: Met_FRLAND
+ adding export: Met_FRLANDICE
+ adding export: Met_FROCEAN
+ adding export: Met_FRSEAICE
+ adding export: Met_FRSNOW
+ adding export: Met_GWETROOT
+ adding export: Met_GWETTOP
+ adding export: Met_HFLUX
+ adding export: Met_LAI
+ adding export: Met_PARDR
+ adding export: Met_PARDF
+ adding export: Met_PBLTOPL
+ adding export: Met_PBLH
+ adding export: Met_PHIS
+ adding export: Met_PMID
+ adding export: Met_PMIDDRY
+ adding export: Met_PRECANV
+ adding export: Met_PRECCON
+ adding export: Met_PRECLSC
+ adding export: Met_PRECTOT
+ adding export: Met_PS1DRY
+ adding export: Met_PS1WET
+ adding export: Met_PS2DRY
+ adding export: Met_PS2WET
+ adding export: Met_PSC2WET
+ adding export: Met_PSC2DRY
+ adding export: Met_QI
+ adding export: Met_QL
+ adding export: Met_OMEGA
+ adding export: Met_OPTD
+ adding export: Met_REEVAPCN
+ adding export: Met_REEVAPLS
+ adding export: Met_SLP
+ adding export: Met_SNODP
+ adding export: Met_SNOMAS
+ adding export: Met_SPHU
+ adding export: Met_SPHU1
+ adding export: Met_SPHU2
+ adding export: Met_SUNCOS
+ adding export: Met_SUNCOSmid
+ adding export: Met_SWGDN
+ adding export: Met_T
+ adding export: Met_TAUCLI
+ adding export: Met_TAUCLW
+ adding export: Met_THETA
+ adding export: Met_TMPU1
+ adding export: Met_TMPU2
+ adding export: Met_TO3
+ adding export: Met_TropHt
+ adding export: Met_TropLev
+ adding export: Met_TropP
+ adding export: Met_TS
+ adding export: Met_TSKIN
+ adding export: Met_TV
+ adding export: Met_U
+ adding export: Met_U10M
+ adding export: Met_USTAR
+ adding export: Met_UVALBEDO
+ adding export: Met_V
+ adding export: Met_V10M
+ adding export: Met_Z0
+ adding export: Met_CMFMC
+ adding export: Met_PEDGE
+ adding export: Met_PEDGEDRY
+ adding export: Met_PFICU
+ adding export: Met_PFILSAN
+ adding export: Met_PFLCU
+ adding export: Met_PFLLSAN
+ adding export: WetLossConv_Pb210
+ adding export: WetLossConv_Pb210s
+ adding export: WetLossConv_Be7
+ adding export: WetLossConv_Be7s
+ adding export: WetLossConv_Be10
+ adding export: WetLossConv_Be10s
+ adding export: WetLossConvFrac_Pb210
+ adding export: WetLossConvFrac_Pb210s
+ adding export: WetLossConvFrac_Be7
+ adding export: WetLossConvFrac_Be7s
+ adding export: WetLossConvFrac_Be10
+ adding export: WetLossConvFrac_Be10s
+ adding export: WetLossLS_Pb210
+ adding export: WetLossLS_Pb210s
+ adding export: WetLossLS_Be7
+ adding export: WetLossLS_Be7s
+ adding export: WetLossLS_Be10
+ adding export: WetLossLS_Be10s
+  
+Reading entire HEMCO configuration file: HEMCO_Config.rc
+
+HEMCO verbose output is OFF
+ Reading HEMCO configuration file: HEMCO_Config.rc
+ adding HEMCO export: EmisRn_Soil
+ adding HEMCO export: EmisBe7_Cosmic
+ adding HEMCO export: EmisBe7s_Cosmic
+ adding HEMCO export: EmisBe10_Cosmic
+ adding HEMCO export: EmisBe10s_Cosmic
+ adding HEMCO export: EmisSF6
+ adding HEMCO export: EmisCH3I
+ adding HEMCO export: EmisCO_25
+ adding HEMCO export: EmisCO_50
+ Character Resource Parameter: DYCORE:OFF
+NOTE from PE     0: MPP_DOMAINS_SET_STACK_SIZE: stack size set to    32768.
+&MPP_IO_NML
+ HEADER_BUFFER_VAL=16384      ,
+ GLOBAL_FIELD_ON_ROOT_PE=T,
+ IO_CLOCKS_ON=F,
+ SHUFFLE=0          ,
+ DEFLATE_LEVEL=-1         ,
+ CF_COMPLIANCE=F,
+ /
+NOTE from PE     0: MPP_IO_SET_STACK_SIZE: stack size set to     131072.
+NOTE from PE     0: MPP_DOMAINS_SET_STACK_SIZE: stack size set to 20000000.
+ Integer*4 Resource Parameter: NX:2
+ Integer*4 Resource Parameter: NY:6
+ Integer*4 Resource Parameter: IM:24
+ Integer*4 Resource Parameter: JM:144
+ Integer*4 Resource Parameter: RUN_DT:600
+ For k_split (remapping)=           1
+n_split is set to 02 for resolution-dt=0025x0025x6-  600.000
+Using n_zfilter : 000
+Using n_sponge : 001
+Using non_ortho :       T
+ Starting PEs :           12
+ Starting Threads :           16
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =   24
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =   24
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =   24
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+ ncnst=           0  num_prog=           0  pnats=           0  dnats=           0  num_family=           0
+ 
+ Grid distance at face edge (km)=   326768.43532825337     
+RADIUS (m): 0.63710000000000E+07
+PI: 0.31415926535898E+01
+MAX    AREA (m*m): 0.21280966055028E+12          MIN AREA (m*m): 0.95959708752531E+11
+GLOBAL AREA (m*m): 0.51006447190982E+15 IDEAL GLOBAL AREA (m*m): 0.51006447190979E+15
+ 
+  Cubed-Sphere Grid Stats :           25 x          25 x           6
+      Grid Length               : min: 326768.44 max: 461715.98 avg: 386515.92 min/max:      0.71
+      Deviation from Orthogonal : min:      0.00 max:     28.13 avg:      8.60
+      Aspect Ratio              : min:      1.00 max:      1.08 avg:      1.03
+ 
+ Grid_init          72           1   100.00000000000000     
+ Hybrid Sigma-P: minimum allowable surface pressure (hpa)=   14.888888888889042     
+ Corner interpolation coefficient=   1.4728933761817313     
+ Corner interpolation coefficient=   1.4728933761817249     
+ Corner interpolation coefficient=   1.4728933761817300     
+ Corner interpolation coefficient=   1.4728933761817318     
+ Corner interpolation coefficient=   1.4728933761817160     
+ Corner interpolation coefficient=   1.4728933761817273     
+ da_max/da_min=   2.2176980663737886     
+ da_max_c/da_min_c=   2.2606506684943874     
+  
+ Divergence damping Coefficients
+ For small dt=   300.00000000000000     
+ External mode del-2 (m**2/s)=   6284027.9017991126     
+ Internal mode del-2 SMAG dimensionless coeff=   0.0000000000000000     
+ Internal mode del-2 background diff=   0.0000000000000000     
+ Internal mode del-4 background diff=  0.16000000000000000     
+ Vorticity del-4 (m**4/s)=   0.0000000000000000     
+ tracer del-2 diff=   0.0000000000000000     
+ Vorticity del-4 (m**4/s)=   0.0000000000000000     
+ beta=   0.0000000000000000     
+  
+                                                       Mem/Swap Used (MB) at GCHPctmEnvMAPL_GenericInitialize=  7.246E+03  0.000E+00
+     GCHPctmEnv: INFO: Configured to expect 'bottom-up' wind data from 'ExtData'
+     GCHPctmEnv: INFO: Configured to expect 'bottom-up' humidity data from 'ExtData'
+     GCHPctmEnv: INFO: Configured to use dry air pressure in advection
+     GCHPctmEnv: INFO: Configured to correct native mass flux (if using) for humidity
+ Real*4 Resource Parameter: GCHPchem_DT:1200.000000
+ Integer*4 Resource Parameter: GCHPchem_REFERENCE_TIME:1000
+ Character Resource Parameter: GCHPchem_INTERNAL_RESTART_FILE:gchp_restart.nc4
+ Character Resource Parameter: MAPL_ENABLE_BOOTSTRAP:YES
+ Using parallel NetCDF to read file: gchp_restart.nc4
+   Bootstrapping Variable: ARCHV_DRY_TOTN in gchp_restart.nc4
+   Bootstrapping Variable: ARCHV_WET_TOTN in gchp_restart.nc4
+   Bootstrapping Variable: AREA in gchp_restart.nc4
+   Bootstrapping Variable: AeroH2O_SNA in gchp_restart.nc4
+   Bootstrapping Variable: DEP_RESERVOIR in gchp_restart.nc4
+   Bootstrapping Variable: DRYPERIOD in gchp_restart.nc4
+   Bootstrapping Variable: DryDepNitrogen in gchp_restart.nc4
+   Bootstrapping Variable: GCCTROPP in gchp_restart.nc4
+   Bootstrapping Variable: GWET_PREV in gchp_restart.nc4
+   Bootstrapping Variable: H2O2AfterChem in gchp_restart.nc4
+   Bootstrapping Variable: JNO2 in gchp_restart.nc4
+   Bootstrapping Variable: JOH in gchp_restart.nc4
+   Bootstrapping Variable: KPPHvalue in gchp_restart.nc4
+   Bootstrapping Variable: LAI_PREVDAY in gchp_restart.nc4
+   Bootstrapping Variable: ORVCSESQ in gchp_restart.nc4
+   Bootstrapping Variable: PARDF_DAVG in gchp_restart.nc4
+   Bootstrapping Variable: PARDR_DAVG in gchp_restart.nc4
+   Bootstrapping Variable: PFACTOR in gchp_restart.nc4
+   Bootstrapping Variable: SO2AfterChem in gchp_restart.nc4
+   Bootstrapping Variable: STATE_PSC in gchp_restart.nc4
+   Bootstrapping Variable: T_DAVG in gchp_restart.nc4
+   Bootstrapping Variable: T_PREVDAY in gchp_restart.nc4
+   Bootstrapping Variable: WetDepNitrogen in gchp_restart.nc4
+                                                         Mem/Swap Used (MB) at GCHPchemMAPL_GenericInitialize=  7.656E+03  0.000E+00
+===============================================================================
+G E O S - C H E M   U S E R   I N P U T
+
+READ_INPUT_FILE: Opening ./geoschem_config.yml
+
+SIMULATION SETTINGS
+-------------------
+Simulation name             : TransportTracers
+CHEM_INPUTS directory       : ./ChemDir/
+Species database file       : ./species_database.yml
+Turn on verbose output      :     F
+Verbose output printed on   : root core only
+
+TIMESTEP SETTINGS
+-----------------
+Transport/Convection [sec]  :   600
+Chemistry/Emissions  [sec]  :  1200
+RRTMG rad transfer   [sec]  : 10800
+
+TRANSPORT SETTINGS
+------------------
+Turn on transport?          :     T
+
+CONVECTION SETTINGS
+-------------------
+Turn on cloud convection?   :     T
+Grell-Freitas convection?   :     F
+
+PBL MIXING SETTINGS
+-------------------
+Turn on PBL mixing?         :     T
+Turn on non-local PBL?      :     T
+
+AEROSOL SETTINGS
+----------------
+Aerosol optical property dir: UNKNOWN                                                                                                                                                                                                                                                        
+Online SULFATE AEROSOLS?    :     F
+Metal catalyzed SO2 ox.?    :     F
+Online CARBON AEROSOLS?     :     F
+Brown Carbon Aerosol?       :     F
+BC Absorption Enhancement?  :     F
+Hydrophilic BC AE factor    :  -999.00
+Hydrophobic BC AE factor    :  -999.00
+Online COMPLEX SOA?         :     F
+Semivolatile POA?           :     F
+Online DUST AEROSOLS?       :     F
+Acid uptake on dust?        :     F
+Online SEA SALT AEROSOLS?   :     F
+Accum  SEA SALT radii [um]  :  -999.00 -  -999.00
+Coarse SEA SALT radii [um]  :  -999.00 -  -999.00
+MARINE ORGANIC AEROSOLS?    :     F
+Settle strat. aerosols?     :     F
+Online SOLID PSC aerosols?  :     F
+Allow hom. NAT nucleation?  :     F
+NAT supercooling requirement:  -999.00K
+Ice supersaturation req.    : ********K
+Perform PSC het. chemistry? :     F
+Use strat. aerosol OD?      :     F
+
+DRY DEPOSITION SETTINGS
+-----------------------
+Turn on dry deposition?     :     T
+Dry dep over full PBL?      :     F
+Turn on CO2 effect?         :     F
+CO2 level                   :  -999.00
+CO2 reference level         :  -999.00
+RIX scaling factor          :     1.00
+
+WET DEPOSITION SETTINGS
+-----------------------
+Turn on wet deposition?     :     T
+
+CHEMISTRY SETTINGS
+------------------
+Turn on chemistry?          :     T
+Use linear. mesospheric chem:     F
+ => Use Linoz for O3?       :     F
+Online strat. H2O?          :     F
+Use robust strat H2O BC?    :     F
+GAMMA HO2                   : ****
+Use auto-reduce solver?     :     F
+Absolute AR threshold       : *****
+Use prs. dependent thres?   :     F
+Keep halogen spec. active?  :     F
+Use append in auto-reduce?  :     F
+
+PHOTOLYSIS SETTINGS
+-------------------
+Turn on photolysis?         :     F
+Print Cloud-J debug output? :     F
+FAST-JX input directory     : UNKNOWN
+Cloud-J input directory     : UNKNOWN
+Number levels with cloud    :  -999
+Cloud-J cloud flag          :  -999
+Layer OD increase factor    : -999.000
+Min cloud OD at top         : -999.000
+Cloud correlation           : -999.000
+Max # of overlap bins       :  -999
+Sphere correction           :  -999
+Number of wavelength bins   :  -999
+Use H2O UV absorption?      :     F
+Use online ozone?           :     F
+Use ozone from met?         :     F
+Use TOMS/SBUV ozone?        :     F
+Photolyse nitrate aerosol?  :     F
+JNITs scaling of JHNO3      : -999.000
+JNIT scaling of JHNO3       : -999.000
+JNIT(s) channel A (HONO)    : -999.000
+JNIT(s) channel B (NO2)     : -999.000
+
+RRTMG SETTINGS
+--------------
+Turn on radiation?          :     F
+Consider longwave?          :     F
+Consider shortwave?         :     F
+Clear-sky flux?             :     F
+All-sky flux?               :     F
+CO2 VMR in ppmv             :  -999.0
+Fixed dyn. heat. assumption?:     F
+ --> Seasonal evolution?    :     F
+ --> Extend to TOA?         :     F
+ --> Read in dyn. heating?  :     F
+
+OBSPACK SETTINGS
+----------------
+Turn on ObsPack diagnostic? :     F
+Suppress logfile output?    :     F
+ObsPack input file          : UNKNOWN
+ObsPack output file         : UNKNOWN
+
+
+
+TIMESTEPS SETTINGS
+
+
+
+
+
+------------------
+Chemistry  Timestep [sec]   :   1200
+Convection Timestep [sec]   :    600
+Dynamics   Timestep [sec]   :    600
+Emission   Timestep [sec]   :   1200
+Unit Conv  Timestep [sec]   :    600
+
+
+Diagnostic Timestep [sec]   :   1200
+Radiation  Timestep [sec]   :  10800
+
+
+
+===============================================================================
+SPECIES NAMES AND INDICES
+
+Name               ModelId  DryDepId  WetDepId  PhotolId HygGrthId  KppSpcId
+-------------------------------------------------------------------------------
+Rn222                    1         -         -         -         -         -
+Pb210                    2         1         1         -         -         -
+Pb210s                   3         2         2         -         -         -
+Be7                      4         3         3         -         -         -
+Be7s                     5         4         4         -         -         -
+Be10                     6         5         5         -         -         -
+Be10s                    7         6         6         -         -         -
+aoa                      8         -         -         -         -         -
+aoa_bl                   9         -         -         -         -         -
+aoa_nh                  10         -         -         -         -         -
+CH3I                    11         -         -         1         -         -
+CO_25                   12         -         -         -         -         -
+CO_50                   13         -         -         -         -         -
+e90                     14         -         -         -         -         -
+e90_n                   15         -         -         -         -         -
+e90_s                   16         -         -         -         -         -
+nh_5                    17         -         -         -         -         -
+nh_50                   18         -         -         -         -         -
+PassiveTracer           19         -         -         -         -         -
+SF6                     20         -         -         -         -         -
+st80_25                 21         -         -         -         -         -
+===============================================================================
+READ_DRYDEP_INPUTS: Opening ./ChemDir/Olson_Land_Map_201203/Olson_2001_Drydep_Inputs.nc
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%               HEMCO: Harmonized Emissions Component                 %%%%%
+%%%%%               You are using HEMCO version 3.12.1                    %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+Reading settings & switches of HEMCO configuration file: HEMCO_Config.rc
+
+HEMCO verbose output is OFF
+  
+Reading fields of HEMCO configuration file: HEMCO_Config.rc
+-------------------------------------------------------------------------------
+Using HEMCO extension: GC_RnPbBe (radionuclide emissions)
+Use the following species (Name: HcoID):
+ Rn222:           1
+ Be7:           4
+ Be7s:           5
+ Be10:           6
+ Be10s:           7
+                                                         Mem/Swap Used (MB) at DYNAMICSMAPL_GenericInitialize=  1.042E+04  0.000E+00
+                                                             Mem/Swap Used (MB) at GCHPMAPL_GenericInitialize=  1.043E+04  0.000E+00
+  oserver is not split
+
+ EXPSRC:
+ EXPID: OutputDir/GEOSChem
+ Descr: GEOS-Chem_devel
+ DisableSubVmChecks: F
+
+ Reading HISTORY RC Files:
+ -------------------------
+ NOT using buffer I/O for file: HISTORY.rc
+ NOT using buffer I/O for file: Emissions.rcx
+ NOT using buffer I/O for file: CloudConvFlux.rcx
+ NOT using buffer I/O for file: DryDep.rcx
+ NOT using buffer I/O for file: FV3Dynamics.rcx
+ NOT using buffer I/O for file: GCHPctmEnvLevCenter.rcx
+ NOT using buffer I/O for file: GCHPctmEnvLevEdge.rcx
+ NOT using buffer I/O for file: RadioNuclide.rcx
+ NOT using buffer I/O for file: SpeciesConc.rcx
+ NOT using buffer I/O for file: StateMet.rcx
+ NOT using buffer I/O for file: StateMetLevEdge.rcx
+ NOT using buffer I/O for file: WetLossConv.rcx
+ NOT using buffer I/O for file: WetLossLS.rcx
+ NOT using buffer I/O for file: HISTORY.rc
+ Setting history alarm for species            1
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection Emissions
+ Setting history alarm for species            2
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection CloudConvFlux
+ Setting history alarm for species            3
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection DryDep
+ Setting history alarm for species            4
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection FV3Dynamics
+ Setting history alarm for species            5
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection GCHPctmEnvLevCenter
+ Setting history alarm for species            6
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection GCHPctmEnvLevEdge
+ Setting history alarm for species            7
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection RadioNuclide
+ Setting history alarm for species            8
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection SpeciesConc
+ Setting history alarm for species            9
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection StateMet
+ Setting history alarm for species           10
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection StateMetLevEdge
+ Setting history alarm for species           11
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection WetLossConv
+ Setting history alarm for species           12
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection WetLossLS
+
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: Emissions
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: CloudConvFlux
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: DryDep
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: FV3Dynamics
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: GCHPctmEnvLevCenter
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: GCHPctmEnvLevEdge
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: RadioNuclide
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: SpeciesConc
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: StateMet
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: StateMetLevEdge
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: WetLossConv
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: WetLossLS
+
+ Independent Output Export States:
+ ---------------------------------
+           1 GCHPchem
+           2 DYNAMICS
+           3 GCHPctmEnv
+
+ Initializing Output Stream: Emissions
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          293
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: EmisRn_Soil EmisBe7_Cosmic EmisBe7s_Cosmic EmisBe10_Cosmic EmisBe10s_Cosmic EmisSF6 EmisCH3I EmisCO_25 EmisCO_50 
+
+
+ Initializing Output Stream: CloudConvFlux
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:         1512
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: CloudConvFlux_Rn222 CloudConvFlux_Pb210 CloudConvFlux_Pb210s CloudConvFlux_Be7 CloudConvFlux_Be7s CloudConvFlux_Be10 CloudConvFlux_Be10s CloudConvFlux_aoa CloudConvFlux_aoa_bl CloudConvFlux_aoa_nh CloudConvFlux_CH3I CloudConvFlux_CO_25 CloudConvFlux_CO_50 CloudConvFlux_e90 CloudConvFlux_e90_n CloudConvFlux_e90_s CloudConvFlux_nh_5 CloudConvFlux_nh_50 CloudConvFlux_PassiveTracer CloudConvFlux_SF6 CloudConvFlux_st80_25 
+
+
+ Initializing Output Stream: DryDep
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:           12
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: DryDep_Pb210 DryDep_Pb210s DryDep_Be7 DryDep_Be7s DryDep_Be10 DryDep_Be10s DryDepVel_Pb210 DryDepVel_Pb210s DryDepVel_Be7 DryDepVel_Be7s DryDepVel_Be10 DryDepVel_Be10s 
+
+
+ Initializing Output Stream: FV3Dynamics
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          219
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: PLE_R4 DryPLE_R4 PLEadv_R4 
+
+
+ Initializing Output Stream: GCHPctmEnvLevCenter
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          360
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: SPHU0_R4 CX_R4 CY_R4 MFX_R4 MFY_R4 
+
+
+ Initializing Output Stream: GCHPctmEnvLevEdge
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          365
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: UpwardsMassFlux_R4 PLE0_R4 PLE1_R4 DryPLE0_R4 DryPLE1_R4 
+
+
+ Initializing Output Stream: RadioNuclide
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          576
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: PbFromRnDecay RadDecay_Rn222 RadDecay_Pb210 RadDecay_Pb210s RadDecay_Be7 RadDecay_Be7s RadDecay_Be10 RadDecay_Be10s 
+
+
+ Initializing Output Stream: SpeciesConc
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:         1512
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: SpeciesConcVV_Rn222 SpeciesConcVV_Pb210 SpeciesConcVV_Pb210s SpeciesConcVV_Be7 SpeciesConcVV_Be7s SpeciesConcVV_Be10 SpeciesConcVV_Be10s SpeciesConcVV_aoa SpeciesConcVV_aoa_bl SpeciesConcVV_aoa_nh SpeciesConcVV_CH3I SpeciesConcVV_CO_25 SpeciesConcVV_CO_50 SpeciesConcVV_e90 SpeciesConcVV_e90_n SpeciesConcVV_e90_s SpeciesConcVV_nh_5 SpeciesConcVV_nh_50 SpeciesConcVV_PassiveTracer SpeciesConcVV_SF6 SpeciesConcVV_st80_25 
+
+
+ Initializing Output Stream: StateMet
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:         2209
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: Met_AD Met_AIRDEN Met_AIRVOL Met_ALBD Met_AREAM2 Met_AVGW Met_BXHEIGHT Met_ChemGridLev Met_CLDF Met_CLDFRC Met_CLDTOPS Met_DELP Met_DQRCU Met_DQRLSAN Met_DTRAIN Met_EFLUX Met_FRCLND Met_FRLAKE Met_FRLAND Met_FRLANDICE Met_FROCEAN Met_FRSEAICE Met_FRSNOW Met_GWETROOT Met_GWETTOP Met_HFLUX Met_LAI Met_PARDR Met_PARDF Met_PBLTOPL Met_PBLH Met_PHIS Met_PMID Met_PMIDDRY Met_PRECANV Met_PRECCON Met_PRECLSC Met_PRECTOT Met_PS1DRY Met_PS1WET Met_PS2DRY Met_PS2WET Met_PSC2WET Met_PSC2DRY Met_QI Met_QL Met_OMEGA Met_OPTD Met_REEVAPCN Met_REEVAPLS Met_SLP Met_SNODP Met_SNOMAS Met_SPHU Met_SPHU1 Met_SPHU2 Met_SUNCOS Met_SUNCOSmid Met_SWGDN Met_T Met_TAUCLI Met_TAUCLW Met_THETA Met_TMPU1 Met_TMPU2 Met_TO3 Met_TropHt Met_TropLev Met_TropP Met_TS Met_TSKIN Met_TV Met_U Met_U10M Met_USTAR Met_UVALBEDO Met_V Met_V10M Met_Z0 
+
+
+ Initializing Output Stream: StateMetLevEdge
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          511
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: Met_CMFMC Met_PEDGE Met_PEDGEDRY Met_PFICU Met_PFILSAN Met_PFLCU Met_PFLLSAN 
+
+
+ Initializing Output Stream: WetLossConv
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          864
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: WetLossConv_Pb210 WetLossConv_Pb210s WetLossConv_Be7 WetLossConv_Be7s WetLossConv_Be10 WetLossConv_Be10s WetLossConvFrac_Pb210 WetLossConvFrac_Pb210s WetLossConvFrac_Be7 WetLossConvFrac_Be7s WetLossConvFrac_Be10 WetLossConvFrac_Be10s 
+
+
+ Initializing Output Stream: WetLossLS
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          432
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: WetLossLS_Pb210 WetLossLS_Pb210s WetLossLS_Be7 WetLossLS_Be7s WetLossLS_Be10 WetLossLS_Be10s 
+
+
+                                                             Mem/Swap Used (MB) at HISTMAPL_GenericInitialize=  1.049E+04  0.000E+00
+                                                          Mem/Swap Used (MB) at EXTDATAMAPL_GenericInitialize=  1.049E+04  0.000E+00
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  1.078E+04  0.000E+00
+ Character Resource Parameter: EXCLUDE_ADVECTION_TRACERS:NO
+ AdvCore is Advecting the following    21 tracers in FV3:
+ SPC_Rn222
+ SPC_Pb210
+ SPC_Pb210s
+ SPC_Be7
+ SPC_Be7s
+ SPC_Be10
+ SPC_Be10s
+ SPC_aoa
+ SPC_aoa_bl
+ SPC_aoa_nh
+ SPC_CH3I
+ SPC_CO_25
+ SPC_CO_50
+ SPC_e90
+ SPC_e90_n
+ SPC_e90_s
+ SPC_nh_5
+ SPC_nh_50
+ SPC_PassiveTracer
+ SPC_SF6
+ SPC_st80_25
+Initializing land type fractions from Olson imports
+ 
+ Doing warm GEOS-Chem restart
+ 
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+ 
+ ### GEOS-Chem Radon simulation ###
+     Timestep (secs)   :    1200.0000000000000     
+     Rn lifetime (days):    3.8300000000000001     
+     Rn decadence      :   0.99748956785963017     
+ 
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+  
+ Setting history variable pointers to GC and Export States
+ GCHP Date: 2019/01/01  Time: 00:10:00  Throughput(days/day)[Avg Tot Run]:         10.8         10.8       4447.5  TimeRemaining(Est) 002:11:50  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.647E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:20:00  Throughput(days/day)[Avg Tot Run]:       9938.0       4975.5       5299.1  TimeRemaining(Est) 000:00:08  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.648E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:30:00  Throughput(days/day)[Avg Tot Run]:       7074.7       4498.0       4762.6  TimeRemaining(Est) 000:00:11  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.648E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:40:00  Throughput(days/day)[Avg Tot Run]:       6435.5       5075.9       5418.4  TimeRemaining(Est) 000:00:13  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.648E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:50:00  Throughput(days/day)[Avg Tot Run]:       5958.4       4606.9       4882.7  TimeRemaining(Est) 000:00:13  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.648E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:00:00  Throughput(days/day)[Avg Tot Run]:       5782.0       5050.7       5387.1  TimeRemaining(Est) 000:00:14  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.648E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:10:00  Throughput(days/day)[Avg Tot Run]:       3433.5        999.5       4756.9  TimeRemaining(Est) 000:00:23  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.649E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:20:00  Throughput(days/day)[Avg Tot Run]:       3558.5       4787.0       5091.1  TimeRemaining(Est) 000:00:22  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.649E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:30:00  Throughput(days/day)[Avg Tot Run]:       3643.3       4510.7       4776.4  TimeRemaining(Est) 000:00:22  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.649E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:40:00  Throughput(days/day)[Avg Tot Run]:       3743.8       4993.7       5319.5  TimeRemaining(Est) 000:00:21  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.649E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 01:50:00  Throughput(days/day)[Avg Tot Run]:       3799.4       4472.9       4735.4  TimeRemaining(Est) 000:00:21  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.649E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:00:00  Throughput(days/day)[Avg Tot Run]:       3867.9       4835.6       5149.7  TimeRemaining(Est) 000:00:20  107.7% :  81.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.651E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:10:00  Throughput(days/day)[Avg Tot Run]:       3293.1       1183.8       4720.2  TimeRemaining(Est) 000:00:23  107.8% :  81.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.656E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:20:00  Throughput(days/day)[Avg Tot Run]:       3374.0       4972.1       5291.9  TimeRemaining(Est) 000:00:23  107.7% :  81.1% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.654E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:30:00  Throughput(days/day)[Avg Tot Run]:       3428.9       4452.7       4721.0  TimeRemaining(Est) 000:00:22  107.8% :  81.1% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.655E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:40:00  Throughput(days/day)[Avg Tot Run]:       3493.1       4873.2       5190.1  TimeRemaining(Est) 000:00:21  107.8% :  81.1% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.655E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:50:00  Throughput(days/day)[Avg Tot Run]:       3528.6       4224.7       4459.7  TimeRemaining(Est) 000:00:21  107.8% :  81.1% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.656E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:00:00  Throughput(days/day)[Avg Tot Run]:       3177.2       1180.4       5415.0  TimeRemaining(Est) 000:00:23  107.8% :  81.6% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.676E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:10:00  Throughput(days/day)[Avg Tot Run]:       1816.0        208.5       4715.6  TimeRemaining(Est) 000:00:41  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.712E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:20:00  Throughput(days/day)[Avg Tot Run]:       1875.9       5044.1       5379.9  TimeRemaining(Est) 000:00:39  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.711E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:30:00  Throughput(days/day)[Avg Tot Run]:       1929.9       4561.8       4832.2  TimeRemaining(Est) 000:00:38  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.711E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:40:00  Throughput(days/day)[Avg Tot Run]:       1985.6       5047.7       5377.3  TimeRemaining(Est) 000:00:36  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.711E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:50:00  Throughput(days/day)[Avg Tot Run]:       2035.8       4594.2       4869.9  TimeRemaining(Est) 000:00:35  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.710E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:00:00  Throughput(days/day)[Avg Tot Run]:       2087.3       5007.6       5333.5  TimeRemaining(Est) 000:00:34  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.710E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:10:00  Throughput(days/day)[Avg Tot Run]:       2022.8       1162.0       4692.1  TimeRemaining(Est) 000:00:35  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.713E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:20:00  Throughput(days/day)[Avg Tot Run]:       2070.0       4983.3       5314.7  TimeRemaining(Est) 000:00:34  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.712E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:30:00  Throughput(days/day)[Avg Tot Run]:       2112.0       4483.7       4751.7  TimeRemaining(Est) 000:00:33  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.712E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:40:00  Throughput(days/day)[Avg Tot Run]:       2156.8       5063.0       5398.7  TimeRemaining(Est) 000:00:32  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.712E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:50:00  Throughput(days/day)[Avg Tot Run]:       2197.2       4629.8       4908.0  TimeRemaining(Est) 000:00:31  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.712E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:00:00  Throughput(days/day)[Avg Tot Run]:       2237.4       4777.2       5076.1  TimeRemaining(Est) 000:00:30  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.712E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:10:00  Throughput(days/day)[Avg Tot Run]:       2168.3       1126.5       4697.6  TimeRemaining(Est) 000:00:31  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.714E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:20:00  Throughput(days/day)[Avg Tot Run]:       2207.0       4956.5       5278.2  TimeRemaining(Est) 000:00:30  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.714E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:30:00  Throughput(days/day)[Avg Tot Run]:       2241.8       4531.1       4798.0  TimeRemaining(Est) 000:00:29  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.714E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:40:00  Throughput(days/day)[Avg Tot Run]:       2278.3       4932.6       5245.0  TimeRemaining(Est) 000:00:28  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.714E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:50:00  Throughput(days/day)[Avg Tot Run]:       2311.0       4527.7       4791.8  TimeRemaining(Est) 000:00:28  107.8% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.714E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:00:00  Throughput(days/day)[Avg Tot Run]:       2235.2       1041.0       5176.4  TimeRemaining(Est) 000:00:28  107.8% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.718E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:10:00  Throughput(days/day)[Avg Tot Run]:       1852.5        258.6       4815.2  TimeRemaining(Est) 000:00:34  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:20:00  Throughput(days/day)[Avg Tot Run]:       1883.7       4997.5       5321.1  TimeRemaining(Est) 000:00:33  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:30:00  Throughput(days/day)[Avg Tot Run]:       1912.3       4527.1       4792.5  TimeRemaining(Est) 000:00:32  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.750E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:40:00  Throughput(days/day)[Avg Tot Run]:       1940.5       4594.2       4867.6  TimeRemaining(Est) 000:00:32  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.750E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:50:00  Throughput(days/day)[Avg Tot Run]:       1968.0       4554.9       4825.2  TimeRemaining(Est) 000:00:31  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.750E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:00:00  Throughput(days/day)[Avg Tot Run]:       1997.1       5081.9       5419.0  TimeRemaining(Est) 000:00:30  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.750E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:10:00  Throughput(days/day)[Avg Tot Run]:       1961.0       1115.6       4806.8  TimeRemaining(Est) 000:00:30  107.8% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:20:00  Throughput(days/day)[Avg Tot Run]:       1987.5       4751.0       5057.3  TimeRemaining(Est) 000:00:30  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:30:00  Throughput(days/day)[Avg Tot Run]:       2011.8       4362.9       4608.5  TimeRemaining(Est) 000:00:29  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:40:00  Throughput(days/day)[Avg Tot Run]:       2038.6       5096.6       5444.8  TimeRemaining(Est) 000:00:28  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:50:00  Throughput(days/day)[Avg Tot Run]:       2063.0       4596.2       4876.0  TimeRemaining(Est) 000:00:28  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:00:00  Throughput(days/day)[Avg Tot Run]:       2088.2       4917.6       5238.2  TimeRemaining(Est) 000:00:27  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.751E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:10:00  Throughput(days/day)[Avg Tot Run]:       2047.1       1054.0       4527.1  TimeRemaining(Est) 000:00:27  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.753E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:20:00  Throughput(days/day)[Avg Tot Run]:       2071.5       4981.4       5305.9  TimeRemaining(Est) 000:00:27  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.753E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:30:00  Throughput(days/day)[Avg Tot Run]:       2093.8       4543.7       4811.5  TimeRemaining(Est) 000:00:26  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.754E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:40:00  Throughput(days/day)[Avg Tot Run]:       2117.8       5121.9       5467.6  TimeRemaining(Est) 000:00:26  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.754E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:50:00  Throughput(days/day)[Avg Tot Run]:       2138.8       4410.1       4663.9  TimeRemaining(Est) 000:00:25  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.753E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:00:00  Throughput(days/day)[Avg Tot Run]:       2106.4       1170.3       5003.0  TimeRemaining(Est) 000:00:25  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.770E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:10:00  Throughput(days/day)[Avg Tot Run]:       1866.4        260.9       4729.0  TimeRemaining(Est) 000:00:28  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.806E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:20:00  Throughput(days/day)[Avg Tot Run]:       1886.8       4771.2       5069.8  TimeRemaining(Est) 000:00:27  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.806E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:30:00  Throughput(days/day)[Avg Tot Run]:       1905.6       4311.1       4550.2  TimeRemaining(Est) 000:00:27  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.806E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:40:00  Throughput(days/day)[Avg Tot Run]:       1926.2       5050.8       5385.7  TimeRemaining(Est) 000:00:26  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.806E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:50:00  Throughput(days/day)[Avg Tot Run]:       1945.2       4541.1       4814.9  TimeRemaining(Est) 000:00:26  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.806E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:00:00  Throughput(days/day)[Avg Tot Run]:       1965.0       4948.7       5269.3  TimeRemaining(Est) 000:00:25  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.806E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:10:00  Throughput(days/day)[Avg Tot Run]:       1939.4       1088.5       4757.0  TimeRemaining(Est) 000:00:25  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.807E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:20:00  Throughput(days/day)[Avg Tot Run]:       1958.8       5023.7       5351.4  TimeRemaining(Est) 000:00:25  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.807E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:30:00  Throughput(days/day)[Avg Tot Run]:       1976.4       4466.6       4727.6  TimeRemaining(Est) 000:00:24  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.807E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:40:00  Throughput(days/day)[Avg Tot Run]:       1995.2       5027.3       5355.4  TimeRemaining(Est) 000:00:24  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.807E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:50:00  Throughput(days/day)[Avg Tot Run]:       2012.3       4452.0       4709.0  TimeRemaining(Est) 000:00:23  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.807E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:00:00  Throughput(days/day)[Avg Tot Run]:       2030.7       5006.5       5332.2  TimeRemaining(Est) 000:00:23  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.807E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:10:00  Throughput(days/day)[Avg Tot Run]:       2010.1       1205.5       4749.0  TimeRemaining(Est) 000:00:22  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.808E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:20:00  Throughput(days/day)[Avg Tot Run]:       2028.0       5029.3       5360.7  TimeRemaining(Est) 000:00:22  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.808E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:30:00  Throughput(days/day)[Avg Tot Run]:       2043.9       4412.6       4663.5  TimeRemaining(Est) 000:00:22  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.808E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:40:00  Throughput(days/day)[Avg Tot Run]:       2061.2       4956.7       5278.6  TimeRemaining(Est) 000:00:21  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.808E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:50:00  Throughput(days/day)[Avg Tot Run]:       2076.9       4442.7       4699.5  TimeRemaining(Est) 000:00:21  107.7% :  82.7% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.808E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:00:00  Throughput(days/day)[Avg Tot Run]:       2056.3       1208.6       5355.3  TimeRemaining(Est) 000:00:21  107.7% :  83.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.817E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:10:00  Throughput(days/day)[Avg Tot Run]:       1881.0        263.6       4817.0  TimeRemaining(Est) 000:00:22  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:20:00  Throughput(days/day)[Avg Tot Run]:       1897.1       5033.2       5364.6  TimeRemaining(Est) 000:00:22  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:30:00  Throughput(days/day)[Avg Tot Run]:       1911.8       4501.0       4765.6  TimeRemaining(Est) 000:00:21  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:40:00  Throughput(days/day)[Avg Tot Run]:       1927.1       4852.0       5159.0  TimeRemaining(Est) 000:00:21  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:50:00  Throughput(days/day)[Avg Tot Run]:       1941.6       4532.5       4798.8  TimeRemaining(Est) 000:00:20  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:00:00  Throughput(days/day)[Avg Tot Run]:       1956.7       4912.2       5224.9  TimeRemaining(Est) 000:00:20  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:10:00  Throughput(days/day)[Avg Tot Run]:       1934.7       1031.2       4902.6  TimeRemaining(Est) 000:00:20  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:20:00  Throughput(days/day)[Avg Tot Run]:       1949.4       4889.1       5202.1  TimeRemaining(Est) 000:00:19  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:30:00  Throughput(days/day)[Avg Tot Run]:       1963.4       4599.4       4874.2  TimeRemaining(Est) 000:00:19  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:40:00  Throughput(days/day)[Avg Tot Run]:       1977.8       4876.5       5182.4  TimeRemaining(Est) 000:00:18  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:50:00  Throughput(days/day)[Avg Tot Run]:       1991.5       4634.4       4909.7  TimeRemaining(Est) 000:00:18  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:00:00  Throughput(days/day)[Avg Tot Run]:       2005.6       4894.7       5209.1  TimeRemaining(Est) 000:00:17  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.828E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:10:00  Throughput(days/day)[Avg Tot Run]:       1986.2       1096.5       4755.9  TimeRemaining(Est) 000:00:17  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.829E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:20:00  Throughput(days/day)[Avg Tot Run]:       2000.1       4939.7       5257.4  TimeRemaining(Est) 000:00:17  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.829E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:30:00  Throughput(days/day)[Avg Tot Run]:       2013.1       4549.6       4818.0  TimeRemaining(Est) 000:00:16  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.829E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:40:00  Throughput(days/day)[Avg Tot Run]:       2026.8       5022.9       5350.3  TimeRemaining(Est) 000:00:16  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.829E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:50:00  Throughput(days/day)[Avg Tot Run]:       2039.5       4543.9       4812.0  TimeRemaining(Est) 000:00:16  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.829E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:00:00  Throughput(days/day)[Avg Tot Run]:       2023.8       1201.0       4904.3  TimeRemaining(Est) 000:00:16  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.830E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:10:00  Throughput(days/day)[Avg Tot Run]:       1881.5        256.8       4776.4  TimeRemaining(Est) 000:00:16  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:20:00  Throughput(days/day)[Avg Tot Run]:       1894.5       5114.5       5454.4  TimeRemaining(Est) 000:00:16  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:30:00  Throughput(days/day)[Avg Tot Run]:       1906.5       4582.7       4856.7  TimeRemaining(Est) 000:00:16  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:40:00  Throughput(days/day)[Avg Tot Run]:       1919.0       4950.3       5269.3  TimeRemaining(Est) 000:00:15  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:50:00  Throughput(days/day)[Avg Tot Run]:       1930.9       4594.9       4868.2  TimeRemaining(Est) 000:00:15  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.838E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:00:00  Throughput(days/day)[Avg Tot Run]:       1943.3       5041.1       5369.5  TimeRemaining(Est) 000:00:14  107.7% :  82.0% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.838E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:10:00  Throughput(days/day)[Avg Tot Run]:       1925.2       1015.4       4783.2  TimeRemaining(Est) 000:00:14  107.7% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:20:00  Throughput(days/day)[Avg Tot Run]:       1937.2       4901.4       5211.9  TimeRemaining(Est) 000:00:14  107.7% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:30:00  Throughput(days/day)[Avg Tot Run]:       1948.5       4574.2       4842.2  TimeRemaining(Est) 000:00:13  107.7% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.839E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:40:00  Throughput(days/day)[Avg Tot Run]:       1960.4       4961.9       5279.8  TimeRemaining(Est) 000:00:13  107.7% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.838E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:50:00  Throughput(days/day)[Avg Tot Run]:       1971.5       4573.3       4846.0  TimeRemaining(Est) 000:00:13  107.7% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.838E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:00:00  Throughput(days/day)[Avg Tot Run]:       1983.4       5062.3       5395.3  TimeRemaining(Est) 000:00:12  107.7% :  81.9% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.838E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:10:00  Throughput(days/day)[Avg Tot Run]:       1968.4       1113.0       4747.1  TimeRemaining(Est) 000:00:12  107.7% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.837E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:20:00  Throughput(days/day)[Avg Tot Run]:       1979.9       4984.2       5312.4  TimeRemaining(Est) 000:00:12  107.7% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.837E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:30:00  Throughput(days/day)[Avg Tot Run]:       1990.5       4508.0       4777.8  TimeRemaining(Est) 000:00:11  107.7% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.837E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:40:00  Throughput(days/day)[Avg Tot Run]:       2001.8       4952.5       5273.7  TimeRemaining(Est) 000:00:11  107.7% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.837E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:50:00  Throughput(days/day)[Avg Tot Run]:       2012.3       4547.8       4818.2  TimeRemaining(Est) 000:00:11  107.7% :  81.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.837E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:00:00  Throughput(days/day)[Avg Tot Run]:       2000.1       1214.6       5206.9  TimeRemaining(Est) 000:00:10  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.849E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:10:00  Throughput(days/day)[Avg Tot Run]:       1887.6        266.8       4716.9  TimeRemaining(Est) 000:00:11  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:20:00  Throughput(days/day)[Avg Tot Run]:       1898.1       4844.6       5158.0  TimeRemaining(Est) 000:00:10  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:30:00  Throughput(days/day)[Avg Tot Run]:       1908.0       4483.1       4741.7  TimeRemaining(Est) 000:00:10  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:40:00  Throughput(days/day)[Avg Tot Run]:       1918.6       5024.3       5350.7  TimeRemaining(Est) 000:00:10  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:50:00  Throughput(days/day)[Avg Tot Run]:       1928.3       4491.7       4756.4  TimeRemaining(Est) 000:00:09  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:00:00  Throughput(days/day)[Avg Tot Run]:       1938.8       5001.9       5329.8  TimeRemaining(Est) 000:00:09  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:10:00  Throughput(days/day)[Avg Tot Run]:       1926.4       1114.4       4670.9  TimeRemaining(Est) 000:00:09  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:20:00  Throughput(days/day)[Avg Tot Run]:       1936.4       4834.2       5144.4  TimeRemaining(Est) 000:00:08  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:30:00  Throughput(days/day)[Avg Tot Run]:       1945.6       4370.0       4616.4  TimeRemaining(Est) 000:00:08  107.7% :  82.5% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:40:00  Throughput(days/day)[Avg Tot Run]:       1955.7       4988.3       5316.2  TimeRemaining(Est) 000:00:07  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:50:00  Throughput(days/day)[Avg Tot Run]:       1964.9       4434.2       4689.7  TimeRemaining(Est) 000:00:07  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:00:00  Throughput(days/day)[Avg Tot Run]:       1974.7       4883.6       5198.1  TimeRemaining(Est) 000:00:07  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.883E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:10:00  Throughput(days/day)[Avg Tot Run]:       1958.4        983.3       4413.2  TimeRemaining(Est) 000:00:07  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:20:00  Throughput(days/day)[Avg Tot Run]:       1968.1       4923.7       5241.7  TimeRemaining(Est) 000:00:06  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:30:00  Throughput(days/day)[Avg Tot Run]:       1976.7       4241.6       4472.5  TimeRemaining(Est) 000:00:06  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:40:00  Throughput(days/day)[Avg Tot Run]:       1986.4       4997.6       5323.8  TimeRemaining(Est) 000:00:06  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:50:00  Throughput(days/day)[Avg Tot Run]:       1995.3       4512.1       4776.4  TimeRemaining(Est) 000:00:05  107.7% :  82.4% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.884E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:00:00  Throughput(days/day)[Avg Tot Run]:       1918.8        331.2       5291.2  TimeRemaining(Est) 000:00:05  107.7% :  82.8% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.902E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:10:00  Throughput(days/day)[Avg Tot Run]:       1637.3         84.1       4709.5  TimeRemaining(Est) 000:00:06  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:20:00  Throughput(days/day)[Avg Tot Run]:       1646.0       4974.4       5296.7  TimeRemaining(Est) 000:00:05  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:30:00  Throughput(days/day)[Avg Tot Run]:       1654.1       4468.0       4728.6  TimeRemaining(Est) 000:00:05  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:40:00  Throughput(days/day)[Avg Tot Run]:       1662.5       4867.2       5183.8  TimeRemaining(Est) 000:00:05  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:50:00  Throughput(days/day)[Avg Tot Run]:       1670.6       4598.0       4873.6  TimeRemaining(Est) 000:00:04  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:00:00  Throughput(days/day)[Avg Tot Run]:       1679.1       5027.9       5358.2  TimeRemaining(Est) 000:00:04  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:10:00  Throughput(days/day)[Avg Tot Run]:       1674.4       1227.0       4748.4  TimeRemaining(Est) 000:00:03  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.912E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:20:00  Throughput(days/day)[Avg Tot Run]:       1682.6       4759.3       5056.1  TimeRemaining(Est) 000:00:03  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.912E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:30:00  Throughput(days/day)[Avg Tot Run]:       1690.4       4454.9       4713.0  TimeRemaining(Est) 000:00:03  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:40:00  Throughput(days/day)[Avg Tot Run]:       1698.5       4886.7       5199.7  TimeRemaining(Est) 000:00:02  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:50:00  Throughput(days/day)[Avg Tot Run]:       1706.2       4479.1       4739.3  TimeRemaining(Est) 000:00:02  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:00:00  Throughput(days/day)[Avg Tot Run]:       1714.4       5015.6       5347.5  TimeRemaining(Est) 000:00:02  107.7% :  82.2% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.911E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:10:00  Throughput(days/day)[Avg Tot Run]:       1682.4        470.7       4825.0  TimeRemaining(Est) 000:00:01  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.914E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:20:00  Throughput(days/day)[Avg Tot Run]:       1690.4       4998.2       5325.1  TimeRemaining(Est) 000:00:01  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.914E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:30:00  Throughput(days/day)[Avg Tot Run]:       1697.7       4317.1       4557.1  TimeRemaining(Est) 000:00:01  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.914E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:40:00  Throughput(days/day)[Avg Tot Run]:       1705.6       4974.0       5298.2  TimeRemaining(Est) 000:00:00  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.914E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:50:00  Throughput(days/day)[Avg Tot Run]:       1713.1       4502.2       4764.6  TimeRemaining(Est) 000:00:00  107.7% :  82.3% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  2.914E+04  0.000E+00
+ GCHP Date: 2019/01/02  Time: 00:00:00  Throughput(days/day)[Avg Tot Run]:       1707.8       1189.8       5233.4  TimeRemaining(Est) 000:00:00  107.7% :  82.6% Mem Comm:Used  Wallclock: 2026/10/11 01:57
+HEMCO::Finalize... OK.
+Chem::State_Chm Finalize... OK.
+Chem::State_Diag Finalize... OK.
+Chem::State_Grid Finalize... OK.
+Chem::State_Met Finalize... OK.
+Chem::Input_Opt Finalize... OK.
+ Character Resource Parameter: GCHPchem_INTERNAL_CHECKPOINT_FILE:Restarts/gcchem_internal_checkpoint
+ Character Resource Parameter: GCHPchem_INTERNAL_CHECKPOINT_TYPE:pnc4
+ Using parallel NetCDF to write file: Restarts/gcchem_internal_checkpoint
+
+   -----------------------------------------------------
+      Block                    User time  System Time   Total Time   GID 
+   -----------------------------------------------------
+   TOTAL                      110.3630       0.0000     110.3630       0
+   COMM_TOTAL                   0.5195       0.0000       0.5195       0
+   COMM_TRACER                  0.5194       0.0000       0.5194       0
+
+ NOT using buffer I/O for file: Emissions_checkpoint
+ NOT using buffer I/O for file: CloudConvFlux_checkpoint
+ NOT using buffer I/O for file: DryDep_checkpoint
+ NOT using buffer I/O for file: FV3Dynamics_checkpoint
+ NOT using buffer I/O for file: GCHPctmEnvLevCenter_checkpoint
+ NOT using buffer I/O for file: GCHPctmEnvLevEdge_checkpoint
+ NOT using buffer I/O for file: RadioNuclide_checkpoint
+ NOT using buffer I/O for file: SpeciesConc_checkpoint
+ NOT using buffer I/O for file: StateMet_checkpoint
+ NOT using buffer I/O for file: StateMetLevEdge_checkpoint
+ NOT using buffer I/O for file: WetLossConv_checkpoint
+ NOT using buffer I/O for file: WetLossLS_checkpoint
+ NOT using buffer I/O for file: cap_restart
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 7 with PID 0 on
+node ip-172-31-39-157 exiting improperly. There are three reasons this could occur:
+
+1. this process did not call "init" before exiting, but others in
+the job did. This can cause a job to hang indefinitely while it waits
+for all processes to call "init". By rule, if one process calls "init",
+then ALL processes must call "init" prior to termination.
+
+2. this process called "init", but exited without calling "finalize".
+By rule, all processes that call "init" MUST call "finalize" prior to
+exiting or it will be considered an "abnormal termination"
+
+3. this process called "MPI_Abort" or "orte_abort" and the mca parameter
+orte_create_session_dirs is set to false. In this case, the run-time cannot
+detect that the abort call was an abnormal termination. Hence, the only
+error message you will receive is this one.
+
+This may have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+
+You can avoid this message by specifying -quiet on the mpirun command line.
+--------------------------------------------------------------------------

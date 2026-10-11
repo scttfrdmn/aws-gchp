@@ -1,0 +1,53 @@
+[01:59:40] === GCHP#556 / MAPL PR#46 A/B  2026-10-11T01:59:40Z  ranks=12 lith=5bdb3556e16d
+[01:59:41]   bin P 173745423a83 /sw/gchp-14.7.1/bin/gchp
+[01:59:42]   bin A e96237c5b1db /scratch/gchp-mapl46/gchp-stock
+[01:59:42]   bin B 5e86cf1f998e /scratch/gchp-mapl46/gchp-pr46
+lith mounted in the background (pid 3108983); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3109011); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3109040); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3109068); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3109094); logs: /tmp/lith-1000-mount.log
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[01:59:50] RUN A-1 bin=e96237c5b1db
+[02:03:54] CELL A-1 rc=134 wall=241s cap_adv_at=119s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=12 backtrace=12 improper=0 timers=0 throughput=4 stray_gchp=6
+[02:03:54]   first seen (s): cap_restart=119 throughput=1 double_free=120 improper=NA mpirun_exit=241
+[02:03:54]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:03:54]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:03:55] RUN B-1 bin=5e86cf1f998e
+[02:08:39] CELL B-1 rc=1 wall=282s cap_adv_at=282s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=0 backtrace=0 improper=2 timers=0 throughput=4 stray_gchp=0
+[02:08:39]   first seen (s): cap_restart=282 throughput=1 double_free=NA improper=282 mpirun_exit=282
+[02:08:39]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:08:39]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:08:40] RUN P-1 bin=173745423a83
+[02:12:38] CELL P-1 rc=134 wall=236s cap_adv_at=109s cap=20190102 000000 ckpt_md5=8cc8718ecfda double_free=12 backtrace=12 improper=0 timers=0 throughput=4 stray_gchp=0
+[02:12:38]   first seen (s): cap_restart=109 throughput=1 double_free=111 improper=NA mpirun_exit=236
+[02:12:38]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:12:38]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:12:39] RUN A-2 bin=e96237c5b1db
+[02:16:36] CELL A-2 rc=134 wall=234s cap_adv_at=109s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=12 backtrace=12 improper=0 timers=0 throughput=4 stray_gchp=0
+[02:16:36]   first seen (s): cap_restart=109 throughput=1 double_free=111 improper=NA mpirun_exit=234
+[02:16:36]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:16:36]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:16:38] RUN B-2 bin=5e86cf1f998e
+[02:18:30] CELL B-2 rc=1 wall=110s cap_adv_at=110s cap=20190102 000000 ckpt_md5=f2e423040f1d double_free=0 backtrace=0 improper=2 timers=0 throughput=4 stray_gchp=0
+[02:18:30]   first seen (s): cap_restart=110 throughput=1 double_free=NA improper=110 mpirun_exit=110
+[02:18:30]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:18:30]   last log line: --------------------------------------------------------------------------
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[02:18:32] RUN P-2 bin=173745423a83
+[02:22:29] CELL P-2 rc=134 wall=235s cap_adv_at=109s cap=20190102 000000 ckpt_md5=8cc8718ecfda double_free=12 backtrace=12 improper=0 timers=0 throughput=4 stray_gchp=0
+[02:22:29]   first seen (s): cap_restart=109 throughput=1 double_free=110 improper=NA mpirun_exit=235
+[02:22:29]   allPEs tail: 0000: MAPL.profiler: INFO: ----EXTDATA                                               1     0.002   0.00     0.002   0.00
+[02:22:29]   last log line: --------------------------------------------------------------------------
+[02:22:29] === done 2026-10-11T02:22:29Z
+[02:22:31] stale fuse.lith mounts after cleanup: 0
