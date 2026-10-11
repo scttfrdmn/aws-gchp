@@ -17,7 +17,7 @@ row() {  # row SHAPE REP
   sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'
   local ix=(); [ -n "$idx" ] && ix=(--index-file "$idx")
   "$B" mount "$pre" "$MNT" --metrics ":$PORT" --nic-gbps "$NIC" --log-level warn $sign "${ix[@]}" \
-      --pf-trace "$OUT/$tag.trace.csv" > "$OUT/$tag.mount.log" 2>&1 &
+      --pf-trace "$OUT/$tag.trace.csv" ${EXTRA:-} > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 120); do mountpoint -q "$MNT" && break; sleep 1; done
   mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED: $(tail -2 "$OUT/$tag.mount.log")"; return 1; }
   curl -s "localhost:$PORT/metrics" > "$OUT/$tag.pre.prom"; date -u +%FT%TZ > "$OUT/$tag.utc"
@@ -29,6 +29,13 @@ row() {  # row SHAPE REP
   "$PY" "$S/summarize.py" "$OUT" "$tag" "$sh" "$rep" >> "$OUT/rows.csv"; tail -1 "$OUT/rows.csv"; }
 SHAPES=${SHAPES:-"grib_idx netcdf4_hyperslab mmap_random concurrent_handles cog_overview_window fits_header_cutout webdataset_stream zip_seek_to_end tinyfiles_random sqlite_random kerchunk_scan kerchunk_read hemco_timeslice"}
 echo "=== 5f-P25 sweep $(date -u +%FT%TZ) lith=$(md5sum "$B" | cut -c1-12) nic=$NIC"
-"$PY" "$S/summarize.py" --header > "$OUT/rows.csv"
+[ -n "${ARMS2:-}" ] || "$PY" "$S/summarize.py" --header > "$OUT/rows.csv"
+if [ -n "${ARMS2:-}" ]; then  # P28: interleave two flag arms per rep -> OUT/<arm>/
+  for rep in ${REPS:-1 2}; do for sh in $SHAPES; do for arm in $ARMS2; do
+    case $arm in OFF) EXTRA="" ;; ON) EXTRA="--readahead-evidence-per-run" ;; esac
+    O0=$OUT; OUT=$O0/$arm; mkdir -p "$OUT"; [ -f "$OUT/rows.csv" ] || "$PY" "$S/summarize.py" --header > "$OUT/rows.csv"; row "$sh" "$rep"; OUT=$O0
+  done; done; done
+else
 for rep in ${REPS:-1 2}; do for sh in $SHAPES; do row "$sh" "$rep"; done; done
+fi
 echo "=== done $(date -u +%FT%TZ)"

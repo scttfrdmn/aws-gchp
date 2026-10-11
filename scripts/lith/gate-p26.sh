@@ -1,7 +1,7 @@
 #!/bin/bash
 # 5f-P26 (lith#337): netns gateway rig -- Q2 K0 A/B, #410 idle-client ladder, Q3 N streaming clients. Pre-registered.
-G=/scratch/lith-gates; OUT=$G/p26; mkdir -p "$OUT"; BR=br337; SRV=10.250.0.1; NFSP=12049; MP=15000
-B111=$G/v1110/lith_linux_arm64; B112=$G/v1120/lith_linux_arm64; BM=$G/lith-main-337; BP=$G/lith-pr410
+G=/scratch/lith-gates; OUT=${OUT:-$G/p26}; mkdir -p "$OUT"; BR=br337; SRV=10.250.0.1; NFSP=12049; MP=15000
+B111=$G/v1110/lith_linux_arm64; B112=$G/v1120/lith_linux_arm64; BM=${BM:-$G/lith-main-337}; BP=$G/lith-pr410
 EXP=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07; SM=/scratch/mnt/p26s; NMAX=47
 OPTS="vers=3,proto=tcp,port=$NFSP,mountport=$NFSP,mountproto=tcp,nolock,ro"
 obj() { printf 'GEOSFP.201907%02d.A3dyn.025x03125.nc' "$1"; }
@@ -15,7 +15,7 @@ for i in $(seq 1 $NMAX); do ns=n337-$i; sudo ip netns add $ns; sudo ip link add 
   sudo ip netns exec $ns ip addr add 10.250.0.$((10 + i))/24 dev v337c$i; sudo ip netns exec $ns ip link set v337c$i up; sudo ip netns exec $ns ip link set lo up; done
 sudo mkdir -p "$SM"
 serve() { MP=$((MP + 1)); sudo pkill -f "serve nfs $EXP" 2>/dev/null; sleep 1
-  sudo "$1" serve nfs "$EXP" --listen "$SRV:$NFSP" --metrics ":$MP" --no-sign-request --nic-gbps 50 --log-level info > "$OUT/$2.serve.log" 2>&1 &
+  sudo "$1" serve nfs "$EXP" --listen "$SRV:$NFSP" --metrics ":$MP" --no-sign-request --nic-gbps 50 --log-level info ${SERVE_EXTRA:-} > "$OUT/$2.serve.log" 2>&1 &
   for _ in $(seq 1 60); do curl -s --max-time 1 "localhost:$MP/metrics" | grep -q '^lith_' && break; sleep 1; done; }
 sampler() { rm -f "$OUT/$1.stop"; ( while [ ! -f "$OUT/$1.stop" ]; do curl -s --max-time 1 "localhost:$MP/metrics" | awk -v t="$(date +%s.%N)" '
   /^lith_prefetch_pressure /{p=$2} /^lith_prefetch_pressure_held_total /{h=$2} /^lith_s3_bytes_total /{b=$2} /^lith_nfs_clients /{c=$2}
@@ -35,8 +35,17 @@ stream_cell() { local tag=$1 n=$2 bin=$3 i; serve "$bin" "$tag"; sampler "$tag";
   wait "${pids[@]}"; local w; w=$(echo "$(date +%s.%N) - $t0" | bc)
   awk -v t="$tag" -v w="$w" -v n="$n" '{x=$2+0; if(c==0||x<mn)mn=x; if(x>mx)mx=x; c++} END{printf "CELL %s streams=%d/%d wall=%.1fs agg_MB/s=%.0f spread=%.2f ", t, c, n, w, n*3776.834855/w, mx/mn}' "$OUT/$tag.walls"
   finish "$tag"; awk -F, 'NR==1{t0=$1} {T=$1; h[NR]=$3; ts[NR]=$1} END{H=h[NR]; c20=0; for(i=1;i<=NR;i++) if(ts[i]-t0<=0.2*(T-t0)) c20=h[i]; printf " held_in_first20pct=%s/%s", c20, H}' "$OUT/$tag.ts.csv"; echo; }
-echo "=== gate 5f-P26 $(date -u +%FT%TZ) v111=$(md5sum $B111|cut -c1-12) v112=$(md5sum $B112|cut -c1-12) main=$(md5sum $BM|cut -c1-12) pr410=$(md5sum $BP|cut -c1-12)"
+echo "=== gate ${GATE:-5f-P26} $(date -u +%FT%TZ) v111=$(md5sum $B111|cut -c1-12) v112=$(md5sum $B112|cut -c1-12) main=$(md5sum $BM|cut -c1-12) pr410=$(md5sum $BP|cut -c1-12)"
+if [ "${MODE:-p26}" = p27 ]; then
+  for r in 1 2; do
+    SERVE_EXTRA="" stream_cell C-D-$r 16 $BM
+    SERVE_EXTRA="--prefetch-pressure-max -1" stream_cell C-U-$r 16 $BM
+    SERVE_EXTRA="--mem-cache 2GB" stream_cell C-SG-$r 16 $BM
+    SERVE_EXTRA="--mem-cache 2GB --prefetch-pressure-max -1" stream_cell C-SU-$r 16 $BM
+  done
+else
 echo "--- Part A (Q2)"; for r in 1 2 3 4 5; do idle_cell A-v111-$r 0 $B111; idle_cell A-v112-$r 0 $B112; done
 echo "--- Part B (#410 ladder)"; for r in 1 2; do for k in 0 7 47; do idle_cell B-K$k-main-$r $k $BM; idle_cell B-K$k-pr410-$r $k $BP; done; done
 echo "--- Part C (Q3 streaming)"; for r in 1 2; do for n in 8 16; do stream_cell C-S$n-main-$r $n $BM; stream_cell C-S$n-pr410-$r $n $BP; done; done
+fi
 echo "=== done $(date -u +%FT%TZ)"

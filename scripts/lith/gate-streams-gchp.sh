@@ -136,8 +136,10 @@ import os, sys, time, urllib.request
 out, hz, stop = sys.argv[1], float(sys.argv[2]), sys.argv[3]
 targets = [a.split("=", 1) for a in sys.argv[4:]]     # name=url
 WANT = ("lith_open_handles", "lith_streaming_handles", "lith_readahead_window_blocks")
+OPT = ("lith_streaming_handles_idle_1s", "lith_streaming_handles_idle_5s", "lith_streaming_handles_idle_30s",
+       "lith_streaming_handles_measured")   # #404 (main); written as NA when absent
 f = open(out, "w")
-f.write("t,mount,open_handles,streaming_handles,window_blocks\n")
+f.write("t,mount,open_handles,streaming_handles,window_blocks,idle1,idle5,idle30,measured\n")
 t0 = time.time()
 while not os.path.exists(stop):
     for name, url in targets:
@@ -150,11 +152,11 @@ while not os.path.exists(stop):
             if ln.startswith("#"):
                 continue
             p = ln.split()
-            if len(p) >= 2 and p[0] in WANT:
+            if len(p) >= 2 and (p[0] in WANT or p[0] in OPT):
                 v[p[0]] = p[1]
         if len(v) == len(WANT):
-            f.write("%.2f,%s,%s,%s,%s\n" % (time.time() - t0, name,
-                    v[WANT[0]], v[WANT[1]], v[WANT[2]]))
+            f.write("%.2f,%s,%s,%s,%s,%s\n" % (time.time() - t0, name,
+                    v[WANT[0]], v[WANT[1]], v[WANT[2]], ",".join(v.get(o, "NA") for o in OPT)))
     f.flush()
     time.sleep(1.0 / hz)
 f.close()

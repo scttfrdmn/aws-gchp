@@ -2726,3 +2726,29 @@ Part C (Q3) S8 / S16 streaming namespaces, main vs pr410: aggregate 1783-1836 MB
   so N new streams briefly share a small divisor. Below the gate here (0.83 vs 0.85); on a fatter NIC it would bind.
   Prediction "pr410 ~ main" held for throughput/bytes; FAILED for peak pressure.
 Cost $0; namespaces/bridge removed (verified 0/0).
+
+--- 5f-P27 (#411) + 5f-P28 (#412 arm A) + 5f-P29 (#312 idle distribution) PRE-REGISTRATION (2026-10-11; one build:
+    lith main b67fda3 md5 5bdb3556e16d, contains #410 + #404 + #412; before any cell ran) ---
+P27 (#411, netns rig, S16 = 16 namespaces each dd a distinct 3.78 GB GEOS-FP A3dyn through `lith serve nfs`), 2 reps,
+  arms interleaved: D default (tier 25% RAM = 8.26 GB, gate on 0.85); U --prefetch-pressure-max -1 (unbounded);
+  SG --mem-cache 2GB (gate on); SU --mem-cache 2GB --prefetch-pressure-max -1. 2 Hz pressure / held / s3 bytes.
+  Upstream's questions: U's peak = the unbounded transient's true peak (if far above 0.85 the gate is load-bearing on a
+  gateway); SG vs SU = whether holding on every start costs the streaming clients.
+  Scoring: "gate load-bearing" iff U peak > 1.0 in both reps. "holding costs" iff SG aggregate MB/s < 0.9 x SU in both
+  reps; "holding helps" iff SG > 1.1 x SU; else no cost. Report held_total shape (share in first 20% of run).
+  Predictions: U peak 0.85-1.0 at t~0.5 s (not load-bearing at 15 Gbps); SG holds > 0, mostly in the first 20%;
+  SG ~ SU on throughput (link-bound), SG fewer evictions.
+P28 (#412), sweep harness unchanged + EXTRA mount flags; shapes grib_idx, hemco_timeslice, fits_header_cutout,
+  kerchunk_scan; arms OFF (default) vs ON (--readahead-evidence-per-run); 2 reps interleaved. Plus peak window from
+  pf-trace and prefetch issued/used.
+  Upstream's prediction (GRIB): window 5 -> 2 blocks, use rate roughly doubles from 2/48, amp improves but stays well
+    above 1x. "Much better than that" -> floor model wrong; "unchanged" -> run boundary not where hooked.
+  Scoring per shape: ON amp < 0.9 x OFF -> improves; within 10% -> unchanged; > 1.1 x OFF -> worse.
+  My predictions: GRIB improves to ~3x (window 2, use 4-6/48); HEMCO improves modestly; FITS improves (its band earns
+    less per run); kerchunk unchanged (its residual is demand-lane, #406, not the gate).
+P29 (#312): gate-streams-gchp.sh (12-rank GCHP C24 TT, five mounts) on this build, 2 Hz sampler adding
+  lith_streaming_handles_idle_{1s,5s,30s} and lith_streaming_handles_measured. Report, on the met mount, the
+  time-averaged share of measured streams idle >= 1 s / 5 s / 30 s, and at peak streams.
+  Upstream's read: mass at 5 s and 30 s (not only 1 s) -> held-idle descriptors confirmed per handle.
+  My prediction: substantial mass >= 1 s and >= 5 s (ExtData 5 s cadence), little >= 30 s within a 120 s run.
+Cost $0.
