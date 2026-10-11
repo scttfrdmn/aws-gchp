@@ -2935,3 +2935,20 @@ Prediction (a): PASS (the #410 fix shipped as-is).
       Verdict: the original 2-rep rule FAILS by the letter (rep 2); over 5 reps the #410 fix holds on the release
       (vs v1.12.0's K47 519/558 in P24 and P26 pr410 1386/1333).
   (b) zip_seek_to_end 3.41/3.41, kerchunk_scan 4.44/4.44: unchanged, as predicted.
+
+--- 5f-P35 PRE-REGISTRATION (lith#407 arm B 2x2 on v1.14.0, asks 21:38Z/22:07Z; written before any cell ran) ---
+Build: v1.14.0 lith_linux_arm64 sha256 a151ddab...1793 (matches checksums.txt and the issue), commit 9d9d3d1, md5
+  3bcad9729a46. Sweep harness unchanged except summarize.py appends fill_prefetch_range (lith_fill_bytes_total
+  {kind="prefetch-range"}). Arms D default, A --readahead-evidence-per-run, B --readahead-subblock-dispatch, AB both;
+  2 reps, interleaved per shape. Shapes: grib_idx, fits_header_cutout, hemco_timeslice (scored), controls
+  netcdf4_hyperslab, webdataset_stream, concurrent_handles. Witness: gate-p35dd.sh, dd of a distinct 3.78 GB GEOS-FP
+  A3dyn per cell under D/A/B/AB, 2 reps, --nic-gbps 50, fresh mount (plain `mountpoint` check).
+Upstream's predictions: D reproduces v1.13.0 exactly (GRIB 3.02, FITS 2.20, HEMCO 1.79). A ~1.00x D to the byte. B alone
+  ~1.0x (partially effective early, decays). AB the only arm that moves. Watch GETs; prefetch-range must be > 0 for any
+  byte reduction to be attributed to arm B. dd must not change at all under any arm.
+Scoring per scored shape, vs D: amp < 0.9x in both reps -> moves; within 10% -> ~1.0x. Attribution: a "moves" counts
+  as arm B only if fill_prefetch_range > 0 in that arm. GETs reported as AB/D ratio. dd: "changed" iff s3/size or GETs
+  differ from D by > 2%, or prefetch-range > 0, in either rep (wall reported, noise-limited).
+My predictions: D == v1.13.0 to 0.01. A == D exactly. B within 10% of D on all three (the walk is short, so maybe
+  slightly lower on GRIB). AB moves all three: GRIB toward ~1.3-1.6x, FITS ~1.2-1.5x, HEMCO ~1.2-1.4x, prefetch-range
+  > 0, GETs up (more, smaller spans) by 1.5-3x. Controls and dd unchanged.

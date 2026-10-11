@@ -3,7 +3,7 @@ import csv, json, re, sys
 COLS = ["shape", "source", "rep", "utc_start", "get", "list", "s3_bytes", "distinct_bytes", "amplification_x",
         "kernel_read_bytes", "tool_bytes", "amp_vs_tool", "fill_whole", "fill_demand", "fill_plan", "fill_demand_batch",
         "pf_cold_pct", "pf_seq_pct", "pf_strided_pct", "pf_random_pct", "uncovered", "pf_used", "pf_issued", "n_opens",
-        "wall_s", "ctl_ttfb_p50_ms", "ctl_le50_pct", "ok", "notes"]
+        "wall_s", "ctl_ttfb_p50_ms", "ctl_le50_pct", "ok", "notes", "fill_prefetch_range"]   # last: appended for P35 (arm B attribution)
 if sys.argv[1] == "--header": print(",".join(COLS)); sys.exit()
 out, tag, shape, rep = sys.argv[1:5]
 def prom(p):
@@ -20,7 +20,7 @@ ds = lambda pre: sum(b[k] - a.get(k, 0) for k in b if k.startswith(pre))
 get = sum(d(k) for k in b if k.startswith("lith_s3_requests_total") and 'op="get"' in k)
 lst = sum(d(k) for k in b if k.startswith("lith_s3_requests_total") and 'op="list"' in k)
 s3b, dist = d("lith_s3_bytes_total"), d("lith_distinct_bytes_read")
-fill = {kk: d(f'lith_fill_bytes_total{{kind="{kk}"}}') for kk in ("whole", "demand", "plan", "demand-batch")}
+fill = {kk: d(f'lith_fill_bytes_total{{kind="{kk}"}}') for kk in ("whole", "demand", "plan", "demand-batch", "prefetch-range")}
 st = {"cold": 0, "seq": 0, "strided": 0, "random": 0}; n = 0
 try:
     for r in csv.DictReader(l for l in open(f"{out}/{tag}.trace.csv") if not l.startswith("#")):
@@ -38,5 +38,5 @@ row = [shape, "lith", rep, open(f"{out}/{tag}.utc").read().strip(), int(get), in
        round(s3b / tb, 2) if tb else "", int(fill["whole"]), int(fill["demand"]), int(fill["plan"]), int(fill["demand-batch"]),
        pct(st["cold"]), pct(st["seq"]), pct(st["strided"]), pct(st["random"]), int(d("lith_prefetch_uncovered_total")),
        int(d("lith_prefetch_used_total")), int(d("lith_prefetch_issued_total")), tj.get("n_opens", ""), tj.get("wall_s", ""),
-       m50.group(1) if m50 else "", m50.group(2) if m50 else "", tj.get("ok"), str(tj.get("detail", "")).replace(",", ";")]
+       m50.group(1) if m50 else "", m50.group(2) if m50 else "", tj.get("ok"), str(tj.get("detail", "")).replace(",", ";"), int(fill["prefetch-range"])]
 w = csv.writer(sys.stdout); w.writerow(row)
