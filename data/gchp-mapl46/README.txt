@@ -146,4 +146,4 @@ RESULTS 4: X86 (spawn i-0b39e8efa48ce07d4, c7a.24xlarge AMD Zen 4, 03:36-03:53Z;
 OVERALL: across aarch64 1-node (head), aarch64 2-node EFA, x86_64 1-node; mpirun and srun:
   stock      -> double free every run; mpirun 134; srun hangs (2-node)
   PR #46     -> no double free, md5 unchanged; mpirun rc 1 ("exiting improperly"), srun rc 0
-  PR #46 + MPI_Finalize before _exit -> rc 0 under both launchers, md5 unchanged, every run (12 cells)
+  PR #46 + MPI_Finalize before _exit -> rc 0 under both launchers, md5 unchanged, every run (8 cells: 2 head node, 4 two-node, 2 x86)
