@@ -154,7 +154,7 @@ while not os.path.exists(stop):
             p = ln.split()
             if len(p) >= 2 and (p[0] in WANT or p[0] in OPT):
                 v[p[0]] = p[1]
-        if len(v) == len(WANT):
+        if all(w in v for w in WANT):
             f.write("%.2f,%s,%s,%s,%s,%s\n" % (time.time() - t0, name,
                     v[WANT[0]], v[WANT[1]], v[WANT[2]], ",".join(v.get(o, "NA") for o in OPT)))
     f.flush()
