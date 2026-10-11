@@ -2838,3 +2838,19 @@ P30b (R4 vs R2 cost on other shapes): amp identical (netcdf4_hyperslab 1.35/1.35
 P30c (single-stream dd of a distinct 3.78 GB GEOS-FP A3dyn per cell, fresh mount, nic 15): R4 879 / 904 MB/s, R2 1021 /
   1063 MB/s (R2/R4 1.16 / 1.18). No cost (scored); R2 was faster both reps, unexplained (not predicted). s3 bytes not
   captured: the prom value is exponent-formatted and bc rejected it (same bug as gate-warm); script fixed to awk.
+
+--- 5f-P31 PRE-REGISTRATION (lith#407 ask 2026-10-11 04:43Z; written before any cell ran; main b67fda3) ---
+scripts/lith/gate-p31.sh. In-region gcgrid, --nic-gbps 50 (as P9/P9m/P9o), fresh cold mount per cell, arms R4/R2
+interleaved, 2 reps. S = one var1 reader of MERRA2.20190701.A3dyn (#284's object). C = 6 concurrent var1 readers of
+07-02..07. D = dd of a distinct 3.78 GB GEOS-FP A3dyn per cell with --wire-ttfb. Bytes from lith_s3_bytes_total
+(awk-parsed), GETs, distinct bytes, wall.
+Upstream's table: S stays ~2.65x (~59.8 MB) AND C stays ~1.00x of 6 x 59.8 (~359 MB) at R2 -> ratio 2 free on the shape
+  ratio 4 was chosen for, move the default. Either regresses materially -> ratio 4 load-bearing, default stays. C
+  regresses, S not -> ratio interacts with the divisor (new issue).
+  D: upstream predicts R4 opens a larger share of its fills on new connections and has a worse conn="new" wire-TTFB
+  early; equal shares -> their #381 explanation is wrong.
+Scoring: "materially" = s3 bytes > 1.10x the R4 cell of the same rep, in both reps. D: new-connection share and
+  conn="new" p50 from the final histogram, R4 vs R2.
+My predictions: S at R2 <= R4 bytes (smaller window, same slice) -- likely a little LOWER than 59.8 MB; C at R2 <= R4;
+  wall within 10%. D: R4 new-conn share higher than R2 (upstream's mechanism), and R2 faster again (~1.15x).
+Cost $0.
