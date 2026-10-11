@@ -2928,3 +2928,10 @@ Prediction (a): PASS (the #410 fix shipped as-is).
   Extension: 3 more reps of the same ladder (MODE=p34 with reps 3-5), all reported. Reading fixed now: if K47/K0 < 0.9 in
   >= 2 of the 3 new reps -> treat as a real regression vs P26 pr410 and report it upstream as such; if 0-1 of 3 -> rep 2
   was a noisy minute (K7 r2 was also low), report the 5-rep spread and the original FAIL-by-the-letter.
+--- 5f-P34 RESULTS (v1.13.0; ladder 20:14-20:22Z, sweep rows 20:15-20:16Z) ---
+  (a) K0/K7/K47 MB/s, 5 reps: 1280/1329/1340, 1412/1205/1055, 1243/1358/1217, 1280/1405/1365, 1370/1296/1360.
+      K47/K0 = 1.05, 0.75, 0.98, 1.07, 0.99 (median 0.99). Bytes identical in all 15 cells (3.777 GB, 458 GETs, issued
+      == used 3594, held 0). Extension rule: 0 of 3 new reps < 0.9 -> rep 2 was a noisy minute (K7 r2 was low too).
+      Verdict: the original 2-rep rule FAILS by the letter (rep 2); over 5 reps the #410 fix holds on the release
+      (vs v1.12.0's K47 519/558 in P24 and P26 pr410 1386/1333).
+  (b) zip_seek_to_end 3.41/3.41, kerchunk_scan 4.44/4.44: unchanged, as predicted.

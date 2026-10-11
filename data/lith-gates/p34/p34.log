@@ -1,0 +1,9 @@
+=== gate 5f-P34 2026-10-11T20:14:43Z v111=51234db1e082 v112=c1cba2483054 main=603db1afb12f pr410=d15ccf49f210
+CELL B-K0-v113-1 wall=2.95s MB/s=1280 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=0.098
+CELL B-K7-v113-1 wall=2.84s MB/s=1329 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=8 peak_pressure=0.098
+CELL B-K47-v113-1 wall=2.82s MB/s=1340 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=48 peak_pressure=0.098
+CELL B-K0-v113-2 wall=2.67s MB/s=1412 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=1 peak_pressure=0.098
+CELL B-K7-v113-2 wall=3.14s MB/s=1205 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=8 peak_pressure=0.098
+CELL B-K47-v113-2 wall=3.58s MB/s=1055 s3_GB=3.777 GETs=458 issued=3594 used=3594 held=0 nfs_clients=48 peak_pressure=0.098
+=== done 2026-10-11T20:15:38Z
+cleanup done: netns=0 bridge=0
