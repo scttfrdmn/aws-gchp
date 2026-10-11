@@ -2811,3 +2811,8 @@ Cost $0.
   Scoring: R2 "costs" a shape iff wall_s > 1.1x R4 in both reps, or amp > 1.1x R4 in both reps.
   Prediction: no amp cost anywhere; webdataset/concurrent_handles wall within 10% (a 1.2 GB / multi-handle read earns the
     window quickly at either ratio); netcdf4_hyperslab amp equal or lower at R2.
+--- 5f-P30c PRE-REGISTRATION (same session, before it ran): the ratio-sensitive case P30b's ~1 s files can't show.
+    One fresh mount per cell, single `dd bs=1M` of a distinct 3.78 GB GEOS-FP A3dyn (2019/07, a different day per cell),
+    arms R4 vs R2, 2 reps interleaved (R4,R2,R4,R2), --nic-gbps 15. Report wall, MB/s, s3 bytes / file size.
+  Scoring: R2 costs iff MB/s < 0.9x R4 in both reps. Prediction: no cost; at ~1.8 GB/s the extra ~134 MB of earning
+    is <0.1 s of a ~2 s read.
