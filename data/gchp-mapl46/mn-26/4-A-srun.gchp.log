@@ -1,0 +1,3006 @@
+ Starting pFIO input server on Clients
+ Starting pFIO output server on Clients
+ Integer*4 Resource Parameter: BEG_DATE:19600101 0
+ Integer*4 Resource Parameter: END_DATE:22000101 0
+ Integer*4 Resource Parameter: JOB_SGMT:1 0
+ Integer*4 Resource Parameter: HEARTBEAT_DT:600
+ NOT using buffer I/O for file: cap_restart
+            CAP: INFO: Read CAP restart properly, Current Date =   2019/01/01
+            CAP: INFO:                            Current Time =   00:00:00
+ Character Resource Parameter: ROOT_CF:GCHP.rc
+ Character Resource Parameter: ROOT_NAME:GCHP
+ Character Resource Parameter: HIST_CF:HISTORY.rc
+ Character Resource Parameter: MAPL_ENABLE_TIMERS:YES
+ Character Resource Parameter: MAPL_ENABLE_MEMUTILS:YES
+     GCHPctmEnv: INFO: Configured to derive and export mass flux and courant numbers
+  
+ Adding history variables to GCHP Export State:
+ adding export: CloudConvFlux_Rn222
+ adding export: CloudConvFlux_Pb210
+ adding export: CloudConvFlux_Pb210s
+ adding export: CloudConvFlux_Be7
+ adding export: CloudConvFlux_Be7s
+ adding export: CloudConvFlux_Be10
+ adding export: CloudConvFlux_Be10s
+ adding export: CloudConvFlux_aoa
+ adding export: CloudConvFlux_aoa_bl
+ adding export: CloudConvFlux_aoa_nh
+ adding export: CloudConvFlux_CH3I
+ adding export: CloudConvFlux_CO_25
+ adding export: CloudConvFlux_CO_50
+ adding export: CloudConvFlux_e90
+ adding export: CloudConvFlux_e90_n
+ adding export: CloudConvFlux_e90_s
+ adding export: CloudConvFlux_nh_5
+ adding export: CloudConvFlux_nh_50
+ adding export: CloudConvFlux_PassiveTracer
+ adding export: CloudConvFlux_SF6
+ adding export: CloudConvFlux_st80_25
+ adding export: DryDep_Pb210
+ adding export: DryDep_Pb210s
+ adding export: DryDep_Be7
+ adding export: DryDep_Be7s
+ adding export: DryDep_Be10
+ adding export: DryDep_Be10s
+ adding export: DryDepVel_Pb210
+ adding export: DryDepVel_Pb210s
+ adding export: DryDepVel_Be7
+ adding export: DryDepVel_Be7s
+ adding export: DryDepVel_Be10
+ adding export: DryDepVel_Be10s
+ adding export: PbFromRnDecay
+ adding export: RadDecay_Rn222
+ adding export: RadDecay_Pb210
+ adding export: RadDecay_Pb210s
+ adding export: RadDecay_Be7
+ adding export: RadDecay_Be7s
+ adding export: RadDecay_Be10
+ adding export: RadDecay_Be10s
+ adding export: SpeciesConcVV_Rn222
+ adding export: SpeciesConcVV_Pb210
+ adding export: SpeciesConcVV_Pb210s
+ adding export: SpeciesConcVV_Be7
+ adding export: SpeciesConcVV_Be7s
+ adding export: SpeciesConcVV_Be10
+ adding export: SpeciesConcVV_Be10s
+ adding export: SpeciesConcVV_aoa
+ adding export: SpeciesConcVV_aoa_bl
+ adding export: SpeciesConcVV_aoa_nh
+ adding export: SpeciesConcVV_CH3I
+ adding export: SpeciesConcVV_CO_25
+ adding export: SpeciesConcVV_CO_50
+ adding export: SpeciesConcVV_e90
+ adding export: SpeciesConcVV_e90_n
+ adding export: SpeciesConcVV_e90_s
+ adding export: SpeciesConcVV_nh_5
+ adding export: SpeciesConcVV_nh_50
+ adding export: SpeciesConcVV_PassiveTracer
+ adding export: SpeciesConcVV_SF6
+ adding export: SpeciesConcVV_st80_25
+ adding export: Met_AD
+ adding export: Met_AIRDEN
+ adding export: Met_AIRVOL
+ adding export: Met_ALBD
+ adding export: Met_AREAM2
+ adding export: Met_AVGW
+ adding export: Met_BXHEIGHT
+ adding export: Met_ChemGridLev
+ adding export: Met_CLDF
+ adding export: Met_CLDFRC
+ adding export: Met_CLDTOPS
+ adding export: Met_DELP
+ adding export: Met_DQRCU
+ adding export: Met_DQRLSAN
+ adding export: Met_DTRAIN
+ adding export: Met_EFLUX
+ adding export: Met_FRCLND
+ adding export: Met_FRLAKE
+ adding export: Met_FRLAND
+ adding export: Met_FRLANDICE
+ adding export: Met_FROCEAN
+ adding export: Met_FRSEAICE
+ adding export: Met_FRSNOW
+ adding export: Met_GWETROOT
+ adding export: Met_GWETTOP
+ adding export: Met_HFLUX
+ adding export: Met_LAI
+ adding export: Met_PARDR
+ adding export: Met_PARDF
+ adding export: Met_PBLTOPL
+ adding export: Met_PBLH
+ adding export: Met_PHIS
+ adding export: Met_PMID
+ adding export: Met_PMIDDRY
+ adding export: Met_PRECANV
+ adding export: Met_PRECCON
+ adding export: Met_PRECLSC
+ adding export: Met_PRECTOT
+ adding export: Met_PS1DRY
+ adding export: Met_PS1WET
+ adding export: Met_PS2DRY
+ adding export: Met_PS2WET
+ adding export: Met_PSC2WET
+ adding export: Met_PSC2DRY
+ adding export: Met_QI
+ adding export: Met_QL
+ adding export: Met_OMEGA
+ adding export: Met_OPTD
+ adding export: Met_REEVAPCN
+ adding export: Met_REEVAPLS
+ adding export: Met_SLP
+ adding export: Met_SNODP
+ adding export: Met_SNOMAS
+ adding export: Met_SPHU
+ adding export: Met_SPHU1
+ adding export: Met_SPHU2
+ adding export: Met_SUNCOS
+ adding export: Met_SUNCOSmid
+ adding export: Met_SWGDN
+ adding export: Met_T
+ adding export: Met_TAUCLI
+ adding export: Met_TAUCLW
+ adding export: Met_THETA
+ adding export: Met_TMPU1
+ adding export: Met_TMPU2
+ adding export: Met_TO3
+ adding export: Met_TropHt
+ adding export: Met_TropLev
+ adding export: Met_TropP
+ adding export: Met_TS
+ adding export: Met_TSKIN
+ adding export: Met_TV
+ adding export: Met_U
+ adding export: Met_U10M
+ adding export: Met_USTAR
+ adding export: Met_UVALBEDO
+ adding export: Met_V
+ adding export: Met_V10M
+ adding export: Met_Z0
+ adding export: Met_CMFMC
+ adding export: Met_PEDGE
+ adding export: Met_PEDGEDRY
+ adding export: Met_PFICU
+ adding export: Met_PFILSAN
+ adding export: Met_PFLCU
+ adding export: Met_PFLLSAN
+ adding export: WetLossConv_Pb210
+ adding export: WetLossConv_Pb210s
+ adding export: WetLossConv_Be7
+ adding export: WetLossConv_Be7s
+ adding export: WetLossConv_Be10
+ adding export: WetLossConv_Be10s
+ adding export: WetLossConvFrac_Pb210
+ adding export: WetLossConvFrac_Pb210s
+ adding export: WetLossConvFrac_Be7
+ adding export: WetLossConvFrac_Be7s
+ adding export: WetLossConvFrac_Be10
+ adding export: WetLossConvFrac_Be10s
+ adding export: WetLossLS_Pb210
+ adding export: WetLossLS_Pb210s
+ adding export: WetLossLS_Be7
+ adding export: WetLossLS_Be7s
+ adding export: WetLossLS_Be10
+ adding export: WetLossLS_Be10s
+  
+Reading entire HEMCO configuration file: HEMCO_Config.rc
+
+HEMCO verbose output is OFF
+ Reading HEMCO configuration file: HEMCO_Config.rc
+ adding HEMCO export: EmisRn_Soil
+ adding HEMCO export: EmisBe7_Cosmic
+ adding HEMCO export: EmisBe7s_Cosmic
+ adding HEMCO export: EmisBe10_Cosmic
+ adding HEMCO export: EmisBe10s_Cosmic
+ adding HEMCO export: EmisSF6
+ adding HEMCO export: EmisCH3I
+ adding HEMCO export: EmisCO_25
+ adding HEMCO export: EmisCO_50
+ Character Resource Parameter: DYCORE:OFF
+NOTE from PE     0: MPP_DOMAINS_SET_STACK_SIZE: stack size set to    32768.
+&MPP_IO_NML
+ HEADER_BUFFER_VAL=16384      ,
+ GLOBAL_FIELD_ON_ROOT_PE=T,
+ IO_CLOCKS_ON=F,
+ SHUFFLE=0          ,
+ DEFLATE_LEVEL=-1         ,
+ CF_COMPLIANCE=F,
+ /
+NOTE from PE     0: MPP_IO_SET_STACK_SIZE: stack size set to     131072.
+NOTE from PE     0: MPP_DOMAINS_SET_STACK_SIZE: stack size set to 20000000.
+ Integer*4 Resource Parameter: NX:2
+ Integer*4 Resource Parameter: NY:24
+ Integer*4 Resource Parameter: IM:24
+ Integer*4 Resource Parameter: JM:144
+ Integer*4 Resource Parameter: RUN_DT:600
+ For k_split (remapping)=           1
+n_split is set to 02 for resolution-dt=0025x0025x6-  600.000
+Using n_zfilter : 000
+Using n_sponge : 001
+Using non_ortho :       T
+ Starting PEs :           48
+ Starting Threads :          192
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    3, ehalo =    3, shalo =    3, nhalo =    3
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+ Cubic: cubed-sphere domain decomposition
+whalo =    1, ehalo =    1, shalo =    1, nhalo =    1
+  X-AXIS =   12  12
+  Y-AXIS =    6   6   6   6
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+NOTE from PE     0: tracer_manager_init : No tracers are available to be registered.
+ ncnst=           0  num_prog=           0  pnats=           0  dnats=           0  num_family=           0
+ 
+ Grid distance at face edge (km)=   326768.43532825337     
+RADIUS (m): 0.63710000000000E+07
+PI: 0.31415926535898E+01
+MAX    AREA (m*m): 0.21280966055028E+12          MIN AREA (m*m): 0.95959708752531E+11
+GLOBAL AREA (m*m): 0.51006447190982E+15 IDEAL GLOBAL AREA (m*m): 0.51006447190979E+15
+ 
+  Cubed-Sphere Grid Stats :           25 x          25 x           6
+      Grid Length               : min: 326768.44 max: 461715.98 avg: 386515.92 min/max:      0.71
+      Deviation from Orthogonal : min:      0.00 max:     28.13 avg:      8.60
+      Aspect Ratio              : min:      1.00 max:      1.08 avg:      1.03
+ 
+ Grid_init          72           1   100.00000000000000     
+ Hybrid Sigma-P: minimum allowable surface pressure (hpa)=   14.888888888889042     
+ Corner interpolation coefficient=   1.4728933761817273     
+ Corner interpolation coefficient=   1.4728933761817249     
+ Corner interpolation coefficient=   1.4728933761817160     
+ Corner interpolation coefficient=   1.4728933761817313     
+ Corner interpolation coefficient=   1.4728933761817300     
+ Corner interpolation coefficient=   1.4728933761817318     
+ da_max/da_min=   2.2176980663737886     
+ da_max_c/da_min_c=   2.2606506684943874     
+  
+ Divergence damping Coefficients
+ For small dt=   300.00000000000000     
+ External mode del-2 (m**2/s)=   6284027.9017991126     
+ Internal mode del-2 SMAG dimensionless coeff=   0.0000000000000000     
+ Internal mode del-2 background diff=   0.0000000000000000     
+ Internal mode del-4 background diff=  0.16000000000000000     
+ Vorticity del-4 (m**4/s)=   0.0000000000000000     
+ tracer del-2 diff=   0.0000000000000000     
+ Vorticity del-4 (m**4/s)=   0.0000000000000000     
+ beta=   0.0000000000000000     
+  
+                                                       Mem/Swap Used (MB) at GCHPctmEnvMAPL_GenericInitialize=  5.957E+04  0.000E+00
+     GCHPctmEnv: INFO: Configured to expect 'bottom-up' wind data from 'ExtData'
+     GCHPctmEnv: INFO: Configured to expect 'bottom-up' humidity data from 'ExtData'
+     GCHPctmEnv: INFO: Configured to use dry air pressure in advection
+     GCHPctmEnv: INFO: Configured to correct native mass flux (if using) for humidity
+ Real*4 Resource Parameter: GCHPchem_DT:1200.000000
+ Integer*4 Resource Parameter: GCHPchem_REFERENCE_TIME:1000
+ Character Resource Parameter: GCHPchem_INTERNAL_RESTART_FILE:gchp_restart.nc4
+ Character Resource Parameter: MAPL_ENABLE_BOOTSTRAP:YES
+ Using parallel NetCDF to read file: gchp_restart.nc4
+   Bootstrapping Variable: ARCHV_DRY_TOTN in gchp_restart.nc4
+   Bootstrapping Variable: ARCHV_WET_TOTN in gchp_restart.nc4
+   Bootstrapping Variable: AREA in gchp_restart.nc4
+   Bootstrapping Variable: AeroH2O_SNA in gchp_restart.nc4
+   Bootstrapping Variable: DEP_RESERVOIR in gchp_restart.nc4
+   Bootstrapping Variable: DRYPERIOD in gchp_restart.nc4
+   Bootstrapping Variable: DryDepNitrogen in gchp_restart.nc4
+   Bootstrapping Variable: GCCTROPP in gchp_restart.nc4
+   Bootstrapping Variable: GWET_PREV in gchp_restart.nc4
+   Bootstrapping Variable: H2O2AfterChem in gchp_restart.nc4
+   Bootstrapping Variable: JNO2 in gchp_restart.nc4
+   Bootstrapping Variable: JOH in gchp_restart.nc4
+   Bootstrapping Variable: KPPHvalue in gchp_restart.nc4
+   Bootstrapping Variable: LAI_PREVDAY in gchp_restart.nc4
+   Bootstrapping Variable: ORVCSESQ in gchp_restart.nc4
+   Bootstrapping Variable: PARDF_DAVG in gchp_restart.nc4
+   Bootstrapping Variable: PARDR_DAVG in gchp_restart.nc4
+   Bootstrapping Variable: PFACTOR in gchp_restart.nc4
+   Bootstrapping Variable: SO2AfterChem in gchp_restart.nc4
+   Bootstrapping Variable: STATE_PSC in gchp_restart.nc4
+   Bootstrapping Variable: T_DAVG in gchp_restart.nc4
+   Bootstrapping Variable: T_PREVDAY in gchp_restart.nc4
+   Bootstrapping Variable: WetDepNitrogen in gchp_restart.nc4
+                                                         Mem/Swap Used (MB) at GCHPchemMAPL_GenericInitialize=  6.026E+04  0.000E+00
+===============================================================================
+G E O S - C H E M   U S E R   I N P U T
+
+READ_INPUT_FILE: Opening ./geoschem_config.yml
+
+SIMULATION SETTINGS
+-------------------
+Simulation name             : TransportTracers
+CHEM_INPUTS directory       : ./ChemDir/
+Species database file       : ./species_database.yml
+Turn on verbose output      :     F
+Verbose output printed on   : root core only
+
+TIMESTEP SETTINGS
+-----------------
+Transport/Convection [sec]  :   600
+Chemistry/Emissions  [sec]  :  1200
+RRTMG rad transfer   [sec]  : 10800
+
+TRANSPORT SETTINGS
+------------------
+Turn on transport?          :     T
+
+CONVECTION SETTINGS
+-------------------
+Turn on cloud convection?   :     T
+Grell-Freitas convection?   :     F
+
+PBL MIXING SETTINGS
+-------------------
+Turn on PBL mixing?         :     T
+Turn on non-local PBL?      :     T
+
+AEROSOL SETTINGS
+----------------
+Aerosol optical property dir: UNKNOWN                                                                                                                                                                                                                                                        
+Online SULFATE AEROSOLS?    :     F
+Metal catalyzed SO2 ox.?    :     F
+Online CARBON AEROSOLS?     :     F
+Brown Carbon Aerosol?       :     F
+BC Absorption Enhancement?  :     F
+Hydrophilic BC AE factor    :  -999.00
+Hydrophobic BC AE factor    :  -999.00
+Online COMPLEX SOA?         :     F
+Semivolatile POA?           :     F
+Online DUST AEROSOLS?       :     F
+Acid uptake on dust?        :     F
+Online SEA SALT AEROSOLS?   :     F
+Accum  SEA SALT radii [um]  :  -999.00 -  -999.00
+Coarse SEA SALT radii [um]  :  -999.00 -  -999.00
+MARINE ORGANIC AEROSOLS?    :     F
+Settle strat. aerosols?     :     F
+Online SOLID PSC aerosols?  :     F
+Allow hom. NAT nucleation?  :     F
+NAT supercooling requirement:  -999.00K
+Ice supersaturation req.    : ********K
+Perform PSC het. chemistry? :     F
+Use strat. aerosol OD?      :     F
+
+DRY DEPOSITION SETTINGS
+-----------------------
+Turn on dry deposition?     :     T
+Dry dep over full PBL?      :     F
+Turn on CO2 effect?         :     F
+CO2 level                   :  -999.00
+CO2 reference level         :  -999.00
+RIX scaling factor          :     1.00
+
+WET DEPOSITION SETTINGS
+-----------------------
+Turn on wet deposition?     :     T
+
+CHEMISTRY SETTINGS
+------------------
+Turn on chemistry?          :     T
+Use linear. mesospheric chem:     F
+ => Use Linoz for O3?       :     F
+Online strat. H2O?          :     F
+Use robust strat H2O BC?    :     F
+GAMMA HO2                   : ****
+Use auto-reduce solver?     :     F
+Absolute AR threshold       : *****
+Use prs. dependent thres?   :     F
+Keep halogen spec. active?  :     F
+Use append in auto-reduce?  :     F
+
+PHOTOLYSIS SETTINGS
+-------------------
+Turn on photolysis?         :     F
+Print Cloud-J debug output? :     F
+FAST-JX input directory     : UNKNOWN
+Cloud-J input directory     : UNKNOWN
+Number levels with cloud    :  -999
+Cloud-J cloud flag          :  -999
+Layer OD increase factor    : -999.000
+Min cloud OD at top         : -999.000
+Cloud correlation           : -999.000
+Max # of overlap bins       :  -999
+Sphere correction           :  -999
+Number of wavelength bins   :  -999
+Use H2O UV absorption?      :     F
+Use online ozone?           :     F
+Use ozone from met?         :     F
+Use TOMS/SBUV ozone?        :     F
+Photolyse nitrate aerosol?  :     F
+JNITs scaling of JHNO3      : -999.000
+JNIT scaling of JHNO3       : -999.000
+JNIT(s) channel A (HONO)    : -999.000
+JNIT(s) channel B (NO2)     : -999.000
+
+RRTMG SETTINGS
+--------------
+Turn on radiation?          :     F
+Consider longwave?          :     F
+Consider shortwave?         :     F
+Clear-sky flux?             :     F
+All-sky flux?               :     F
+CO2 VMR in ppmv             :  -999.0
+Fixed dyn. heat. assumption?:     F
+ --> Seasonal evolution?    :     F
+ --> Extend to TOA?         :     F
+ --> Read in dyn. heating?  :     F
+
+OBSPACK SETTINGS
+----------------
+Turn on ObsPack diagnostic? :     F
+Suppress logfile output?    :     F
+ObsPack input file          : UNKNOWN
+ObsPack output file         : UNKNOWN
+
+
+TIMESTEPS SETTINGS
+------------------
+Chemistry  Timestep [sec]   :   1200
+Convection Timestep [sec]   :    600
+Dynamics   Timestep [sec]   :    600
+Emission   Timestep [sec]   :   1200
+Unit Conv  Timestep [sec]   :    600
+Diagnostic Timestep [sec]   :   1200
+Radiation  Timestep [sec]   :  10800
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===============================================================================
+SPECIES NAMES AND INDICES
+
+Name               ModelId  DryDepId  WetDepId  PhotolId HygGrthId  KppSpcId
+-------------------------------------------------------------------------------
+Rn222                    1         -         -         -         -         -
+Pb210                    2         1         1         -         -         -
+Pb210s                   3         2         2         -         -         -
+Be7                      4         3         3         -         -         -
+Be7s                     5         4         4         -         -         -
+Be10                     6         5         5         -         -         -
+Be10s                    7         6         6         -         -         -
+aoa                      8         -         -         -         -         -
+aoa_bl                   9         -         -         -         -         -
+aoa_nh                  10         -         -         -         -         -
+CH3I                    11         -         -         1         -         -
+CO_25                   12         -         -         -         -         -
+CO_50                   13         -         -         -         -         -
+e90                     14         -         -         -         -         -
+e90_n                   15         -         -         -         -         -
+e90_s                   16         -         -         -         -         -
+nh_5                    17         -         -         -         -         -
+nh_50                   18         -         -         -         -         -
+PassiveTracer           19         -         -         -         -         -
+SF6                     20         -         -         -         -         -
+st80_25                 21         -         -         -         -         -
+===============================================================================
+READ_DRYDEP_INPUTS: Opening ./ChemDir/Olson_Land_Map_201203/Olson_2001_Drydep_Inputs.nc
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%               HEMCO: Harmonized Emissions Component                 %%%%%
+%%%%%               You are using HEMCO version 3.12.1                    %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+Reading settings & switches of HEMCO configuration file: HEMCO_Config.rc
+
+HEMCO verbose output is OFF
+  
+Reading fields of HEMCO configuration file: HEMCO_Config.rc
+-------------------------------------------------------------------------------
+Using HEMCO extension: GC_RnPbBe (radionuclide emissions)
+Use the following species (Name: HcoID):
+ Rn222:           1
+ Be7:           4
+ Be7s:           5
+ Be10:           6
+ Be10s:           7
+                                                         Mem/Swap Used (MB) at DYNAMICSMAPL_GenericInitialize=  6.592E+04  0.000E+00
+                                                             Mem/Swap Used (MB) at GCHPMAPL_GenericInitialize=  6.592E+04  0.000E+00
+  oserver is not split
+
+ EXPSRC:
+ EXPID: OutputDir/GEOSChem
+ Descr: GEOS-Chem_devel
+ DisableSubVmChecks: F
+
+ Reading HISTORY RC Files:
+ -------------------------
+ NOT using buffer I/O for file: HISTORY.rc
+ NOT using buffer I/O for file: Emissions.rcx
+ NOT using buffer I/O for file: CloudConvFlux.rcx
+ NOT using buffer I/O for file: DryDep.rcx
+ NOT using buffer I/O for file: FV3Dynamics.rcx
+ NOT using buffer I/O for file: GCHPctmEnvLevCenter.rcx
+ NOT using buffer I/O for file: GCHPctmEnvLevEdge.rcx
+ NOT using buffer I/O for file: RadioNuclide.rcx
+ NOT using buffer I/O for file: SpeciesConc.rcx
+ NOT using buffer I/O for file: StateMet.rcx
+ NOT using buffer I/O for file: StateMetLevEdge.rcx
+ NOT using buffer I/O for file: WetLossConv.rcx
+ NOT using buffer I/O for file: WetLossLS.rcx
+ NOT using buffer I/O for file: HISTORY.rc
+ Setting history alarm for species            1
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection Emissions
+ Setting history alarm for species            2
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection CloudConvFlux
+ Setting history alarm for species            3
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection DryDep
+ Setting history alarm for species            4
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection FV3Dynamics
+ Setting history alarm for species            5
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection GCHPctmEnvLevCenter
+ Setting history alarm for species            6
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection GCHPctmEnvLevEdge
+ Setting history alarm for species            7
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection RadioNuclide
+ Setting history alarm for species            8
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection SpeciesConc
+ Setting history alarm for species            9
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection StateMet
+ Setting history alarm for species           10
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection StateMetLevEdge
+ Setting history alarm for species           11
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection WetLossConv
+ Setting history alarm for species           12
+ RingTime: 1982/05/01T00:00   backwards:F
+Clock Timestep = 00:10
+ Current Time: 2019/01/01T00:00   backwards:F
+ DEBUG: monthly averaging is active for collection WetLossLS
+
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: Emissions
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: CloudConvFlux
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: DryDep
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: FV3Dynamics
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: GCHPctmEnvLevCenter
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: GCHPctmEnvLevEdge
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: RadioNuclide
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: SpeciesConc
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: StateMet
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: StateMetLevEdge
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: WetLossConv
+ Freq: 00010000  Dur: 00000001  TM:   -1  Collection: WetLossLS
+
+ Independent Output Export States:
+ ---------------------------------
+           1 GCHPchem
+           2 DYNAMICS
+           3 GCHPctmEnv
+
+ Initializing Output Stream: Emissions
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          293
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: EmisRn_Soil EmisBe7_Cosmic EmisBe7s_Cosmic EmisBe10_Cosmic EmisBe10s_Cosmic EmisSF6 EmisCH3I EmisCO_25 EmisCO_50 
+
+
+ Initializing Output Stream: CloudConvFlux
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:         1512
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: CloudConvFlux_Rn222 CloudConvFlux_Pb210 CloudConvFlux_Pb210s CloudConvFlux_Be7 CloudConvFlux_Be7s CloudConvFlux_Be10 CloudConvFlux_Be10s CloudConvFlux_aoa CloudConvFlux_aoa_bl CloudConvFlux_aoa_nh CloudConvFlux_CH3I CloudConvFlux_CO_25 CloudConvFlux_CO_50 CloudConvFlux_e90 CloudConvFlux_e90_n CloudConvFlux_e90_s CloudConvFlux_nh_5 CloudConvFlux_nh_50 CloudConvFlux_PassiveTracer CloudConvFlux_SF6 CloudConvFlux_st80_25 
+
+
+ Initializing Output Stream: DryDep
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:           12
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: DryDep_Pb210 DryDep_Pb210s DryDep_Be7 DryDep_Be7s DryDep_Be10 DryDep_Be10s DryDepVel_Pb210 DryDepVel_Pb210s DryDepVel_Be7 DryDepVel_Be7s DryDepVel_Be10 DryDepVel_Be10s 
+
+
+ Initializing Output Stream: FV3Dynamics
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          219
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: PLE_R4 DryPLE_R4 PLEadv_R4 
+
+
+ Initializing Output Stream: GCHPctmEnvLevCenter
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          360
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: SPHU0_R4 CX_R4 CY_R4 MFX_R4 MFY_R4 
+
+
+ Initializing Output Stream: GCHPctmEnvLevEdge
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          365
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: UpwardsMassFlux_R4 PLE0_R4 PLE1_R4 DryPLE0_R4 DryPLE1_R4 
+
+
+ Initializing Output Stream: RadioNuclide
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          576
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: PbFromRnDecay RadDecay_Rn222 RadDecay_Pb210 RadDecay_Pb210s RadDecay_Be7 RadDecay_Be7s RadDecay_Be10 RadDecay_Be10s 
+
+
+ Initializing Output Stream: SpeciesConc
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:         1512
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: SpeciesConcVV_Rn222 SpeciesConcVV_Pb210 SpeciesConcVV_Pb210s SpeciesConcVV_Be7 SpeciesConcVV_Be7s SpeciesConcVV_Be10 SpeciesConcVV_Be10s SpeciesConcVV_aoa SpeciesConcVV_aoa_bl SpeciesConcVV_aoa_nh SpeciesConcVV_CH3I SpeciesConcVV_CO_25 SpeciesConcVV_CO_50 SpeciesConcVV_e90 SpeciesConcVV_e90_n SpeciesConcVV_e90_s SpeciesConcVV_nh_5 SpeciesConcVV_nh_50 SpeciesConcVV_PassiveTracer SpeciesConcVV_SF6 SpeciesConcVV_st80_25 
+
+
+ Initializing Output Stream: StateMet
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:         2209
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: Met_AD Met_AIRDEN Met_AIRVOL Met_ALBD Met_AREAM2 Met_AVGW Met_BXHEIGHT Met_ChemGridLev Met_CLDF Met_CLDFRC Met_CLDTOPS Met_DELP Met_DQRCU Met_DQRLSAN Met_DTRAIN Met_EFLUX Met_FRCLND Met_FRLAKE Met_FRLAND Met_FRLANDICE Met_FROCEAN Met_FRSEAICE Met_FRSNOW Met_GWETROOT Met_GWETTOP Met_HFLUX Met_LAI Met_PARDR Met_PARDF Met_PBLTOPL Met_PBLH Met_PHIS Met_PMID Met_PMIDDRY Met_PRECANV Met_PRECCON Met_PRECLSC Met_PRECTOT Met_PS1DRY Met_PS1WET Met_PS2DRY Met_PS2WET Met_PSC2WET Met_PSC2DRY Met_QI Met_QL Met_OMEGA Met_OPTD Met_REEVAPCN Met_REEVAPLS Met_SLP Met_SNODP Met_SNOMAS Met_SPHU Met_SPHU1 Met_SPHU2 Met_SUNCOS Met_SUNCOSmid Met_SWGDN Met_T Met_TAUCLI Met_TAUCLW Met_THETA Met_TMPU1 Met_TMPU2 Met_TO3 Met_TropHt Met_TropLev Met_TropP Met_TS Met_TSKIN Met_TV Met_U Met_U10M Met_USTAR Met_UVALBEDO Met_V Met_V10M Met_Z0 
+
+
+ Initializing Output Stream: StateMetLevEdge
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          511
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: Met_CMFMC Met_PEDGE Met_PEDGEDRY Met_PFICU Met_PFILSAN Met_PFLCU Met_PFLLSAN 
+
+
+ Initializing Output Stream: WetLossConv
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          864
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: WetLossConv_Pb210 WetLossConv_Pb210s WetLossConv_Be7 WetLossConv_Be7s WetLossConv_Be10 WetLossConv_Be10s WetLossConvFrac_Pb210 WetLossConvFrac_Pb210s WetLossConvFrac_Be7 WetLossConvFrac_Be7s WetLossConvFrac_Be10 WetLossConvFrac_Be10s 
+
+
+ Initializing Output Stream: WetLossLS
+ --------------------------- 
+       Format: CFIO
+         Mode: time-averaged
+       Slices:          432
+      Deflate:            0
+    Frequency: monthly
+     Ref_Date:     20190101
+     Ref_Time:            0
+     Duration: one month
+  Regrid Mthd: identity
+    XY-offset:            0   (DcPc: Dateline Center, Pole Center)
+      Fields: WetLossLS_Pb210 WetLossLS_Pb210s WetLossLS_Be7 WetLossLS_Be7s WetLossLS_Be10 WetLossLS_Be10s 
+
+
+                                                             Mem/Swap Used (MB) at HISTMAPL_GenericInitialize=  6.593E+04  0.000E+00
+                                                          Mem/Swap Used (MB) at EXTDATAMAPL_GenericInitialize=  6.591E+04  0.000E+00
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  6.596E+04  0.000E+00
+ Character Resource Parameter: EXCLUDE_ADVECTION_TRACERS:NO
+ AdvCore is Advecting the following    21 tracers in FV3:
+ SPC_Rn222
+ SPC_Pb210
+ SPC_Pb210s
+ SPC_Be7
+ SPC_Be7s
+ SPC_Be10
+ SPC_Be10s
+ SPC_aoa
+ SPC_aoa_bl
+ SPC_aoa_nh
+ SPC_CH3I
+ SPC_CO_25
+ SPC_CO_50
+ SPC_e90
+ SPC_e90_n
+ SPC_e90_s
+ SPC_nh_5
+ SPC_nh_50
+ SPC_PassiveTracer
+ SPC_SF6
+ SPC_st80_25
+Initializing land type fractions from Olson imports
+ 
+ Doing warm GEOS-Chem restart
+ 
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+ 
+ ### GEOS-Chem Radon simulation ###
+     Timestep (secs)   :    1200.0000000000000     
+     Rn lifetime (days):    3.8300000000000001     
+     Rn decadence      :   0.99748956785963017     
+ 
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+  
+ Setting history variable pointers to GC and Export States
+ GCHP Date: 2019/01/01  Time: 00:10:00  Throughput(days/day)[Avg Tot Run]:         26.4         26.4       5314.8  TimeRemaining(Est) 000:54:07   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.224E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:20:00  Throughput(days/day)[Avg Tot Run]:       9295.1       4670.3       4874.1  TimeRemaining(Est) 000:00:09   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.225E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:30:00  Throughput(days/day)[Avg Tot Run]:       6829.2       4488.5       4683.2  TimeRemaining(Est) 000:00:12   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.224E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:40:00  Throughput(days/day)[Avg Tot Run]:       6160.1       4792.0       5012.9  TimeRemaining(Est) 000:00:13   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.224E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 00:50:00  Throughput(days/day)[Avg Tot Run]:       5892.4       5051.6       5297.3  TimeRemaining(Est) 000:00:14   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.223E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:00:00  Throughput(days/day)[Avg Tot Run]:       5755.6       5192.3       5469.5  TimeRemaining(Est) 000:00:14   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.222E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:10:00  Throughput(days/day)[Avg Tot Run]:       5052.7       2927.3       6061.8  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.225E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:20:00  Throughput(days/day)[Avg Tot Run]:       5158.2       6088.1       6456.7  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.224E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : T
+       GCHPchem: INFO: DoEmis   : T
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : T
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do drydep now
+      Use FULL PBL:  F
+  --- Drydep done!
+  --- Do emissions now
+  --- Emissions done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do chemistry now
+  --- Chemistry done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:30:00  Throughput(days/day)[Avg Tot Run]:       5136.4       5002.4       5249.1  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.223E+04  0.000E+00
+       GCHPchem: INFO: GEOS-Chem phase -1:
+       GCHPchem: INFO: DoConv   : T
+       GCHPchem: INFO: DoDryDep : F
+       GCHPchem: INFO: DoEmis   : F
+       GCHPchem: INFO: DoTend   : F
+       GCHPchem: INFO: DoTurb   : T
+       GCHPchem: INFO: DoChem   : F
+       GCHPchem: INFO: DoWetDep : T
+  --- Do convection now
+  --- Convection done!
+  --- Do turbulence now
+  --- Turbulence done!
+  --- Do wetdep now
+  --- Wetdep done!
+  --- Do diagnostics now
+  --- Diagnostics done!
+ GCHP Date: 2019/01/01  Time: 01:40:00  Throughput(days/day)[Avg Tot Run]:       5174.0       5575.3       5874.2  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.223E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 01:50:00  Throughput(days/day)[Avg Tot Run]:       5129.9       4757.9       4976.6  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.222E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:00:00  Throughput(days/day)[Avg Tot Run]:       5103.4       4857.8       5090.6  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.222E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:10:00  Throughput(days/day)[Avg Tot Run]:       4822.7       2917.7       6036.9  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.223E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:20:00  Throughput(days/day)[Avg Tot Run]:       4817.8       4785.9       5008.7  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.222E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:30:00  Throughput(days/day)[Avg Tot Run]:       4828.0       5012.4       5262.6  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.221E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:40:00  Throughput(days/day)[Avg Tot Run]:       4868.5       5610.1       5918.0  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.219E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 02:50:00  Throughput(days/day)[Avg Tot Run]:       4878.4       5075.7       5321.6  TimeRemaining(Est) 000:00:15   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.219E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:00:00  Throughput(days/day)[Avg Tot Run]:       4125.9       1140.7       6243.6  TimeRemaining(Est) 000:00:18   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.219E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:10:00  Throughput(days/day)[Avg Tot Run]:       2540.7        321.1       6224.7  TimeRemaining(Est) 000:00:29   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.231E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:20:00  Throughput(days/day)[Avg Tot Run]:       2596.7       4493.0       4687.0  TimeRemaining(Est) 000:00:28   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.231E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:30:00  Throughput(days/day)[Avg Tot Run]:       2650.2       4538.6       4737.4  TimeRemaining(Est) 000:00:27   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.231E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:40:00  Throughput(days/day)[Avg Tot Run]:       2715.4       5655.5       5976.6  TimeRemaining(Est) 000:00:26   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.231E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 03:50:00  Throughput(days/day)[Avg Tot Run]:       2775.3       5434.6       5722.5  TimeRemaining(Est) 000:00:26   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.231E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:00:00  Throughput(days/day)[Avg Tot Run]:       2823.4       4723.0       4940.1  TimeRemaining(Est) 000:00:25   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.230E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:10:00  Throughput(days/day)[Avg Tot Run]:       2825.9       2899.6       5890.7  TimeRemaining(Est) 000:00:25   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.231E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:20:00  Throughput(days/day)[Avg Tot Run]:       2882.2       5781.7       6107.4  TimeRemaining(Est) 000:00:24   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.230E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:30:00  Throughput(days/day)[Avg Tot Run]:       2930.6       5237.8       5509.7  TimeRemaining(Est) 000:00:23   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.230E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:40:00  Throughput(days/day)[Avg Tot Run]:       2978.8       5398.5       5684.2  TimeRemaining(Est) 000:00:23   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.230E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 04:50:00  Throughput(days/day)[Avg Tot Run]:       3020.1       4966.3       5203.2  TimeRemaining(Est) 000:00:22   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.229E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:00:00  Throughput(days/day)[Avg Tot Run]:       3070.1       5951.5       6287.5  TimeRemaining(Est) 000:00:22   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.228E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:10:00  Throughput(days/day)[Avg Tot Run]:       3061.0       2820.3       5886.8  TimeRemaining(Est) 000:00:22   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.226E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:20:00  Throughput(days/day)[Avg Tot Run]:       3094.9       4741.6       4955.9  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.226E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:30:00  Throughput(days/day)[Avg Tot Run]:       3131.7       5094.0       5337.0  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.226E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:40:00  Throughput(days/day)[Avg Tot Run]:       3169.9       5339.2       5611.0  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.226E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 05:50:00  Throughput(days/day)[Avg Tot Run]:       3202.7       4970.9       5210.5  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.225E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:00:00  Throughput(days/day)[Avg Tot Run]:       3064.6       1223.4       6209.9  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.230E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:10:00  Throughput(days/day)[Avg Tot Run]:       2484.5        318.1       6048.0  TimeRemaining(Est) 000:00:25   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.243E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:20:00  Throughput(days/day)[Avg Tot Run]:       2514.4       4572.3       4775.9  TimeRemaining(Est) 000:00:25   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.243E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:30:00  Throughput(days/day)[Avg Tot Run]:       2544.2       4653.3       4863.5  TimeRemaining(Est) 000:00:24   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:40:00  Throughput(days/day)[Avg Tot Run]:       2576.9       5200.1       5467.1  TimeRemaining(Est) 000:00:24   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 06:50:00  Throughput(days/day)[Avg Tot Run]:       2607.3       4969.3       5206.2  TimeRemaining(Est) 000:00:23   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:00:00  Throughput(days/day)[Avg Tot Run]:       2635.7       4796.2       5013.3  TimeRemaining(Est) 000:00:23   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:10:00  Throughput(days/day)[Avg Tot Run]:       2640.5       2869.9       5609.2  TimeRemaining(Est) 000:00:22   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:20:00  Throughput(days/day)[Avg Tot Run]:       2667.1       4731.7       4942.5  TimeRemaining(Est) 000:00:22   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:30:00  Throughput(days/day)[Avg Tot Run]:       2691.8       4571.5       4782.8  TimeRemaining(Est) 000:00:22   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.240E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:40:00  Throughput(days/day)[Avg Tot Run]:       2716.4       4645.9       4852.4  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.240E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 07:50:00  Throughput(days/day)[Avg Tot Run]:       2746.5       5626.7       5931.5  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.240E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:00:00  Throughput(days/day)[Avg Tot Run]:       2774.0       5276.0       5549.1  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.240E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:10:00  Throughput(days/day)[Avg Tot Run]:       2773.0       2738.4       5285.9  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.238E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:20:00  Throughput(days/day)[Avg Tot Run]:       2794.8       4573.3       4775.1  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.238E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:30:00  Throughput(days/day)[Avg Tot Run]:       2818.4       4910.4       5140.7  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.237E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:40:00  Throughput(days/day)[Avg Tot Run]:       2843.2       5192.2       5451.9  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.236E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 08:50:00  Throughput(days/day)[Avg Tot Run]:       2865.5       4864.0       5093.7  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.235E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:00:00  Throughput(days/day)[Avg Tot Run]:       2789.7       1163.1       6461.0  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.242E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:10:00  Throughput(days/day)[Avg Tot Run]:       2429.8        305.1       6236.5  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.251E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:20:00  Throughput(days/day)[Avg Tot Run]:       2451.4       4834.0       5066.4  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.251E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:30:00  Throughput(days/day)[Avg Tot Run]:       2471.6       4614.3       4817.2  TimeRemaining(Est) 000:00:21   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.251E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:40:00  Throughput(days/day)[Avg Tot Run]:       2492.9       4929.8       5157.9  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.251E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 09:50:00  Throughput(days/day)[Avg Tot Run]:       2514.3       5047.4       5287.3  TimeRemaining(Est) 000:00:20   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.250E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:00:00  Throughput(days/day)[Avg Tot Run]:       2537.7       5667.4       5984.2  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.250E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:10:00  Throughput(days/day)[Avg Tot Run]:       2544.0       2997.5       6161.6  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.250E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:20:00  Throughput(days/day)[Avg Tot Run]:       2564.5       5079.5       5323.6  TimeRemaining(Est) 000:00:19   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.250E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:30:00  Throughput(days/day)[Avg Tot Run]:       2585.8       5375.5       5651.1  TimeRemaining(Est) 000:00:18   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.249E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:40:00  Throughput(days/day)[Avg Tot Run]:       2605.9       5147.0       5402.2  TimeRemaining(Est) 000:00:18   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.249E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 10:50:00  Throughput(days/day)[Avg Tot Run]:       2625.6       5107.7       5365.6  TimeRemaining(Est) 000:00:18   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.248E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:00:00  Throughput(days/day)[Avg Tot Run]:       2644.2       4935.7       5167.7  TimeRemaining(Est) 000:00:17   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.246E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:10:00  Throughput(days/day)[Avg Tot Run]:       2648.8       3002.5       6314.6  TimeRemaining(Est) 000:00:17   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.244E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:20:00  Throughput(days/day)[Avg Tot Run]:       2668.8       5439.2       5722.9  TimeRemaining(Est) 000:00:17   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.244E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:30:00  Throughput(days/day)[Avg Tot Run]:       2684.5       4506.4       4702.7  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.244E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:40:00  Throughput(days/day)[Avg Tot Run]:       2704.6       5621.1       5924.0  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.243E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 11:50:00  Throughput(days/day)[Avg Tot Run]:       2724.3       5621.6       5941.2  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.243E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:00:00  Throughput(days/day)[Avg Tot Run]:       2677.2       1203.0       6765.1  TimeRemaining(Est) 000:00:16   11.6% :  17.9% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.247E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:10:00  Throughput(days/day)[Avg Tot Run]:       2428.4        315.9       6241.6  TimeRemaining(Est) 000:00:17   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.267E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:20:00  Throughput(days/day)[Avg Tot Run]:       2444.7       4843.8       5068.7  TimeRemaining(Est) 000:00:17   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.267E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:30:00  Throughput(days/day)[Avg Tot Run]:       2462.2       5248.9       5520.1  TimeRemaining(Est) 000:00:16   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.267E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:40:00  Throughput(days/day)[Avg Tot Run]:       2477.9       4780.8       4998.5  TimeRemaining(Est) 000:00:16   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.266E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 12:50:00  Throughput(days/day)[Avg Tot Run]:       2495.5       5471.5       5764.7  TimeRemaining(Est) 000:00:16   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.266E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:00:00  Throughput(days/day)[Avg Tot Run]:       2513.5       5686.0       5990.0  TimeRemaining(Est) 000:00:15   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.266E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:10:00  Throughput(days/day)[Avg Tot Run]:       2518.8       3028.3       6323.4  TimeRemaining(Est) 000:00:15   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.266E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:20:00  Throughput(days/day)[Avg Tot Run]:       2535.7       5442.2       5725.9  TimeRemaining(Est) 000:00:15   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.265E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:30:00  Throughput(days/day)[Avg Tot Run]:       2550.0       4669.1       4872.9  TimeRemaining(Est) 000:00:14   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.264E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:40:00  Throughput(days/day)[Avg Tot Run]:       2566.7       5519.3       5804.7  TimeRemaining(Est) 000:00:14   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.264E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 13:50:00  Throughput(days/day)[Avg Tot Run]:       2581.3       4853.1       5075.3  TimeRemaining(Est) 000:00:14   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.263E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:00:00  Throughput(days/day)[Avg Tot Run]:       2595.7       4871.2       5099.9  TimeRemaining(Est) 000:00:13   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.262E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:10:00  Throughput(days/day)[Avg Tot Run]:       2597.6       2773.5       5435.8  TimeRemaining(Est) 000:00:13   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.260E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:20:00  Throughput(days/day)[Avg Tot Run]:       2612.1       5013.5       5254.3  TimeRemaining(Est) 000:00:13   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.259E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:30:00  Throughput(days/day)[Avg Tot Run]:       2626.9       5154.8       5405.5  TimeRemaining(Est) 000:00:13   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.258E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:40:00  Throughput(days/day)[Avg Tot Run]:       2641.3       5096.9       5345.9  TimeRemaining(Est) 000:00:12   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.258E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 14:50:00  Throughput(days/day)[Avg Tot Run]:       2656.7       5463.9       5754.0  TimeRemaining(Est) 000:00:12   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.258E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:00:00  Throughput(days/day)[Avg Tot Run]:       2619.9       1176.2       6325.0  TimeRemaining(Est) 000:00:12   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.262E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:10:00  Throughput(days/day)[Avg Tot Run]:       2426.1        317.0       6049.5  TimeRemaining(Est) 000:00:13   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.283E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:20:00  Throughput(days/day)[Avg Tot Run]:       2438.1       4457.0       4645.1  TimeRemaining(Est) 000:00:12   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.283E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:30:00  Throughput(days/day)[Avg Tot Run]:       2450.2       4537.5       4733.7  TimeRemaining(Est) 000:00:12   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.283E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:40:00  Throughput(days/day)[Avg Tot Run]:       2462.3       4576.2       4767.1  TimeRemaining(Est) 000:00:12   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.283E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 15:50:00  Throughput(days/day)[Avg Tot Run]:       2474.6       4686.7       4890.9  TimeRemaining(Est) 000:00:11   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.283E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:00:00  Throughput(days/day)[Avg Tot Run]:       2488.3       5317.0       5594.8  TimeRemaining(Est) 000:00:11   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.283E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:10:00  Throughput(days/day)[Avg Tot Run]:       2492.5       2976.2       6081.5  TimeRemaining(Est) 000:00:11   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.282E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:20:00  Throughput(days/day)[Avg Tot Run]:       2506.1       5369.2       5644.5  TimeRemaining(Est) 000:00:11   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.281E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:30:00  Throughput(days/day)[Avg Tot Run]:       2518.9       5085.0       5331.0  TimeRemaining(Est) 000:00:10   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.281E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:40:00  Throughput(days/day)[Avg Tot Run]:       2532.3       5382.4       5655.0  TimeRemaining(Est) 000:00:10   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.281E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 16:50:00  Throughput(days/day)[Avg Tot Run]:       2545.9       5528.0       5817.9  TimeRemaining(Est) 000:00:10   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.280E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:00:00  Throughput(days/day)[Avg Tot Run]:       2558.9       5314.8       5581.2  TimeRemaining(Est) 000:00:09   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.279E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:10:00  Throughput(days/day)[Avg Tot Run]:       2561.3       2844.7       5799.2  TimeRemaining(Est) 000:00:09   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.276E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:20:00  Throughput(days/day)[Avg Tot Run]:       2575.3       5936.4       6269.0  TimeRemaining(Est) 000:00:09   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.276E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:30:00  Throughput(days/day)[Avg Tot Run]:       2588.0       5336.8       5604.5  TimeRemaining(Est) 000:00:09   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.276E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:40:00  Throughput(days/day)[Avg Tot Run]:       2599.7       5011.3       5254.4  TimeRemaining(Est) 000:00:08   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.275E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 17:50:00  Throughput(days/day)[Avg Tot Run]:       2612.3       5392.9       5669.2  TimeRemaining(Est) 000:00:08   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.275E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:00:00  Throughput(days/day)[Avg Tot Run]:       2588.1       1303.3       6636.8  TimeRemaining(Est) 000:00:08   11.7% :  18.0% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.278E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:10:00  Throughput(days/day)[Avg Tot Run]:       2429.5        318.9       5916.0  TimeRemaining(Est) 000:00:08   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.323E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:20:00  Throughput(days/day)[Avg Tot Run]:       2440.9       5038.4       5282.2  TimeRemaining(Est) 000:00:08   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.323E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:30:00  Throughput(days/day)[Avg Tot Run]:       2451.7       4829.9       5050.5  TimeRemaining(Est) 000:00:08   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.323E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:40:00  Throughput(days/day)[Avg Tot Run]:       2462.1       4671.5       4873.9  TimeRemaining(Est) 000:00:07   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.323E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 18:50:00  Throughput(days/day)[Avg Tot Run]:       2471.8       4469.7       4663.2  TimeRemaining(Est) 000:00:07   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.323E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:00:00  Throughput(days/day)[Avg Tot Run]:       2481.8       4577.8       4777.9  TimeRemaining(Est) 000:00:07   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.323E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:10:00  Throughput(days/day)[Avg Tot Run]:       2484.4       2836.3       5606.7  TimeRemaining(Est) 000:00:07   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.321E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:20:00  Throughput(days/day)[Avg Tot Run]:       2494.5       4697.4       4906.7  TimeRemaining(Est) 000:00:06   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.320E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:30:00  Throughput(days/day)[Avg Tot Run]:       2505.1       4983.5       5221.1  TimeRemaining(Est) 000:00:06   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.319E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:40:00  Throughput(days/day)[Avg Tot Run]:       2516.1       5190.0       5448.0  TimeRemaining(Est) 000:00:06   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.319E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 19:50:00  Throughput(days/day)[Avg Tot Run]:       2526.8       5122.1       5369.6  TimeRemaining(Est) 000:00:05   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.318E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:00:00  Throughput(days/day)[Avg Tot Run]:       2537.8       5336.1       5615.4  TimeRemaining(Est) 000:00:05   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.318E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:10:00  Throughput(days/day)[Avg Tot Run]:       2540.2       2862.9       5937.7  TimeRemaining(Est) 000:00:05   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.317E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:20:00  Throughput(days/day)[Avg Tot Run]:       2552.0       5913.3       6252.9  TimeRemaining(Est) 000:00:05   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.316E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:30:00  Throughput(days/day)[Avg Tot Run]:       2561.9       4881.2       5110.8  TimeRemaining(Est) 000:00:04   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.316E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:40:00  Throughput(days/day)[Avg Tot Run]:       2572.5       5303.6       5582.5  TimeRemaining(Est) 000:00:04   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.315E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 20:50:00  Throughput(days/day)[Avg Tot Run]:       2582.9       5181.9       5445.5  TimeRemaining(Est) 000:00:04   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.315E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:00:00  Throughput(days/day)[Avg Tot Run]:       2558.1       1165.2       6426.4  TimeRemaining(Est) 000:00:04   11.8% :  18.1% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.322E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:10:00  Throughput(days/day)[Avg Tot Run]:       2420.4        311.2       6149.3  TimeRemaining(Est) 000:00:04   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.388E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:20:00  Throughput(days/day)[Avg Tot Run]:       2429.0       4430.7       4623.6  TimeRemaining(Est) 000:00:03   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.388E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:30:00  Throughput(days/day)[Avg Tot Run]:       2437.3       4347.3       4529.2  TimeRemaining(Est) 000:00:03   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.387E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:40:00  Throughput(days/day)[Avg Tot Run]:       2446.9       5006.8       5255.4  TimeRemaining(Est) 000:00:03   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.387E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 21:50:00  Throughput(days/day)[Avg Tot Run]:       2456.8       5246.3       5513.7  TimeRemaining(Est) 000:00:03   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.387E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:00:00  Throughput(days/day)[Avg Tot Run]:       2466.9       5381.8       5657.4  TimeRemaining(Est) 000:00:02   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.387E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:10:00  Throughput(days/day)[Avg Tot Run]:       2469.9       2956.4       5960.3  TimeRemaining(Est) 000:00:02   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.386E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:20:00  Throughput(days/day)[Avg Tot Run]:       2480.2       5589.5       5890.9  TimeRemaining(Est) 000:00:02   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.385E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:30:00  Throughput(days/day)[Avg Tot Run]:       2490.2       5445.8       5736.5  TimeRemaining(Est) 000:00:02   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.384E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:40:00  Throughput(days/day)[Avg Tot Run]:       2500.3       5608.5       5919.3  TimeRemaining(Est) 000:00:01   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.382E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 22:50:00  Throughput(days/day)[Avg Tot Run]:       2510.0       5301.0       5577.3  TimeRemaining(Est) 000:00:01   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.382E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:00:00  Throughput(days/day)[Avg Tot Run]:       2519.6       5320.6       5591.4  TimeRemaining(Est) 000:00:01   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.382E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:10:00  Throughput(days/day)[Avg Tot Run]:       2518.8       2425.3       4833.0  TimeRemaining(Est) 000:00:01   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.380E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:20:00  Throughput(days/day)[Avg Tot Run]:       2527.2       4748.4       4963.2  TimeRemaining(Est) 000:00:00   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.380E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:30:00  Throughput(days/day)[Avg Tot Run]:       2535.1       4528.1       4729.5  TimeRemaining(Est) 000:00:00   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.379E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:40:00  Throughput(days/day)[Avg Tot Run]:       2542.8       4486.2       4684.9  TimeRemaining(Est) 000:00:00   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.378E+04  0.000E+00
+ GCHP Date: 2019/01/01  Time: 23:50:00  Throughput(days/day)[Avg Tot Run]:       2551.2       4831.6       5060.1  TimeRemaining(Est) 000:00:00   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+                                                                      Mem/Swap Used (MB) at MAPL_Cap:TimeLoop=  7.377E+04  0.000E+00
+ GCHP Date: 2019/01/02  Time: 00:00:00  Throughput(days/day)[Avg Tot Run]:       2530.8       1182.0       6283.0  TimeRemaining(Est) 000:00:00   11.9% :  18.3% Mem Comm:Used  Wallclock: 2026/10/11 02:53
+HEMCO::Finalize... OK.
+Chem::State_Chm Finalize... OK.
+Chem::State_Diag Finalize... OK.
+Chem::State_Grid Finalize... OK.
+Chem::State_Met Finalize... OK.
+Chem::Input_Opt Finalize... OK.
+ Character Resource Parameter: GCHPchem_INTERNAL_CHECKPOINT_FILE:Restarts/gcchem_internal_checkpoint
+ Character Resource Parameter: GCHPchem_INTERNAL_CHECKPOINT_TYPE:pnc4
+ Using parallel NetCDF to write file: Restarts/gcchem_internal_checkpoint
+
+   -----------------------------------------------------
+      Block                    User time  System Time   Total Time   GID 
+   -----------------------------------------------------
+   TOTAL                       62.0772       0.0000      62.0772       0
+   COMM_TOTAL                   0.3867       0.0000       0.3867       0
+   COMM_TRACER                  0.3866       0.0000       0.3866       0
+
+ NOT using buffer I/O for file: Emissions_checkpoint
+ NOT using buffer I/O for file: CloudConvFlux_checkpoint
+ NOT using buffer I/O for file: DryDep_checkpoint
+ NOT using buffer I/O for file: FV3Dynamics_checkpoint
+ NOT using buffer I/O for file: GCHPctmEnvLevCenter_checkpoint
+ NOT using buffer I/O for file: GCHPctmEnvLevEdge_checkpoint
+ NOT using buffer I/O for file: RadioNuclide_checkpoint
+ NOT using buffer I/O for file: SpeciesConc_checkpoint
+ NOT using buffer I/O for file: StateMet_checkpoint
+ NOT using buffer I/O for file: StateMetLevEdge_checkpoint
+ NOT using buffer I/O for file: WetLossConv_checkpoint
+ NOT using buffer I/O for file: WetLossLS_checkpoint
+ NOT using buffer I/O for file: cap_restart
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x40003c92c837 in ???
+#1  0x40003eca47b4 in ???
+#2  0x40003ec5b39f in ???
+#3  0x40003ec47263 in ???
+#4  0x40003ec982c7 in ???
+#5  0x40003ecaf07b in ???
+#6  0x40003ecb119b in ???
+#7  0x40003ecb3bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40003ec5d4fb in ???
+#14  0x40003d130d9f in ???
+#15  0x40003c93bf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40003ec5db57 in ???
+#17  0x40003ec5dc43 in ???
+#18  0x40003ec4755b in ???
+#19  0x40003ec4763b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400017a63837 in ???
+#1  0x400019ddb7b4 in ???
+#2  0x400019d9239f in ???
+#3  0x400019d7e263 in ???
+#4  0x400019dcf2c7 in ???
+#5  0x400019de607b in ???
+#6  0x400019de819b in ???
+#7  0x400019deabcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400019d944fb in ???
+#14  0x400018267d9f in ???
+#15  0x400017a72f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400019d94b57 in ???
+#17  0x400019d94c43 in ???
+#18  0x400019d7e55b in ???
+#19  0x400019d7e63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40003cb51837 in ???
+#1  0x40003eec97b4 in ???
+#2  0x40003ee8039f in ???
+#3  0x40003ee6c263 in ???
+#4  0x40003eebd2c7 in ???
+#5  0x40003eed407b in ???
+#6  0x40003eed619b in ???
+#7  0x40003eed8bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40003ee824fb in ???
+#14  0x40003d355d9f in ???
+#15  0x40003cb60f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40003ee82b57 in ???
+#17  0x40003ee82c43 in ???
+#18  0x40003ee6c55b in ???
+#19  0x40003ee6c63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x4000229e7837 in ???
+#1  0x400024d5f7b4 in ???
+#2  0x400024d1639f in ???
+#3  0x400024d02263 in ???
+#4  0x400024d532c7 in ???
+#5  0x400024d6a07b in ???
+#6  0x400024d6c19b in ???
+#7  0x400024d6ebcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400024d184fb in ???
+#14  0x4000231ebd9f in ???
+#15  0x4000229f6f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400024d18b57 in ???
+#17  0x400024d18c43 in ???
+#18  0x400024d0255b in ???
+#19  0x400024d0263b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x400007bef837 in ???
+#1  0x400009f677b4 in ???
+#2  0x400009f1e39f in ???
+#3  0x400009f0a263 in ???
+#4  0x400009f5b2c7 in ???
+#5  0x400009f7207b in ???
+#6  0x400009f7419b in ???
+#7  0x400009f76bcf in ???
+#0  0x400038f42837 in ???
+#1  0x40003b2ba7b4 in ???
+#2  0x40003b27139f in ???
+#3  0x40003b25d263 in ???
+#4  0x40003b2ae2c7 in ???
+#5  0x40003b2c507b in ???
+#6  0x40003b2c719b in ???
+#7  0x40003b2c9bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400009f204fb in ???
+#14  0x4000083f3d9f in ???
+#15  0x400007bfef67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400009f20b57 in ???
+#17  0x400009f20c43 in ???
+#18  0x400009f0a55b in ???
+#19  0x400009f0a63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400026fe2837 in ???
+#1  0x40002935a7b4 in ???
+#2  0x40002931139f in ???
+#3  0x4000292fd263 in ???
+#4  0x40002934e2c7 in ???
+#5  0x40002936507b in ???
+#6  0x40002936719b in ???
+#7  0x400029369bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40003b2734fb in ???
+#14  0x400039746d9f in ???
+#15  0x400038f51f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40003b273b57 in ???
+#17  0x40003b273c43 in ???
+#18  0x40003b25d55b in ???
+#19  0x40003b25d63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000293134fb in ???
+#14  0x4000277e6d9f in ???
+#15  0x400026ff1f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400029313b57 in ???
+#17  0x400029313c43 in ???
+#18  0x4000292fd55b in ???
+#19  0x4000292fd63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x4000331a9837 in ???
+#1  0x4000355217b4 in ???
+#2  0x4000354d839f in ???
+#3  0x4000354c4263 in ???
+#4  0x4000355152c7 in ???
+#5  0x40003552c07b in ???
+#6  0x40003552e19b in ???
+#7  0x400035530bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000354da4fb in ???
+#14  0x4000339add9f in ???
+#15  0x4000331b8f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000354dab57 in ???
+#17  0x4000354dac43 in ???
+#18  0x4000354c455b in ???
+#19  0x4000354c463b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400010b89837 in ???
+#1  0x400012f017b4 in ???
+#2  0x400012eb839f in ???
+#3  0x400012ea4263 in ???
+#4  0x400012ef52c7 in ???
+#5  0x400012f0c07b in ???
+#6  0x400012f0e19b in ???
+#7  0x400012f10bcf in ???
+#0  0x4000089cf837 in ???
+#1  0x40000ad477b4 in ???
+#2  0x40000acfe39f in ???
+#3  0x40000acea263 in ???
+#4  0x40000ad3b2c7 in ???
+#5  0x40000ad5207b in ???
+#6  0x40000ad5419b in ???
+#7  0x40000ad56bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400012eba4fb in ???
+#14  0x40001138dd9f in ???
+#15  0x400010b98f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400012ebab57 in ???
+#17  0x400012ebac43 in ???
+#18  0x400012ea455b in ???
+#19  0x400012ea463b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40000ad004fb in ???
+#14  0x4000091d3d9f in ???
+#15  0x4000089def67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40000ad00b57 in ???
+#17  0x40000ad00c43 in ???
+#18  0x40000acea55b in ???
+#19  0x40000acea63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x400021f30837 in ???
+#1  0x4000242a87b4 in ???
+#2  0x40002425f39f in ???
+#3  0x40002424b263 in ???
+#4  0x40002429c2c7 in ???
+#5  0x4000242b307b in ???
+#6  0x4000242b519b in ???
+#7  0x4000242b7bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000242614fb in ???
+#14  0x400022734d9f in ???
+#15  0x400021f3ff67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400024261b57 in ???
+#17  0x400024261c43 in ???
+#18  0x40002424b55b in ???
+#19  0x40002424b63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x400007928837 in ???
+#1  0x400009ca07b4 in ???
+#2  0x400009c5739f in ???
+#3  0x400009c43263 in ???
+#4  0x400009c942c7 in ???
+#5  0x400009cab07b in ???
+#6  0x400009cad19b in ???
+#7  0x400009cafbcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400009c594fb in ???
+#14  0x40000812cd9f in ???
+#15  0x400007937f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400009c59b57 in ???
+#17  0x400009c59c43 in ???
+#18  0x400009c4355b in ???
+#19  0x400009c4363b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x40001ed3c837 in ???
+#1  0x4000210b47b4 in ???
+#2  0x40002106b39f in ???
+#3  0x400021057263 in ???
+#4  0x4000210a82c7 in ???
+#5  0x4000210bf07b in ???
+#6  0x4000210c119b in ???
+#7  0x4000210c3bcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40002106d4fb in ???
+#14  0x40001f540d9f in ???
+#15  0x40001ed4bf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40002106db57 in ???
+#17  0x40002106dc43 in ???
+#18  0x40002105755b in ???
+#19  0x40002105763b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x40001dfe0837 in ???
+#1  0x4000203587b4 in ???
+#2  0x40002030f39f in ???
+#3  0x4000202fb263 in ???
+#4  0x40002034c2c7 in ???
+#5  0x40002036307b in ???
+#6  0x40002036519b in ???
+#7  0x400020367bcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000203114fb in ???
+double free or corruption (!prev)
+#14  0x40001e7e4d9f in ???
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#15  0x40001dfeff67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400020311b57 in ???
+#17  0x400020311c43 in ???
+#18  0x4000202fb55b in ???
+#19  0x4000202fb63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40001e56f837 in ???
+#1  0x4000208e77b4 in ???
+#2  0x40002089e39f in ???
+#3  0x40002088a263 in ???
+#4  0x4000208db2c7 in ???
+#5  0x4000208f207b in ???
+#6  0x4000208f419b in ???
+#7  0x4000208f6bcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x400039a2b837 in ???
+#1  0x40003bda37b4 in ???
+#2  0x40003bd5a39f in ???
+#3  0x40003bd46263 in ???
+#4  0x40003bd972c7 in ???
+#5  0x40003bdae07b in ???
+#6  0x40003bdb019b in ???
+#7  0x40003bdb2bcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000208a04fb in ???
+#14  0x40001ed73d9f in ???
+#15  0x40001e57ef67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000208a0b57 in ???
+#17  0x4000208a0c43 in ???
+#18  0x40002088a55b in ???
+#19  0x40002088a63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40003bd5c4fb in ???
+#14  0x40003a22fd9f in ???
+#15  0x400039a3af67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40003bd5cb57 in ???
+#17  0x40003bd5cc43 in ???
+#18  0x40003bd4655b in ???
+#19  0x40003bd4663b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x400009570837 in ???
+#1  0x40000b8e87b4 in ???
+#2  0x40000b89f39f in ???
+#3  0x40000b88b263 in ???
+#4  0x40000b8dc2c7 in ???
+#5  0x40000b8f307b in ???
+#6  0x40000b8f519b in ???
+#7  0x40000b8f7bcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x40000b6ee837 in ???
+#1  0x40000da667b4 in ???
+#2  0x40000da1d39f in ???
+#3  0x40000da09263 in ???
+#4  0x40000da5a2c7 in ???
+#5  0x40000da7107b in ???
+#6  0x40000da7319b in ???
+#7  0x40000da75bcf in ???
+#0  0x4000300e0837 in ???
+#1  0x4000324587b4 in ???
+#2  0x40003240f39f in ???
+#3  0x4000323fb263 in ???
+#4  0x40003244c2c7 in ???
+#5  0x40003246307b in ???
+#6  0x40003246519b in ???
+#7  0x400032467bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40000b8a14fb in ???
+#14  0x400009d74d9f in ???
+#15  0x40000957ff67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40000b8a1b57 in ???
+#17  0x40000b8a1c43 in ???
+#18  0x40000b88b55b in ???
+#19  0x40000b88b63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400027585837 in ???
+#1  0x4000298fd7b4 in ???
+#2  0x4000298b439f in ???
+#3  0x4000298a0263 in ???
+#4  0x4000298f12c7 in ???
+#5  0x40002990807b in ???
+#6  0x40002990a19b in ???
+#7  0x40002990cbcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40000da1f4fb in ???
+#14  0x40000bef2d9f in ???
+#15  0x40000b6fdf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40000da1fb57 in ???
+#17  0x40000da1fc43 in ???
+#18  0x40000da0955b in ???
+#19  0x40000da0963b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40000da1e837 in ???
+#1  0x40000fd967b4 in ???
+#2  0x40000fd4d39f in ???
+#3  0x40000fd39263 in ???
+#4  0x40000fd8a2c7 in ???
+#5  0x40000fda107b in ???
+#6  0x40000fda319b in ???
+#7  0x40000fda5bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000324114fb in ???
+#14  0x4000308e4d9f in ???
+#15  0x4000300eff67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400032411b57 in ???
+#17  0x400032411c43 in ???
+#18  0x4000323fb55b in ???
+#19  0x4000323fb63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000298b64fb in ???
+#14  0x400027d89d9f in ???
+#15  0x400027594f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000298b6b57 in ???
+#17  0x4000298b6c43 in ???
+#18  0x4000298a055b in ???
+#19  0x4000298a063b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40000fd4f4fb in ???
+#14  0x40000e222d9f in ???
+#15  0x40000da2df67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40000fd4fb57 in ???
+#17  0x40000fd4fc43 in ???
+#18  0x40000fd3955b in ???
+#19  0x40000fd3963b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x400006436837 in ???
+#1  0x4000087ae7b4 in ???
+#2  0x40000876539f in ???
+#3  0x400008751263 in ???
+#4  0x4000087a22c7 in ???
+#5  0x4000087b907b in ???
+#6  0x4000087bb19b in ???
+#7  0x4000087bdbcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000087674fb in ???
+#14  0x400006c3ad9f in ???
+#15  0x400006445f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400008767b57 in ???
+#17  0x400008767c43 in ???
+#18  0x40000875155b in ???
+#19  0x40000875163b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#0  0x40002761a837 in ???
+#1  0x4000299927b4 in ???
+#2  0x40002994939f in ???
+#3  0x400029935263 in ???
+#4  0x4000299862c7 in ???
+#5  0x40002999d07b in ???
+#6  0x40002999f19b in ???
+#7  0x4000299a1bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40002994b4fb in ???
+#14  0x400027e1ed9f in ???
+#15  0x400027629f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40002994bb57 in ???
+#17  0x40002994bc43 in ???
+#18  0x40002993555b in ???
+#19  0x40002993563b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40000b966837 in ???
+#1  0x40000dcde7b4 in ???
+#2  0x40000dc9539f in ???
+#3  0x40000dc81263 in ???
+#4  0x40000dcd22c7 in ???
+#5  0x40000dce907b in ???
+#6  0x40000dceb19b in ???
+#7  0x40000dcedbcf in ???
+double free or corruption (!prev)
+
+Program received signal SIGABRT: Process abort signal.
+
+Backtrace for this error:
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40000dc974fb in ???
+#14  0x40000c16ad9f in ???
+#15  0x40000b975f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40000dc97b57 in ???
+#17  0x40000dc97c43 in ???
+#18  0x40000dc8155b in ???
+#19  0x40000dc8163b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40003aa7a837 in ???
+#1  0x40003cdf27b4 in ???
+#2  0x40003cda939f in ???
+#3  0x40003cd95263 in ???
+#4  0x40003cde62c7 in ???
+#5  0x40003cdfd07b in ???
+#6  0x40003cdff19b in ???
+#7  0x40003ce01bcf in ???
+#0  0x4000179d5837 in ???
+#1  0x400019d4d7b4 in ???
+#2  0x400019d0439f in ???
+#3  0x400019cf0263 in ???
+#4  0x400019d412c7 in ???
+#5  0x400019d5807b in ???
+#6  0x400019d5a19b in ???
+#7  0x400019d5cbcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40003cdab4fb in ???
+#13  0x400019d064fb in ???
+#14  0x4000181d9d9f in ???
+#14  0x40003b27ed9f in ???
+#15  0x4000179e4f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400019d06b57 in ???
+#15  0x40003aa89f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40003cdabb57 in ???
+#17  0x40003cdabc43 in ???
+#18  0x40003cd9555b in ???
+#19  0x40003cd9563b in ???
+#17  0x400019d06c43 in ???
+#18  0x400019cf055b in ???
+#19  0x400019cf063b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x4000175bc837 in ???
+#1  0x4000199347b4 in ???
+#0  0x4000378c1837 in ???
+#1  0x400039c397b4 in ???
+#2  0x400039bf039f in ???
+#3  0x400039bdc263 in ???
+#2  0x4000198eb39f in ???
+#3  0x4000198d7263 in ???
+#4  0x4000199282c7 in ???
+#5  0x40001993f07b in ???
+#6  0x40001994119b in ???
+#7  0x400019943bcf in ???
+#4  0x400039c2d2c7 in ???
+#5  0x400039c4407b in ???
+#6  0x400039c4619b in ???
+#7  0x400039c48bcf in ???
+#0  0x40000e37f837 in ???
+#1  0x4000106f77b4 in ???
+#2  0x4000106ae39f in ???
+#3  0x40001069a263 in ???
+#4  0x4000106eb2c7 in ???
+#5  0x40001070207b in ???
+#6  0x40001070419b in ???
+#7  0x400010706bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000198ed4fb in ???
+#14  0x400017dc0d9f in ???
+#15  0x4000175cbf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000198edb57 in ???
+#17  0x4000198edc43 in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#18  0x4000198d755b in ???
+#19  0x4000198d763b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#13  0x400039bf24fb in ???
+#14  0x4000380c5d9f in ???
+#15  0x4000378d0f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400039bf2b57 in ???
+#17  0x400039bf2c43 in ???
+#18  0x400039bdc55b in ???
+#19  0x400039bdc63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000106b04fb in ???
+#14  0x40000eb83d9f in ???
+#15  0x40000e38ef67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000106b0b57 in ???
+#17  0x4000106b0c43 in ???
+#18  0x40001069a55b in ???
+#19  0x40001069a63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400015beb837 in ???
+#1  0x400017f637b4 in ???
+#2  0x400017f1a39f in ???
+#3  0x400017f06263 in ???
+#4  0x400017f572c7 in ???
+#5  0x400017f6e07b in ???
+#6  0x400017f7019b in ???
+#7  0x400017f72bcf in ???
+#0  0x40003493c837 in ???
+#1  0x400036cb47b4 in ???
+#2  0x400036c6b39f in ???
+#3  0x400036c57263 in ???
+#4  0x400036ca82c7 in ???
+#5  0x400036cbf07b in ???
+#6  0x400036cc119b in ???
+#7  0x400036cc3bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400017f1c4fb in ???
+#14  0x4000163efd9f in ???
+#15  0x400015bfaf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400017f1cb57 in ???
+#17  0x400017f1cc43 in ???
+#18  0x400017f0655b in ???
+#19  0x400017f0663b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400036c6d4fb in ???
+#14  0x400035140d9f in ???
+#15  0x40003494bf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400036c6db57 in ???
+#17  0x400036c6dc43 in ???
+#18  0x400036c5755b in ???
+#19  0x400036c5763b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40001a056837 in ???
+#1  0x40001c3ce7b4 in ???
+#2  0x40001c38539f in ???
+#3  0x40001c371263 in ???
+#4  0x40001c3c22c7 in ???
+#5  0x40001c3d907b in ???
+#6  0x40001c3db19b in ???
+#7  0x40001c3ddbcf in ???
+#0  0x400034f34837 in ???
+#1  0x4000372ac7b4 in ???
+#2  0x40003726339f in ???
+#3  0x40003724f263 in ???
+#4  0x4000372a02c7 in ???
+#5  0x4000372b707b in ???
+#6  0x4000372b919b in ???
+#7  0x4000372bbbcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40001c3874fb in ???
+#14  0x40001a85ad9f in ???
+#15  0x40001a065f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40001c387b57 in ???
+#17  0x40001c387c43 in ???
+#18  0x40001c37155b in ???
+#19  0x40001c37163b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x4000011ec837 in ???
+#1  0x4000035647b4 in ???
+#2  0x40000351b39f in ???
+#3  0x400003507263 in ???
+#4  0x4000035582c7 in ???
+#5  0x40000356f07b in ???
+#6  0x40000357119b in ???
+#7  0x400003573bcf in ???
+#0  0x400013aa4837 in ???
+#1  0x400015e1c7b4 in ???
+#2  0x400015dd339f in ???
+#3  0x400015dbf263 in ???
+#4  0x400015e102c7 in ???
+#5  0x400015e2707b in ???
+#6  0x400015e2919b in ???
+#7  0x400015e2bbcf in ???
+#0  0x40002ed33837 in ???
+#1  0x4000310ab7b4 in ???
+#2  0x40003106239f in ???
+#3  0x40003104e263 in ???
+#4  0x40003109f2c7 in ???
+#5  0x4000310b607b in ???
+#6  0x4000310b819b in ???
+#7  0x4000310babcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000372654fb in ???
+#14  0x400035738d9f in ???
+#15  0x400034f43f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400037265b57 in ???
+#17  0x400037265c43 in ???
+#18  0x40003724f55b in ???
+#19  0x40003724f63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40000351d4fb in ???
+#14  0x4000019f0d9f in ???
+#15  0x4000011fbf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40000351db57 in ???
+#17  0x40000351dc43 in ???
+#18  0x40000350755b in ???
+#19  0x40000350763b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400015dd54fb in ???
+#14  0x4000142a8d9f in ???
+#15  0x400013ab3f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400015dd5b57 in ???
+#17  0x400015dd5c43 in ???
+#18  0x400015dbf55b in ???
+#19  0x400015dbf63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000310644fb in ???
+#14  0x40002f537d9f in ???
+#15  0x40002ed42f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400031064b57 in ???
+#17  0x400031064c43 in ???
+#18  0x40003104e55b in ???
+#19  0x40003104e63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400003356837 in ???
+#1  0x4000056ce7b4 in ???
+#2  0x40000568539f in ???
+#3  0x400005671263 in ???
+#4  0x4000056c22c7 in ???
+#5  0x4000056d907b in ???
+#6  0x4000056db19b in ???
+#7  0x4000056ddbcf in ???
+#0  0x400023fc9837 in ???
+#1  0x4000263417b4 in ???
+#2  0x4000262f839f in ???
+#3  0x4000262e4263 in ???
+#4  0x4000263352c7 in ???
+#5  0x40002634c07b in ???
+#6  0x40002634e19b in ???
+#7  0x400026350bcf in ???
+#0  0x40001c66f837 in ???
+#1  0x40001e9e77b4 in ???
+#2  0x40001e99e39f in ???
+#3  0x40001e98a263 in ???
+#4  0x40001e9db2c7 in ???
+#5  0x40001e9f207b in ???
+#6  0x40001e9f419b in ???
+#7  0x40001e9f6bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000056874fb in ???
+#14  0x400003b5ad9f in ???
+#15  0x400003365f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400005687b57 in ???
+#17  0x400005687c43 in ???
+#18  0x40000567155b in ???
+#19  0x40000567163b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000262fa4fb in ???
+#14  0x4000247cdd9f in ???
+#15  0x400023fd8f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000262fab57 in ???
+#17  0x4000262fac43 in ???
+#18  0x4000262e455b in ???
+#19  0x4000262e463b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40001e9a04fb in ???
+#14  0x40001ce73d9f in ???
+#15  0x40001c67ef67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40001e9a0b57 in ???
+#17  0x40001e9a0c43 in ???
+#18  0x40001e98a55b in ???
+#19  0x40001e98a63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40000ff0e837 in ???
+#1  0x4000122867b4 in ???
+#2  0x40001223d39f in ???
+#3  0x400012229263 in ???
+#4  0x40001227a2c7 in ???
+#5  0x40001229107b in ???
+#6  0x40001229319b in ???
+#7  0x400012295bcf in ???
+#0  0x400010c27837 in ???
+#1  0x400012f9f7b4 in ???
+#2  0x400012f5639f in ???
+#3  0x400012f42263 in ???
+#4  0x400012f932c7 in ???
+#5  0x400012faa07b in ???
+#6  0x400012fac19b in ???
+#7  0x400012faebcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40001223f4fb in ???
+#14  0x400010712d9f in ???
+#15  0x40000ff1df67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40001223fb57 in ???
+#17  0x40001223fc43 in ???
+#18  0x40001222955b in ???
+#19  0x40001222963b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x400003adf837 in ???
+#1  0x400005e577b4 in ???
+#2  0x400005e0e39f in ???
+#3  0x400005dfa263 in ???
+#4  0x400005e4b2c7 in ???
+#5  0x400005e6207b in ???
+#6  0x400005e6419b in ???
+#7  0x400005e66bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400012f584fb in ???
+#14  0x40001142bd9f in ???
+#15  0x400010c36f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400012f58b57 in ???
+#17  0x400012f58c43 in ???
+#18  0x400012f4255b in ???
+#19  0x400012f4263b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40003758e837 in ???
+#0  0x40002bfc9837 in ???
+#1  0x40002e3417b4 in ???
+#1  0x4000399067b4 in ???
+#2  0x4000398bd39f in ???
+#3  0x4000398a9263 in ???
+#4  0x4000398fa2c7 in ???
+#5  0x40003991107b in ???
+#6  0x40003991319b in ???
+#7  0x400039915bcf in ???
+#2  0x40002e2f839f in ???
+#3  0x40002e2e4263 in ???
+#4  0x40002e3352c7 in ???
+#5  0x40002e34c07b in ???
+#6  0x40002e34e19b in ???
+#7  0x40002e350bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400005e104fb in ???
+#14  0x4000042e3d9f in ???
+#15  0x400003aeef67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400005e10b57 in ???
+#17  0x400005e10c43 in ???
+#18  0x400005dfa55b in ???
+#19  0x400005dfa63b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40000449c837 in ???
+#1  0x4000068147b4 in ???
+#2  0x4000067cb39f in ???
+#3  0x4000067b7263 in ???
+#4  0x4000068082c7 in ???
+#5  0x40000681f07b in ???
+#6  0x40000682119b in ???
+#7  0x400006823bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x40002e2fa4fb in ???
+#14  0x40002c7cdd9f in ???
+#15  0x40002bfd8f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x40002e2fab57 in ???
+#17  0x40002e2fac43 in ???
+#18  0x40002e2e455b in ???
+#19  0x40002e2e463b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000398bf4fb in ???
+#14  0x400037d92d9f in ???
+#15  0x40003759df67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000398bfb57 in ???
+#17  0x4000398bfc43 in ???
+#18  0x4000398a955b in ???
+#19  0x4000398a963b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000067cd4fb in ???
+#14  0x400004ca0d9f in ???
+#15  0x4000044abf67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000067cdb57 in ???
+#17  0x4000067cdc43 in ???
+#18  0x4000067b755b in ???
+#19  0x4000067b763b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x4000236a9837 in ???
+#1  0x400025a217b4 in ???
+#2  0x4000259d839f in ???
+#3  0x4000259c4263 in ???
+#4  0x400025a152c7 in ???
+#5  0x400025a2c07b in ???
+#6  0x400025a2e19b in ???
+#7  0x400025a30bcf in ???
+#0  0x400036ba6837 in ???
+#1  0x400038f1e7b4 in ???
+#2  0x400038ed539f in ???
+#3  0x400038ec1263 in ???
+#4  0x400038f122c7 in ???
+#5  0x400038f2907b in ???
+#6  0x400038f2b19b in ???
+#7  0x400038f2dbcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000259da4fb in ???
+#14  0x400023eadd9f in ???
+#15  0x4000236b8f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000259dab57 in ???
+#17  0x4000259dac43 in ???
+#18  0x4000259c455b in ???
+#19  0x4000259c463b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x400038ed74fb in ???
+#14  0x4000373aad9f in ???
+#15  0x400036bb5f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x400038ed7b57 in ???
+#17  0x400038ed7c43 in ???
+#18  0x400038ec155b in ???
+#19  0x400038ec163b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+#0  0x40003ffc9837 in ???
+#1  0x4000423417b4 in ???
+#2  0x4000422f839f in ???
+#3  0x4000422e4263 in ???
+#4  0x4000423352c7 in ???
+#5  0x40004234c07b in ???
+#6  0x40004234e19b in ???
+#7  0x400042350bcf in ???
+#8  0x18bed73 in _ZNSt15__new_allocatorIP15ompi_datatype_tE10deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/new_allocator.h:158
+#9  0x18bed73 in _ZNSt16allocator_traitsISaIP15ompi_datatype_tEE10deallocateERS2_PS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/alloc_traits.h:496
+#10  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EE13_M_deallocateEPS1_m
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:387
+#11  0x18bed73 in _ZNSt12_Vector_baseIP15ompi_datatype_tSaIS1_EED4Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:366
+#12  0x18bed73 in _ZNSt6vectorIP15ompi_datatype_tSaIS1_EED2Ev
+	at /fsx/stacks/gchp14.7.1-validated-arm64/gcc-12.2.0/include/c++/12.2.0/bits/stl_vector.h:733
+#13  0x4000422fa4fb in ???
+#14  0x4000407cdd9f in ???
+#15  0x40003ffd8f67 in _dl_fini
+	at /usr/src/debug/glibc-2.34-231.amzn2023.0.3.aarch64/elf/dl-fini.c:148
+#16  0x4000422fab57 in ???
+#17  0x4000422fac43 in ???
+#18  0x4000422e455b in ???
+#19  0x4000422e463b in ???
+#20  0x5c3a6f in ???
+#21  0xffffffffffffffff in ???
+srun: error: compute-dy-nodes-1: tasks 16-23: Aborted
+srun: error: compute-dy-nodes-2: tasks 29,37,39,41-45: Aborted
+srun: error: compute-dy-nodes-1: tasks 2-4,6-8,11-15: Aborted (core dumped)
+srun: error: compute-dy-nodes-1: tasks 5,9-10: Aborted (core dumped)
+srun: error: compute-dy-nodes-2: tasks 25,27,34-36,38: Aborted (core dumped)
+srun: error: compute-dy-nodes-2: tasks 28,30-33,40,46-47: Aborted (core dumped)
+srun: forcing job termination
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+[2026-10-11T02:57:05.817] error: *** STEP 26.3 ON compute-dy-nodes-1 CANCELLED AT 2026-10-11T02:57:05 DUE to SIGNAL Killed ***
+srun: error: Timed out waiting for job step to complete

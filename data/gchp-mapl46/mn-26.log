@@ -1,0 +1,120 @@
+[02:47:45] === MAPL PR#46 multi-node  job 26  nodes compute-dy-nodes-1 compute-dy-nodes-2  ranks 48
+[02:47:45]   bin A e96237c5b1db
+[02:47:47]   bin B 5e86cf1f998e
+[02:47:49]   bin C 5dee3da1cbb6
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+[02:47:53]   compute-dy-nodes-1 c8g.48xlarge efa_endpoints=2
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:47:58]   compute-dy-nodes-2 c8g.48xlarge efa_endpoints=2
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+[02:48:07]   compute-dy-nodes-1 fuse.lith=5
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:48:07]   compute-dy-nodes-2 fuse.lith=5
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:48:10] RUN 1-A-mpirun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:49:57] CELL 1-A-mpirun rc=134 wall=102s cap_adv_at=99s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=48 improper=0 throughput=1 strays_after_exit=0
+[02:49:57]   first seen (s): cap_restart=99 double_free=101 improper=NA exit=102
+grep: /scratch/gchp-mapl46/mn-26/1-A-mpirun.gchp.log: binary file matches
+[02:49:57]   last log line: 
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:50:00] RUN 2-B-mpirun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:51:21] CELL 2-B-mpirun rc=1 wall=77s cap_adv_at=75s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=0 improper=2 throughput=1 strays_after_exit=11
+[02:51:21]   first seen (s): cap_restart=75 double_free=NA improper=77 exit=77
+grep: /scratch/gchp-mapl46/mn-26/2-B-mpirun.gchp.log: binary file matches
+[02:51:21]   last log line: 
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:51:24] RUN 3-C-mpirun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:52:46] CELL 3-C-mpirun rc=0 wall=78s cap_adv_at=75s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=0 improper=0 throughput=1 strays_after_exit=0
+[02:52:46]   first seen (s): cap_restart=75 double_free=NA improper=NA exit=78
+grep: /scratch/gchp-mapl46/mn-26/3-C-mpirun.gchp.log: binary file matches
+[02:52:46]   last log line: 
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:52:49] RUN 4-A-srun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:57:41] CELL 4-A-srun rc=HUNG wall=288s cap_adv_at=75s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=48 improper=0 throughput=1 strays_after_exit=4
+[02:57:41]   first seen (s): cap_restart=75 double_free=77 improper=NA exit=288
+[02:57:41]   last log line: srun: error: Timed out waiting for job step to complete
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[02:59:11]   waited 80s for stray ranks
+[02:59:13] RUN 5-B-srun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:00:39] CELL 5-B-srun rc=0 wall=82s cap_adv_at=76s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=0 improper=0 throughput=1 strays_after_exit=0
+[03:00:39]   first seen (s): cap_restart=76 double_free=NA improper=NA exit=82
+[03:00:39]   last log line:  NOT using buffer I/O for file: cap_restart
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:00:42] RUN 6-C-srun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:02:03] CELL 6-C-srun rc=0 wall=77s cap_adv_at=74s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=0 improper=0 throughput=1 strays_after_exit=0
+[03:02:03]   first seen (s): cap_restart=74 double_free=NA improper=NA exit=77
+[03:02:03]   last log line:  NOT using buffer I/O for file: cap_restart
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:02:06] RUN 7-C-mpirun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:03:27] CELL 7-C-mpirun rc=0 wall=77s cap_adv_at=75s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=0 improper=0 throughput=1 strays_after_exit=0
+[03:03:27]   first seen (s): cap_restart=75 double_free=NA improper=NA exit=77
+grep: /scratch/gchp-mapl46/mn-26/7-C-mpirun.gchp.log: binary file matches
+[03:03:27]   last log line: 
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:03:30] RUN 8-C-srun
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+[03:04:53] CELL 8-C-srun rc=0 wall=79s cap_adv_at=76s cap=20190102 000000 ckpt_md5=0c0c98b6192f double_free=0 improper=0 throughput=1 strays_after_exit=0
+[03:04:53]   first seen (s): cap_restart=76 double_free=NA improper=NA exit=79
+[03:04:53]   last log line:  NOT using buffer I/O for file: cap_restart
+[03:04:53] === done 2026-10-11T03:04:53Z
+Warning: Permanently added 'compute-dy-nodes-1' (ED25519) to the list of known hosts.
+compute-dy-nodes-1 fuse=0
+Warning: Permanently added 'compute-dy-nodes-2' (ED25519) to the list of known hosts.
+compute-dy-nodes-2 fuse=0

@@ -105,3 +105,23 @@ X86: one spawn instance (c7a.24xlarge, AMD Zen 4, x86_64; ~1 h, TTL 2h) builds t
   14.7.1 against the x86 stack (stock, + PR #46, + MPI_Finalize line), then runs A/B/C x 2 reps at 12 ranks under
   mpirun, single node, lith v1.12.0 (amd64) over gcgrid. Predictions: same as the aarch64 head node (A 134 + double
   free, B rc 1 + improper, C rc 0; md5 A == B == C, though not equal to aarch64's).
+
+RESULTS 3: MN (Slurm job 26, 02:47-03:05Z, 2x c8g.48xlarge, EFA 2 endpoints/node, pml=cm/mtl=ofi forced; 48 ranks)
+  cell         rc    ckpt md5      double_free  improper  cap_restart at  launcher exit at  strays after exit
+  1 A mpirun   134   0c0c98b6192f  48           0         99 s            102 s             0
+  2 B mpirun   1     0c0c98b6192f  0            2         75 s            77 s              11 (gone within the 3 s pkill window)
+  3 C mpirun   0     0c0c98b6192f  0            0         75 s            78 s              0
+  4 A srun     HUNG  0c0c98b6192f  48           0         75 s            killed at 288 s   4 (waited 80 s)
+  5 B srun     0     0c0c98b6192f  0            0         76 s            82 s              0
+  6 C srun     0     0c0c98b6192f  0            0         74 s            77 s              0
+  7 C mpirun   0     0c0c98b6192f  0            0         75 s            77 s              0
+  8 C srun     0     0c0c98b6192f  0            0         76 s            79 s              0
+  Scoring vs predictions: ALL as predicted. mpirun: A 134 + double free, B rc 1 + "exiting improperly", C rc 0.
+    srun: B rc 0 (the "improper" failure is OpenMPI-mpirun/ORTE-specific; Slurm judges by rank exit codes), C rc 0.
+    md5 identical across all 8 cells (48-rank decomposition; differs from 12-rank as expected). srun launches this
+    OpenMPI fine (pmix_v5).
+  Not predicted: stock under srun did not exit: srun reported 44 of 48 tasks "Aborted" (most "core dumped"), then
+    "forcing job termination", and was still alive 180 s after cap_restart; killed by the harness. Likely cause
+    (inference, not measured): core dumps from the aborting ranks to the NFS run dir under Slurm's core limit.
+  CORRECTION to RESULTS 1's "stock teardown costs ~125 s": that is the 16-core head node (loaded, slow I/O). On
+    c8g.48xlarge under mpirun the stock abort completes ~3 s after the checkpoint. The teardown cost is box-dependent.
