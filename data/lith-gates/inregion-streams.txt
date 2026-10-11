@@ -2803,3 +2803,11 @@ My predictions: FITS tracks the ratio (window falls with ratio: ~2.5 at R2, ~1.5
   lower ratio (less cumulative earning), and with per-run on it is already at the 2-block floor so R2P/R1P ~ R4P
   (unchanged). HEMCO small moves (window near floor). No shape gets worse.
 Cost $0.
+
+--- 5f-P30b PRE-REGISTRATION (2026-10-11 ~04:25Z, after P30's results were seen, before P30b ran): does ratio 2 cost
+    the shapes ratio 4 was chosen for? Same build, same harness. Shapes netcdf4_hyperslab (closest to #284's one-variable
+    read), webdataset_stream and concurrent_handles (sequential whole-file readers, where a lower ratio slows window
+    earning). Arms R4 vs R2, 2 reps interleaved. Report amp and the tool's wall_s.
+  Scoring: R2 "costs" a shape iff wall_s > 1.1x R4 in both reps, or amp > 1.1x R4 in both reps.
+  Prediction: no amp cost anywhere; webdataset/concurrent_handles wall within 10% (a 1.2 GB / multi-handle read earns the
+    window quickly at either ratio); netcdf4_hyperslab amp equal or lower at R2.
