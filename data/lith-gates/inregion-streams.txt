@@ -2913,3 +2913,11 @@ Prediction: none move (GRIB/HEMCO certainly; FITS is the one at risk because v1.
   Scoring: none move vs the b67fda3 ratio-2 reference (identical to 0.01) -> floor-bound confirmed on the artifact;
     the residual is arm B's. Arm A helps nowhere (identical). Predictions right, including FITS: the v1.13.0 strided
     extent path did not engage for the cutout (its bytes are still kind=whole, 32.5 MB, unchanged from b67fda3).
+
+--- 5f-P34 PRE-REGISTRATION (release re-verify on v1.13.0 md5 603db1afb12f, before it ran) ---
+(a) #337 ladder: gate-p26.sh MODE=p34, netns rig, K0/K7/K47 idle clients + 1 streaming dd of the 3.78 GB object through
+    `lith serve nfs`, 2 reps. Reference: P26 pr410 K0 1310/1320, K7 1199/1287, K47 1386/1333 MB/s; bytes 3.777 GB,
+    458 GETs. PASS iff K47 >= 0.9 x K0 in both reps and bytes identical across cells.
+(b) The two remaining over-2x sweep rows at the v1.13.0 default: zip_seek_to_end (ref 3.41) and kerchunk_scan (ref
+    4.44), 2 reps. Prediction: unchanged (both are Cold whole-chunk floors, #233/#408, untouched by this release).
+Prediction (a): PASS (the #410 fix shipped as-is).
