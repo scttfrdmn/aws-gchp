@@ -2952,3 +2952,20 @@ Scoring per scored shape, vs D: amp < 0.9x in both reps -> moves; within 10% -> 
 My predictions: D == v1.13.0 to 0.01. A == D exactly. B within 10% of D on all three (the walk is short, so maybe
   slightly lower on GRIB). AB moves all three: GRIB toward ~1.3-1.6x, FITS ~1.2-1.5x, HEMCO ~1.2-1.4x, prefetch-range
   > 0, GETs up (more, smaller spans) by 1.5-3x. Controls and dd unchanged.
+--- 5f-P35 RESULTS (v1.14.0 md5 3bcad9729a46; sweep 22:17-22:24Z, 48/48 rows ok; dd 22:24Z) ---
+  amp r1/r2 identical in ALL FOUR ARMS on every shape: GRIB 3.02 (72 GETs), FITS 2.20 (12 GETs), HEMCO 1.79 (339-341
+  GETs), netcdf4_hyperslab 1.35, webdataset 1.0, concurrent_handles 1.0. Peak window 2 (GRIB/FITS/HEMCO) in every arm;
+  used:issued unchanged. fill_prefetch_range: 0 on GRIB/FITS in every arm; HEMCO 0.3 MB in every arm INCLUDING D (the
+  #222 strided lane, not arm B).
+  dd witness (8 cells): s3/size 1.000, GETs 447-462 (tracking file size), prefetch-range 0 in every arm -> unchanged.
+  Flag delivery verified: re-ran one AB GRIB row (p35chk) with a live `pgrep -a` capture showing
+  "--readahead-evidence-per-run --readahead-subblock-dispatch" on the mount; same 3.02 / 72 GETs.
+  Why (trace, AB rep 1, scripts/lith/p35-runs.py): arm B requires a FINISHED ESTABLISHED RUN, and the real walks
+    barely produce one. GRIB data handle: 90 reads, 67 random->random, ONE establishment (the last 12 reads), ZERO run
+    ends. FITS: one establishment, a 110-read sequential run that never ends. HEMCO: 9 handles, 2 establishments, 1
+    run end in total, after which that handle stays random. The fixture's "re-establishes per field" walk does not match
+    the detector's view of these tools: between fields it classifies the reads Random, not as new runs.
+  Scoring: D == v1.13.0 (control holds). A == D, B == D (upstream's "~1.0x" for single arms: right). AB == D -> upstream's
+    "only the pair moves": REFUTED on all three rows (not attributable either: prefetch-range 0). Controls and dd
+    unchanged (precondition witness clean). My AB predictions wrong on all three; the rest right.
+  Walls not scored: D is slowest on every shape because D runs first in each interleave group (ordering, not arm).

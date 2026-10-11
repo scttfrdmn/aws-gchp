@@ -1,0 +1,10 @@
+=== gate 5f-P35dd  2026-10-11T22:23:54Z  lith=3bcad9729a46
+CELL D-D-1 wall=3.442 s3_MB=3674.4 gets=447 distinct_MB=3674.4 prefetch_range_MB=0.0 size_MB=3674.4 s3_over_size=1.000 MBps=1067
+CELL D-A-1 wall=3.239 s3_MB=3765.6 gets=457 distinct_MB=3765.6 prefetch_range_MB=0.0 size_MB=3765.6 s3_over_size=1.000 MBps=1162
+CELL D-B-1 wall=3.464 s3_MB=3767.8 gets=458 distinct_MB=3767.9 prefetch_range_MB=0.0 size_MB=3767.8 s3_over_size=1.000 MBps=1088
+CELL D-AB-1 wall=3.392 s3_MB=3762.2 gets=457 distinct_MB=3762.3 prefetch_range_MB=0.0 size_MB=3762.2 s3_over_size=1.000 MBps=1109
+CELL D-D-2 wall=3.731 s3_MB=3745.2 gets=455 distinct_MB=3745.3 prefetch_range_MB=0.0 size_MB=3745.2 s3_over_size=1.000 MBps=1004
+CELL D-A-2 wall=3.448 s3_MB=3758.8 gets=457 distinct_MB=3758.8 prefetch_range_MB=0.0 size_MB=3758.8 s3_over_size=1.000 MBps=1090
+CELL D-B-2 wall=3.241 s3_MB=3730.6 gets=453 distinct_MB=3730.6 prefetch_range_MB=0.0 size_MB=3730.6 s3_over_size=1.000 MBps=1151
+CELL D-AB-2 wall=3.494 s3_MB=3800.3 gets=462 distinct_MB=3800.4 prefetch_range_MB=0.0 size_MB=3800.3 s3_over_size=1.000 MBps=1088
+=== done 2026-10-11T22:24:40Z
