@@ -2969,3 +2969,12 @@ My predictions: D == v1.13.0 to 0.01. A == D exactly. B within 10% of D on all t
     "only the pair moves": REFUTED on all three rows (not attributable either: prefetch-range 0). Controls and dd
     unchanged (precondition witness clean). My AB predictions wrong on all three; the rest right.
   Walls not scored: D is slowest on every shape because D runs first in each interleave group (ordering, not arm).
+
+--- 5f-P36 PRE-REGISTRATION (lith#407 22:55Z: build the direction-1 refuting witness BEFORE the change; before it ran) ---
+gate-p36.sh on v1.14.0 (md5 3bcad9729a46): SS = scatter_stream.py on a distinct 3.78 GB GEOS-FP A3dyn (2019/08) per
+  cell: 40 irregular 8 KiB preads (gaps 1-12 MiB) in the first 256 MiB, then a 1 GiB contiguous stream in 1 MiB reads,
+  per-phase timing; DD = plain dd. Arms D vs AB, 2 reps, fresh mount, flags captured live (pgrep -a), --pf-trace.
+Purpose: a BASELINE, not a test of direction 1 (not built). On v1.14.0 the trace should show whether SS enters Random
+  before establishing (the precondition direction 1 would key on); if it does, this is the cell that can refute
+  direction 1 (stream_MBps must not fall).
+Prediction: D == AB (arm B inert, as P35); SS scatter phase enters Random; stream phase ~1 GB/s; dd unchanged.
