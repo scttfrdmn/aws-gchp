@@ -2978,3 +2978,19 @@ Purpose: a BASELINE, not a test of direction 1 (not built). On v1.14.0 the trace
   before establishing (the precondition direction 1 would key on); if it does, this is the cell that can refute
   direction 1 (stream_MBps must not fall).
 Prediction: D == AB (arm B inert, as P35); SS scatter phase enters Random; stream phase ~1 GB/s; dd unchanged.
+--- 5f-P36 RESULTS (23:12-23:13Z, v1.14.0; flags verified live per cell in p36/*.args.txt) ---
+  cell  arm  s3 MB r1/r2      GETs  whole MB   prefetch-range  scatter_s r1/r2  stream MB/s r1/r2   (file ~3.7 GB)
+  SS    D    2953.9 / 2953.9  413   2943.4     0               3.25 / 3.37      377 / 455
+  SS    AB   2953.9 / 2953.9  413   2943.4     0               3.02 / 3.19      361 / 517
+  DD    D    3731.8 / 3750.2  453/456 s3/size 1.000            wall 3.39 / 3.47
+  DD    AB   3726.8 / 3789.4  453/460 s3/size 1.000            wall 3.28 / 3.45
+  SS reads 1.07 GB (287 KB scattered + 1 GiB stream) and fetches 2.95 GB: amp 2.75x, identical in both arms.
+  Trace (SS-D, both reps identical): first 40 reads cold 3 / random 37 -> the Random-history precondition direction 1
+    keys on IS met; first establishment at read 59, window 2, dispatched 3 blocks (floor+1, the GRIB shape); window then
+    ramps 2,4,6,8,10,... to 223 blocks (--nic-gbps 50 max); 128 dispatches, 351 blocks = 2.94 GB = the whole fills.
+    The reader stops at MiB 1285 with the window ~223 blocks (~1.87 GB) ahead of it -> the 1.88 GB excess is
+    end-of-stream overshoot of a stream that stops mid-file, not the first dispatch (which is 24 MiB of it).
+  Scoring: D == AB (arm B inert, as P35) - right. Scatter enters Random - right. Stream ~1 GB/s - WRONG (361-517 MB/s;
+    a 1 GiB stream spends much of itself ramping the window from 2). dd unchanged - right.
+  Use: this is the direction-1 refuting cell (stream MB/s must not fall), and separately it prices the
+    stop-mid-file overshoot (FITS/#316 family) at a large window: 1.88 GB on a 1 GiB read at --nic-gbps 50.

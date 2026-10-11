@@ -1,0 +1,1 @@
+3268569 /scratch/lith-gates/v1140/lith_linux_arm64 mount s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/08 /scratch/mnt/p36 --no-sign-request --nic-gbps 50 --readahead-evidence-per-run --readahead-subblock-dispatch --metrics :10908 --pf-trace /scratch/lith-gates/p36/DD-AB-2.trace.csv --log-level warn
