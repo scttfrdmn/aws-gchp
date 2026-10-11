@@ -88,3 +88,20 @@ RESULTS 2: variant C (02:24-02:36Z; binary gchp-pr46fin md5 5dee3da1cbb6; full M
     _dl_fini, after MPI_Finalize, consistent with the June backtrace.
   Net: PR #46 + MPI_Finalize-before-_exit gives a clean exit code under OpenMPI 4.1.7 mpirun on aarch64.
   Not yet covered: srun/Slurm launch, multi-node (EFA), x86_64, Intel MPI/MVAPICH.
+
+ADDENDUM PRE-REGISTRATION, MN + X86 (2026-10-11 ~02:55Z, before either ran)
+MN: scripts/gchp-mapl46-mn.sbatch on gchp-lith-ab's compute queue: 2 nodes (c8g.48xl or m9g.48xl, EFA forced
+  with pml=cm mtl=ofi provider efa), 48 ranks (24/node), C24 TT 1 day, run dir on head-node /scratch (NFS),
+  per-node lith mounts. Same binaries A/B/C. Cells: A,B,C under mpirun; A,B,C under srun --mpi=pmix; then a
+  second C under each launcher. Each cell waits for the launcher to exit.
+  Predictions:
+    mpirun: A rc 134-class + double frees; B rc 1 + "exiting improperly"; C rc 0. md5 A == B == C (48-rank md5 will
+      differ from the 12-rank head-node md5; that is expected, decomposition changes roundoff).
+    srun: A nonzero (ranks SIGABRT); B rc 0 -- Slurm judges by rank exit codes, and _exit(0) is 0, so the
+      "improperly" failure is specific to OpenMPI's mpirun/ORTE; C rc 0.
+    Risk: srun cannot launch this OpenMPI (PMIx mismatch) -> fails at init, all srun cells score "launcher
+      unsupported", reported as such. Risk: multi-node C24 checkpoint path differs (HUNG detection at 180 s).
+X86: one spawn instance (c7a.24xlarge, AMD Zen 4, x86_64; ~1 h, TTL 2h) builds the same three variants from GCHP
+  14.7.1 against the x86 stack (stock, + PR #46, + MPI_Finalize line), then runs A/B/C x 2 reps at 12 ranks under
+  mpirun, single node, lith v1.12.0 (amd64) over gcgrid. Predictions: same as the aarch64 head node (A 134 + double
+  free, B rc 1 + improper, C rc 0; md5 A == B == C, though not equal to aarch64's).
