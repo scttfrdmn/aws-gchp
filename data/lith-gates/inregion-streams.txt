@@ -2854,3 +2854,25 @@ Scoring: "materially" = s3 bytes > 1.10x the R4 cell of the same rep, in both re
 My predictions: S at R2 <= R4 bytes (smaller window, same slice) -- likely a little LOWER than 59.8 MB; C at R2 <= R4;
   wall within 10%. D: R4 new-conn share higher than R2 (upstream's mechanism), and R2 faster again (~1.15x).
 Cost $0.
+
+--- 5f-P31 RESULTS (2026-10-11 05:29-05:30Z, main b67fda3; a first launch at 05:18Z produced no cells -- the mount
+    check used `sudo mountpoint`, which cannot see a user-owned FUSE mount, so every cell reported MOUNT FAILED; fixed
+    and relaunched. The same check in gate-p30c.sh always failed silently, so each P30c cell waited 60 s on an idle
+    fresh mount before its dd -- equal for both arms, but a difference from P31's D cells) ---
+  cell  arm  s3 MB r1/r2     GETs     wall s r1/r2   distinct MB   amp vs distinct
+  S     R4   59.8 / 59.8     24/24    2.684 / 2.112  22.5          2.66
+  S     R2   51.4 / 51.4     23/23    2.084 / 2.187  22.5          2.28
+  C     R4   358.6 / 358.6   140/140  2.395 / 2.366  136.7         2.62
+  C     R2   308.3 / 308.3   134/134  2.214 / 2.521  136.7         2.26
+  D     R4   s3/size 1.000 / 1.000   1086 / 1190 MB/s   new-conn fills 121/447 (27.1%) / 75/458 (16.4%)
+  D     R2   s3/size 1.000 / 1.000   1160 / 1070 MB/s   new-conn fills  71/457 (15.5%) / 56/457 (12.3%)
+  D wire TTFB mean, conn=new: R4 128 / 141 ms, R2 128 / 132 ms; conn=reused: R4 109 / 114, R2 113 / 113 ms.
+  Controls: R4 reproduces #284/P9 (59.8 MB, 24 GETs) and P9o W1 (358.6 MB) to the 0.1 MB.
+  Scoring: S and C at R2 = 0.86x R4 bytes in both reps -> no regression; R2 FETCHES LESS on #284's shape (2.66 -> 2.28x
+    single; concurrent stays exactly 6x single at either ratio, so no divisor interaction). Walls within noise
+    (S 0.78/1.04, C 0.92/1.07). -> upstream's row 1: ratio 2 free on the shape ratio 4 was chosen for.
+  D: R4 opened a larger share of fills on new connections in both reps (27.1 vs 15.5, 16.4 vs 12.3) -- direction as
+    upstream's #381 mechanism predicts -- BUT P30c's 1.17x R2 speedup did NOT reproduce: R2/R4 = 1.07 / 0.90. Bytes
+    identical (1.000). So the new-conn share differs, and the wall effect is within rep-to-rep noise here.
+  My predictions: S, C lower at R2 - right. Walls within 10% - roughly (S r1 0.78). D new-conn share higher at R4 -
+    right. D R2 faster again ~1.15x - WRONG (not reproduced).

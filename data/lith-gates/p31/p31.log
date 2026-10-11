@@ -1,0 +1,14 @@
+=== gate 5f-P31  2026-10-11T05:29:27Z  lith=5bdb3556e16d
+CELL S-R4-1 wall=2.684 s3_MB=59.8 gets=24 distinct_MB=22.5
+CELL S-R2-1 wall=2.084 s3_MB=51.4 gets=23 distinct_MB=22.5
+CELL C-R4-1 wall=2.395 s3_MB=358.6 gets=140 distinct_MB=136.7
+CELL C-R2-1 wall=2.214 s3_MB=308.3 gets=134 distinct_MB=136.7
+CELL D-R4-1 wall=3.383 s3_MB=3674.4 gets=447 distinct_MB=3674.4 size_MB=3674.4 s3_over_size=1.000 MBps=1086
+CELL D-R2-1 wall=3.246 s3_MB=3765.6 gets=457 distinct_MB=3765.6 size_MB=3765.6 s3_over_size=1.000 MBps=1160
+CELL S-R4-2 wall=2.112 s3_MB=59.8 gets=24 distinct_MB=22.5
+CELL S-R2-2 wall=2.187 s3_MB=51.4 gets=23 distinct_MB=22.5
+CELL C-R4-2 wall=2.366 s3_MB=358.6 gets=140 distinct_MB=136.7
+CELL C-R2-2 wall=2.521 s3_MB=308.3 gets=134 distinct_MB=136.7
+CELL D-R4-2 wall=3.165 s3_MB=3767.8 gets=458 distinct_MB=3767.9 size_MB=3767.8 s3_over_size=1.000 MBps=1190
+CELL D-R2-2 wall=3.517 s3_MB=3762.2 gets=457 distinct_MB=3762.3 size_MB=3762.2 s3_over_size=1.000 MBps=1070
+=== done 2026-10-11T05:30:25Z
