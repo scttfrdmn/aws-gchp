@@ -2886,3 +2886,10 @@ Scoring per shape: R2P amp < 0.9x R2 in both reps -> arm A still helps that shap
   Retire-the-flag verdict iff no shape is "helps".
 Prediction: no shape helps (every prefetching walk shape already floors at window 2 under R2; the rest don't
   prefetch or are sequential where per-run is a no-op).
+--- 5f-P32 RESULTS (05:57-06:10Z, b67fda3; all 52 rows ok) ---
+  amp R2 r1/r2 vs R2P r1/r2 (pf used:issued identical in every pair except concurrent_handles +-2):
+  grib_idx 3.02/3.02 vs 3.02/3.02; netcdf4_hyperslab 1.35 vs 1.35; mmap_random 1.01 vs 1.01; concurrent_handles 1.0 vs
+  1.0; cog_overview_window 1.54 vs 1.54; fits_header_cutout 2.20 vs 2.20; webdataset_stream 1.0 vs 1.0; zip_seek_to_end
+  3.41 vs 3.41; tinyfiles_random 0.12 vs 0.12; sqlite_random 1.05/1.01 vs 1.05/1.05 (rep noise); kerchunk_scan 4.44 vs
+  4.44; kerchunk_read 1.38 vs 1.38; hemco_timeslice 1.79 vs 1.79.
+  Scoring: no shape "helps" (all ratios 1.00 except sqlite r2 1.04) -> RETIRE-THE-FLAG verdict. Prediction right.
