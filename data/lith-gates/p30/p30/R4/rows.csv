@@ -1,0 +1,7 @@
+shape,source,rep,utc_start,get,list,s3_bytes,distinct_bytes,amplification_x,kernel_read_bytes,tool_bytes,amp_vs_tool,fill_whole,fill_demand,fill_plan,fill_demand_batch,pf_cold_pct,pf_seq_pct,pf_strided_pct,pf_random_pct,uncovered,pf_used,pf_issued,n_opens,wall_s,ctl_ttfb_p50_ms,ctl_le50_pct,ok,notes
+fits_header_cutout,lith,1,2026-10-11T04:15:02Z,15,0,62914560,17170432,3.66,17055744,1051456,59.84,57671680,5242880,0,0,15,85,0,0,8,13,55,1,1.282,25.0,94.7,True,header (6 cards) + 512x512 float32 cutout via .section
+grib_idx,lith,1,2026-10-11T04:15:35Z,75,0,62422091,12320768,5.07,11829248,10221443,6.11,50331648,12090443,0,0,11,14,0,75,69,2,48,2,3.467,25.1,99.1,True,12/12 fields decoded
+hemco_timeslice,lith,1,2026-10-11T04:16:08Z,342,0,120106950,62390272,1.93,54411264,1425600000,0.08,57278464,62566342,0,0,30,11,6,53,332,7,58,3,19.027,25.4,98.3,True,55 vars; one time slice each; 3 HEMCO files
+fits_header_cutout,lith,2,2026-10-11T04:18:00Z,14,0,54525952,17170432,3.18,17055744,1051456,51.86,49283072,5242880,0,0,15,85,0,0,8,13,47,1,1.378,24.9,98.8,True,header (6 cards) + 512x512 float32 cutout via .section
+grib_idx,lith,2,2026-10-11T04:18:33Z,76,0,53902411,12320768,4.37,11829248,10221443,5.27,40894464,13007947,0,0,11,13,0,76,71,1,40,2,3.264,24.5,98.9,True,12/12 fields decoded
+hemco_timeslice,lith,2,2026-10-11T04:19:06Z,342,0,120106950,62390272,1.93,54411264,1425600000,0.08,56623104,63221702,0,0,30,11,6,53,333,7,58,3,15.827,24.5,98.6,True,55 vars; one time slice each; 3 HEMCO files

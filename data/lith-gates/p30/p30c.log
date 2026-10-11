@@ -1,0 +1,10 @@
+=== P30c 2026-10-11T04:30:05Z lith=5bdb3556e16d
+(standard_in) 1: syntax error
+CELL R4-1 file=GEOSFP.20190711.A3dyn.025x03125.nc size=3781218799 wall=4.298824287 MBps=879 s3_over_size=
+(standard_in) 1: syntax error
+CELL R2-1 file=GEOSFP.20190712.A3dyn.025x03125.nc size=3742969074 wall=3.662721995 MBps=1021 s3_over_size=
+(standard_in) 1: syntax error
+CELL R4-2 file=GEOSFP.20190713.A3dyn.025x03125.nc size=3742357614 wall=4.136707179 MBps=904 s3_over_size=
+(standard_in) 1: syntax error
+CELL R2-2 file=GEOSFP.20190714.A3dyn.025x03125.nc size=3725262433 wall=3.501879286 MBps=1063 s3_over_size=
+=== done 2026-10-11T04:34:29Z
