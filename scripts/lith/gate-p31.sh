@@ -17,8 +17,8 @@ cell() {  # cell TAG ARM WORKLOAD
   [ "$w" = D ] && { src=$FP; extra="--wire-ttfb"; FPDAY=$((FPDAY + 1)); }
   "$L" mount "$src" "$M" --no-sign-request --nic-gbps 50 --readahead-evidence-ratio "$r" $extra \
       --metrics ":$PORT" --log-level warn > "$OUT/$tag.mount.log" 2>&1 &
-  for _ in $(seq 1 60); do sudo mountpoint -q "$M" && break; sleep 1; done
-  sudo mountpoint -q "$M" || { echo "$tag MOUNT FAILED"; return 1; }
+  for _ in $(seq 1 60); do mountpoint -q "$M" && break; sleep 1; done
+  mountpoint -q "$M" || { echo "$tag MOUNT FAILED"; return 1; }
   t0=$(date +%s.%N)
   case $w in
     S) $PYX "$READER" "$M/MERRA2.20190701.A3dyn.05x0625.nc4" var1 > "$OUT/$tag.reader.txt" 2>&1 ;;
@@ -30,7 +30,7 @@ cell() {  # cell TAG ARM WORKLOAD
   esac
   t1=$(date +%s.%N)
   sleep 1; curl -s "http://127.0.0.1:$PORT/metrics" > "$OUT/$tag.final.prom"
-  fusermount3 -u "$M"; for _ in $(seq 1 40); do sudo mountpoint -q "$M" || break; sleep 0.5; done
+  fusermount3 -u "$M"; for _ in $(seq 1 40); do mountpoint -q "$M" || break; sleep 0.5; done
   local s3 gets; s3=$(prom "$OUT/$tag.final.prom" lith_s3_bytes_total); gets=$(prom "$OUT/$tag.final.prom" 'lith_s3_requests_total{op="get",status="ok"}')
   local dist; dist=$(prom "$OUT/$tag.final.prom" lith_distinct_bytes_read)
   awk -v t="$tag" -v a="$t0" -v b="$t1" -v s="$s3" -v g="${gets:-NA}" -v z="${sz:-0}" -v d="${dist:-0}" 'BEGIN{

@@ -2876,3 +2876,13 @@ Cost $0.
     identical (1.000). So the new-conn share differs, and the wall effect is within rep-to-rep noise here.
   My predictions: S, C lower at R2 - right. Walls within 10% - roughly (S r1 0.78). D new-conn share higher at R4 -
     right. D R2 faster again ~1.15x - WRONG (not reproduced).
+
+--- 5f-P32 PRE-REGISTRATION (lith#407 ask 05:50Z "does arm A still buy anything at ratio 2?"; written before it ran) ---
+Already measured (P30, b67fda3, explicit ratio 2): R2 vs R2P identical on GRIB 3.02/3.02, HEMCO 1.79/1.79, FITS
+  2.20/2.20, windows 2/2. P32 extends that to all 13 sweep shapes so no shape is left out: arms R2
+  (--readahead-evidence-ratio 2 == #413's new in-region default) vs R2P (+ --readahead-evidence-per-run), 2 reps
+  interleaved, main b67fda3 (adb38fb differs only in the default, which R2 sets explicitly; doc/test changes otherwise).
+Scoring per shape: R2P amp < 0.9x R2 in both reps -> arm A still helps that shape; within 10% -> no; > 1.1x -> harms.
+  Retire-the-flag verdict iff no shape is "helps".
+Prediction: no shape helps (every prefetching walk shape already floors at window 2 under R2; the rest don't
+  prefetch or are sequential where per-run is a no-op).
