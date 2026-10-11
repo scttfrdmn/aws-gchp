@@ -1,0 +1,9 @@
+shape,source,rep,utc_start,get,list,s3_bytes,distinct_bytes,amplification_x,kernel_read_bytes,tool_bytes,amp_vs_tool,fill_whole,fill_demand,fill_plan,fill_demand_batch,pf_cold_pct,pf_seq_pct,pf_strided_pct,pf_random_pct,uncovered,pf_used,pf_issued,n_opens,wall_s,ctl_ttfb_p50_ms,ctl_le50_pct,ok,notes
+grib_idx,lith,1,2026-10-11T00:57:10Z,72,0,37256267,12320768,3.02,11829248,10221443,3.64,25165824,12090443,0,0,11,14,0,75,69,2,24,2,2.631,25.1,99.5,True,12/12 fields decoded
+hemco_timeslice,lith,1,2026-10-11T00:57:37Z,341,0,111718342,62390272,1.79,54411264,1425600000,0.08,48234496,63221702,0,0,30,11,6,53,333,7,50,3,15.361,24.9,98.6,True,55 vars; one time slice each; 3 HEMCO files
+fits_header_cutout,lith,1,2026-10-11T00:58:00Z,15,0,62914560,17170432,3.66,17055744,1051456,59.84,57671680,5242880,0,0,15,85,0,0,8,13,55,1,1.191,24.1,99.8,True,header (6 cards) + 512x512 float32 cutout via .section
+kerchunk_scan,lith,1,2026-10-11T00:58:13Z,60,0,15990784,3604480,4.44,528384,,,0,15335424,0,0,25,0,20,55,50,0,10,1,4.012,24.2,98.2,True,2904 refs from HDF5 metadata walk
+grib_idx,lith,2,2026-10-11T00:58:25Z,72,0,37256267,12320768,3.02,11829248,10221443,3.64,25165824,12090443,0,0,11,14,0,75,69,2,24,2,2.559,24.4,99.1,True,12/12 fields decoded
+hemco_timeslice,lith,2,2026-10-11T00:58:50Z,341,0,111718342,62390272,1.79,54411264,1425600000,0.08,48234496,63221702,0,0,30,11,6,53,333,7,50,3,15.449,24.6,99.1,True,55 vars; one time slice each; 3 HEMCO files
+fits_header_cutout,lith,2,2026-10-11T00:59:13Z,15,0,62914560,17170432,3.66,17055744,1051456,59.84,57671680,5242880,0,0,15,85,0,0,8,13,55,1,1.217,24.7,98.9,True,header (6 cards) + 512x512 float32 cutout via .section
+kerchunk_scan,lith,2,2026-10-11T00:59:26Z,60,0,15990784,3604480,4.44,528384,,,0,15335424,0,0,25,0,20,55,50,0,10,1,4.002,24.2,98.7,True,2904 refs from HDF5 metadata walk

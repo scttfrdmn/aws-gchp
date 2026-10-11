@@ -2752,3 +2752,38 @@ P29 (#312): gate-streams-gchp.sh (12-rank GCHP C24 TT, five mounts) on this buil
   Upstream's read: mass at 5 s and 30 s (not only 1 s) -> held-idle descriptors confirmed per handle.
   My prediction: substantial mass >= 1 s and >= 5 s (ExtData 5 s cadence), little >= 30 s within a 120 s run.
 Cost $0.
+
+--- 5f-P27 / P28 / P29 RESULTS (2026-10-11, chain 00:51:46Z-01:01:52Z, lith main b67fda3 md5 5bdb3556e16d; $0) ---
+P27 (#411), S16, 16/16 streams every cell; bytes 60.08 GB in D/U, 60.08-60.71 GB small tier.
+  cell     agg MB/s r1/r2   peak pressure r1/r2   held r1/r2 (in first 20%)   evicted-unread r1/r2
+  D        1784 / 1797      0.824 / 0.844         0 / 0                       0 / 0
+  U        1834 / 1811      0.836 / 0.965         0 / 0                       0 / 0
+  SG       1791 / 1778      0.801 / 0.935         0 / 63 (63/63)              6 / 92
+  SU       1765 / 1683      1.229 / 1.464         0 / 0                       325 / 599
+  Scored: "gate load-bearing" (U peak > 1.0 both reps): NO at the default 8.26 GB tier (0.836/0.965). But on the
+    2 GB tier the unbounded peak IS > 1.0 both reps (1.23/1.46) -> the gate is load-bearing on a small tier.
+  "holding costs": NO. SG/SU = 1.015 / 1.056 (neither < 0.9 nor > 1.1 both reps) -> no cost. Gate cuts evictions
+    54x / 6.5x and s3 bytes (60.08/60.17 vs 60.42/60.71 GB). Holds only in rep 2 (63, all in the first 20%).
+  Prediction check: U peak 0.85-1.0 at t~0.5 s - right (r2 0.965; r1 0.836 is just under). SG ~ SU, fewer evictions -
+    right. SG holds > 0 - only 1 of 2 reps. Not predicted: SG-2 peaked at 0.935 with the gate on (overshoot past 0.85).
+P28 (#412), 2 reps, every rep identical within an arm except FITS OFF r2.
+  shape                OFF amp (r1/r2)   ON amp       ON/OFF   peak window OFF->ON   pf used/issued OFF -> ON
+  grib_idx             5.07 / 5.07       3.02 / 3.02  0.60     5 -> 2                 2/48 -> 2/24
+  hemco_timeslice      1.93 / 1.93       1.79 / 1.79  0.93     3 -> 2                 7/58 -> 7/50
+  fits_header_cutout   3.66 / 3.18       3.66 / 3.66  1.07     5 -> 5                 13/55,13/47 -> 13/55
+  kerchunk_scan        4.44 / 4.44       4.44 / 4.44  1.00     0 -> 0 (no prefetch)   0/10 -> 0/10
+  Scored: grib IMPROVES (0.60x). hemco UNCHANGED (0.93x, within 10%). fits UNCHANGED (window 5 in both arms - the flag
+    did not engage). kerchunk UNCHANGED.
+  Upstream's GRIB prediction confirmed exactly: window 5 -> 2, use rate 2/48 -> 2/24 (4.2% -> 8.3%, doubled), amp
+    3.02x, still well above 1x. So the floor model holds and the run boundary is hooked where it should be for GRIB.
+  My predictions: GRIB ~3x right. HEMCO "modest" - 0.93x, below the bar. FITS "improves" wrong: one open, 85%
+    Sequential, and the per-run evidence never shrinks its window. kerchunk unchanged right (#406 demand lane).
+P29 (#312), 12-rank C24 TT, cap_restart advanced at 125 s (run completed; the 12 finalization backtraces are the known
+  benign double-free). Met mount merra2-201901, 130 ticks with measured > 0, measured max 43.
+  share of measured streams idle >= 1 s / 5 s / 30 s:
+    pooled over ticks   0.931 / 0.708 / 0.030      tick median 1.000 / 0.724 / 0.000
+    at peak (t=122 s, 43 measured)   41 / 41 / 10 of 43 = 0.95 / 0.95 / 0.23
+  hemco mount (measured max 4): pooled 0.97 / 0.88 / 0.48 (mean of tick shares).
+  Scored: mass at 5 s (0.71 pooled) and at 30 s by the end of the run (0.23 at peak) -> held-idle descriptors CONFIRMED
+    per handle. Prediction (lots >= 1 s and >= 5 s, little >= 30 s in 120 s) right for pooled. The 30 s share climbs
+    with run length (0 early -> 0.23 at 122 s), so a production run would be expected to hold more.

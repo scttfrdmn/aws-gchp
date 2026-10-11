@@ -1,0 +1,11 @@
+=== gate 5f-P27 2026-10-11T00:52:03Z v111=51234db1e082 v112=c1cba2483054 main=5bdb3556e16d pr410=d15ccf49f210
+CELL C-D-1 streams=16/16 wall=33.9s agg_MB/s=1784 spread=1.10 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.824 held_in_first20pct=0/0
+CELL C-U-1 streams=16/16 wall=32.9s agg_MB/s=1834 spread=1.05 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.836 held_in_first20pct=0/0
+CELL C-SG-1 streams=16/16 wall=33.7s agg_MB/s=1791 spread=1.09 s3_GB=60.083 GETs=7290 issued=57173 used=57167 held=0 nfs_clients=16 peak_pressure=0.801 held_in_first20pct=0/0
+CELL C-SU-1 streams=16/16 wall=34.2s agg_MB/s=1765 spread=1.12 s3_GB=60.417 GETs=7609 issued=57173 used=56848 held=0 nfs_clients=16 peak_pressure=1.229 held_in_first20pct=0/0
+CELL C-D-2 streams=16/16 wall=33.6s agg_MB/s=1797 spread=1.10 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.844 held_in_first20pct=0/0
+CELL C-U-2 streams=16/16 wall=33.4s agg_MB/s=1811 spread=1.10 s3_GB=60.077 GETs=7284 issued=57173 used=57173 held=0 nfs_clients=16 peak_pressure=0.965 held_in_first20pct=0/0
+CELL C-SG-2 streams=16/16 wall=34.0s agg_MB/s=1778 spread=1.27 s3_GB=60.173 GETs=7817 issued=56669 used=56577 held=63 nfs_clients=16 peak_pressure=0.935 held_in_first20pct=63/63
+CELL C-SU-2 streams=16/16 wall=35.9s agg_MB/s=1683 spread=1.26 s3_GB=60.705 GETs=7883 issued=57173 used=56574 held=0 nfs_clients=16 peak_pressure=1.464 held_in_first20pct=0/0
+=== done 2026-10-11T00:57:01Z
+cleanup done: netns=0 bridge=0
