@@ -2787,3 +2787,19 @@ P29 (#312), 12-rank C24 TT, cap_restart advanced at 125 s (run completed; the 12
   Scored: mass at 5 s (0.71 pooled) and at 30 s by the end of the run (0.23 at peak) -> held-idle descriptors CONFIRMED
     per handle. Prediction (lots >= 1 s and >= 5 s, little >= 30 s in 120 s) right for pooled. The 30 s share climbs
     with run length (0 early -> 0.23 at 122 s), so a production run would be expected to hold more.
+
+--- 5f-P30 (#407/#222 ratio sweep) PRE-REGISTRATION (2026-10-11 ~04:25Z, upstream's table, before any cell ran; same
+    build main b67fda3 md5 5bdb3556e16d, sweep harness unchanged + ARMS2 ratio arms) ---
+Shapes fits_header_cutout, grib_idx, hemco_timeslice. Arms: R4/R2/R1 = --readahead-evidence-ratio 4/2/1 (per-run
+  off; R4 = the in-region default made explicit, so it must reproduce P28 OFF), and R4P/R2P/R1P = the same plus
+  --readahead-evidence-per-run (R4P must reproduce P28 ON). 2 reps, arms interleaved per shape. Report amp, peak window,
+  prefetch used/issued.
+Upstream's table (FITS): amp tracks the ratio (~3.66 -> ~2 -> ~1.3) => FITS's over-fetch IS the ratio, #222 is
+  ratio-per-shape. Amp barely moves => the ratio is not the lever. GRIB at ratio 2 worse => the ratio is load-bearing
+  for a shape arm A fixed, which argues against touching the default.
+Scoring per shape, vs R4 (or R4P): < 0.9x improves, within 10% unchanged, > 1.1x worse. "Tracks the ratio" for FITS iff
+  R2 <= 0.65x R4 and R1 <= R2 (both reps).
+My predictions: FITS tracks the ratio (window falls with ratio: ~2.5 at R2, ~1.5 at R1). GRIB per-run off improves with
+  lower ratio (less cumulative earning), and with per-run on it is already at the 2-block floor so R2P/R1P ~ R4P
+  (unchanged). HEMCO small moves (window near floor). No shape gets worse.
+Cost $0.

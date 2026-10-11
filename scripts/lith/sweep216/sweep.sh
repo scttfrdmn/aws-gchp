@@ -32,7 +32,10 @@ echo "=== 5f-P25 sweep $(date -u +%FT%TZ) lith=$(md5sum "$B" | cut -c1-12) nic=$
 [ -n "${ARMS2:-}" ] || "$PY" "$S/summarize.py" --header > "$OUT/rows.csv"
 if [ -n "${ARMS2:-}" ]; then  # P28: interleave two flag arms per rep -> OUT/<arm>/
   for rep in ${REPS:-1 2}; do for sh in $SHAPES; do for arm in $ARMS2; do
-    case $arm in OFF) EXTRA="" ;; ON) EXTRA="--readahead-evidence-per-run" ;; esac
+    case $arm in OFF) EXTRA="" ;; ON) EXTRA="--readahead-evidence-per-run" ;;
+      # P30 (#407/#222 ratio sweep): R<n> = --readahead-evidence-ratio n; R<n>P adds --readahead-evidence-per-run
+      R*P) EXTRA="--readahead-evidence-ratio ${arm:1:${#arm}-2} --readahead-evidence-per-run" ;;
+      R*) EXTRA="--readahead-evidence-ratio ${arm:1}" ;; esac
     O0=$OUT; OUT=$O0/$arm; mkdir -p "$OUT"; [ -f "$OUT/rows.csv" ] || "$PY" "$S/summarize.py" --header > "$OUT/rows.csv"; row "$sh" "$rep"; OUT=$O0
   done; done; done
 else
