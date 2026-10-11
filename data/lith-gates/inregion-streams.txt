@@ -2893,3 +2893,14 @@ Prediction: no shape helps (every prefetching walk shape already floors at windo
   3.41 vs 3.41; tinyfiles_random 0.12 vs 0.12; sqlite_random 1.05/1.01 vs 1.05/1.05 (rep noise); kerchunk_scan 4.44 vs
   4.44; kerchunk_read 1.38 vs 1.38; hemco_timeslice 1.79 vs 1.79.
   Scoring: no shape "helps" (all ratios 1.00 except sqlite r2 1.04) -> RETIRE-THE-FLAG verdict. Prediction right.
+
+--- 5f-P33 PRE-REGISTRATION (lith#407 asks 06:25Z on the v1.13.0 artifact; written before any cell ran) ---
+Build: v1.13.0 release lith_linux_arm64 sha256 08c9ebffd02e...4579 (matches checksums.txt and the issue), commit 49f69b5,
+  md5 603db1afb12f. Sweep harness unchanged. Shapes grib_idx, fits_header_cutout, hemco_timeslice. Arms OFF (no flags
+  = the new default, ratio 2 in-region) vs ON (--readahead-evidence-per-run), 2 reps interleaved. Gauge
+  lith_readahead_evidence_ratio recorded from each row's prom scrape to confirm the default is 2.
+Reference (b67fda3, explicit ratio 2, P30/P32): GRIB 3.02, FITS 2.20, HEMCO 1.79, window 2, used:issued 2:24, 13:31, 7:50.
+Upstream's read: don't move -> floor-bound, residual is arm B's, go build it; move -> something other than the floor binds.
+Scoring: "moves" iff OFF amp differs from the reference by > 10% in both reps. Arm A: ON < 0.9x OFF in both reps -> helps.
+Prediction: none move (GRIB/HEMCO certainly; FITS is the one at risk because v1.13.0's notes list a strided-slice
+  extent change for #222 -- if that path engages for the cutout, FITS could drop below 2.20). Arm A helps nowhere.
