@@ -2921,3 +2921,10 @@ Prediction: none move (GRIB/HEMCO certainly; FITS is the one at risk because v1.
 (b) The two remaining over-2x sweep rows at the v1.13.0 default: zip_seek_to_end (ref 3.41) and kerchunk_scan (ref
     4.44), 2 reps. Prediction: unchanged (both are Cold whole-chunk floors, #233/#408, untouched by this release).
 Prediction (a): PASS (the #410 fix shipped as-is).
+--- 5f-P34 interim + EXTENSION PRE-REGISTRATION (written after reps 1-2 were seen, before reps 3-5 ran) ---
+  (a) reps 1-2 MB/s K0/K7/K47: 1280/1329/1340 and 1412/1205/1055; bytes 3.777 GB / 458 GETs / issued==used 3594 in all
+      6 cells. K47/K0 = 1.05 (pass), 0.75 (FAIL). By the letter (both reps) -> FAIL.
+  (b) zip 3.41/3.41, kerchunk_scan 4.44/4.44 -> unchanged, as predicted.
+  Extension: 3 more reps of the same ladder (MODE=p34 with reps 3-5), all reported. Reading fixed now: if K47/K0 < 0.9 in
+  >= 2 of the 3 new reps -> treat as a real regression vs P26 pr410 and report it upstream as such; if 0-1 of 3 -> rep 2
+  was a noisy minute (K7 r2 was also low), report the 5-rep spread and the original FAIL-by-the-letter.
