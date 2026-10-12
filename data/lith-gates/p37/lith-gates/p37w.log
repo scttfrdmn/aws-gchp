@@ -1,0 +1,10 @@
+=== gate 5f-P37w 2026-10-12T18:02:30Z lith=b0926cda7162
+CELL SS-D-1 wall=8.015 s3_MB=2953.9 gets=413 whole_MB=2943.4 prefetch_range_MB=0.0 file_MB=3699.5 {"scatter_reads_bytes": 286720, "scatter_s": 4.331, "stream_bytes": 1073741824, "stream_s": 3.558, "stream_MBps": 301.8}
+CELL SS-B-1 wall=7.513 s3_MB=2953.9 gets=431 whole_MB=2927.6 prefetch_range_MB=5.5 file_MB=3771.0 {"scatter_reads_bytes": 286720, "scatter_s": 4.205, "stream_bytes": 1073741824, "stream_s": 3.281, "stream_MBps": 327.2}
+CELL DD-D-1 wall=3.815 s3_MB=3731.8 gets=453 whole_MB=3722.3 prefetch_range_MB=0.0 file_MB=3731.8
+CELL DD-B-1 wall=3.770 s3_MB=3726.8 gets=453 whole_MB=3717.3 prefetch_range_MB=0.0 file_MB=3726.8
+CELL SS-D-2 wall=7.464 s3_MB=2953.9 gets=413 whole_MB=2943.4 prefetch_range_MB=0.0 file_MB=3731.8 {"scatter_reads_bytes": 286720, "scatter_s": 4.414, "stream_bytes": 1073741824, "stream_s": 3.024, "stream_MBps": 355.0}
+CELL SS-B-2 wall=8.075 s3_MB=2953.9 gets=431 whole_MB=2927.6 prefetch_range_MB=5.5 file_MB=3727.2 {"scatter_reads_bytes": 286720, "scatter_s": 4.207, "stream_bytes": 1073741824, "stream_s": 3.843, "stream_MBps": 279.4}
+CELL DD-D-2 wall=3.805 s3_MB=3750.2 gets=456 whole_MB=3740.7 prefetch_range_MB=0.0 file_MB=3750.2
+CELL DD-B-2 wall=4.419 s3_MB=3789.4 gets=460 whole_MB=3780.0 prefetch_range_MB=0.0 file_MB=3789.4
+=== done 2026-10-12T18:03:35Z

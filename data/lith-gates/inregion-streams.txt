@@ -3010,3 +3010,19 @@ Scoring: GRIB "moves" iff B amp < 0.9x D both reps; attributable only if prefetc
 My predictions: D == v1.14.0. GRIB B ~1.2-1.5x, prefetch-range > 0, GETs 72 -> 75-90 (a span replaces ~3 blocks).
   FITS/HEMCO/controls unchanged. SS: one span at the read-59 establishment, stream MB/s within noise (P36 spread is
   361-517, so "within noise" here is wide), s3 bytes ~-20 MB. dd unchanged.
+--- 5f-P37 RESULTS (v1.15.0 md5 b0926cda7162; sweep 17:59-18:02Z 24/24 ok; witnesses 18:02-18:03Z; B flag verified live) ---
+  shape     D amp      B amp      B/D    GETs D->B   prefetch-range D->B   whole MB D->B   used:issued D->B
+  GRIB      3.02/3.02  1.39/1.39  0.46   72 -> 71    0 -> 5.05 MB          25.2 -> 0.0     2:24 -> 2:5
+  FITS      2.20/2.20  2.20/2.20  1.00   12 -> 12    0 -> 0                32.5 -> 32.5    13:31 -> 13:31
+  HEMCO     1.79/1.79  1.48/1.48  0.83   340 -> 339  0.26 -> 4.98 MB       48.2 -> 24.1    7:50 -> 7:32
+  netcdf4_hyperslab 1.35 / webdataset 1.0 / concurrent_handles 1.0: identical in both arms, prefetch-range 0.
+  Witness SS (scatter-then-stream): s3 2953.9 MB both arms both reps; GETs 413 -> 431 (1.04x); prefetch-range 0 -> 5.5
+    MB, whole -15.8 MB; stream MB/s D 302/355, B 327/279 (B/D 1.08 / 0.79). dd: s3/size 1.000, GETs identical
+    (453/453, 456/460 tracking file size); walls 3.8 vs 3.8 / 4.4 (noise).
+  Scoring: D == v1.14.0 exactly (control holds). GRIB MOVES (0.46x), attributable (prefetch-range > 0), no GET explosion
+    (0.99x). FITS unchanged. HEMCO MOVES (0.83x, both reps), attributable (prefetch-range 0.26 -> 4.98 MB, whole halved)
+    -> upstream's "HEMCO unchanged, never enters Random" is wrong on its premise: P35's trace shows HEMCO handles do
+    collapse to Random (fh 3, fh 6). Controls unchanged. SS: no cost by the rule (B/D < 0.9 in only one rep; s3 equal);
+    stream MB/s noisier than P36 (all cells ~20% slower this hour). dd unchanged.
+  My predictions: GRIB ~1.2-1.5 right (1.39); GETs 75-90 wrong (71: the span replaced 3 whole-block GETs with ~2 range
+    GETs); HEMCO unchanged wrong (same wrong premise as upstream, despite my own P35 trace); SS/dd right.
