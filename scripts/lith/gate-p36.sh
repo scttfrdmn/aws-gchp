@@ -2,14 +2,14 @@
 # Gate 5f-P36 (lith#407 direction-1 witness, baseline before the change): scatter-then-stream on a 3.78 GB GEOS-FP
 # A3dyn (scatter_stream.py: 40 irregular 8 KiB preads in the first 256 MiB, then a 1 GiB contiguous stream), plus the
 # plain dd witness. Fresh mount per cell, distinct file per cell, arms D (default) and AB (per-run + sub-block).
-G=/scratch/lith-gates; L=${L:-$G/v1140/lith_linux_arm64}; PYX=/scratch/ncenv/bin/python; S=$G/scatter_stream.py
-M=/scratch/mnt/p36; OUT=${OUT:-$G/p36}; REPS=${REPS:-2}; PORT=10900; FPDAY=0
+G=/scratch/lith-gates; L=${L:-$G/v1150/lith_linux_arm64}; PYX=/scratch/ncenv/bin/python; S=$G/scatter_stream.py
+M=/scratch/mnt/p36; OUT=${OUT:-$G/p37w}; REPS=${REPS:-2}; PORT=10900; FPDAY=0
 FP=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/08
 mkdir -p "$M" "$OUT"
 prom() { awk -v k="$2" '$1==k{print $2}' "$1"; }
 cell() {  # cell TAG ARM WORKLOAD(SS|DD)
   local tag=$1 flags="" f t0 t1 sz; PORT=$((PORT + 1)); FPDAY=$((FPDAY + 1))
-  [ "$2" = AB ] && flags="--readahead-evidence-per-run --readahead-subblock-dispatch"
+  case $2 in AB) flags="--readahead-evidence-per-run --readahead-subblock-dispatch" ;; B) flags="--readahead-subblock-dispatch" ;; esac
   "$L" mount "$FP" "$M" --no-sign-request --nic-gbps 50 $flags --metrics ":$PORT" --pf-trace "$OUT/$tag.trace.csv" \
       --log-level warn > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 60); do mountpoint -q "$M" && break; sleep 1; done
@@ -29,6 +29,6 @@ cell() {  # cell TAG ARM WORKLOAD(SS|DD)
     printf "CELL %s wall=%.3f s3_MB=%.1f gets=%s whole_MB=%.1f prefetch_range_MB=%.1f file_MB=%.1f", t, b-a, s/1e6, g, wh/1e6, pr/1e6, z/1e6}'
   [ "$3" = SS ] && printf " %s" "$(cat "$OUT/$tag.json")"; echo
 }
-echo "=== gate 5f-P36 $(date -u +%FT%TZ) lith=$(md5sum "$L" | cut -c1-12)"
-for rep in $(seq 1 "$REPS"); do for w in SS DD; do for arm in D AB; do cell "$w-$arm-$rep" $arm $w; done; done; done
+echo "=== gate ${GATE:-5f-P36} $(date -u +%FT%TZ) lith=$(md5sum "$L" | cut -c1-12)"
+for rep in $(seq 1 "$REPS"); do for w in SS DD; do for arm in ${ARMS:-D AB}; do cell "$w-$arm-$rep" $arm $w; done; done; done
 echo "=== done $(date -u +%FT%TZ)"

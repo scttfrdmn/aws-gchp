@@ -2994,3 +2994,19 @@ Prediction: D == AB (arm B inert, as P35); SS scatter phase enters Random; strea
     a 1 GiB stream spends much of itself ramping the window from 2). dd unchanged - right.
   Use: this is the direction-1 refuting cell (stream MB/s must not fall), and separately it prices the
     stop-mid-file overshoot (FITS/#316 family) at a large window: 1.88 GB on a 1 GiB read at --nic-gbps 50.
+
+--- 5f-P37 PRE-REGISTRATION (lith#407 asks 17:02Z/17:35Z on v1.15.0; written before any cell ran) ---
+Build: v1.15.0 lith_linux_arm64 sha256 9c51f98b...103a (matches checksums.txt and the issue), commit ce8e632, md5
+  b0926cda7162. Arms D (default) vs B (--readahead-subblock-dispatch). (1) Sweep: grib_idx, fits_header_cutout,
+  hemco_timeslice + controls netcdf4_hyperslab, webdataset_stream, concurrent_handles; 2 reps interleaved; GETs and
+  fill_prefetch_range recorded. (2) Witnesses: gate-p36.sh ARMS="D B" (scatter-then-stream on GEOS-FP 2019/08, same
+  file per cell position as P36, + plain dd), 2 reps, flags captured live.
+Upstream's predictions: D reproduces v1.14.0 exactly (GRIB 3.02/72 GETs, FITS 2.20, HEMCO 1.79). B: GRIB -> ~1.3x
+  with prefetch-range > 0; FITS, HEMCO unchanged; dd unchanged; scatter-then-stream zero cost; GRIB GETs must not climb
+  sharply (#124).
+Scoring: GRIB "moves" iff B amp < 0.9x D both reps; attributable only if prefetch-range > 0 in B. FITS/HEMCO/controls
+  "move" iff > 10% either way both reps. GET ratio B/D reported; "GET explosion" iff > 2x. SS witness: "costs" iff
+  stream_MBps(B) < 0.9x D in both reps or s3 bytes > 1.1x. dd: changed iff s3/size or GETs differ > 2%.
+My predictions: D == v1.14.0. GRIB B ~1.2-1.5x, prefetch-range > 0, GETs 72 -> 75-90 (a span replaces ~3 blocks).
+  FITS/HEMCO/controls unchanged. SS: one span at the read-59 establishment, stream MB/s within noise (P36 spread is
+  361-517, so "within noise" here is wide), s3 bytes ~-20 MB. dd unchanged.
