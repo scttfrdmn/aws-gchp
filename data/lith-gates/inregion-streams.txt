@@ -3061,3 +3061,18 @@ Prediction (mine, on mechanism): uncovered higher under B on GRIB (P37 B had 69)
   Upstream's table: wall neutral on both rows -> "default on". Mechanism: uncovered FLAT on both rows -> the fixture's
     3x uncovered increase does not transfer to the real tools (consistent with P37's flat GETs).
   My prediction: uncovered higher on GRIB under B - WRONG (flat); wall neutral on both - right.
+
+--- 5f-P39 PRE-REGISTRATION (lith#407 22:04Z, v1.16.0, the first release in this family that moves a default;
+    written before any cell ran) ---
+Build: v1.16.0 lith_linux_arm64 sha256 a350d86e...6c036 (matches checksums.txt and the issue), commit 3abe555, md5
+  5c213e33fcb0; --help shows --readahead-subblock-dispatch "(default true)".
+(1) Full 13-shape sweep, arms D (flagless = new default) vs X (--readahead-subblock-dispatch=false), 2 reps
+    interleaved. (2) Witnesses gate-p36.sh ARMS="D X": scatter-then-stream + dd, 2 reps, flags captured live.
+(3) One bracketed wall cell on a shape that should not move: webdataset_stream (prefetches 8:8, sequential), order
+    X, D, Xz per rep, 6 reps; same P38 rules (discard if bracket gap > 10%; need >= 4 kept; SLOWER/FASTER/NEUTRAL as P38
+    with r = D / mean(X, Xz)).
+Upstream's predictions: D reproduces P37's flagged figures with no flags (GRIB ~1.39, HEMCO ~1.48), else the default
+  did not wire through. X reproduces v1.15.0's default (GRIB 3.02, HEMCO 1.79). The other 11 shapes: D == X; any
+  movement outside GRIB/HEMCO is a finding.
+Scoring: per shape D/X amp; "moves" iff outside 10% in both reps. prefetch-range reported. Witness rules as P37.
+My predictions: as upstream's; webdataset wall NEUTRAL.

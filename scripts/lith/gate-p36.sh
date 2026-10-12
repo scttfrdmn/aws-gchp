@@ -2,14 +2,14 @@
 # Gate 5f-P36 (lith#407 direction-1 witness, baseline before the change): scatter-then-stream on a 3.78 GB GEOS-FP
 # A3dyn (scatter_stream.py: 40 irregular 8 KiB preads in the first 256 MiB, then a 1 GiB contiguous stream), plus the
 # plain dd witness. Fresh mount per cell, distinct file per cell, arms D (default) and AB (per-run + sub-block).
-G=/scratch/lith-gates; L=${L:-$G/v1150/lith_linux_arm64}; PYX=/scratch/ncenv/bin/python; S=$G/scatter_stream.py
-M=/scratch/mnt/p36; OUT=${OUT:-$G/p37w}; REPS=${REPS:-2}; PORT=10900; FPDAY=0
+G=/scratch/lith-gates; L=${L:-$G/v1160/lith_linux_arm64}; PYX=/scratch/ncenv/bin/python; S=$G/scatter_stream.py
+M=/scratch/mnt/p36; OUT=${OUT:-$G/p39w}; REPS=${REPS:-2}; PORT=10900; FPDAY=0
 FP=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/08
 mkdir -p "$M" "$OUT"
 prom() { awk -v k="$2" '$1==k{print $2}' "$1"; }
 cell() {  # cell TAG ARM WORKLOAD(SS|DD)
   local tag=$1 flags="" f t0 t1 sz; PORT=$((PORT + 1)); FPDAY=$((FPDAY + 1))
-  case $2 in AB) flags="--readahead-evidence-per-run --readahead-subblock-dispatch" ;; B) flags="--readahead-subblock-dispatch" ;; esac
+  case $2 in AB) flags="--readahead-evidence-per-run --readahead-subblock-dispatch" ;; B) flags="--readahead-subblock-dispatch" ;; X) flags="--readahead-subblock-dispatch=false" ;; esac
   "$L" mount "$FP" "$M" --no-sign-request --nic-gbps 50 $flags --metrics ":$PORT" --pf-trace "$OUT/$tag.trace.csv" \
       --log-level warn > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 60); do mountpoint -q "$M" && break; sleep 1; done
