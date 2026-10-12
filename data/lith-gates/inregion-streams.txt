@@ -3076,3 +3076,18 @@ Upstream's predictions: D reproduces P37's flagged figures with no flags (GRIB ~
   movement outside GRIB/HEMCO is a finding.
 Scoring: per shape D/X amp; "moves" iff outside 10% in both reps. prefetch-range reported. Witness rules as P37.
 My predictions: as upstream's; webdataset wall NEUTRAL.
+--- 5f-P39 interim + EXTENSIONS PRE-REGISTRATION (after (1)-(3) were seen; before the extensions ran) ---
+  (1) sweep: D reproduces P37's flagged figures with no flags (GRIB 1.39/1.39, prefetch-range 5.05 MB; HEMCO 1.48/1.48,
+      4.98/5.64 MB); X reproduces v1.15.0's default (GRIB 3.01/3.02, HEMCO 1.79). The other 11 shapes D == X (only sqlite
+      r2 1.05 vs 1.01, rep noise on a non-prefetching shape). -> default wired through; nothing outside GRIB/HEMCO moves.
+  (2) witness: dd unchanged (s3/size 1.000, GETs identical). SS bytes identical (2953.9 MB) but stream MB/s D 377/312 vs
+      X 442/445 -> D/X 0.85 / 0.70 -> the P37 rule ("costs" iff < 0.9 in both reps) FAILS by the letter. Mechanism check
+      (trace): post-establishment window schedule identical in both arms (>=8 at +255 reads, >=32 at +1024, >=64 at
+      +2047, >=223 at +7167); only the first two dispatches differ (D: 1-block span then 2; X: 3 then 1), equal by
+      read 128 (~16 MiB of a 1 GiB stream). The arm was FIRST in every SS pair here (second in P37, where it was 1.08 /
+      0.79).
+  (3) webdataset wall: 3 of 6 kept -> INSUFFICIENT.
+  Extensions, rules fixed now: (2b) SS witness bracketed X, D, Xz per rep, 8 reps (distinct 2019/08 file per cell,
+      cycling days 1-24), P38 rules on stream_MBps (r = D / mean(X, Xz), discard if bracket gap > 10%, >= 4 kept;
+      SLOWER iff median r < 0.95 and r < 1 in >= 75% -- MB/s, so lower is slower). (3b) webdataset 6 more reps (7-12),
+      scored with 1-6 together under the same rule.
