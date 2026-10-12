@@ -8,8 +8,8 @@ FP=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/08
 mkdir -p "$M" "$OUT"
 prom() { awk -v k="$2" '$1==k{print $2}' "$1"; }
 cell() {  # cell TAG ARM WORKLOAD(SS|DD)
-  local tag=$1 flags="" f t0 t1 sz; PORT=$((PORT + 1)); FPDAY=$((FPDAY + 1))
-  case $2 in AB) flags="--readahead-evidence-per-run --readahead-subblock-dispatch" ;; B) flags="--readahead-subblock-dispatch" ;; X) flags="--readahead-subblock-dispatch=false" ;; esac
+  local tag=$1 flags="" f t0 t1 sz; PORT=$((PORT + 1)); FPDAY=$(( FPDAY % 24 + 1 ))
+  case ${2%z} in AB) flags="--readahead-evidence-per-run --readahead-subblock-dispatch" ;; B) flags="--readahead-subblock-dispatch" ;; X) flags="--readahead-subblock-dispatch=false" ;; esac
   "$L" mount "$FP" "$M" --no-sign-request --nic-gbps 50 $flags --metrics ":$PORT" --pf-trace "$OUT/$tag.trace.csv" \
       --log-level warn > "$OUT/$tag.mount.log" 2>&1 &
   for _ in $(seq 1 60); do mountpoint -q "$M" && break; sleep 1; done
@@ -30,5 +30,5 @@ cell() {  # cell TAG ARM WORKLOAD(SS|DD)
   [ "$3" = SS ] && printf " %s" "$(cat "$OUT/$tag.json")"; echo
 }
 echo "=== gate ${GATE:-5f-P36} $(date -u +%FT%TZ) lith=$(md5sum "$L" | cut -c1-12)"
-for rep in $(seq 1 "$REPS"); do for w in SS DD; do for arm in ${ARMS:-D AB}; do cell "$w-$arm-$rep" $arm $w; done; done; done
+for rep in $(seq 1 "$REPS"); do for w in ${WORK:-SS DD}; do for arm in ${ARMS:-D AB}; do cell "$w-$arm-$rep" $arm $w; done; done; done
 echo "=== done $(date -u +%FT%TZ)"
