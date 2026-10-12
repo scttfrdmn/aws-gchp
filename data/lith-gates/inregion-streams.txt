@@ -3043,3 +3043,10 @@ Rules (fixed now): per shape per rep, Dm = mean(D, Dz), bracket gap g = |D - Dz|
   uncovered up -> fault model; slower + uncovered flat -> cost elsewhere).
 Prediction (mine, on mechanism): uncovered higher under B on GRIB (P37 B had 69); wall NEUTRAL on both (bytes saved
   are small vs the tool's decode time, and GETs are flat so extra faults mostly join fills).
+--- 5f-P38 interim + EXTENSION PRE-REGISTRATION (after reps 1-6 were seen; before reps 7-18 ran) ---
+  HEMCO: 5 of 6 reps kept, median r 0.974, r<1 in 4/5 -> NEUTRAL (rule). GRIB: 1 of 6 kept (bracket gaps 0.157-0.244 in
+  five reps; GRIB's ~3 s tool wall drifts more than 10% between brackets) -> INSUFFICIENT (rule). Unscored observation:
+  GRIB r < 1 in 6/6 reps, B below BOTH brackets in 5/6. uncovered identical across arms on both shapes (GRIB 69, HEMCO
+  ~333): the fixture's 3x uncovered increase does not appear on the real tools.
+  Extension (GRIB only): 12 more reps (7-18), same D-B-Dz order and the same rules, scoring all kept reps 1-18 together.
+  If still < 4 kept, report INSUFFICIENT with every rep listed, and do not relax the 10% rule after the fact.

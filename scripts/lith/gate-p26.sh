@@ -44,7 +44,7 @@ if [ "${MODE:-p26}" = p27 ]; then
     SERVE_EXTRA="--mem-cache 2GB --prefetch-pressure-max -1" stream_cell C-SU-$r 16 $BM
   done
 elif [ "${MODE}" = p34 ]; then   # v1.13.0 release re-verify of the #337 ladder: same cells as Part B, one binary
-  for r in 1 2; do for k in 0 7 47; do idle_cell B-K$k-v113-$r $k $BM; done; done
+  for r in ${REPS:-1 2}; do for k in 0 7 47; do idle_cell B-K$k-v113-$r $k $BM; done; done
 else
 echo "--- Part A (Q2)"; for r in 1 2 3 4 5; do idle_cell A-v111-$r 0 $B111; idle_cell A-v112-$r 0 $B112; done
 echo "--- Part B (#410 ladder)"; for r in 1 2; do for k in 0 7 47; do idle_cell B-K$k-main-$r $k $BM; idle_cell B-K$k-pr410-$r $k $BP; done; done
