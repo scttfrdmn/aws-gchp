@@ -35,7 +35,7 @@ if [ -n "${ARMS2:-}" ]; then  # P28: interleave two flag arms per rep -> OUT/<ar
     case $arm in OFF) EXTRA="" ;; ON) EXTRA="--readahead-evidence-per-run" ;;
       # P30 (#407/#222 ratio sweep): R<n> = --readahead-evidence-ratio n; R<n>P adds --readahead-evidence-per-run
       # P35 (#407 arm B 2x2): D default, A per-run, B sub-block dispatch, AB both
-      D) EXTRA="" ;; A) EXTRA="--readahead-evidence-per-run" ;; B) EXTRA="--readahead-subblock-dispatch" ;;
+      D|Dz) EXTRA="" ;; A) EXTRA="--readahead-evidence-per-run" ;; B) EXTRA="--readahead-subblock-dispatch" ;;
       AB) EXTRA="--readahead-evidence-per-run --readahead-subblock-dispatch" ;;
       R*P) EXTRA="--readahead-evidence-ratio ${arm:1:${#arm}-2} --readahead-evidence-per-run" ;;
       R*) EXTRA="--readahead-evidence-ratio ${arm:1}" ;; esac

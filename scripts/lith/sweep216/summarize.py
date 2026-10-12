@@ -3,7 +3,7 @@ import csv, json, re, sys
 COLS = ["shape", "source", "rep", "utc_start", "get", "list", "s3_bytes", "distinct_bytes", "amplification_x",
         "kernel_read_bytes", "tool_bytes", "amp_vs_tool", "fill_whole", "fill_demand", "fill_plan", "fill_demand_batch",
         "pf_cold_pct", "pf_seq_pct", "pf_strided_pct", "pf_random_pct", "uncovered", "pf_used", "pf_issued", "n_opens",
-        "wall_s", "ctl_ttfb_p50_ms", "ctl_le50_pct", "ok", "notes", "fill_prefetch_range"]   # last: appended for P35 (arm B attribution)
+        "wall_s", "ctl_ttfb_p50_ms", "ctl_le50_pct", "ok", "notes", "fill_prefetch_range", "ttfb_floor_s"]   # appended: P35 (arm B attribution), P38 (TTFB floor gauge, post value)
 if sys.argv[1] == "--header": print(",".join(COLS)); sys.exit()
 out, tag, shape, rep = sys.argv[1:5]
 def prom(p):
@@ -38,5 +38,5 @@ row = [shape, "lith", rep, open(f"{out}/{tag}.utc").read().strip(), int(get), in
        round(s3b / tb, 2) if tb else "", int(fill["whole"]), int(fill["demand"]), int(fill["plan"]), int(fill["demand-batch"]),
        pct(st["cold"]), pct(st["seq"]), pct(st["strided"]), pct(st["random"]), int(d("lith_prefetch_uncovered_total")),
        int(d("lith_prefetch_used_total")), int(d("lith_prefetch_issued_total")), tj.get("n_opens", ""), tj.get("wall_s", ""),
-       m50.group(1) if m50 else "", m50.group(2) if m50 else "", tj.get("ok"), str(tj.get("detail", "")).replace(",", ";"), int(fill["prefetch-range"])]
+       m50.group(1) if m50 else "", m50.group(2) if m50 else "", tj.get("ok"), str(tj.get("detail", "")).replace(",", ";"), int(fill["prefetch-range"]), b.get("lith_ttfb_floor_seconds", "")]
 w = csv.writer(sys.stdout); w.writerow(row)

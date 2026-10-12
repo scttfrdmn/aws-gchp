@@ -3026,3 +3026,20 @@ My predictions: D == v1.14.0. GRIB B ~1.2-1.5x, prefetch-range > 0, GETs 72 -> 7
     stream MB/s noisier than P36 (all cells ~20% slower this hour). dd unchanged.
   My predictions: GRIB ~1.2-1.5 right (1.39); GETs 75-90 wrong (71: the span replaced 3 whole-block GETs with ~2 range
     GETs); HEMCO unchanged wrong (same wrong premise as upstream, despite my own P35 trace); SS/dd right.
+
+--- 5f-P38 PRE-REGISTRATION (lith#407 20:13Z wall-clock cell on v1.15.0; written before any cell ran) ---
+Build v1.15.0 (md5 b0926cda7162, sha256-verified in P37). Shapes grib_idx, hemco_timeslice. Per shape per rep the arm
+  order is D, B (--readahead-subblock-dispatch), Dz (default again): every B is bracketed by two defaults ~10-40 s
+  apart. 6 reps. Wall = the tool's own wall_s (shapes.py; open+read+decode, excludes mount). Also per row:
+  lith_prefetch_uncovered_total, lith_prefetch_used_total (v1.15.0 has no lith_prefetch_hit_total; "used" is the hit
+  count), lith_prefetch_issued_total, lith_ttfb_floor_seconds (post value), GETs, bytes. Harness otherwise unchanged
+  (fresh mount per row, light simultaneous s3bench control as in every sweep row).
+Rules (fixed now): per shape per rep, Dm = mean(D, Dz), bracket gap g = |D - Dz| / Dm, ratio r = B / Dm.
+  A rep is DISCARDED for that shape iff g > 0.10 (the drift exceeds the effect size of interest). Need >= 4 kept reps
+  per shape; if fewer, report "insufficient" rather than read noisy reps.
+  Verdict per shape over kept reps: SLOWER iff median r > 1.05 and r > 1 in >= 75% of kept reps; FASTER iff median
+  r < 0.95 and r < 1 in >= 75%; else NEUTRAL.
+  Upstream's decision table applies as written (faster/neutral both -> default on; slower either -> opt-in; slower +
+  uncovered up -> fault model; slower + uncovered flat -> cost elsewhere).
+Prediction (mine, on mechanism): uncovered higher under B on GRIB (P37 B had 69); wall NEUTRAL on both (bytes saved
+  are small vs the tool's decode time, and GETs are flat so extra faults mostly join fills).
