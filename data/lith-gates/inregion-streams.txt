@@ -3091,3 +3091,21 @@ My predictions: as upstream's; webdataset wall NEUTRAL.
       cycling days 1-24), P38 rules on stream_MBps (r = D / mean(X, Xz), discard if bracket gap > 10%, >= 4 kept;
       SLOWER iff median r < 0.95 and r < 1 in >= 75% -- MB/s, so lower is slower). (3b) webdataset 6 more reps (7-12),
       scored with 1-6 together under the same rule.
+--- 5f-P39 RESULTS (v1.16.0 md5 5c213e33fcb0) ---
+  (1) sweep (22:10-22:27Z, 52/52 ok): as in the interim -- default wired through, GRIB 1.39 / HEMCO 1.48 flagless,
+      =false reproduces 3.02 / 1.79, the other 11 shapes D == X.
+  (2) dd: unchanged. SS interleaved (arm first in each pair): stream D/X 0.85 / 0.70 -> fails the no-cost rule.
+  (2b) SS bracketed X-D-Xz, 8 reps (22:40-22:46Z): stream MB/s r = D/mean(X,Xz) = 0.760, 0.866, 0.798, 0.682, 0.785,
+      0.871, 0.790, 0.818; kept 5 (reps 2,3,4,5,8; gaps 0.008-0.097) -> median r 0.798, r<1 in 100% -> SLOWER. D is
+      below BOTH brackets in 8/8 reps including the discarded ones. Bytes identical (2953.9 MB every cell).
+      Mechanism: lith_prefetch_uncovered_total D = 81 in 8/8 cells vs X/Xz 60-62 (+19); GETs 431 vs 411-413 (+18);
+      demand-fill mean 59-64 ms (D) vs 61-80 ms (X); stream_s excess D - mean(X,Xz) = +0.34..+1.26 s (median ~+0.66 s),
+      i.e. ~19 faults x ~60 ms serialised ~ 1.1 s upper bound. Post-establishment window schedule identical; the
+      difference is the first dispatch only: the arm's span (1 prefetch-range fill, ~5.5 MB) replaces the 3-block
+      (24 MiB) first dispatch, and a reader that STREAMS from establishment faults through the uncovered remainder
+      until the second dispatch at +64 reads. A fixed per-establishment stall, so it should not scale with stream
+      length (untested: only 1 GiB streams).
+      -> upstream's table row: "wall slower AND uncovered up -> fault model confirmed" -- on scatter-then-stream, NOT
+      on GRIB/HEMCO (P38: uncovered flat, wall neutral there).
+  (3) webdataset wall, 12 reps: kept 8, median r 0.969 -> NEUTRAL (the default costs nothing where it does nothing).
+  My predictions: (1) right; (3) right; witness "no cost" WRONG.

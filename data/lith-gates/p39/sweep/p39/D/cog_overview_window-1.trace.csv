@@ -1,0 +1,19 @@
+# lith prefetch trace; block_size=8388608 max_readahead=67 parts_max=67108864 small_file=4194304 coverage_window=16 coverage_min=0.5 evidence_ratio=0
+seq,fh,pid,key,size,off,len,blk,gap,path,state_before,state_after,max_window,window,dispatched,peak_window
+1,1,3384935,lith-sweep/cog.tif,78646263,0,16384,0,0,window,cold,cold,67,0,0,0
+2,1,3384935,lith-sweep/cog.tif,78646263,16384,32768,0,0,window,cold,cold,67,0,0,0
+3,1,3384935,lith-sweep/cog.tif,78646263,49152,65536,0,0,window,cold,cold,67,0,0,0
+4,1,3384935,lith-sweep/cog.tif,78646263,114688,131072,0,0,window,cold,cold,67,0,0,0
+5,1,3384935,lith-sweep/cog.tif,78646263,245760,131072,0,0,window,cold,cold,67,0,0,0
+6,1,3384935,lith-sweep/cog.tif,78646263,38989824,4096,4,38612992,window,cold,random,67,0,0,0
+7,1,3384935,lith-sweep/cog.tif,78646263,38993920,131072,4,0,window,random,random,67,0,0,0
+8,1,3384935,lith-sweep/cog.tif,78646263,39124992,131072,4,0,window,random,random,67,0,0,0
+9,1,3384935,lith-sweep/cog.tif,78646263,39256064,131072,4,0,window,random,random,67,0,0,0
+10,1,3384935,lith-sweep/cog.tif,78646263,39387136,131072,4,0,window,random,random,67,0,0,0
+11,1,3384935,lith-sweep/cog.tif,78646263,39518208,131072,4,0,window,random,random,67,0,0,0
+12,1,3384935,lith-sweep/cog.tif,78646263,42688512,4096,5,3039232,window,random,random,67,0,0,0
+13,1,3384935,lith-sweep/cog.tif,78646263,42692608,131072,5,0,window,random,random,67,0,0,0
+14,1,3384935,lith-sweep/cog.tif,78646263,42823680,131072,5,0,window,random,random,67,0,0,0
+15,1,3384935,lith-sweep/cog.tif,78646263,42954752,131072,5,0,window,random,random,67,0,0,0
+16,1,3384935,lith-sweep/cog.tif,78646263,43085824,131072,5,0,window,random,random,67,0,0,0
+17,1,3384935,lith-sweep/cog.tif,78646263,43216896,131072,5,0,window,random,random,67,0,0,0
