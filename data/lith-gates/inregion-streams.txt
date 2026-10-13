@@ -3202,3 +3202,11 @@ Upstream's table: survives with RSS plateau near 29.7 GB and GC time up -> limit
 Wall reference: none on this exact config (R-TIER never finished); report wall as measured.
 My prediction: survives, peak RSS ~28-30 GB, GC pause total several seconds (vs <1 s at a small tier), wall slower
   than an unconstrained tier would be.
+--- 5f-P42 RESULTS (19:38-19:40Z) + EXTENSION PRE-REGISTRATION (after A-1/A-2 were seen; before T ran) ---
+  A-1 / A-2: SURVIVED (mount alive at the end; dmesg oom-kill count 4 before and after = only the Oct 5 R-TIER kills).
+    peak RSS 28.83 / 28.78 GB (in [27,31] -> "near 29.7"); peak next_gc 28.77 / 28.76 GB (held under gomemlimit 29.72);
+    MemAvailable floor 2.88 / 2.79 GB; peak committed 4.10 / 4.09 GB; wall 33.6 / 33.5 s; 26 / 25 GC cycles; STW pause
+    sum ~0 (STW pauses only; concurrent GC CPU not captured by go_gc_duration_seconds).
+  -> upstream's row 1: the limit works, the 90% has real headroom on this box (~2.8 GB MemAvailable at the floor).
+  Extension for the wall cost: arm T = same cell with the DEFAULT tier (no --mem-cache; 25% = 8.26 GB, so 2 x tier <
+    budget and auto does NOT engage), 2 reps, interleaved after A. Wall cost = median A / median T.
