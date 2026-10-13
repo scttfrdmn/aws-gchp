@@ -3177,3 +3177,11 @@ Same harness and run as P29 (gate-streams-gchp.sh, 12-rank C24 TT 1 day, five li
   measured streams idle >=1/5/30 s, at peak 0.95/0.95/0.23.
 Prediction: same distribution within ~0.05 pooled (no change to the idle path since b67fda3). Upstream's table: large
   _5s/_30s fraction -> build the idle-out, the large bucket picks the threshold.
+--- 5f-P41 RESULTS (18:31-18:34Z, v1.17.1 md5 4110b2889cf5; run completed, cap_restart advanced at 130 s) ---
+  met mount merra2-201901, 139 ticks with measured > 0, max 40 measured == max 40 lith_streaming_handles:
+    share idle >= 1 s / 5 s / 30 s: pooled 0.933 / 0.721 / 0.049 (P29: 0.931 / 0.708 / 0.030); tick median 1.000 /
+    0.730 / 0.000; at peak (t = 129 s) 38 / 38 / 10 of 40 = 0.95 / 0.95 / 0.25 (P29: 0.95 / 0.95 / 0.23).
+  hemco (max 4 measured): mean tick share 0.968 / 0.890 / 0.517 (P29 0.97 / 0.88 / 0.48).
+  Scoring: prediction right (within 0.02 pooled). Upstream's table -> second row: _5s is a large fraction (0.72 pooled,
+    0.95 at peak) and _30s grows with run length (0 early -> 0.25 at 129 s) -> idle handles hold most of the
+    divisor's population; the _5s bucket is the large one.
