@@ -8,7 +8,7 @@ G=/scratch/lith-gates; B=${B:?set B to the tagged binary}; OUT=${OUT:-$G/p42}; M
 P=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07; mkdir -p "$OUT" "$MNT"; REPS=${REPS:-2}
 arm() { local tag=$1; shift; PORT=$((PORT + 1)); rm -f "$OUT/$tag.stop" "$OUT/$tag.csv"
   env -u GOMEMLIMIT "$B" mount "$P" "$MNT" --metrics ":$PORT" --nic-gbps 50 --log-level warn --no-sign-request \
-      --mem-cache 20GB --prefetch-budget 4.127829504GB "$@" > "$OUT/$tag.mount.log" 2>&1 & local lp=$!
+      ${MEMC---mem-cache 20GB} --prefetch-budget 4.127829504GB "$@" > "$OUT/$tag.mount.log" 2>&1 & local lp=$!
   for _ in $(seq 1 90); do mountpoint -q "$MNT" && break; sleep 1; done
   mountpoint -q "$MNT" || { echo "$tag MOUNT FAILED"; tail -3 "$OUT/$tag.mount.log"; return 1; }
   local pid; pid=$(pgrep -f "[l]ith_linux_arm64 mount $P $MNT" | head -1); echo 1000 | sudo tee /proc/$pid/oom_score_adj > /dev/null
@@ -31,5 +31,5 @@ arm() { local tag=$1; shift; PORT=$((PORT + 1)); rm -f "$OUT/$tag.stop" "$OUT/$t
   awk -F, 'NR==1||$2<m{m=$2} END{printf "  MemAvailable floor %.2f GB\n", m/1e9}' "$OUT/$tag.memavail.csv"
   sudo dmesg | grep -iE "oom-kill|Killed process" | tail -2 | sed 's/^/  dmesg: /'; }
 echo "=== gate 5f-P42 $(date -u +%FT%TZ) lith=$(md5sum "$B" | cut -c1-12) tier=20GB MemTotal=$(awk '/MemTotal/{printf "%.2f GB", $2*1024/1e9}' /proc/meminfo)"
-for r in $(seq 1 "$REPS"); do arm A-$r; done
+for r in $(seq 1 "$REPS"); do arm ${ARM:-A}-$r; done
 echo "=== done $(date -u +%FT%TZ)"
