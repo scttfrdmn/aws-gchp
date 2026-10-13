@@ -3155,3 +3155,17 @@ My predictions: (1) NEUTRAL, uncovered ~62 (the lead closes the 64-read gap the 
     case to distrust. Not scored. uncovered B 62-65 vs 62 (at the =false level).
   P40c: SS v1.17.1 bracketed X,B,Xz with DIFFERENT files per cell (the P39w2 design that produced the regression
     finding), 12 reps, same rules. If INSUFFICIENT again, report it so; do not relax the 10% rule.
+--- 5f-P40 / P40c RESULTS ---
+  (4) sweep v1.17.1 X vs B (2 reps, 24/24 ok): GRIB 3.02 -> 1.71 (B/X 0.57; GETs 72 -> 84; prefetch-range 8.98 MB);
+      HEMCO 1.79 -> 1.59 (0.89; GETs 340 -> 358; 11.9-12.5 MB); FITS, netcdf4_hyperslab, webdataset, concurrent_handles
+      identical. The lead gives back part of the saving (v1.15.0 span-once: 1.39 / 1.48), as upstream expected.
+  (5) dd: unchanged (above).
+  P40c SS v1.17.1 different-file brackets (10:29-10:37Z), 12 reps: kept 8, r = 1.046 0.761 1.028 1.011 0.780 0.891
+      0.748 0.817 -> median 0.854, r<1 in 5/8 (62.5% < 75%) -> NEUTRAL BY THE LETTER, but bimodal: 3 reps at 1.01-1.05,
+      5 at 0.75-0.89, median inside the SLOWER band. uncovered B 62-65 vs X/Xz 60-62 (at the =false level; v1.16.0 was
+      81); GETs B 453-456 vs 411-413 (+~41); prefetch-range 20.0-21.6 MB; bytes equal to 0.05%.
+  Reading: the fault gap is closed (upstream's mechanism criterion met); the wall result is not a clean neutral. If a
+    cost remains it is not uncovered faults; the remaining difference between arms is ~41 extra, smaller range GETs on
+    the stream's critical path at establishment (not isolated).
+  My predictions: (1) NEUTRAL with uncovered ~62 -- uncovered right, wall only neutral by the letter; (2) right; (3)
+    right; (4) GRIB ~1.5-1.8 right (1.71), HEMCO ~1.5-1.6 right (1.59); (5) right.

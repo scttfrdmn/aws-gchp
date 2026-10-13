@@ -1,0 +1,26 @@
+=== gate 5f-P40bnc 2026-10-13T16:43:42Z lith=4110b2889cf5
+CELL NC-X-1 wall=10.363 s3_MB=2029.1 gets=266 whole_MB=2019.6 prefetch_range_MB=0.0 file_MB=3699.5 uncovered=23 {"open_s": 0.389, "read_s": 9.525, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-1 wall=9.761 s3_MB=2030.5 gets=324 whole_MB=1998.7 prefetch_range_MB=22.2 file_MB=3699.5 uncovered=24 {"open_s": 0.262, "read_s": 9.381, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-1 wall=9.631 s3_MB=2029.1 gets=266 whole_MB=2019.6 prefetch_range_MB=0.0 file_MB=3699.5 uncovered=23 {"open_s": 0.28, "read_s": 9.232, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-2 wall=11.256 s3_MB=2030.4 gets=305 whole_MB=2016.3 prefetch_range_MB=0.0 file_MB=3771.0 uncovered=62 {"open_s": 0.583, "read_s": 10.557, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-2 wall=11.190 s3_MB=2030.8 gets=318 whole_MB=1998.9 prefetch_range_MB=16.6 file_MB=3771.0 uncovered=65 {"open_s": 0.378, "read_s": 10.697, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-2 wall=10.694 s3_MB=2030.4 gets=305 whole_MB=2015.7 prefetch_range_MB=0.0 file_MB=3771.0 uncovered=63 {"open_s": 0.28, "read_s": 10.296, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-3 wall=10.689 s3_MB=2022.8 gets=285 whole_MB=2011.1 prefetch_range_MB=0.0 file_MB=3731.8 uncovered=45 {"open_s": 0.437, "read_s": 10.138, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-3 wall=10.514 s3_MB=2024.5 gets=321 whole_MB=1992.2 prefetch_range_MB=19.9 file_MB=3731.8 uncovered=46 {"open_s": 0.286, "read_s": 10.107, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-3 wall=10.163 s3_MB=2022.8 gets=285 whole_MB=2011.1 prefetch_range_MB=0.0 file_MB=3731.8 uncovered=45 {"open_s": 0.256, "read_s": 9.79, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-4 wall=10.465 s3_MB=2024.9 gets=280 whole_MB=2013.4 prefetch_range_MB=0.0 file_MB=3726.8 uncovered=39 {"open_s": 0.394, "read_s": 9.956, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-4 wall=10.218 s3_MB=2026.1 gets=326 whole_MB=1993.5 prefetch_range_MB=20.8 file_MB=3726.8 uncovered=41 {"open_s": 0.244, "read_s": 9.856, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-4 wall=10.471 s3_MB=2025.2 gets=278 whole_MB=2014.4 prefetch_range_MB=0.0 file_MB=3726.8 uncovered=37 {"open_s": 0.281, "read_s": 10.073, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-5 wall=11.188 s3_MB=2018.6 gets=317 whole_MB=2002.7 prefetch_range_MB=0.0 file_MB=3731.8 uncovered=77 {"open_s": 0.337, "read_s": 10.731, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-5 wall=11.271 s3_MB=2018.5 gets=317 whole_MB=1986.0 prefetch_range_MB=16.6 file_MB=3731.8 uncovered=77 {"open_s": 0.254, "read_s": 10.901, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-5 wall=11.068 s3_MB=2018.6 gets=317 whole_MB=2002.7 prefetch_range_MB=0.0 file_MB=3731.8 uncovered=77 {"open_s": 0.243, "read_s": 10.71, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-6 wall=11.368 s3_MB=2022.2 gets=320 whole_MB=2005.4 prefetch_range_MB=0.0 file_MB=3727.2 uncovered=79 {"open_s": 0.417, "read_s": 10.835, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-6 wall=11.431 s3_MB=2022.2 gets=320 whole_MB=2005.4 prefetch_range_MB=0.0 file_MB=3727.2 uncovered=79 {"open_s": 0.284, "read_s": 11.032, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-6 wall=11.140 s3_MB=2022.2 gets=320 whole_MB=2005.4 prefetch_range_MB=0.0 file_MB=3727.2 uncovered=79 {"open_s": 0.256, "read_s": 10.768, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-7 wall=10.420 s3_MB=2023.1 gets=280 whole_MB=2011.6 prefetch_range_MB=0.0 file_MB=3750.2 uncovered=39 {"open_s": 0.296, "read_s": 10.006, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-7 wall=10.304 s3_MB=2023.5 gets=320 whole_MB=1991.5 prefetch_range_MB=20.4 file_MB=3750.2 uncovered=39 {"open_s": 0.241, "read_s": 9.946, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-7 wall=10.159 s3_MB=2023.4 gets=278 whole_MB=2012.7 prefetch_range_MB=0.0 file_MB=3750.2 uncovered=37 {"open_s": 0.274, "read_s": 9.765, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-X-8 wall=11.176 s3_MB=2031.0 gets=297 whole_MB=2017.3 prefetch_range_MB=0.0 file_MB=3789.4 uncovered=55 {"open_s": 0.388, "read_s": 10.669, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-B-8 wall=10.830 s3_MB=2031.2 gets=316 whole_MB=1999.7 prefetch_range_MB=17.9 file_MB=3789.4 uncovered=55 {"open_s": 0.256, "read_s": 10.457, "decoded_bytes": 1913683968, "var": "U"}
+CELL NC-Xz-8 wall=10.606 s3_MB=2031.0 gets=297 whole_MB=2017.3 prefetch_range_MB=0.0 file_MB=3789.4 uncovered=55 {"open_s": 0.247, "read_s": 10.241, "decoded_bytes": 1913683968, "var": "U"}
+=== done 2026-10-13T16:48:49Z
