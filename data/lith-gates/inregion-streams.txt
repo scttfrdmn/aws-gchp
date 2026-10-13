@@ -3185,3 +3185,20 @@ Prediction: same distribution within ~0.05 pooled (no change to the idle path si
   Scoring: prediction right (within 0.02 pooled). Upstream's table -> second row: _5s is a large fraction (0.72 pooled,
     0.95 at peak) and _30s grows with run length (0 early -> 0.25 at 129 s) -> idle handles hold most of the
     divisor's population; the _5s bucket is the large one.
+
+--- 5f-P42 PRE-REGISTRATION (lith#314 19:02Z/19:34Z, v1.18.0; written before the cell ran) ---
+Build: v1.18.0 lith_linux_arm64 sha256 2771055a...4be16 (matches checksums.txt and the issue), commit ba2cbc4, md5
+  db501040e3fe. Precheck done on a probe mount (info log): "memory limit" bytes=29720372428 budget=33022636032
+  tier=20000000000 source=auto; go_gc_gomemlimit_bytes 2.97e10. GOMEMLIMIT absent from the environment. MemAvailable
+  at pre-registration 31.72 GB.
+Cell: gate-p42.sh = R-TIER's OOM configuration (--mem-cache 20GB --prefetch-budget 4.127829504GB --nic-gbps 50, one
+  GEOS-FP 2019/07 mount, 16 concurrent dd of 16 A3dyn, ~60 GB), no cgroup cap, 2 reps. 1 Hz: RSS, next_gc, GC pause
+  sum/count, gomemlimit, committed; MemAvailable. Safety: lith oom_score_adj 1000 (the kernel already chose lith
+  both times before; this only guarantees nothing else is taken).
+Upstream's table: survives with RSS plateau near 29.7 GB and GC time up -> limit works (report wall); OOM-killed ->
+  headroom should come from MemAvailable at startup; survives well under 29.7 GB -> something else bounds the heap.
+  Scored: "survives" = mount alive at the end and dmesg shows no new oom-kill; "near 29.7" = peak RSS in [27, 31] GB;
+  "well under" = peak RSS < 27 GB.
+Wall reference: none on this exact config (R-TIER never finished); report wall as measured.
+My prediction: survives, peak RSS ~28-30 GB, GC pause total several seconds (vs <1 s at a small tier), wall slower
+  than an unconstrained tier would be.
