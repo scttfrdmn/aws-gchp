@@ -3210,3 +3210,10 @@ My prediction: survives, peak RSS ~28-30 GB, GC pause total several seconds (vs 
   -> upstream's row 1: the limit works, the 90% has real headroom on this box (~2.8 GB MemAvailable at the floor).
   Extension for the wall cost: arm T = same cell with the DEFAULT tier (no --mem-cache; 25% = 8.26 GB, so 2 x tier <
     budget and auto does NOT engage), 2 reps, interleaved after A. Wall cost = median A / median T.
+--- 5f-P42 extension RESULTS (19:41-19:42Z): arm T = default tier (8.26 GB; auto limit NOT engaged: gomemlimit = max) ---
+  T-1 / T-2: wall 33.6 / 33.4 s; peak RSS 16.85 / 16.88 GB (~2.04 x tier: GC model again); next_gc 16.83 / 16.82; GC cycles
+    26 / 27; MemAvailable floor 14.76 / 14.69 GB; committed 4.09 GB. (The "tier=20GB" in the gate header is a hardcoded
+    label; the mount log and RSS confirm the default tier.)
+  Wall cost of the limit at a 20 GB tier: median A 33.55 / median T 33.5 = 1.00 -> none measurable; this workload is
+    link-bound (~1.8 GB/s, 16 streams), GC cycle counts equal. STW pause sums 0.003-0.004 s (concurrent GC CPU not
+    captured). Prediction "wall slower" WRONG; survives + RSS 28-30 right.

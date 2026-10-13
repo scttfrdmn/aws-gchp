@@ -1,0 +1,10 @@
+=== gate 5f-P42 2026-10-13T19:41:17Z lith=db501040e3fe tier=20GB MemTotal=33.02 GB
+ARM T-1 wall=33.6s alive_at_end=yes | peak RSS 16.85 GB  peak next_gc 16.83 GB  gomemlimit 9223372036.85 GB  GC pause total 0.00 s over 26 cycles  peak committed 4.09 GB
+  MemAvailable floor 14.76 GB
+  dmesg: [1285116.462831] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/user.slice/user-1000.slice/session-22882.scope,task=lith-311,pid=1841936,uid=1000
+  dmesg: [1285116.465253] Out of memory: Killed process 1841936 (lith-311) total-vm:35216660kB, anon-rss:31004924kB, file-rss:0kB, shmem-rss:0kB, UID:1000 pgtables:61212kB oom_score_adj:0
+ARM T-2 wall=33.4s alive_at_end=yes | peak RSS 16.88 GB  peak next_gc 16.82 GB  gomemlimit 9223372036.85 GB  GC pause total 0.00 s over 27 cycles  peak committed 4.09 GB
+  MemAvailable floor 14.69 GB
+  dmesg: [1285116.462831] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/user.slice/user-1000.slice/session-22882.scope,task=lith-311,pid=1841936,uid=1000
+  dmesg: [1285116.465253] Out of memory: Killed process 1841936 (lith-311) total-vm:35216660kB, anon-rss:31004924kB, file-rss:0kB, shmem-rss:0kB, UID:1000 pgtables:61212kB oom_score_adj:0
+=== done 2026-10-13T19:42:41Z

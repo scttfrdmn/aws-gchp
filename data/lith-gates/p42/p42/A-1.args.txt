@@ -1,0 +1,1 @@
+3508111 /scratch/lith-gates/v1180/lith_linux_arm64 mount s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/07 /scratch/mnt/p42 --metrics :13701 --nic-gbps 50 --log-level warn --no-sign-request --mem-cache 20GB --prefetch-budget 4.127829504GB
