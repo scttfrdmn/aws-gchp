@@ -3109,3 +3109,24 @@ My predictions: as upstream's; webdataset wall NEUTRAL.
       on GRIB/HEMCO (P38: uncovered flat, wall neutral there).
   (3) webdataset wall, 12 reps: kept 8, median r 0.969 -> NEUTRAL (the default costs nothing where it does nothing).
   My predictions: (1) right; (3) right; witness "no cost" WRONG.
+
+--- 5f-P40 PRE-REGISTRATION (lith#407 05:10Z/05:45Z/16:15Z; v1.17.1 = span keeps a lead, default still off; before
+    any cell ran) ---
+Build: v1.17.1 lith_linux_arm64 sha256 9f3fbe87...0460 (matches checksums.txt and the issue), commit a91328b, md5
+  4110b2889cf5; --help shows no default suffix on --readahead-subblock-dispatch. v1.16.0 (P39) reused for (3).
+Arms: X = --readahead-subblock-dispatch=false, B = --readahead-subblock-dispatch; brackets X, B, Xz as P38/P39w2.
+(1) SS witness (scatter-then-stream, GEOS-FP 2019/08, day cycling) bracketed, 8 reps, v1.17.1. DECISION CELL.
+(2) NC real tool (nc_stream.py: netCDF4 opens a GEOS-FP 2019/08 A3dyn, reads all of U time slice by time slice;
+    576 one-level zlib chunks, ~750 MB compressed), bracketed, 6 reps, v1.17.1. Wall = open_s + read_s.
+(3) NC on v1.16.0, bracketed X, D(default on = span-once), Xz, 6 reps: does the original regression bite a real
+    netCDF4 reader? (upstream's "is the index-then-stream class common" question).
+(4) sweep v1.17.1 X vs B: grib_idx, hemco_timeslice, fits_header_cutout + controls netcdf4_hyperslab,
+    webdataset_stream, concurrent_handles; 2 reps; bytes, GETs, prefetch-range.  (5) dd X vs B, 2 reps.
+Rules: P38/P39w2 bracket rules (discard if gap > 10%, >= 4 kept, median ratio bands 0.95/1.05 with >= 75% agreement),
+  on stream_MBps for SS (r = B/mean(X), lower = slower) and on wall for NC (r = B/mean(X), higher = slower).
+Upstream's table for (1): neutral-or-faster AND uncovered back to ~62 -> fix works, default proposed again; still slower
+  -> the lead isn't (all of) the mechanism; faster than =false -> report with suspicion.
+Upstream expects (4): GRIB/HEMCO byte saving smaller than 1.39 / 1.48 (the lead commits more).
+My predictions: (1) NEUTRAL, uncovered ~62 (the lead closes the 64-read gap the trace showed). (2) NEUTRAL (zlib decode
+  dominates). (3) NEUTRAL or slightly slower (decode hides a ~0.5 s stall in a several-second read). (4) GRIB ~1.5-1.8,
+  HEMCO ~1.5-1.6, others unchanged. (5) unchanged.
