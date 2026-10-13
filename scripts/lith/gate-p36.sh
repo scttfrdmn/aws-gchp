@@ -8,7 +8,7 @@ FP=s3://gcgrid/GEOS_0.25x0.3125/GEOS_FP/2019/08
 mkdir -p "$M" "$OUT"
 prom() { awk -v k="$2" '$1==k{print $2}' "$1"; }
 cell() {  # cell TAG ARM WORKLOAD(SS|DD)
-  local tag=$1 flags="" f t0 t1 sz; PORT=$((PORT + 1)); FPDAY=$(( FPDAY % 24 + 1 ))
+  local tag=$1 flags="" f t0 t1 sz; PORT=$((PORT + 1)); [ -n "${SAMEFILE:-}" ] && FPDAY=$(( (${tag##*-} - 1) % 24 + 1 )) || FPDAY=$(( FPDAY % 24 + 1 ))
   case ${2%z} in AB) flags="--readahead-evidence-per-run --readahead-subblock-dispatch" ;; B) flags="--readahead-subblock-dispatch" ;; X) flags="--readahead-subblock-dispatch=false" ;; esac
   "$L" mount "$FP" "$M" --no-sign-request --nic-gbps 50 $flags --metrics ":$PORT" --pf-trace "$OUT/$tag.trace.csv" \
       --log-level warn > "$OUT/$tag.mount.log" 2>&1 &

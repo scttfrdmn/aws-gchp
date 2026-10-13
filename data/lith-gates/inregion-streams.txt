@@ -3130,3 +3130,13 @@ Upstream expects (4): GRIB/HEMCO byte saving smaller than 1.39 / 1.48 (the lead 
 My predictions: (1) NEUTRAL, uncovered ~62 (the lead closes the 64-read gap the trace showed). (2) NEUTRAL (zlib decode
   dominates). (3) NEUTRAL or slightly slower (decode hides a ~0.5 s stall in a several-second read). (4) GRIB ~1.5-1.8,
   HEMCO ~1.5-1.6, others unchanged. (5) unchanged.
+--- 5f-P40 interim (09:20-09:51Z) + P40b PRE-REGISTRATION (written after P40 (1)-(5) were seen; before P40b ran) ---
+  (1) SS v1.17.1: kept 3/8 (gaps 0.047-0.192) -> INSUFFICIENT. uncovered B 63-65 vs X/Xz 60-62 (v1.16.0 was 81 vs 60-62);
+      GETs B 451-457 vs 411-413 (+~40, 1.10x); prefetch-range 20.5-21.1 MB; bytes 2954.2-2955.2 vs 2953.9-2954.2.
+  (2) NC v1.17.1: kept 2/6 -> INSUFFICIENT. (3) NC v1.16.0: kept 3/6 -> INSUFFICIENT. NC uncovered varies 23-85 BETWEEN
+      FILES within one arm (each bracket cell reads a different day's file) -> file-to-file variance swamps the arm.
+      NC is decode-bound (read_s ~10 s for ~750 MB compressed U).
+  (4)/(5): see results. dd X vs B: s3/size 1.000, GETs track size, uncovered 9 in all four cells.
+  P40b design change (fixed now): SAMEFILE=1 -- all three cells of a bracket read the SAME file (a new file per rep),
+    so the bracket controls for file layout as well as time. 8 reps each: SS v1.17.1 (X,B,Xz), NC v1.17.1 (X,B,Xz),
+    NC v1.16.0 (X,D,Xz). Same rules as P40; not relaxed. P40's own verdicts stay INSUFFICIENT as recorded.
