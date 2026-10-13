@@ -3169,3 +3169,11 @@ My predictions: (1) NEUTRAL, uncovered ~62 (the lead closes the 64-read gap the 
     the stream's critical path at establishment (not isolated).
   My predictions: (1) NEUTRAL with uncovered ~62 -- uncovered right, wall only neutral by the letter; (2) right; (3)
     right; (4) GRIB ~1.5-1.8 right (1.71), HEMCO ~1.5-1.6 right (1.59); (5) right.
+
+--- 5f-P41 PRE-REGISTRATION (lith#312 18:28Z ask: idle gauges on a GCHP run, release >= v1.13.0; before it ran) ---
+Same harness and run as P29 (gate-streams-gchp.sh, 12-rank C24 TT 1 day, five lith mounts, 2 Hz sampler with
+  lith_streaming_handles_idle_{1s,5s,30s}, _measured and lith_streaming_handles), on the v1.17.1 release artifact
+  (sha256 9f3fbe87...0460, verified in P40). P29 (b67fda3, pre-release) read: met mount pooled 0.931/0.708/0.030 of
+  measured streams idle >=1/5/30 s, at peak 0.95/0.95/0.23.
+Prediction: same distribution within ~0.05 pooled (no change to the idle path since b67fda3). Upstream's table: large
+  _5s/_30s fraction -> build the idle-out, the large bucket picks the threshold.
