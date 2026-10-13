@@ -3217,3 +3217,15 @@ My prediction: survives, peak RSS ~28-30 GB, GC pause total several seconds (vs 
   Wall cost of the limit at a 20 GB tier: median A 33.55 / median T 33.5 = 1.00 -> none measurable; this workload is
     link-bound (~1.8 GB/s, 16 streams), GC cycle counts equal. STW pause sums 0.003-0.004 s (concurrent GC CPU not
     captured). Prediction "wall slower" WRONG; survives + RSS 28-30 right.
+
+--- 5f-P43 PRE-REGISTRATION (lith#312 20:37Z ask; written before it ran) ---
+P41's run repeated (gate-streams-gchp.sh, 12-rank C24 TT 1 day, five mounts at --mem-cache 2GB, 2 Hz) on v1.18.0
+  (sha256 2771055a...4be16, verified in P42), with the sampler extended by lith_prefetch_evidence_clamped_total (summed
+  over size_class) and lith_prefetch_evidence_withheld_blocks_total.
+Upstream's table (met mount, at 2 GB, the setting most favourable to "divisor binds"):
+  clamped climbs steadily while handles are active -> the evidence gate binds even at the smallest share -> close #312.
+  clamped near zero -> the divisor binds at 2 GB -> one run at a production tier next.
+Operationalised: "climbs steadily" = clamped increases during >= 50% of the 10-second intervals in which
+  streaming_handles > 0, and its final value >= the number of distinct streaming establishments implied by the run
+  (reported alongside); "near zero" = final clamped < 10. Between: reported as is, no verdict.
+My prediction: climbs steadily (GCHP reads a met field in a few MB per ExtData update per rank, under 12 MiB).
