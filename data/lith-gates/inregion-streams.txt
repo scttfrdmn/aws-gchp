@@ -3229,3 +3229,14 @@ Operationalised: "climbs steadily" = clamped increases during >= 50% of the 10-s
   streaming_handles > 0, and its final value >= the number of distinct streaming establishments implied by the run
   (reported alongside); "near zero" = final clamped < 10. Between: reported as is, no verdict.
 My prediction: climbs steadily (GCHP reads a met field in a few MB per ExtData update per rank, under 12 MiB).
+--- 5f-P43 RESULTS (20:51-20:53Z, v1.18.0 md5 db501040e3fe; run completed, cap_restart advanced at 125 s) ---
+  met mount (merra2-201901), 126 ticks with streaming_handles > 0 (peak ~32-38):
+    lith_prefetch_evidence_clamped_total (summed): 0 until streaming begins (~t 55 s), then 61 (t 61) -> 114 (t 82) ->
+      131 (t 102) -> 158 final; increased in 7 of the 8 ten-second intervals with streaming > 0.
+    lith_prefetch_evidence_withheld_blocks_total: 1094 by t 61 (the start burst, ~18 blocks per clamp), 1233 final
+      (~1.4 blocks per clamp after the start).
+    window_blocks 3-6 while streaming, as in P41.
+  hemco: clamped 4, withheld 238; restarts: 1 / 117; the 2015 MERRA2 and CHEM_INPUTS mounts never stream.
+  Scoring: "climbs steadily" (>= 50% of active intervals: 7/8; final 158 >> the ~40 streaming handles) -> upstream's
+    row 1: the evidence gate binds even at the smallest share (2 GB tier) -> idle-out buys nothing in-region -> close
+    #312 as characterized. Prediction right.

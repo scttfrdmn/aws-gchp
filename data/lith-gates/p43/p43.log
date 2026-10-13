@@ -1,0 +1,31 @@
+[20:51:11] === gate 5f-P3  2026-10-13T20:51:11Z  ranks=12  lith=db501040e3fe
+               total        used        free      shared  buff/cache   available
+Mem:              30           0          29           0           0          29
+[20:51:13]   stale fuse.lith mounts after cleanup: 0
+lith mounted in the background (pid 3515331); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3515360); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3515387); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3515412); logs: /tmp/lith-1000-mount.log
+lith mounted in the background (pid 3515439); logs: /tmp/lith-1000-mount.log
+[20:51:20]   fuse.lith mounts: 5   daemons answering: 5/5
+✅ GCHP Validated Stack (ARM64/aarch64): gchp14.7.1-validated
+gcc (GCC) 12.2.0
+[20:51:21]   layout: NX=2 NY=6 CS_RES= ranks=12
+[20:51:21] launching mpirun -n 12 ./gchp
+[20:53:26]   cap_restart advanced at 125s
+[20:53:29] --- GCHP progress markers
+  heartbeat lines: 0
+Backtrace for this error:
+Backtrace for this error:
+Backtrace for this error:
+[20:53:29] --- per-mount handle counts (max and median over the run)
+  mount            oh_max oh_med sh_max sh_med win_min  sh/oh at oh_max
+  merra2-201901       110     36     42      6      2  0.382
+  merra2-201501         6      0      0      0    119  0.000
+  hemco                20      7      4      0     29  0.150
+  cheminputs           12      0      0      0    119  0.000
+  restarts              1      0      1      0    119  0.000
+  TOTAL(peaks)        149                              47 0.315
+  samples: 1225 over 125 s
+[20:53:32]   stale fuse.lith mounts after cleanup: 0
+[20:53:32] === done 2026-10-13T20:53:32Z
