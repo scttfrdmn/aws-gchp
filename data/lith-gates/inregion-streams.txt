@@ -3150,7 +3150,7 @@ My predictions: (1) NEUTRAL, uncovered ~62 (the lead closes the 64-read gap the 
     read (metadata walk, Random history, then the chunk stream establishes), the span-once arm adds faults there, and
     on a decode-bound ~10 s read they cost ~2% wall (inside the neutral band). v1.17.1's lead removes the extra faults.
   SS v1.17.1 same-file: kept 2/8 -> INSUFFICIENT. Same-file bracket is BIASED for this read-bound witness: the third
-    read of the same object (Xz) ran 1.0-1.7x faster than the first (X) in 6/8 reps (likely S3 serving a just-read
+    read of the same object (Xz) ran faster than the first (X) in 7/8 reps (Xz/X 1.07-1.71; rep 1 0.96) (likely S3 serving a just-read
     object faster), so B (always 2nd) is favoured; the two kept reps (r 1.19, 1.19) are the "faster than =false"
     case to distrust. Not scored. uncovered B 62-65 vs 62 (at the =false level).
   P40c: SS v1.17.1 bracketed X,B,Xz with DIFFERENT files per cell (the P39w2 design that produced the regression
