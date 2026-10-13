@@ -3140,3 +3140,18 @@ My predictions: (1) NEUTRAL, uncovered ~62 (the lead closes the 64-read gap the 
   P40b design change (fixed now): SAMEFILE=1 -- all three cells of a bracket read the SAME file (a new file per rep),
     so the bracket controls for file layout as well as time. 8 reps each: SS v1.17.1 (X,B,Xz), NC v1.17.1 (X,B,Xz),
     NC v1.16.0 (X,D,Xz). Same rules as P40; not relaxed. P40's own verdicts stay INSUFFICIENT as recorded.
+--- 5f-P40b RESULTS (09:58-10:28Z) + P40c PRE-REGISTRATION (after P40b was seen; before P40c ran) ---
+  NC v1.17.1 same-file: kept 8/8 (gaps 0.000-0.053), r = 0.993 1.020 1.008 0.976 1.013 1.016 1.002 0.994 -> median 1.005,
+    NEUTRAL. uncovered B vs X/Xz per rep: 24/23,23  65/62,63  46/45,45  41/39,37  77/77,77  79/79,79  39/39,37  55/55,55
+    -> at the =false level. GETs B 316-326 vs 266-320 (+0..+58, file-dependent). Bytes equal to 0.2%.
+  NC v1.16.0 same-file (span placed once, default on): kept 8/8, r = 1.033 1.011 1.092 1.043 0.993 1.024 1.023 1.022 ->
+    median 1.024, r>1 in 7/8 -> NEUTRAL by the rule (median not > 1.05). uncovered D vs X: 47/23 68/63 60/45 58/39 78/77
+    79/77 56/39 64/55 -> UP by 0-24 per file. => the index-then-stream shape DOES occur in a real netCDF4 whole-variable
+    read (metadata walk, Random history, then the chunk stream establishes), the span-once arm adds faults there, and
+    on a decode-bound ~10 s read they cost ~2% wall (inside the neutral band). v1.17.1's lead removes the extra faults.
+  SS v1.17.1 same-file: kept 2/8 -> INSUFFICIENT. Same-file bracket is BIASED for this read-bound witness: the third
+    read of the same object (Xz) ran 1.0-1.7x faster than the first (X) in 6/8 reps (likely S3 serving a just-read
+    object faster), so B (always 2nd) is favoured; the two kept reps (r 1.19, 1.19) are the "faster than =false"
+    case to distrust. Not scored. uncovered B 62-65 vs 62 (at the =false level).
+  P40c: SS v1.17.1 bracketed X,B,Xz with DIFFERENT files per cell (the P39w2 design that produced the regression
+    finding), 12 reps, same rules. If INSUFFICIENT again, report it so; do not relax the 10% rule.
